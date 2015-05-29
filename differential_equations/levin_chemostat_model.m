@@ -20,8 +20,8 @@ K = 0.5;  % conjugation/transmission rate
 % tspan: tspan prespecified
 
 % equations of motion:
-function dxdt = dstate(t,x);
-    dxdt = zeros(size(x0))
+function dxdt = dstate(t,x)
+    dxdt = zeros(size(x0));
     dxdt(1) = R * x(1);
     dxdt(2) = R * x(2) + K * x(3) * (x(1) + x(2));
     dxdt(3) = R * x(3) - K * x(3) * (x(1) + x(2));
