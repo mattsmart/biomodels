@@ -1,11 +1,12 @@
-% levin ODEs for chemostat, distinguish transconjugants from donors
+% extended levin ODEs for conjugation
+% reference: simonsen, gordon, stewart, and levin (1990)
 % input:
 % - tspan: initial time, final time as an array
 % - x0: array of initial state values
 % output:
 % - matrix of values over time, representing state evolution
 
-function [t,x] = levin_chemostat_model(tspan, x0)
+function [t,x] = conjugation_model_levin_extended(tspan, x0)
 
 assert(length(tspan) == 2)
 assert(length(x0) == 3)
