@@ -1,5 +1,6 @@
-% levin ODEs for chemostat, distinguish transconjugants from donors
+% levin ODEs for conjugation, distinguish transconjugants from donors
 % reference: levin, stewart, and rice (1978)
+% usage: [t,x] = conjugation_model_levin_basic([0,12],[1e5;0;1e5])
 % input:
 % - tspan: initial time, final time as an array
 % - x0: array of initial state values
@@ -12,8 +13,8 @@ assert(length(tspan) == 2)
 assert(length(x0) == 3)
 
 % constants:
-R = 1.0;  % growth rate
-K = 0.5;  % conjugation/transmission rate
+R = 1.0;   % [per hour] growth rate
+K = 1e-9;  % [per hour] conjugation/transmission rate
 
 % states: donors (x_1), transconjugants (x_2), recipients (x_3)
 % we write x = [x_1, x_2, x_3] so that x(1) == x_1, etc
