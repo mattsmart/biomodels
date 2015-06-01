@@ -25,9 +25,9 @@ delta = 5e-7;  % [ug/cell] resource cost per new cell
 % tspan: tspan prespecified
 
 % equations of motion:
-f = @(C) R_max * C / (Q + C)  % monod growth function
-g = @(C) K_max * C / (Q + C)  % monod transfer function
-function dxdt = dstate(t,x)
+f = @(C) R_max * C / (Q + C);  % monod growth function
+g = @(C) K_max * C / (Q + C);  % monod transfer function
+function dxdt = dstate(~,x)
     dxdt = zeros(size(x0));
     dxdt(1) = f(x(4)) * x(1);
     dxdt(2) = f(x(4)) * x(2) + g(x(4)) * x(3) * (x(1) + x(2));
