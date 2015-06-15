@@ -1,4 +1,4 @@
-function [D, Dr, R, Tr, T, N, times] = conjugation_pde()
+function [D, Dr, R, Tr, T, N, times] = pde_solve_conjugation()
 
 %{
 Args:

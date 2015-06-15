@@ -1,10 +1,10 @@
-function [B, N, times] = growth_pde_basic()
+function [u, model, tlist] = pde_solve_growth(t0, t1, timesteps)
 % Args:
 %     none
 % Returns:
-%     B      -- [matrix] bacteria concentration
-%     N      -- [matrix] nutrient concentration
-%     times  -- [vector] times
+%     u      -- [matrix] bacteria / nutrient concentration solution
+%     model  -- [object] contains BCs and geometry
+%     tlist  -- [vector] times
 
 
 % =======================================================================
@@ -38,8 +38,9 @@ d = [1.0, 0.0;
      0.0, 1.0];
 f = [0.0; 0.0];
 
-%a = char('heaviside(u(1)-1).*1.*u(2)./(1+1.*u(2))', '-heaviside(u(1)-1).*1.*u(2)./(1+1.*u(2))')
-a = 1
+%TODO FIX
+a = char('-1*heaviside(u(1)-0.75).*2.*u(2)', 'heaviside(u(1)-0.75).*2.*u(2)')
+%c = [diffusion_rate; diffusion_rate; 1.0; 1.0];
 c = 1
 d = 1
 
@@ -47,60 +48,33 @@ d = 1
 model = createpde(N);
 geometryFromEdges(model,@squareg);
 generateMesh(model,'Hmax',0.1);
-p = model.Mesh.Nodes
-np = size(p,2)
+p = model.Mesh.Nodes;
+np = size(p,2);
 
 % boundary conditions
-applyBoundaryCondition(model,'Edge',1:model.Geometry.NumEdges,'u',zeros(N,1));
+% dirichlet (constant value)
+%applyBoundaryCondition(model,'Edge',1:model.Geometry.NumEdges,'u',zeros(N,1));
+% neumann (constant flux)
+applyBoundaryCondition(model,'Edge',1:model.Geometry.NumEdges,'q',zeros(N,N),'g',zeros(N,1));
 
 % intial conditions
 u0_bacteria = zeros(np,1);
-u0_nutrients = zeros(np,1);
-ix = find(sqrt(p(1,:).^2 + p(2,:).^2) < 0.4);  % circle with value 1
-u0_nutrients(ix) = ones(size(ix));
+ix_bacteria = find(sqrt(p(1,:).^2 + p(2,:).^2) < 0.4);  % circle with value 1
+u0_bacteria(ix_bacteria) = ones(size(ix_bacteria));
+u0_nutrients = ones(np,1);
+%ix_nutrients = find(sqrt(p(1,:).^2 + p(2,:).^2) < 0.8);  % circle with value 1
+%u0_nutrients(ix_nutrients) = ones(size(ix_nutrients));
 u0 = [u0_bacteria; u0_nutrients]; 
-%u0 = 0
+
 
 % =======================================================================
 % System Evaluation
 % =======================================================================
 
 % solver parameters
-timesteps = 3;
-tlist = linspace(0,1,timesteps);
+tlist = linspace(t0,t1,timesteps);
 
 % solve
 u = parabolic(u0, tlist, model, c, a, f, d);
 
-
-% REMOVE
-B = model
-N = u
-times = p
-
 end
-%{
-% ======================================================================
-% Plotting
-% ======================================================================
-% NOTE need to have subplots for each solution based on np row slices
-% for tt = 1:timesteps % number of timesteps
-%     pdeplot(model,'xydata',u(:np,tt),'zdata',u(:np,tt),'colormap','jet')
-%     axis([-1 1 -1/2 1/2 -1.5 1.5 -1.5 1.5]) % use fixed axis
-%     title(['Step ' num2str(tt)])
-%     view(-45,22)
-%     drawnow
-%     pause(.1)
-% end
-pdeplot(model,'xydata',u(:np,1));
-axis equal
-figure
-pdeplot(model,'xydata',u(:np,timesteps))
-axis equal
-
-B = u(1:np,:);
-N = u(np+1:np*N,:);
-times = tlist;
-
-end
-%}
