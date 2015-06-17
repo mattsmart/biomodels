@@ -14,7 +14,6 @@ for tt = 1:timesteps
     pdeplot(model,'xydata',u(1:np,tt))
     %axis([-1 1 -1/2 1/2 -1.5 1.5 -1.5 1.5]) % use fixed axis
     title(['Step ' num2str(tt)])
-    %view(-45,22)  % ???????
     drawnow  % ???????
     pause(.1)
 end
@@ -22,7 +21,6 @@ for tt = 1:timesteps
     pdeplot(model,'xydata',u(np+1:np*2,tt),'colormap','jet')
     %axis([-1 1 -1/2 1/2 -1.5 1.5 -1.5 1.5]) % use fixed axis
     title(['Step ' num2str(tt)])
-    %view(-45,22)  % ???????
     drawnow  % ???????
     pause(.1)
 end
@@ -36,3 +34,4 @@ end
 
 % end
 % 'colormap', 'jet'
+% view(-45,22)  % ???????
