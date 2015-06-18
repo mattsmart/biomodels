@@ -9,11 +9,11 @@ function [u, model, times] = pde_conjugation_solve(t0,t1,timesteps)
 
 % STATES
 % u1 - D    donors
-% u2 - Dr   refractory donors; just conjugated
-% u3 - R    recipients
-% u4 - Tr   refractory transconjugants; just received plasmid
-% u5 - T    transconjugants
-% u6 - N    nutrients
+% u2 - R    recipients
+% u3 - T    transconjugants
+% u4 - Dr   refractory donors; just conjugated
+% u5 - Tr   refractory transconjugants; just received plasmid
+% u6 - n    nutrients
 
 
 % =======================================================================
@@ -43,10 +43,10 @@ D0 = 1.0;  % average donor concentration in IC region
 R0 = 1.0;  % average recipient concentration in IC region
 n0 = 1.0;  % average nutrient concentration in IC region
 u0_D  = zeros(np,1);
-u0_Dr = zeros(np,1);
 u0_R  = zeros(np,1);
-u0_Tr = zeros(np,1);
 u0_T  = zeros(np,1);
+u0_Dr = zeros(np,1);
+u0_Tr = zeros(np,1);
 u0_n  = zeros(np,1);
 % IC donor
 ix_D = find(sqrt(p(1,:).^2 + p(2,:).^2) < 0.4);  % specify disk r=0.4
@@ -64,7 +64,7 @@ u0 = [u0_D; u0_Dr; u0_R; u0_Tr; u0_T; u0_n];
 % parabolic system with 6 states
 c = @pde_conjugation_coeff_c;    % interpreted as N^2 x  1
 a = @pde_conjugation_coeff_a;    % interpreted as  N  x  N
-f = zeros(N,1);                  % interpreted as  N  x  1
+f = @pde_conjugation_coeff_f;                  % interpreted as  N  x  1
 d = @pde_conjugation_coeff_d;    % interpreted as  N  x  N
 
 
