@@ -18,19 +18,25 @@ donor_return_rate = 0.5;           % "k_D"
 transconjugant_return_rate = 0.5;  % "k_T"
 conjugation_rate = 0.5;            % "gamma"
 
+% interpolate function value at centroids
+nt = size(t,2);
+uintrp = pdeintrp(p,t,u); % size N x nt
+
 % function handles
 % NOTE: need to choose one of the two growth functions
 growth_malthusian = @(n) growth_rate_malthusian.*n;
 growth_mm = @(n) growth_rate_mm_alpha.*n./(1 + growth_rate_mm_beta.*n);
-heaviside_growth_cutoff = @(b) b - nutrient_threshold > 0;
 
 % http://www.mathworks.com/help/pde/ug/multidimensional-coefficients.html
 % parabolic system - 6 states
-a = [conjugation_rate.*u(2) - growth_malthusian(u(6));              % u1 - D
-     conjugation_rate.*(u(1) + u(3)) - growth_malthusian(u(6));     % u2 - R 
-     conjugation_rate.*u(2) - growth_malthusian(u(6));              % u3 - T
-     donor_return_rate - growth_malthusian(u(6));                   % u4 - Dr
-     transconjugant_return_rate - growth_malthusian(u(6));          % u5 - Tr
-     (u(1) + u(2) + u(3) + u(4) + u(5)).*growth_rate_malthusian];   % u6 - n
+a = zeros(6, nt);  % 6 rows correspond to each state
+for pt = 1:nt
+    a(:,pt) = [conjugation_rate.*uintrp(2,pt) - growth_malthusian(uintrp(6,pt));                   % u1 - D
+               conjugation_rate.*(uintrp(1,pt) + uintrp(3,pt)) - growth_malthusian(uintrp(6,pt));  % u2 - R 
+               conjugation_rate.*uintrp(2,pt) - growth_malthusian(uintrp(6,pt));                   % u3 - T
+               donor_return_rate - growth_malthusian(uintrp(6,pt));                                % u4 - Dr
+               transconjugant_return_rate - growth_malthusian(uintrp(6,pt));                      % u5 - Tr
+               sum(uintrp(1:5,pt)).*growth_rate_malthusian];                                         % u6 - n
+end
 
 end

@@ -12,15 +12,23 @@ function c = pde_conjugation_coeff_c(p,t,u,time)
 diffusion_rate_nutrients = 0.2;  % "d_0"
 diffusion_rate_bacteria = 0.01;  % "d_1"
 
-% function handles
-diffusion_function_bacteria = @(u) ...
-    diffusion_rate_bacteria * (u(1) + u(2) + u(3) + u(4) + u(5));
+% interpolate function value at centroids
+nt = size(t,2);
+uintrp = pdeintrp(p,t,u); % size N x nt
 
-c = [diffusion_function_bacteria(u); 0.0; 0.0; diffusion_function_bacteria(u);  % D
-     diffusion_function_bacteria(u); 0.0; 0.0; diffusion_function_bacteria(u);  % R
-     diffusion_function_bacteria(u); 0.0; 0.0; diffusion_function_bacteria(u);  % T
-     diffusion_function_bacteria(u); 0.0; 0.0; diffusion_function_bacteria(u);  % Dr
-     diffusion_function_bacteria(u); 0.0; 0.0; diffusion_function_bacteria(u);  % Tr
-     diffusion_rate_nutrients; 0.0; 0.0; diffusion_rate_nutrients];  % n
+% function handles
+diffusion_function_bacteria = @(pt) diffusion_rate_bacteria.*sum(uintrp(1:5,pt));
+%diffusion_function_bacteria = @(u) diffusion_rate_bacteria;
+
+c = zeros(24, nt);  % 24 rows due to arbitrary specification pattern for c
+for pt = 1:nt
+    diffusion_value_bacteria = diffusion_function_bacteria(pt);
+    c(:,pt) = [diffusion_value_bacteria; 0.0; 0.0; diffusion_value_bacteria;  % D
+               diffusion_value_bacteria; 0.0; 0.0; diffusion_value_bacteria;  % T
+               diffusion_value_bacteria; 0.0; 0.0; diffusion_value_bacteria;  % R
+               diffusion_value_bacteria; 0.0; 0.0; diffusion_value_bacteria;  % Dr
+               diffusion_value_bacteria; 0.0; 0.0; diffusion_value_bacteria;  % Tr
+               diffusion_rate_nutrients; 0.0; 0.0; diffusion_rate_nutrients]; % n
+end
 
 end
