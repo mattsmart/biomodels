@@ -9,14 +9,12 @@ function a = pde_conjugation_coeff_a(p,t,u,time)
 % u6 - n    nutrients
 
 % constants
-nutrient_threshold = 0.25;         % "theta" (Mimura, 2000)
 growth_rate_malthusian = 1.0;      % "alpha" (Mimura, 2000)
 growth_rate_mm_alpha = 1.0;        % "MM alpha" (Mimura, 2000)
 growth_rate_mm_beta = 1.0;         % "MM beta" (Mimura, 2000)
-death_rate = 0.01;                 % "mu" (Mimura, 2000)
-donor_return_rate = 0.5;           % "k_D"
-transconjugant_return_rate = 0.5;  % "k_T"
-conjugation_rate = 0.5;            % "gamma"
+donor_return_rate = 0.25;          % "k_D"
+transconjugant_return_rate = 0.25; % "k_T"
+conjugation_rate = 0.3;            % "gamma"
 
 % interpolate function value at centroids
 nt = size(t,2);
@@ -35,8 +33,8 @@ for pt = 1:nt
                conjugation_rate.*(uintrp(1,pt) + uintrp(3,pt)) - growth_malthusian(uintrp(6,pt));  % u2 - R 
                conjugation_rate.*uintrp(2,pt) - growth_malthusian(uintrp(6,pt));                   % u3 - T
                donor_return_rate - growth_malthusian(uintrp(6,pt));                                % u4 - Dr
-               transconjugant_return_rate - growth_malthusian(uintrp(6,pt));                      % u5 - Tr
-               sum(uintrp(1:5,pt)).*growth_rate_malthusian];                                         % u6 - n
+               transconjugant_return_rate - growth_malthusian(uintrp(6,pt));                       % u5 - Tr
+               sum(uintrp(1:5,pt)).*growth_rate_malthusian];                                       % u6 - n
 end
 
 end

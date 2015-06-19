@@ -9,9 +9,9 @@ function f = pde_conjugation_coeff_f(p,t,u,time)
 % u6 - n    nutrients
 
 % constants
-donor_return_rate = 0.5;           % "k_D"
-transconjugant_return_rate = 0.5;  % "k_T"
-conjugation_rate = 0.5;            % "gamma"
+donor_return_rate = 0.25;           % "k_D"
+transconjugant_return_rate = 0.25;  % "k_T"
+conjugation_rate = 0.3;             % "gamma"
 
 % interpolate function value at centroids
 nt = size(t,2);
