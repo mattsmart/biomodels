@@ -1,4 +1,4 @@
-function [u, model, times] = pde_conjugation_solve(t0,t1,timesteps)
+function [u, model, tlist] = pde_conjugation_solve(t0,t1,timesteps)
 % Args:
 %     t0,t1      -- [scalars] start and end times
 %     timesteps  -- [scalar] number of steps between t0 and t1
@@ -50,14 +50,14 @@ u0_Tr = zeros(np,1);
 u0_n  = zeros(np,1);
 % IC donor
 ix_D = find(sqrt(p(1,:).^2 + p(2,:).^2) < 0.4);  % specify disk r=0.4
-u0_D(ix_D) = D0 * ones(size(i_D));  % set disk value D0
+u0_D(ix_D) = D0 * ones(size(ix_D));  % set disk value D0
 % IC recipient
 ix_R = find(sqrt(p(1,:).^2 + p(2,:).^2) < 0.6);  % specify disk r=0.6
-u0_R(ix_R) = R0 * ones(size(i_R));  % set disk value R0
+u0_R(ix_R) = R0 * ones(size(ix_R));  % set disk value R0
 % IC nutrient
 ix_n = find(sqrt(p(1,:).^2 + p(2,:).^2) < 0.8);  % specify disk r=0.8
-u0_n(ix_n) = n0 * ones(size(i_n));  % set disk value n0
-u0 = [u0_D; u0_Dr; u0_R; u0_Tr; u0_T; u0_n]; 
+u0_n(ix_n) = n0 * ones(size(ix_n));  % set disk value n0
+u0 = [u0_D; u0_R; u0_T; u0_Dr; u0_Tr; u0_n]; 
 
 % pde parameters (system of equations)
 % http://www.mathworks.com/help/pde/ug/multidimensional-coefficients.html
