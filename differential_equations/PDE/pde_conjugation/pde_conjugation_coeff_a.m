@@ -29,12 +29,12 @@ growth_mm = @(n) growth_rate_mm_alpha.*n./(1 + growth_rate_mm_beta.*n);
 % parabolic system - 6 states
 a = zeros(6, nt);  % 6 rows correspond to each state
 for pt = 1:nt
-    a(:,pt) = [conjugation_rate.*uintrp(2,pt) - growth_malthusian(uintrp(6,pt));                   % u1 - D
-               conjugation_rate.*(uintrp(1,pt) + uintrp(3,pt)) - growth_malthusian(uintrp(6,pt));  % u2 - R 
-               conjugation_rate.*uintrp(2,pt) - growth_malthusian(uintrp(6,pt));                   % u3 - T
-               donor_return_rate - growth_malthusian(uintrp(6,pt));                                % u4 - Dr
-               transconjugant_return_rate - growth_malthusian(uintrp(6,pt));                       % u5 - Tr
-               sum(uintrp(1:5,pt)).*growth_rate_malthusian];                                       % u6 - n
+    a(:,pt) = [conjugation_rate.*uintrp(2,pt) - growth_malthusian(uintrp(6,pt));                   % D
+               conjugation_rate.*(uintrp(1,pt) + uintrp(3,pt)) - growth_malthusian(uintrp(6,pt));  % R 
+               conjugation_rate.*uintrp(2,pt) - growth_malthusian(uintrp(6,pt));                   % T
+               donor_return_rate - growth_malthusian(uintrp(6,pt));                                % Dr
+               transconjugant_return_rate - growth_malthusian(uintrp(6,pt));                       % Tr
+               sum(uintrp(1:5,pt)).*growth_rate_malthusian];                                       % n
 end
 
 end
