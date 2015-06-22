@@ -4,7 +4,7 @@ function [] = pde_visualizer(u, model, tlist)
 % can also specify contour levels 
 
 % states
-state_id = ['D','R','T','Dr','Tr','n'];
+state_id = char('D','R','T','Dr','Tr','n');
 
 % extract pde solution parameters
 timesteps = size(u, 2);
@@ -17,6 +17,6 @@ for tt = 1:timesteps
     for state = 1:N
         subplot(timesteps,N,(tt-1)*N + state);
         pdeplot(model,'xydata',u((state-1)*np+1:state*np,tt),'colormap','gray');
-        title(['State ' state_id(state) ' Time ' num2str(tlist(tt)) 'h']);
+        title(['State ' state_id(state,:) ' Time ' num2str(tlist(tt)) 'h']);
     end
 end
