@@ -1,15 +1,15 @@
-function [] = pde_visualizer(u, model, tlist)
+function [] = pde_visualizer(u, model, tlist, state_id)
 % takes any pde u (soln), model, tlist and visualizes accordingly
 % colormap choices: 'jet', 'cool', 'gray', 'bone', 'copper'
 % can also specify contour levels 
-
-% states
-state_id = char('D','R','T','Dr','Tr','n');
+% might be useful to have average value at a timepoint labelled
 
 % extract pde solution parameters
 timesteps = size(u, 2);
 np = size(model.Mesh.Nodes, 2);
 N = size(u,1)/np;
+
+assert(size(state_id,1) == N)
 
 % plot each state
 figure
