@@ -1,7 +1,12 @@
-% simulation parameters
-t0 = 0; 
-t1 = 6; 
+% simulation parameters (hours)
+t0 = 0;
+t1 = 1;
 timesteps = 4;
 
+% solve
 [u, model, tlist] = pde_conjugation_solve(t0, t1, timesteps);
-pde_visualizer(u, model, tlist);
+
+% visualization
+state_id = char('D','R','T','Dr','Tr','n');
+pde_visualizer(u, model, tlist, state_id);
+pde_value_plotter(u, model, tlist, state_id);
