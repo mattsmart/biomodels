@@ -5,17 +5,28 @@ function [] = pde_visualizer(u, model, tlist, state_id)
 % might be useful to have average value at a timepoint labelled
 
 % extract pde solution parameters
-timesteps = size(u, 2);
 np = size(model.Mesh.Nodes, 2);
 N = size(u,1)/np;
-
 assert(size(state_id,1) == N)
+
+% choose timepoints for plotting
+% DEFAULT - 4 timepoints, t0, ta, tb, t1
+timesteps = size(u, 2);
+if timesteps > 4
+    m = mod(timesteps,3);
+    T = (timesteps - m) / 3;    
+    ta = 1 + T;
+    tb = 1 + 2*T;
+    timepoints = [1, ta, tb, timesteps];
+else
+    timepoints = 1:timesteps;
+end
 
 % plot each state
 figure
-for tt = 1:timesteps
+for tt = timepoints
     for state = 1:N
-        subplot(timesteps,N,(tt-1)*N + state);
+        subplot(length(timepoints),N,(tt-1)*N + state);
         pdeplot(model,'xydata',u((state-1)*np+1:state*np,tt),'colormap','gray');
         title(['State ' state_id(state,:) ' Time ' num2str(tlist(tt)) 'h']);
     end
