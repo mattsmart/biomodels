@@ -18,7 +18,7 @@ figure
 for state = 1:(N+1)
     subplot(floor(N/3),floor(N/2)+1,state)
     plot(tlist,state_totals(state,:)')
-    title(['State values over time ' state_id(state,:)])
+    title(['Total state value: ' state_id(state,:)])
 end
 
 end
