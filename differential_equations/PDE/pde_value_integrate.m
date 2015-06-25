@@ -1,4 +1,4 @@
-function state_totals = pde_value_integrate(u, model, tlist)
+function state_totals = pde_value_integrate(u, model)
 % integrate total value of a given state at a given time
 
 % sums the contribution of each area slice to the total value of a
