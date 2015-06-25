@@ -21,5 +21,4 @@ for state = 1:(N+1)
     title(['State values over time ' state_id(state,:)])
 end
 
-
 end
