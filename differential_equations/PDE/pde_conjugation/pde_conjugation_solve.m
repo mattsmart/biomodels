@@ -60,10 +60,9 @@ u0 = [u0_D; u0_R; u0_T; u0_Dr; u0_Tr; u0_n];
 % http://www.mathworks.com/help/pde/ug/multidimensional-coefficients.html
 % parabolic system with 6 states
 c = @pde_conjugation_coeff_c;    % interpreted as N^2 x  1  x  mesh points
-a = @pde_conjugation_coeff_a;    % interpreted as  N  x  N  x  mesh points
+a = 0;                           % interpreted as  N  x  N  x  mesh points
 f = @pde_conjugation_coeff_f;    % interpreted as  N  x  1  x  mesh points
-d = @pde_conjugation_coeff_d;    % interpreted as  N  x  N  x  mesh points
-
+d = 1;                           % interpreted as  N  x  N  x  mesh points
 
 % =======================================================================
 % System Evaluation

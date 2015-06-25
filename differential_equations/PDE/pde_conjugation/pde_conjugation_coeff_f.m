@@ -27,13 +27,16 @@ growth_mm = @(n) growth_rate_mm_alpha.*n./(1 + growth_rate_mm_beta.*n);
 
 f = zeros(6,nt);
 for pt = 1:nt
-    g_n = growth_malthusian(uintrp(6,pt));
-    f(:,nt) = [g_n.*uintrp(1,pt) - conjugation_rate.*uintrp(2,pt).*uintrp(1,pt)                   + donor_return_rate.*uintrp(4,pt);           % D
-               g_n.*uintrp(2,pt) - conjugation_rate.*uintrp(2,pt).*(uintrp(1,pt) + uintrp(3,pt));                                              % R 
-               g_n.*uintrp(3,pt) - conjugation_rate.*uintrp(2,pt).*uintrp(3,pt)                   + transconjugant_return_rate.*uintrp(5,pt);  % T
-               g_n.*uintrp(4,pt) + conjugation_rate.*uintrp(2,pt).*uintrp(1,pt)                   - donor_return_rate.*uintrp(4,pt);           % Dr
-               g_n.*uintrp(5,pt) + conjugation_rate.*uintrp(2,pt).*(uintrp(1,pt)+2.*uintrp(3,pt)) - transconjugant_return_rate.*uintrp(5,pt);  % Tr
-               -g_n.*sum(uintrp(1:5,pt))];                                                                                                     % n
+    g_of_n = growth_malthusian(uintrp(6,pt));
+    gamma_dot_R = conjugation_rate.*uintrp(2,pt);
+    kD_dot_Dr = donor_return_rate.*uintrp(4,pt);
+    kT_dot_Tr = transconjugant_return_rate.*uintrp(5,pt);
+    f(:,nt) = [g_of_n.*uintrp(1,pt) - gamma_dot_R.*uintrp(1,pt)                   + kD_dot_Dr;  % D
+               g_of_n.*uintrp(2,pt) - gamma_dot_R.*(uintrp(1,pt) + uintrp(3,pt));               % R
+               g_of_n.*uintrp(3,pt) - gamma_dot_R.*uintrp(3,pt)                   + kT_dot_Tr;  % T
+               g_of_n.*uintrp(4,pt) + gamma_dot_R.*uintrp(1,pt)                   - kD_dot_Dr;  % Dr
+               g_of_n.*uintrp(5,pt) + gamma_dot_R.*(uintrp(1,pt)+2.*uintrp(3,pt)) - kT_dot_Tr;  % Tr
+               -g_of_n.*sum(uintrp(1:5,pt))];                                                   % n
 end
 
 end
