@@ -26,7 +26,7 @@ N = 6;
 % geometry
 model = createpde(N);
 geometryFromEdges(model,@squareg);
-generateMesh(model,'Hmax',0.2);
+generateMesh(model,'Hmax',0.2);  % max grid edge size, use 0.01 to 0.2
 p = model.Mesh.Nodes;
 np = size(p,2);
 
