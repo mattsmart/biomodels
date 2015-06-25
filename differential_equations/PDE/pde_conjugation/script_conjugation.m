@@ -1,7 +1,7 @@
 % simulation parameters (hours)
 t0 = 0;
 t1 = 6;
-timesteps = 100;  % was 4
+timesteps = 25;
 
 % solve
 [u, model, tlist] = pde_conjugation_solve(t0, t1, timesteps);
