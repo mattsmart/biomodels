@@ -24,10 +24,14 @@ end
 
 % plot each state
 figure
+step = 0;
 for tt = timepoints
     for state = 1:N
-        subplot(length(timepoints),N,(tt-1)*N + state);
-        pdeplot(model,'xydata',u((state-1)*np+1:state*np,tt),'colormap','gray');
+        subplot(length(timepoints), N, step*N + state);
+        pdeplot(model, 'xydata', u((state-1)*np+1:state*np, tt), 'colormap', 'gray');
         title(['State ' state_id(state,:) ' Time ' num2str(tlist(tt)) 'h']);
     end
+    step = step + 1;
+end
+
 end
