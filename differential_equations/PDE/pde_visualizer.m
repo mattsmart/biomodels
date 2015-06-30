@@ -1,4 +1,4 @@
-function [] = pde_visualizer(u, model, tlist, state_id)
+function [] = pde_visualizer(u, model, tlist, state_id, plot_title)
 % takes any pde u (soln), model, tlist and visualizes accordingly
 % colormap choices: 'jet', 'cool', 'gray', 'bone', 'copper'
 % can also specify contour levels 
@@ -23,7 +23,7 @@ else
 end
 
 % plot each state
-figure
+fig = figure('visible','off','PaperUnits','inches','PaperPosition',[0 0 15 9]);
 step = 0;
 for tt = timepoints
     for state = 1:N
@@ -33,5 +33,8 @@ for tt = timepoints
     end
     step = step + 1;
 end
+
+% save figure
+print(fig,plot_title,'-djpeg','-r0');
 
 end
