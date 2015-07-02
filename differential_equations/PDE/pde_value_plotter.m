@@ -14,10 +14,11 @@ state_id = char(state_id, 'N');
 state_totals(N+1,:) = sum(state_totals(1:N-1,:));  % bacteria sum
 
 % plot sums
-fig = figure('visible','off');
+fig = figure('visible','off','PaperUnits','inches','PaperPosition',[0 0 15 9]);
 for state = 1:(N+1)
     subplot(floor(N/3),floor(N/2)+1,state)
-    plot(tlist,state_totals(state,:)')
+    plot(tlist,state_totals(state,:)','-o')
+    axis([tlist(1), tlist(end), -inf, inf])
     title(['Total ' state_id(state,:)])
 end
 
