@@ -1,5 +1,10 @@
-function [c,a,f,d] = pde_conjugation_system()
-% specify coeffiencts which define the pde system
+function [c,a,f,d] = pde_conjugation_system(flag_nonlinear_diffusion, flag_monod_growth)
+% specify coefficients which define the pde system
+% Args:
+%     flag_nonlinear_diffusion  -- [bool] default true
+%     flag_monod_growth         -- [bool] default true
+% Returns:
+%     [c, a, f. d]              -- pde system coefficient arrays
 
 % documentation:
 % http://www.mathworks.com/help/pde/ug/multidimensional-coefficients.html
@@ -13,16 +18,15 @@ function [c,a,f,d] = pde_conjugation_system()
 % u5 - Tr   refractory transconjugants; just received plasmid
 % u6 - n    nutrients
 
-
 % =======================================================================
 % Constants and Functions
 % =======================================================================
 
 % growth parameters
-% alpha = log(2)/(T*n0) where T is generation time of the bacteria (0.5h e.coli)
-growth_rate_malthusian = 1.3863;            % "alpha" (Mimura, 2000)
-growth_rate_mm_alpha = 1.0;                 % "MM alpha" (Mimura, 2000)
-growth_rate_mm_beta = 1.0;                  % "MM beta" (Mimura, 2000)
+growth_rate_malthusian = 1.3863;            % log(2)/(T*n0), T = generation time (30 min for ecoli) "alpha" (Mimura, 2000)
+monod_mu_max = 1.3863;                      % [1/hour] "MM alpha" (Mimura, 2000)
+monod_Ks = 0.26;                            % [g/m^3]  "MM beta" (Mimura, 2000) 
+yield_coefficient = 1.0;                    % [#] mass of biomass or cell produced per unit nutrient mass
 
 % conjugation [arameters
 donor_return_rate = 0.25;                   % "k_D"
@@ -36,8 +40,8 @@ diffusion_rate_bacteria_nonlinear = 0.001;  % "d_1" [m^2/(hour*bacteria^2)]
 
 % function handles
 % NOTE: need to choose one of the growth functions
-growth_malthusian = @(n) growth_rate_malthusian.*n;
-growth_mm = @(n) growth_rate_mm_alpha.*n./(1 + growth_rate_mm_beta.*n);
+growth_malthusian = sprintf('%0.4f.*u(6,:))',growth_rate_malthusian);
+growth_monod = sprintf('%0.4f.*u(6,:)./(%0.4f+u(6,:))',monod_mu_max,monod_Ks);
 
 
 % =======================================================================
@@ -51,24 +55,38 @@ diff_bacteria_nonlinear = sprintf('%0.4f.*(u(1,:)+u(2,:)+u(3,:)+u(4,:)+u(5,:))',
 diff_nutrient = sprintf('%0.4f',diffusion_rate_nutrients);
 
 % prepare diagonal blocks of c tensor
-diff_bacteria = diff_bacteria_nonlinear;  % choose linear or non-linear diffusion
+if flag_nonlinear_diffusion
+    diff_bacteria = diff_bacteria_nonlinear;
+else
+    diff_bacteria = diff_bacteria_linear;
+end
 c_bacteria = char(diff_bacteria,'0','0',diff_bacteria);
 c_nutrient = char(diff_nutrient,'0','0',diff_nutrient);
 
 c = char(c_bacteria,c_bacteria,c_bacteria,c_bacteria,c_bacteria,c_nutrient);
+
 
 % =======================================================================
 % "a" Coefficient (Linear factor)
 % interpreted as  N  x  N  x  mesh points
 % =======================================================================
 
+% choose growth factor and specify nutrient dependence term
+if flag_monod_growth
+    growth_factor = growth_monod;
+    a_6 = sprintf('%0.4f./(%0.4f+u(6,:)).*(u(1,:)+u(2,:)+u(3,:)+u(4,:)+u(5,:))./%0.4f',monod_mu_max,monod_Ks,yield_coefficient);
+else
+    growth_factor = growth_malthusian;
+    %a_6 = sprintf('%0.4f.*(u(1,:)+u(2,:)+u(3,:)+u(4,:)+u(5,:))./%0.4f',growth_rate_malthusian,yield_coefficient);
+    a_6 = '0.0'
+end
+
 % string formatting for diagonals of "a" matrix
-a_1 = sprintf('%0.4f.*u(2,:)-%0.4f.*u(6,:)',conjugation_rate,growth_rate_malthusian);
-a_2 = sprintf('%0.4f.*(u(1,:)+u(3,:))-%0.4f.*u(6,:)',conjugation_rate,growth_rate_malthusian);
-a_3 = sprintf('%0.4f.*u(2,:)-%0.4f.*u(6,:)',conjugation_rate,growth_rate_malthusian);
-a_4 = sprintf('%0.4f-%0.4f.*u(6,:)',donor_return_rate,growth_rate_malthusian);
-a_5 = sprintf('%0.4f-%0.4f.*u(6,:)',transconjugant_return_rate,growth_rate_malthusian);
-a_6 = sprintf('%0.4f.*(u(1,:)+u(2,:)+u(3,:)+u(4,:)+u(5,:))',growth_rate_malthusian);
+a_1 = sprintf('%0.4f.*u(2,:)-%s',conjugation_rate,growth_factor);
+a_2 = sprintf('%0.4f.*(u(1,:)+u(3,:))-%s',conjugation_rate,growth_factor);
+a_3 = sprintf('%0.4f.*u(2,:)-%s',conjugation_rate,growth_factor);
+a_4 = sprintf('%0.4f-%s',donor_return_rate,growth_factor);
+a_5 = sprintf('%0.4f-%s',transconjugant_return_rate,growth_factor);
 
 a = char(a_1, a_2, a_3, a_4, a_5, a_6);
 
@@ -95,14 +113,5 @@ f = char(f_1, f_2, f_3, f_4, f_5, f_6);
 
 d = 1;
 
-
-% =======================================================================
-% Custom Settings (pick at most one of each)
-% =======================================================================
-% 1) nonlinear (default) / linear / no diffusion
-%c = char('0.01','0.01','0.01','0.01','0.01','0.05');  % linear diffusion
-%c = 0;                                                % no movement
-% 2) nutrient depletion (default) / no nutrient depletion
-%a(6,:) = '0'                                          % no nutrient loss
 
 end
