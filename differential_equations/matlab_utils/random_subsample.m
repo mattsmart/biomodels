@@ -1,5 +1,5 @@
 function subsampled_array = random_subsample(input_array, ratio_to_keep)
-%remove removal_ratio of input_set's elements randomly
+%randomly subsample given 1D input array
 % Args:
 %     input_array       -- [array] row or column vector
 %     ratio_to_keep     -- [float] number between 0.0 and 1.0
