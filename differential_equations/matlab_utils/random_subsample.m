@@ -9,6 +9,6 @@ function subsampled_array = random_subsample(input_array, ratio_to_keep)
 n = length(input_array);
 random_permutation = randperm(n);  % permutes integers 1:n
 shuffled_array = input_array(random_permutation);
-subsampled_array = shuffled_array(1:n*ratio_to_keep);
+subsampled_array = shuffled_array(1:ceil(n*ratio_to_keep));
 
 end
