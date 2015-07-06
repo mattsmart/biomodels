@@ -1,14 +1,11 @@
-function [c,a,f,d] = pde_conjugation_system(flag_nonlinear_diffusion, flag_monod_growth)
+function [c, a, f, d] = pde_conjugation_system(flag_nonlinear_diffusion, flag_monod_growth, flag_nonnegative)
 % specify coefficients which define the pde system
 % Args:
 %     flag_nonlinear_diffusion  -- [bool] default true
 %     flag_monod_growth         -- [bool] default true
+%     flag_nonnegative          -- [bool] default true
 % Returns:
 %     [c, a, f. d]              -- pde system coefficient arrays
-
-% documentation:
-% http://www.mathworks.com/help/pde/ug/multidimensional-coefficients.html
-% parabolic system with N=6 states
 
 % STATES
 % u1 - D    donors
@@ -17,6 +14,13 @@ function [c,a,f,d] = pde_conjugation_system(flag_nonlinear_diffusion, flag_monod
 % u4 - Dr   refractory donors; just conjugated
 % u5 - Tr   refractory transconjugants; just received plasmid
 % u6 - n    nutrients
+
+% solver/system documentation:
+% http://www.mathworks.com/help/pde/ug/multidimensional-coefficients.html
+% parabolic system with N=6 states
+
+% notes:
+% Recipients sometimes go negative (numerical error), so use max(R,0)
 
 % =======================================================================
 % Constants and Functions
@@ -52,6 +56,9 @@ growth_monod = sprintf('%0.4f.*u(6,:)./(%0.4f+u(6,:))',monod_mu_max,monod_Ks);
 % string formatting
 diff_bacteria_linear = sprintf('%0.4f',diffusion_rate_bacteria_linear);
 diff_bacteria_nonlinear = sprintf('%0.4f.*(u(1,:)+u(2,:)+u(3,:)+u(4,:)+u(5,:))',diffusion_rate_bacteria_nonlinear);
+if flag_nonnegative
+    diff_bacteria_nonlinear = string_array_max(diff_bacteria_nonlinear);
+end
 diff_nutrient = sprintf('%0.4f',diffusion_rate_nutrients);
 
 % prepare diagonal blocks of c tensor
@@ -78,15 +85,24 @@ if flag_monod_growth
 else
     growth_factor = growth_malthusian;
     %a_6 = sprintf('%0.4f.*(u(1,:)+u(2,:)+u(3,:)+u(4,:)+u(5,:))./%0.4f',growth_rate_malthusian,yield_coefficient);
-    a_6 = '0.0'
+    a_6 = '0.0';  % no depletion of nutrients
 end
 
 % string formatting for diagonals of "a" matrix
-a_1 = sprintf('%0.4f.*u(2,:)-%s',conjugation_rate,growth_factor);
-a_2 = sprintf('%0.4f.*(u(1,:)+u(3,:))-%s',conjugation_rate,growth_factor);
-a_3 = sprintf('%0.4f.*u(2,:)-%s',conjugation_rate,growth_factor);
-a_4 = sprintf('%0.4f-%s',donor_return_rate,growth_factor);
-a_5 = sprintf('%0.4f-%s',transconjugant_return_rate,growth_factor);
+if flag_nonnegative
+    a_1 = sprintf('%0.4f.*max(0,u(2,:))-%s',conjugation_rate,growth_factor);
+    a_2 = sprintf('%0.4f.*max(0,(u(1,:)+u(3,:)))-%s',conjugation_rate,growth_factor);
+    a_3 = sprintf('%0.4f.*max(0,u(2,:))-%s',conjugation_rate,growth_factor);
+    a_4 = sprintf('%0.4f-%s',donor_return_rate,growth_factor);
+    a_5 = sprintf('%0.4f-%s',transconjugant_return_rate,growth_factor);
+    a_6 = string_array_max(a_6);
+else
+    a_1 = sprintf('%0.4f.*u(2,:)-%s',conjugation_rate,growth_factor);
+    a_2 = sprintf('%0.4f.*(u(1,:)+u(3,:))-%s',conjugation_rate,growth_factor);
+    a_3 = sprintf('%0.4f.*u(2,:)-%s',conjugation_rate,growth_factor);
+    a_4 = sprintf('%0.4f-%s',donor_return_rate,growth_factor);
+    a_5 = sprintf('%0.4f-%s',transconjugant_return_rate,growth_factor);
+end
 
 a = char(a_1, a_2, a_3, a_4, a_5, a_6);
 
@@ -104,6 +120,9 @@ f_5 = sprintf('%0.4f.*u(2,:).*(u(1,:)+2.*u(3,:))',conjugation_rate);
 f_6 = '0.0';
 
 f = char(f_1, f_2, f_3, f_4, f_5, f_6);
+if flag_nonnegative
+    f = string_array_max(f);
+end
 
 
 % =======================================================================

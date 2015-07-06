@@ -15,6 +15,7 @@ function [u, model, tlist] = pde_conjugation_solve(t0,t1,timesteps)
 % u5 - Tr   refractory transconjugants; just received plasmid
 % u6 - n    nutrients
 
+
 % =======================================================================
 % Solver Options
 % =======================================================================
@@ -24,6 +25,7 @@ flag_ic_recipient_solid = true;  % default true; use solid disk instead of spars
 flag_bc_neumann = true;  % default true; BCs are neumann (0 flux) instead of dirichlet
 flag_system_nonlinear_diffusion = true;  % default true; use nonlinear diffusion instead of linear
 flag_system_monod_growth = true;  % default true; use monod growth instead of linear
+flag_system_nonnegative = false;  % default true; force state variable nonnegative in the eqns
 
 
 % =======================================================================
@@ -84,7 +86,7 @@ u0 = [u0_D; u0_R; u0_T; u0_Dr; u0_Tr; u0_n];
 % (4) PDE System Coefficients
 % http://www.mathworks.com/help/pde/ug/multidimensional-coefficients.html
 % parabolic system with 6 states
-[c, a, f, d] = pde_conjugation_system(flag_system_nonlinear_diffusion, flag_system_monod_growth);
+[c, a, f, d] = pde_conjugation_system(flag_system_nonlinear_diffusion, flag_system_monod_growth,flag_system_nonnegative);
 
 
 % =======================================================================
@@ -96,5 +98,6 @@ tlist = linspace(t0,t1,timesteps);
 
 % solve
 u = parabolic(u0, tlist, model, c, a, f, d);
+
 
 end
