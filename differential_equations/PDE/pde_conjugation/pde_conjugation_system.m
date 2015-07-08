@@ -21,6 +21,11 @@ function [c, a, f, d] = pde_conjugation_system(flag_nonlinear_diffusion, flag_mo
 
 % notes:
 % Recipients sometimes go negative (numerical error), so use max(R,0)
+if flag_nonnegative
+    R = 'max(0,u(2,:))';
+else
+    R = 'u(2,:)';
+end
 
 % =======================================================================
 % Constants and Functions
@@ -54,19 +59,14 @@ growth_monod = sprintf('%0.4f.*u(6,:)./(%0.4f+u(6,:))',monod_mu_max,monod_Ks);
 % =======================================================================
 
 % string formatting
-diff_bacteria_linear = sprintf('%0.4f',diffusion_rate_bacteria_linear);
-diff_bacteria_nonlinear = sprintf('%0.4f.*(u(1,:)+u(2,:)+u(3,:)+u(4,:)+u(5,:))',diffusion_rate_bacteria_nonlinear);
-if flag_nonnegative
-    diff_bacteria_nonlinear = string_array_max(diff_bacteria_nonlinear);
-end
 diff_nutrient = sprintf('%0.4f',diffusion_rate_nutrients);
+if flag_nonlinear_diffusion
+    diff_bacteria = sprintf('%0.4f.*(u(1,:)+%s+u(3,:)+u(4,:)+u(5,:))',diffusion_rate_bacteria_nonlinear,R);
+else
+    diff_bacteria = sprintf('%0.4f',diffusion_rate_bacteria_linear);
+end
 
 % prepare diagonal blocks of c tensor
-if flag_nonlinear_diffusion
-    diff_bacteria = diff_bacteria_nonlinear;
-else
-    diff_bacteria = diff_bacteria_linear;
-end
 c_bacteria = char(diff_bacteria,'0','0',diff_bacteria);
 c_nutrient = char(diff_nutrient,'0','0',diff_nutrient);
 
@@ -81,29 +81,19 @@ c = char(c_bacteria,c_bacteria,c_bacteria,c_bacteria,c_bacteria,c_nutrient);
 % choose growth factor and specify nutrient dependence term
 if flag_monod_growth
     growth_factor = growth_monod;
-    a_6 = sprintf('%0.4f./(%0.4f+u(6,:)).*(u(1,:)+u(2,:)+u(3,:)+u(4,:)+u(5,:))./%0.4f',monod_mu_max,monod_Ks,yield_coefficient);
+    a_6 = sprintf('%0.4f./(%0.4f+u(6,:)).*(u(1,:)+%s+u(3,:)+u(4,:)+u(5,:))./%0.4f',monod_mu_max,monod_Ks,R,yield_coefficient);
 else
     growth_factor = growth_malthusian;
-    %a_6 = sprintf('%0.4f.*(u(1,:)+u(2,:)+u(3,:)+u(4,:)+u(5,:))./%0.4f',growth_rate_malthusian,yield_coefficient);
+    %a_6 = sprintf('%0.4f.*(u(1,:)+%s+u(3,:)+u(4,:)+u(5,:))./%0.4f',growth_rate_malthusian,R,yield_coefficient);
     a_6 = '0.0';  % no depletion of nutrients
 end
 
 % string formatting for diagonals of "a" matrix
-if flag_nonnegative
-    a_1 = sprintf('%0.4f.*max(0,u(2,:))-%s',conjugation_rate,growth_factor);
-    a_2 = sprintf('%0.4f.*max(0,(u(1,:)+u(3,:)))-%s',conjugation_rate,growth_factor);
-    a_3 = sprintf('%0.4f.*max(0,u(2,:))-%s',conjugation_rate,growth_factor);
-    a_4 = sprintf('%0.4f-%s',donor_return_rate,growth_factor);
-    a_5 = sprintf('%0.4f-%s',transconjugant_return_rate,growth_factor);
-    a_6 = string_array_max(a_6);
-else
-    a_1 = sprintf('%0.4f.*u(2,:)-%s',conjugation_rate,growth_factor);
-    a_2 = sprintf('%0.4f.*(u(1,:)+u(3,:))-%s',conjugation_rate,growth_factor);
-    a_3 = sprintf('%0.4f.*u(2,:)-%s',conjugation_rate,growth_factor);
-    a_4 = sprintf('%0.4f-%s',donor_return_rate,growth_factor);
-    a_5 = sprintf('%0.4f-%s',transconjugant_return_rate,growth_factor);
-end
-
+a_1 = sprintf('%0.4f.*%s-%s',conjugation_rate,R,growth_factor);
+a_2 = sprintf('%0.4f.*(u(1,:)+u(3,:))-%s',conjugation_rate,growth_factor);
+a_3 = sprintf('%0.4f.*%s-%s',conjugation_rate,R,growth_factor);
+a_4 = sprintf('%0.4f-%s',donor_return_rate,growth_factor);
+a_5 = sprintf('%0.4f-%s',transconjugant_return_rate,growth_factor);
 a = char(a_1, a_2, a_3, a_4, a_5, a_6);
 
 % =======================================================================
@@ -115,14 +105,10 @@ a = char(a_1, a_2, a_3, a_4, a_5, a_6);
 f_1 = sprintf('%0.4f.*u(4,:)',donor_return_rate);
 f_2 = '0.0';
 f_3 = sprintf('%0.4f.*u(5,:)',transconjugant_return_rate);
-f_4 = sprintf('%0.4f.*u(2,:).*u(1,:)',conjugation_rate);
-f_5 = sprintf('%0.4f.*u(2,:).*(u(1,:)+2.*u(3,:))',conjugation_rate);
+f_4 = sprintf('%0.4f.*%s.*u(1,:)',conjugation_rate,R);
+f_5 = sprintf('%0.4f.*%s.*(u(1,:)+2.*u(3,:))',conjugation_rate,R);
 f_6 = '0.0';
-
 f = char(f_1, f_2, f_3, f_4, f_5, f_6);
-if flag_nonnegative
-    f = string_array_max(f);
-end
 
 
 % =======================================================================
