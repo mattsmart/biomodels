@@ -395,7 +395,7 @@ if __name__ == '__main__':
 
 """
 -instead of explicit class structure for the states, could just use DICT (may be faster)
--utilize inheritentce, have the3 subclasses
+-utilize inheritance, have the 3 subclasses
 -should we incorporate cell death
 
 Actual Hex Shape From 4x4 Array
