@@ -27,7 +27,7 @@ for dirs in dir_list:
         os.makedirs(dirs)
 
 
-# Globals
+# Constants
 # =================================================
 n = 100
 seed = 5
@@ -161,7 +161,8 @@ class Donor(Cell):
             0.25 / time_per_turn)  # OLD VERSION: expected_conj_time/16/time_per_turn # refractory period after conjugation in turns
         self.refractory_div = ceil(
             0.50 / time_per_turn)  # OLD VERSION: expected_donor_div_time/4/time_per_turn # refractory period after division in turns
-        self.resistance_factor = 1;  # resistance to antibiotics
+        self.resistance_factor = 1  # resistance to antibiotics
+
 
 # Initiate Cell Grid and Data Directory
 # =================================================
@@ -359,9 +360,8 @@ def run_sim(T):  # T = total sim time
     return grid_data
 
 
-# Main 
+# Main Function
 # =================================================
-
 def main():
     build_grid()
     run_sim(standard_run_time)
@@ -388,7 +388,6 @@ def main():
 
     print "\n oops"
     return
-
 
 if __name__ == '__main__':
     main()
