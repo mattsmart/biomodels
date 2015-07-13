@@ -4,7 +4,7 @@ import matplotlib.patches as mpatches
 """
 COMMENTS:
     -radius seems to extend 85% of r, to intersect middle of line seg
-        -eg. radius 10 means hex takes up almost 20 x slots
+        -eg. radius 10 means cell takes up almost 20 x slots
     -JAMES: will try circles
 INPUT:
    1) n
@@ -27,12 +27,12 @@ separation_flag = False  # True if you want some distance between agents
 # Functions
 # =================================================
 def lattice_draw(lattice, n):
-    # assume hex_per_row = n, hex_per_col = n
-    hex_radius = axis_length / (2*n)
-    x0 = hex_radius
-    y0 = axis_length - hex_radius
-    dx = hex_radius*2.0
-    dy = hex_radius*1.75
+    # assume cell_per_row = n, cell_per_col = n
+    cell_radius = axis_length / (2 * n)
+    x0 = cell_radius
+    y0 = axis_length - cell_radius
+    dx = cell_radius*2.0
+    dy = cell_radius*1.75
 
     x = x0
     y = y0
@@ -40,17 +40,17 @@ def lattice_draw(lattice, n):
 
         for j in xrange(n):
             cell_label = lattice[i][j].label
-            hex_colour = label_colour_dict[cell_label]
-            if hex_flag:
-                hex_ij = mpatches.RegularPolygon((x,y), numVertices=6, radius=lattice_radius, facecolor=lattice_colour, ec="k")
-                plt.gca().add_patch(hex_ij)
+            cell_colour = label_colour_dict[cell_label]
+            if separation_flag:
+                cell_ij = plt.Circle((x,y), radius=cell_radius / 2, color=cell_colour, ec="k")
+                plt.gca().add_artist(cell_ij)
             else:
-                hex_ij = plt.Circle((x,y), radius=lattice_radius, color=lattice_colour, ec="k")
-                plt.gca().add_artist(hex_ij)
-            x = x + dx
+                cell_ij = mpatches.RegularPolygon((x,y), numVertices=4, radius=cell_radius, facecolor=cell_colour, ec="k")  # might be faster solid square plotter
+                plt.gca().add_patch(cell_ij)
+            x += dx
 
-        y = y - dy
-        x = x0 + ((i+1)%2)*hex_radius # shift odd rows to the right a bit
+        y -= dy
+        x = x0 + ((i + 1) % 2) * cell_radius  # shift odd rows to the right a bit
 
     return
 
@@ -58,7 +58,7 @@ def lattice_draw(lattice, n):
 def lattice_plotter(lattice, time, n, lattice_plot_dir):
     lattice_draw(lattice, n)
     f_handle = plt.gcf()
-    f_handle.set_size_inches(16.0,16.0)
+    f_handle.set_size_inches(16.0, 16.0)
     axis_ticks = range(0, axis_tick_length + 1, 10)
     plt.xticks(axis_ticks)
     plt.yticks(axis_ticks)
@@ -71,7 +71,7 @@ def lattice_plotter(lattice, time, n, lattice_plot_dir):
 
 ##def main():
 ##    n = 100
-##    hex_lattice_draw(lattice, n)
+##    cell_lattice_draw(lattice, n)
 ##    plotter(lattice, n)
 ##    print "plotted"
 ##
