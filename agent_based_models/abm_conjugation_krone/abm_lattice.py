@@ -5,8 +5,8 @@ import random
 from math import ceil, floor
 from numpy.random import randint
 
-from plot_data import data_plotter
-from plot_lattice import lattice_plotter
+#from plot_data import data_plotter  # TODO change names to prevent misinterpretation with simple abm
+#from plot_lattice import lattice_plotter  # TODO change names to prevent misinterpretation with simple abm
 
 
 # IO
@@ -27,9 +27,9 @@ for dirs in dir_list:
         os.makedirs(dirs)
 
 
-# Globals
+# Constants
 # =================================================
-n = 100
+n = 10 # TODO FIX 100
 seed = 5
 standard_run_time = 24.0  # typical simulation time in h
 
@@ -162,6 +162,7 @@ class Donor(Cell):
         self.refractory_div = ceil(
             0.50 / time_per_turn)  # OLD VERSION: expected_donor_div_time/4/time_per_turn # refractory period after division in turns
         self.resistance_factor = 1;  # resistance to antibiotics
+
 
 # Initiate Cell Grid and Data Directory
 # =================================================
@@ -359,9 +360,8 @@ def run_sim(T):  # T = total sim time
     return grid_data
 
 
-# Main 
+# Main Function
 # =================================================
-
 def main():
     build_grid()
     run_sim(standard_run_time)
@@ -389,7 +389,6 @@ def main():
     print "\n oops"
     return
 
-
 if __name__ == '__main__':
     main()
 
@@ -399,16 +398,10 @@ if __name__ == '__main__':
 -utilize inheritentce, have the3 subclasses
 -should we incorporate cell death
 
-Actual Lattice Shape From 4x4 Array
-start
-_ _ _ _ 
+Actual lattice shape - size 4x4 (n=4)
+_ _ _ _
 _ _ _ _
 _ _ _ _
 _ _ _ _
 
-to
-_ _ _ _| i.e. shift odd rows 1 unit right
-|_ _ _ _
-_ _ _ _|
-|_ _ _ _
 """
