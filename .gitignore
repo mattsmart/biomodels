@@ -2,3 +2,4 @@
 *.asv
 # Specific PDE output subdirectory
 differential_equations/pde/plots/
+.idea/
