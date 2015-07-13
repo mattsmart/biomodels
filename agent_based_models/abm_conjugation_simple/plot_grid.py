@@ -12,17 +12,20 @@ INPUT:
 OUTPUT: hexagonal grid with labels coloured appropriately
 """
 
-# GLOBALS
+
+# Constants
+# =================================================
 axis_buffer = 20.0
 axis_length = 100.0
 axis_tick_length = int(axis_length + axis_buffer)
 label_colour_dict = {'R': "red",
-                     'D': "cyan",#"green",
-                     '_': "white"} # or nofill
+                     'D': "cyan",  # "green",
+                     '_': "white"}  # or nofill
 hex_flag = False # True if you want actual hexagons instead of circles
 
-# FUNCTIONS
 
+# Functions
+# =================================================
 def hex_grid_draw(grid, n):
     # assume hex_per_row = n, hex_per_col = n
     hex_radius = axis_length / (2*n)
@@ -51,6 +54,7 @@ def hex_grid_draw(grid, n):
 
     return
 
+
 def hex_plotter(grid, time, n, hex_plot_dir):
     hex_grid_draw(grid, n)
     f_handle = plt.gcf()
@@ -64,7 +68,6 @@ def hex_plotter(grid, time, n, hex_plot_dir):
     return
 
 # MAIN
-
 ##def main():
 ##    n = 100
 ##    hex_grid_draw(grid, n)
