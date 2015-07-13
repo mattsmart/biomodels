@@ -66,13 +66,3 @@ def lattice_plotter(lattice, time, n, lattice_plot_dir):
     plt.savefig(lattice_plot_dir + 'lattice_at_time_%f.png' % time, bbox_inches='tight')
     plt.clf()
     return
-
-# MAIN
-
-##def main():
-##    n = 100
-##    cell_lattice_draw(lattice, n)
-##    plotter(lattice, n)
-##    print "plotted"
-##
-##main()
