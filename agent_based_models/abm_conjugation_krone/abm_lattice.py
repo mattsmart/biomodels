@@ -5,8 +5,8 @@ import random
 from math import ceil, floor
 from numpy.random import randint
 
-#from plot_data import data_plotter  # TODO change names to prevent misinterpretation with simple abm
-#from plot_lattice import lattice_plotter  # TODO change names to prevent misinterpretation with simple abm
+from plot_data import data_plotter
+from plot_lattice import lattice_plotter
 
 
 # IO
@@ -57,7 +57,7 @@ turns_antibiotic = [x / time_per_turn for x in times_antibiotic]
 
 # Classes
 # =================================================
-# represents the state of a grid cell: empty, donor, recipient
+# represents the state of a lattice cell: empty, donor, recipient
 class Cell(object):
     def __init__(self, label, location):
         self.label = label  # symbol; either "(_) Empty, (R)eceiver, (D)onor"
@@ -133,7 +133,7 @@ class Cell(object):
         neighbours = self.get_surroundings()
         empty_neighbours = []
         for loc in neighbours:
-            if cell_label == grid[loc[0]][loc[1]].label:
+            if cell_label == lattice[loc[0]][loc[1]].label:
                 empty_neighbours.append(loc)
         return empty_neighbours
 
@@ -164,10 +164,10 @@ class Donor(Cell):
         self.resistance_factor = 1;  # resistance to antibiotics
 
 
-# Initiate Cell Grid and Data Directory
+# Initiate Cell Lattice and Data Directory
 # =================================================
-grid = [[Empty([x, y]) for y in xrange(n)] for x in xrange(n)]
-grid_data = []  # list of list, sublists are [iters, time, E, R, D]
+lattice = [[Empty([x, y]) for y in xrange(n)] for x in xrange(n)]
+lattice_data = []  # list of list, sublists are [iters, time, E, R, D]
 
 
 # Functions
@@ -175,36 +175,36 @@ grid_data = []  # list of list, sublists are [iters, time, E, R, D]
 
 def printer():
     for i in xrange(n):
-        str_lst = [grid[i][j].label for j in xrange(n)]
+        str_lst = [lattice[i][j].label for j in xrange(n)]
         print " " + ' '.join(str_lst)
     print
 
 
-def build_grid():
-    random_grid = randint(seed, size=(n, n))
+def build_lattice():
+    random_lattice = randint(seed, size=(n, n))
     for i in xrange(n):
         for j in xrange(n):
-            m = random_grid[i][j]
+            m = random_lattice[i][j]
             if m == 0:
-                grid[i][j] = Receiver([i, j])
+                lattice[i][j] = Receiver([i, j])
             elif m == 1:
-                grid[i][j] = Donor([i, j])
+                lattice[i][j] = Donor([i, j])
             elif m in range(2, seed):
-                grid[i][j] = Empty([i, j])
-    print random_grid, "\n"
+                lattice[i][j] = Empty([i, j])
+    print random_lattice, "\n"
     return
 
 
 def is_empty(loc):
-    return '_' == grid[loc[0]][loc[1]].label
+    return '_' == lattice[loc[0]][loc[1]].label
 
 
 def is_receiver(loc):
-    return 'R' == grid[loc[0]][loc[1]].label
+    return 'R' == lattice[loc[0]][loc[1]].label
 
 
 def is_donor(loc):
-    return 'D' == grid[loc[0]][loc[1]].label
+    return 'D' == lattice[loc[0]][loc[1]].label
 
 
 def divide(cell, empty_neighbours):
@@ -214,10 +214,10 @@ def divide(cell, empty_neighbours):
         success = 1
         daughter_loc = random.choice(empty_neighbours)
         if 'D' == cell.label:
-            grid[daughter_loc[0]][daughter_loc[1]] = Donor(daughter_loc)
+            lattice[daughter_loc[0]][daughter_loc[1]] = Donor(daughter_loc)
             cell.maturity = floor(cell.maturity / 2)
         elif 'R' == cell.label:
-            grid[daughter_loc[0]][daughter_loc[1]] = Receiver(daughter_loc)
+            lattice[daughter_loc[0]][daughter_loc[1]] = Receiver(daughter_loc)
         else:
             raise Exception("Illegal cell type")
         cell.pause = cell.refractory_div
@@ -231,7 +231,7 @@ def conjugate(cell, receiver_neighbours):
     if distr < (1000.0 / turn_rate) / conj_rate_rel_div_rate:
         success = 1
         daughter_loc = random.choice(receiver_neighbours)
-        grid[daughter_loc[0]][daughter_loc[1]] = Donor(daughter_loc)
+        lattice[daughter_loc[0]][daughter_loc[1]] = Donor(daughter_loc)
         cell.pause = cell.refractory_conj
     return success
 
@@ -257,7 +257,7 @@ def antibiotic():  # introduces antibiotic and kills donor cells
         for j in xrange(n):
             loc = [i, j]
             if is_donor(loc):
-                grid[i][j] = Empty(loc)
+                lattice[i][j] = Empty(loc)
     return
 
 
@@ -268,7 +268,7 @@ def new_donor_round():  # introduce new round of donor cells
             if is_empty(loc):
                 distr = randint(1, 1001)
                 if distr <= 500:  # place donors in 50% of empty cells
-                    grid[i][j] = Donor(loc)
+                    lattice[i][j] = Donor(loc)
     return
 
 
@@ -281,23 +281,23 @@ def run_sim(T):  # T = total sim time
             new_donor_round()
             antibiotic_introduced = 0
             [E, R, D] = count_cells()
-            grid_data.append([t, t * time_per_turn, E, R, D])
-            lattice_plotter(grid, t * time_per_turn, n, plot_lattice_folder)
+            lattice_data.append([t, t * time_per_turn, E, R, D])
+            lattice_plotter(lattice, t * time_per_turn, n, plot_lattice_folder)
             continue
         if t in turns_antibiotic:  # introduce antibiotics at turn 160 (20 h)
             print 'Turn ', t, ' : Time Elapsed ', t * time_per_turn, "h (Antibiotics Introduced)"
             antibiotic()
             antibiotic_introduced = 1
             [E, R, D] = count_cells()
-            grid_data.append([t, t * time_per_turn, E, R, D])
-            lattice_plotter(grid, t * time_per_turn, n, plot_lattice_folder)
+            lattice_data.append([t, t * time_per_turn, E, R, D])
+            lattice_plotter(lattice, t * time_per_turn, n, plot_lattice_folder)
             continue
 
         print 'Turn ', t, ' : Time Elapsed ', t * time_per_turn, "h"
         # printer()
         for i in xrange(n):
             for j in xrange(n):
-                cell = grid[i][j]
+                cell = lattice[i][j]
                 loc = [i, j]
 
                 if is_empty(loc):
@@ -352,32 +352,32 @@ def run_sim(T):  # T = total sim time
                     break
 
         [E, R, D] = count_cells()
-        grid_data.append([t, t * time_per_turn, E, R, D])
-        # print grid_data, "\n"
-        lattice_plotter(grid, t * time_per_turn, n, plot_lattice_folder)
+        lattice_data.append([t, t * time_per_turn, E, R, D])
+        # print lattice_data, "\n"
+        lattice_plotter(lattice, t * time_per_turn, n, plot_lattice_folder)
         # raw_input()
 
-    return grid_data
+    return lattice_data
 
 
 # Main Function
 # =================================================
 def main():
-    build_grid()
+    build_lattice()
     run_sim(standard_run_time)
 
-    data_name = "grid_data.csv"
+    data_name = "lattice_data.csv"
     data_file = data_folder + data_name
     with open(data_file, "wb") as f:
         writer = csv.writer(f)
-        writer.writerows(grid_data)
+        writer.writerows(lattice_data)
 
-    # convert grid_data to a dictionary
-    iters = [x[0] for x in grid_data]
-    time = [x[1] for x in grid_data]
-    E = [x[2] for x in grid_data]
-    R = [x[3] for x in grid_data]
-    D = [x[4] for x in grid_data]
+    # convert lattice_data to a dictionary
+    iters = [x[0] for x in lattice_data]
+    time = [x[1] for x in lattice_data]
+    E = [x[2] for x in lattice_data]
+    R = [x[3] for x in lattice_data]
+    D = [x[4] for x in lattice_data]
     data_dict = {'iters': iters,
                  'time': time,
                  'E': E,
@@ -395,7 +395,7 @@ if __name__ == '__main__':
 
 """
 -instead of explicit class structure for the states, could just use DICT (may be faster)
--utilize inheritentce, have the3 subclasses
+-utilize inheritance, have the 3 subclasses
 -should we incorporate cell death
 
 Actual lattice shape - size 4x4 (n=4)
