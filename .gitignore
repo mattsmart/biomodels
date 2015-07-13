@@ -1,5 +1,15 @@
 # MATLAB .asv files
 *.asv
+
+# Python compiled scripts
+*.pyc
+
 # Specific PDE output subdirectory
 differential_equations/pde/plots/
+
+# PyCharm metadata
 .idea/
+
+# ABM Output
+agent_based_models/abm_conjugation_simple/runs/
+agent_based_models/abm_conjugation_krone/runs/
