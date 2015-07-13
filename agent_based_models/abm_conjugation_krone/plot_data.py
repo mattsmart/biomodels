@@ -3,16 +3,16 @@ import matplotlib.pyplot as plt
 # note:
 # dict keys are iters, time, E, R, D
 
-def data_plotter(grid_dict, datafile_dir, plot_dir):
+def data_plotter(lattice_dict, datafile_dir, plot_dir):
 
-    N = grid_dict['E'][0] + grid_dict['R'][0] + grid_dict['D'][0]
+    N = lattice_dict['E'][0] + lattice_dict['R'][0] + lattice_dict['D'][0]
     n = int(N**0.5)
 
     plt.figure(1)
 
-    plt.plot(grid_dict['time'], grid_dict['E'], label='Empty grid cells')
-    plt.plot(grid_dict['time'], grid_dict['R'], label='Receivers')
-    plt.plot(grid_dict['time'], grid_dict['D'], label='Donors')
+    plt.plot(lattice_dict['time'], lattice_dict['E'], label='Empty lattice points')
+    plt.plot(lattice_dict['time'], lattice_dict['R'], label='Receivers')
+    plt.plot(lattice_dict['time'], lattice_dict['D'], label='Donors')
 
     ax = plt.gca()
     ax.set_title('Cell Populations over time (n = %d)' % n)
