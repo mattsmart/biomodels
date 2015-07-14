@@ -40,6 +40,7 @@ def lattice_draw(lattice, n):
 
         for j in xrange(n):
             cell_label = lattice[i][j].label
+            cell_nutrients = lattice[i][j].nutrients
             cell_colour = label_colour_dict[cell_label]
             if separation_flag:
                 cell_ij = plt.Circle((x, y), radius=cell_radius / 2, color=cell_colour, ec="k")
@@ -48,6 +49,7 @@ def lattice_draw(lattice, n):
                 cell_ij = mpatches.Rectangle((x, y), 2 * cell_radius, 2 * cell_radius, facecolor=cell_colour, ec="k")  # might be faster solid square plotter
                 ###cell_ij = mpatches.RegularPolygon((x, y), numVertices=4, radius=cell_radius, facecolor=cell_colour, ec="k")  # might be faster solid square plotter
                 plt.gca().add_patch(cell_ij)
+            plt.text(x + 0.2 * dx, y + 0.8 * dy, str(cell_nutrients), fontsize=12)
             x += dx
 
         y -= dy
