@@ -14,12 +14,19 @@ TODO
 -finally utilize inheritance, have the 3 subclasses
 -should we incorporate cell death
 -make conj rate nutrient dependent
+-remove or augment the maturity module
 
 SPEED
 -instead of explicit class structure for the states, could just use DICT (may be faster)
 -use location tuples instead of lists (faster assigning)
 -faster and better probability modules
 -all to numpy arrays
+-iterate only over nonempty cells
+
+% PLOTTING SPEED
+-print plot every kth turn
+-make plotting faster or save big matrices for plotting later?
+-dont plot text in every cell for 10k cells LOL
 
 BUGS
 -potential bug if empty cells are not carefully initiated (can't distinguish between unused spot and 'Empty' cell)
@@ -63,7 +70,7 @@ nutrient_initial_condition = 1 # 10
 # division and recovery times
 div_time_staph = 0.5
 div_time_ecoli = 0.5
-expected_receiver_div_time = div_time_ecoli  # avg time for 1 R cell to divide in h
+expected_recipient_div_time = div_time_ecoli  # avg time for 1 R cell to divide in h
 expected_donor_div_time = div_time_ecoli  # avg time for 1 D cell to divide in h
 
 # conjugation rate
@@ -78,7 +85,8 @@ death_rate_lab = 0.0
 # simulation time settings
 standard_run_time = 24.0  # typical simulation time in h
 turn_rate = 2.0  # average turns between each division; simulation step size
-time_per_turn = expected_receiver_div_time / turn_rate
+time_per_turn = expected_recipient_div_time / turn_rate
+plots_period_in_turns = 2 * turn_rate
 
 
 # Classes
@@ -248,7 +256,7 @@ def is_empty(loc):
     return '_' == lattice[loc[0]][loc[1]].label
 
 
-def is_receiver(loc):
+def is_recipient(loc):
     return 'R' == lattice[loc[0]][loc[1]].label
 
 
@@ -260,11 +268,11 @@ def get_nutrients(loc):
     return lattice[loc[0]][loc[1]].nutrients
 
 
-def divide(cell, empty_neighbours):
+def divide(cell, empty_neighbours, new_cell_locations):
     nutrients_are_available = cell.is_nutrient_available()
     distr = randint(0, 100)
     success = 0  # successful division = 1
-    if distr < 100.0 / turn_rate and nutrients_are_available:
+    if distr < 100.0 / turn_rate and nutrients_are_available and len(empty_neighbours) > 0:
         success = 1
         daughter_loc = random.choice(empty_neighbours)
         cell.choose_and_exhaust_nutrient()
@@ -277,22 +285,23 @@ def divide(cell, empty_neighbours):
         else:
             raise Exception("Illegal cell type")
         cell.pause = cell.refractory_div
+        new_cell_locations.append(daughter_loc)
     return success
 
 
-def conjugate(cell, receiver_neighbours):
+def conjugate(cell, recipient_neighbours):
     distr = randint(0, 1000)  # [1, 1000]
     success = 0  # successful conjugation = 1
     conj_rate_rel_div_rate = expected_conj_time / expected_donor_div_time
-    if distr < (1000.0 / turn_rate) / conj_rate_rel_div_rate:
+    if distr < (1000.0 / turn_rate) / conj_rate_rel_div_rate and len(recipient_neighbours) > 0:
         success = 1
-        mate_loc = random.choice(receiver_neighbours)
+        mate_loc = random.choice(recipient_neighbours)
         lattice[mate_loc[0]][mate_loc[1]] = Donor(mate_loc, get_nutrients(mate_loc))
         cell.pause = cell.refractory_conj
     return success
 
 
-def count_cells():  # returns a list of current cell counts: [# of empty, # of receiver, # of donor, # of nutrients]
+def count_cells():  # returns a list of current cell counts: [# of empty, # of recipient, # of donor, # of nutrients]
     E = 0
     R = 0
     D = 0
@@ -301,13 +310,23 @@ def count_cells():  # returns a list of current cell counts: [# of empty, # of r
         for j in xrange(n):
             loc = [i, j]
             N += get_nutrients(loc)
-            if is_receiver(loc):
+            if is_recipient(loc):
                 R += 1
             elif is_donor(loc):
                 D += 1
             else:
                 E += 1
     return [E, R, D, N]
+
+
+def get_cell_locations():
+    cell_locations = []
+    for i in xrange(n):
+        for j in xrange(n):
+            loc = [i, j]
+            if is_donor(loc) or is_recipient(loc):
+                cell_locations.append(loc)
+    return cell_locations
 
 
 def run_sim(T):  # T = total sim time
@@ -318,72 +337,55 @@ def run_sim(T):  # T = total sim time
     lattice_plotter(lattice, 0.0, n, plot_lattice_folder)
 
     # begin simulation
+    new_cell_locations = []
+    cell_locations = get_cell_locations()
     turns = int(ceil(T / time_per_turn))
-    for t in xrange(turns):
-        print 'Turn ', t, ' : Time Elapsed ', t * time_per_turn, "h"
+    for turn in xrange(1, turns + 1):
+        print 'Turn ', turn, ' : Time Elapsed ', turn * time_per_turn, "h"
         # printer()
-        for i in xrange(n):
-            for j in xrange(n):
-                cell = lattice[i][j]
-                loc = [i, j]
+        cell_locations = cell_locations + new_cell_locations
+        new_cell_locations = []
+        for loc in cell_locations:
+            cell = lattice[loc[0]][loc[1]]
+            if 0 < cell.pause:  # if paused, decrement pause timer
+                cell.pause -= 1
+            else:
+                empty_neighbours = cell.get_label_surroundings('_', search_radius_bacteria)
 
-                if is_empty(loc):
-                    continue
+                # recipient behaviour
+                if is_recipient(loc):
+                    divide(cell, empty_neighbours, new_cell_locations)
 
-                # INSERT prob of cell death
-
-                if is_receiver(loc):
-                    if 0 < cell.pause:  # if paused, reduce pause time
-                        cell.pause -= 1
-                        continue
-
-                    receiver_neighbours = cell.get_label_surroundings('R', search_radius_bacteria)
-                    empty_neighbours = cell.get_label_surroundings('_', search_radius_bacteria)
-                    if not empty_neighbours:  # skip if surrounded
-                        continue
-                    else:  # chance to divide
-                        divide(cell, empty_neighbours)
-                        continue
-
+                # donor behaviour
                 elif is_donor(loc):
-                    if cell.maturity < cell.maxmaturity:  #####COME BACK TO THIS
+                    if cell.maturity < cell.maxmaturity:
                         cell.maturity += 10
-                    if 0 < cell.pause:  # if paused, reduce pause time
-                        cell.pause -= 1
-                        continue
-
-                    receiver_neighbours = cell.get_label_surroundings('R', search_radius_bacteria)
-                    empty_neighbours = cell.get_label_surroundings('_', search_radius_bacteria)
-                    if not empty_neighbours:  # surrounded?
-                        if not receiver_neighbours:  # no R neighbours?
-                            continue
-                        else:  # R neighbours
-                            conjugate(cell, receiver_neighbours)
-                            continue
-                    else:  # some empty neighbours
-                        if not receiver_neighbours:  # no R neighbours
-                            divide(cell, empty_neighbours)
-                            continue
-                        else:  # some R neighbours
-                            if 1 == randint(1, 3):  # divide first
-                                if not divide(cell, empty_neighbours):
-                                    conjugate(cell, receiver_neighbours)
-                                continue
-                            else:  # conjugate first
-                                if not conjugate(cell, receiver_neighbours):
-                                    divide(cell, empty_neighbours)
-                                continue
-
+                    recipient_neighbours = cell.get_label_surroundings('R', search_radius_bacteria)
+                    no_division_flag = not empty_neighbours
+                    no_conjugation_flag = not recipient_neighbours
+                    if no_division_flag and no_conjugation_flag:
+                        pass
+                    elif no_division_flag:
+                        conjugate(cell, recipient_neighbours)
+                    elif no_conjugation_flag:
+                        divide(cell, empty_neighbours, new_cell_locations)
+                    else:  # chance to either conjugate or divide, randomize the order of potential events
+                        if 1 == randint(1, 3):  # try to divide first (33% of the time)
+                            if not divide(cell, empty_neighbours, new_cell_locations):
+                                conjugate(cell, recipient_neighbours)
+                        else:  # try to conjugate first
+                            if not conjugate(cell, recipient_neighbours):
+                                divide(cell, empty_neighbours, new_cell_locations)
                 else:
-                    raise Exception("Not _, R, or D")
-                    break
+                    print "WARNING - Cell not R or D"
+                    raise Exception("Cell not R or D")
 
         # get lattice stats for this timestep
         [E, R, D, N] = count_cells()
-        lattice_data.append([(t + 1), (t + 1) * time_per_turn, E, R, D, N])
-        # print lattice_data, "\n"
-        lattice_plotter(lattice, (t + 1) * time_per_turn, n, plot_lattice_folder)
-        # raw_input()
+        lattice_data.append([turn, turn * time_per_turn, E, R, D, N])
+        # periodically plot the lattice (it takes a while)
+        if turn % plots_period_in_turns == 0:
+            lattice_plotter(lattice, turn * time_per_turn, n, plot_lattice_folder)
 
     return lattice_data
 
@@ -417,7 +419,7 @@ def main():
 
     data_plotter(data_dict, data_file, plot_data_folder)
 
-    print "\n Done!"
+    print "\nDone!"
     return
 
 if __name__ == '__main__':
