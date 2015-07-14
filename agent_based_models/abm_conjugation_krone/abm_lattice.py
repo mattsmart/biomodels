@@ -11,6 +11,9 @@ from plot_lattice import lattice_plotter
 
 """
 TODO
+-finally utilize inheritance, have the 3 subclasses
+-should we incorporate cell death
+-make conj rate nutrient dependent
 
 SPEED
 -instead of explicit class structure for the states, could just use DICT (may be faster)
@@ -18,12 +21,10 @@ SPEED
 -faster and better probability modules
 -all to numpy arrays
 
--finally utilize inheritance, have the 3 subclasses
--should we incorporate cell death
-
 BUGS
 -potential bug if empty cells are not carefully initiated (can't distinguish between unused spot and 'Empty' cell)
     -might be able to turn this into speedup by having not used == empty
+-should skip self when going through surroundings, but not nutrients (i.e. dont count your current position)
 """
 
 
@@ -47,11 +48,17 @@ for dirs in dir_list:
 
 # Constants
 # =================================================
-n = 100
-search_radius_square = 2
-assert search_radius_square < n / 2
-seed = 5
-standard_run_time = 24.0  # typical simulation time in h
+# simulation dimensions
+n = 10
+
+# simulation lattice parameters
+seed = 5  # determines ratio of donors to recipients for random homogeneous conditions
+search_radius_bacteria = 1
+max_search_radius_nutrient = 3
+assert search_radius_bacteria < n / 2 and max_search_radius_nutrient < n / 2
+
+# nutrient settings
+nutrient_initial_condition = 1 # 10
 
 # division and recovery times
 div_time_staph = 0.5
@@ -65,102 +72,45 @@ conj_ecoli_rate = 10.0
 conj_staph_rate = 10 ** 4.0
 expected_conj_time = conj_ecoli_rate  # avg time for 1 cell to conjugate in h (Jama: 10h for e.coli, more for staph)
 
-death_rate_lab = 0.0  # for now
-death_rate_body = 4.0  # average h for 1 cell to die to immune (?) cells (NOT IMPLEMENTED)
+# general cell settings
+death_rate_lab = 0.0
 
+# simulation time settings
+standard_run_time = 24.0  # typical simulation time in h
 turn_rate = 2.0  # average turns between each division; simulation step size
 time_per_turn = expected_receiver_div_time / turn_rate
-
-times_antibiotic = []  # antibiotic introduction time in h
-turns_antibiotic = [x / time_per_turn for x in times_antibiotic]
 
 
 # Classes
 # =================================================
 # represents the state of a lattice cell: empty, donor, recipient
 class Cell(object):
-    def __init__(self, label, location):
+    def __init__(self, label, location, nutrients):
         self.label = label  # symbol; either "(_) Empty, (R)eceiver, (D)onor"
         self.location = location  # list [i,j]
+        self.nutrients = nutrients
 
     def __str__(self):
         return self.label
 
-    # given cell # i,j, returns a list of array pairs (up to 6) rep nearby lattice cells
-    def get_surroundings(self):
-        location = self.location
-        row = location[0]
-        col = location[1]
-        is_odd = row % 2  # 0 means even row, 1 means odd row  # TODO REMOVE make for PBC though
+    def deplete_nutrients(self):
+        assert self.nutrients > 0
+        self.nutrients -= 1
 
-        up = [row - 1, col]  # note the negative
-        down = [row + 1, col]
-        left = [row, col - 1]
-        right = [row, col + 1]
-        up_left = [row - 1, col - 1]
-        up_right = [row - 1, col + 1]
-        down_left = [row + 1, col - 1]
-        down_right = [row + 1, col + 1]
-
-        if row == 0:  # Top Case (even row)
-            if col == 0:
-                surroundings = [right, down]
-            elif col == (n - 1):
-                surroundings = [left, down, down_left]
-            else:
-                surroundings = [left, right, down_left, down]
-
-        elif row == (n - 1):  # Bottom Case
-            if is_odd:
-                if col == 0:
-                    surroundings = [up, right, up_right]
-                elif col == (n - 1):
-                    surroundings = [left, up]
-                else:
-                    surroundings = [left, right, up, up_right]
-            else:
-                if col == 0:
-                    surroundings = [right, up]
-                elif col == (n - 1):
-                    surroundings = [left, up, up_left]
-                else:
-                    surroundings = [left, right, up, up_left]
-
-        elif col == 0:  # Left Case
-            if is_odd:
-                surroundings = [right, up, down, up_right, down_right]
-            else:
-                surroundings = [right, up, down]
-
-        elif col == (n - 1):  # Right Case
-            if is_odd:
-                surroundings = [left, up, down]
-            else:
-                surroundings = [left, up, down, up_left, down_left]
-
-        else:  # General Case
-            if is_odd:
-                surroundings = [left, right, up, down, up_right, down_right]
-            else:
-                surroundings = [left, right, up, down, up_left, down_left]
-
-        return surroundings
-
-    # NEW NEIGHBOURS FUNCTION
     def get_surroundings_square(self, search_radius):
         """Specifies the location of the top left corner of the search square
         Args:
             search_radius: half-edge length of the square
         Returns:
-            list of locations; length should be (2 * search_radius + 1) ** 2
+            list of locations; length should be (2 * search_radius + 1) ** 2 (- 1 remove self?)
         Notes:
             - periodic BCs apply, so search boxes wrap around at boundaries
             - note that we assert that search_radius be less than half the grid size
+            - may have different search radius depending om context (neighbouring bacteria / empty cells / nutrient)
+            - currently DOES NOT remove the original location
         """
-        # utility variables
         row = self.location[0]
         col = self.location[1]
-
         # intiialize list for speedup
         # TODO surroundings = [0] * (search_radius ** 2)
         surroundings = [(row_to_search % n, col_to_search % n)
@@ -169,46 +119,95 @@ class Cell(object):
         # assert len(surroundings) == (2 * search_radius + 1) ** 2
         return surroundings
 
-    def get_label_surroundings(self, cell_label):
+    def get_label_surroundings(self, cell_label, search_radius):
         if cell_label not in ['_', 'R', 'D']:
             raise Exception("Illegal cell label (_, R, or D)")
-        neighbours = self.get_surroundings_square(search_radius=search_radius_square)
+        neighbours = self.get_surroundings_square(search_radius=search_radius)
         neighbours_of_specified_type = []
-        for loc in neighbours:
+        for loc in neighbours:  # TODO should skip self when going through (i.e. don't count your current position)
             if cell_label == lattice[loc[0]][loc[1]].label:
                 neighbours_of_specified_type.append(loc)
         return neighbours_of_specified_type
 
+    def get_nutrient_surroundings_ordered(self, max_nutrient_radius):
+        """Gives a list of POSSIBLY remaining nutrient surroundings (square), ordered by increasing radii
+        Args:
+            max_nutrient_radius: int (e.g. 2)
+        Returns:
+            ordered list of groups of locations of nutrients which may or may not be available,
+            specifically: [[radius=0 nutrient locs], [radius=1 nutrient locs], ...,  [radius=max nutrient locs]]
+        Notes:
+            - very VERY inefficient algorithm, should clean it up
+        """
+        # create initial surroundings, with duplicates
+        location_layers_nutrients = [(0, 0)] * (max_nutrient_radius + 1)
+        for radius in xrange(max_nutrient_radius + 1):
+            surroundings = self.get_surroundings_square(radius)
+            location_layers_nutrients[radius] = surroundings
+
+        # remove duplicates
+        for radius in xrange(max_nutrient_radius, 1, -1):
+            for loc in location_layers_nutrients[radius-1]:
+                location_layers_nutrients[radius].remove(loc)
+
+        return location_layers_nutrients
+
+    def is_nutrient_available(self):
+        """Checks if any nutrients are available within the search radius
+        """
+        nutrient_layers = self.get_nutrient_surroundings_ordered(max_search_radius_nutrient)
+        for nutrient_location_layer in nutrient_layers:
+            for row, col in nutrient_location_layer:
+                if lattice[row][col].nutrients > 0:
+                    return True
+        return False
+
+    def choose_and_exhaust_nutrient(self):
+        """Chooses a random nutrient location to deplete by a value of 1
+        Notes:
+            - starts with locations closest to the cell (radius=0) and moves outwards
+        """
+        nutrient_layers = self.get_nutrient_surroundings_ordered(max_search_radius_nutrient)
+        while len(nutrient_layers) > 0:
+            for nutrient_location_layer in nutrient_layers:
+                if len(nutrient_location_layer) > 0:
+                    loc = random.choice(nutrient_location_layer)
+                    if lattice[loc[0]][loc[1]].nutrients > 0:
+                        lattice[loc[0]][loc[1]].deplete_nutrients()
+                        return
+                    else:
+                        nutrient_location_layer.remove(loc)
+                else:
+                    nutrient_layers.remove(nutrient_location_layer)
+        print "WARNING - choosing to exhaust nutrients when none are available, continuing anyways"
+        return
+
 
 class Empty(Cell):
-    def __init__(self, location):
-        Cell.__init__(self, '_', location)
+    def __init__(self, location, nutrients):
+        Cell.__init__(self, '_', location, nutrients)
 
 
 class Receiver(Cell):
-    def __init__(self, location):
-        Cell.__init__(self, 'R', location)
+    def __init__(self, location, nutrients):
+        Cell.__init__(self, 'R', location, nutrients)
         self.pause = 0  # 0 if cell is active, non-zero means turns until active
         self.refractory_div = expected_donor_div_time / 4 / time_per_turn  # refractory period after division in turns
-        self.resistance_factor = 1  # resistance to antibiotics
 
 
 class Donor(Cell):
-    def __init__(self, location):
-        Cell.__init__(self, 'D', location)
+    def __init__(self, location, nutrients):
+        Cell.__init__(self, 'D', location, nutrients)
         self.pause = 0  # 0 if cell is active, non-zero means turns until active
         self.maturity = 0  # starting probability of conjugation
         self.maxmaturity = 50  # max probability of conjugation
-        self.refractory_conj = ceil(
-            0.25 / time_per_turn)  # OLD VERSION: expected_conj_time/16/time_per_turn # refractory period after conjugation in turns
-        self.refractory_div = ceil(
-            0.50 / time_per_turn)  # OLD VERSION: expected_donor_div_time/4/time_per_turn # refractory period after division in turns
-        self.resistance_factor = 1;  # resistance to antibiotics
+        self.refractory_conj = ceil(0.25 / time_per_turn)  # OLD VERSION: expected_conj_time/16/time_per_turn # refractory period after conjugation in turns
+        self.refractory_div = ceil(0.50 / time_per_turn)  # OLD VERSION: expected_donor_div_time/4/time_per_turn # refractory period after division in turns
 
 
 # Initiate Cell Lattice and Data Directory
 # =================================================
-lattice = [[Empty([x, y]) for y in xrange(n)] for x in xrange(n)]
+lattice = [[Empty([x, y], nutrient_initial_condition) for y in xrange(n)] for x in xrange(n)]
 lattice_data = []  # list of list, sublists are [iters, time, E, R, D]
 
 
@@ -224,8 +223,8 @@ def printer():
 def build_lattice_testing():
     pivot = n/5
     anti_pivot = n - pivot - 1
-    lattice[pivot][pivot] = Receiver([pivot, pivot])
-    lattice[anti_pivot][anti_pivot] = Donor([anti_pivot, anti_pivot])
+    lattice[pivot][pivot] = Receiver([pivot, pivot], lattice[pivot][pivot].nutrients)
+    lattice[anti_pivot][anti_pivot] = Donor([anti_pivot, anti_pivot], lattice[anti_pivot][anti_pivot].nutrients)
     print lattice
     print "WARNING - testing lattice in use"
     return lattice
@@ -237,11 +236,11 @@ def build_lattice_random():
         for j in xrange(n):
             m = random_lattice[i][j]
             if m == 0:
-                lattice[i][j] = Receiver([i, j])
+                lattice[i][j] = Receiver([i, j], nutrient_initial_condition)
             elif m == 1:
-                lattice[i][j] = Donor([i, j])
+                lattice[i][j] = Donor([i, j], nutrient_initial_condition)
             elif m in range(2, seed):
-                lattice[i][j] = Empty([i, j])
+                lattice[i][j] = Empty([i, j], nutrient_initial_condition)
     print random_lattice, "\n"
     return
 
@@ -258,17 +257,24 @@ def is_donor(loc):
     return 'D' == lattice[loc[0]][loc[1]].label
 
 
+def get_nutrients(loc):
+    return lattice[loc[0]][loc[1]].nutrients
+
+
 def divide(cell, empty_neighbours):
+    nutrients_are_available = cell.is_nutrient_available()
     distr = randint(0, 100)
     success = 0  # successful division = 1
-    if distr < 100.0 / turn_rate:
+    if distr < 100.0 / turn_rate and nutrients_are_available:
         success = 1
         daughter_loc = random.choice(empty_neighbours)
+        cell.choose_and_exhaust_nutrient()
+        daughter_loc_nutrients = get_nutrients(daughter_loc)
         if 'D' == cell.label:
-            lattice[daughter_loc[0]][daughter_loc[1]] = Donor(daughter_loc)
+            lattice[daughter_loc[0]][daughter_loc[1]] = Donor(daughter_loc, daughter_loc_nutrients)
             cell.maturity = floor(cell.maturity / 2)
         elif 'R' == cell.label:
-            lattice[daughter_loc[0]][daughter_loc[1]] = Receiver(daughter_loc)
+            lattice[daughter_loc[0]][daughter_loc[1]] = Receiver(daughter_loc, daughter_loc_nutrients)
         else:
             raise Exception("Illegal cell type")
         cell.pause = cell.refractory_div
@@ -281,8 +287,8 @@ def conjugate(cell, receiver_neighbours):
     conj_rate_rel_div_rate = expected_conj_time / expected_donor_div_time
     if distr < (1000.0 / turn_rate) / conj_rate_rel_div_rate:
         success = 1
-        daughter_loc = random.choice(receiver_neighbours)
-        lattice[daughter_loc[0]][daughter_loc[1]] = Donor(daughter_loc)
+        mate_loc = random.choice(receiver_neighbours)
+        lattice[mate_loc[0]][mate_loc[1]] = Donor(mate_loc, get_nutrients(mate_loc))
         cell.pause = cell.refractory_conj
     return success
 
@@ -330,8 +336,8 @@ def run_sim(T):  # T = total sim time
                         cell.pause -= 1
                         continue
 
-                    receiver_neighbours = cell.get_label_surroundings('R')
-                    empty_neighbours = cell.get_label_surroundings('_')
+                    receiver_neighbours = cell.get_label_surroundings('R', search_radius_bacteria)
+                    empty_neighbours = cell.get_label_surroundings('_', search_radius_bacteria)
                     if not empty_neighbours:  # skip if surrounded
                         continue
                     else:  # chance to divide
@@ -345,8 +351,8 @@ def run_sim(T):  # T = total sim time
                         cell.pause -= 1
                         continue
 
-                    receiver_neighbours = cell.get_label_surroundings('R')
-                    empty_neighbours = cell.get_label_surroundings('_')
+                    receiver_neighbours = cell.get_label_surroundings('R', search_radius_bacteria)
+                    empty_neighbours = cell.get_label_surroundings('_', search_radius_bacteria)
                     if not empty_neighbours:  # surrounded?
                         if not receiver_neighbours:  # no R neighbours?
                             continue
