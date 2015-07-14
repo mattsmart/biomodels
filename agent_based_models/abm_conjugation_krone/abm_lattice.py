@@ -11,9 +11,19 @@ from plot_lattice import lattice_plotter
 
 """
 TODO
+
+SPEED
 -instead of explicit class structure for the states, could just use DICT (may be faster)
--utilize inheritance, have the 3 subclasses
+-use location tuples instead of lists (faster assigning)
+-faster and better probability modules
+-all to numpy arrays
+
+-finally utilize inheritance, have the 3 subclasses
 -should we incorporate cell death
+
+BUGS
+-potential bug if empty cells are not carefully initiated (can't distinguish between unused spot and 'Empty' cell)
+    -might be able to turn this into speedup by having not used == empty
 """
 
 
@@ -37,7 +47,9 @@ for dirs in dir_list:
 
 # Constants
 # =================================================
-n = 10
+n = 100
+search_radius_square = 2
+assert search_radius_square < n / 2
 seed = 5
 standard_run_time = 24.0  # typical simulation time in h
 
@@ -75,12 +87,11 @@ class Cell(object):
         return self.label
 
     # given cell # i,j, returns a list of array pairs (up to 6) rep nearby lattice cells
-    # COMMENTS: Do I need all the return statements? or just one at the end?
     def get_surroundings(self):
         location = self.location
         row = location[0]
         col = location[1]
-        is_odd = row % 2  # 0 means even row, 1 means odd row
+        is_odd = row % 2  # 0 means even row, 1 means odd row  # TODO REMOVE make for PBC though
 
         up = [row - 1, col]  # note the negative
         down = [row + 1, col]
@@ -135,15 +146,38 @@ class Cell(object):
 
         return surroundings
 
+    # NEW NEIGHBOURS FUNCTION
+    def get_surroundings_square(self, search_radius):
+        """Specifies the location of the top left corner of the search square
+        Args:
+            search_radius: half-edge length of the square
+        Returns:
+            list of locations; length should be (2 * search_radius + 1) ** 2
+        Notes:
+            - periodic BCs apply, so search boxes wrap around at boundaries
+            - note that we assert that search_radius be less than half the grid size
+        """
+        # utility variables
+        row = self.location[0]
+        col = self.location[1]
+
+        # intiialize list for speedup
+        # TODO surroundings = [0] * (search_radius ** 2)
+        surroundings = [(row_to_search % n, col_to_search % n)
+                        for row_to_search in xrange(row - search_radius, row + search_radius + 1)
+                        for col_to_search in xrange(col - search_radius, col + search_radius + 1)]
+        # assert len(surroundings) == (2 * search_radius + 1) ** 2
+        return surroundings
+
     def get_label_surroundings(self, cell_label):
         if cell_label not in ['_', 'R', 'D']:
             raise Exception("Illegal cell label (_, R, or D)")
-        neighbours = self.get_surroundings()
-        empty_neighbours = []
+        neighbours = self.get_surroundings_square(search_radius=search_radius_square)
+        neighbours_of_specified_type = []
         for loc in neighbours:
             if cell_label == lattice[loc[0]][loc[1]].label:
-                empty_neighbours.append(loc)
-        return empty_neighbours
+                neighbours_of_specified_type.append(loc)
+        return neighbours_of_specified_type
 
 
 class Empty(Cell):
@@ -180,7 +214,6 @@ lattice_data = []  # list of list, sublists are [iters, time, E, R, D]
 
 # Functions
 # =================================================
-
 def printer():
     for i in xrange(n):
         str_lst = [lattice[i][j].label for j in xrange(n)]
@@ -190,9 +223,10 @@ def printer():
 
 def build_lattice_testing():
     pivot = n/5
-    anti_pivot = n - pivot
+    anti_pivot = n - pivot - 1
     lattice[pivot][pivot] = Receiver([pivot, pivot])
     lattice[anti_pivot][anti_pivot] = Donor([anti_pivot, anti_pivot])
+    print lattice
     print "WARNING - testing lattice in use"
     return lattice
 
@@ -225,7 +259,7 @@ def is_donor(loc):
 
 
 def divide(cell, empty_neighbours):
-    distr = randint(1, 101)  # [1, 100]
+    distr = randint(0, 100)
     success = 0  # successful division = 1
     if distr < 100.0 / turn_rate:
         success = 1
@@ -242,7 +276,7 @@ def divide(cell, empty_neighbours):
 
 
 def conjugate(cell, receiver_neighbours):
-    distr = randint(1, 1001)  # [1, 1000]
+    distr = randint(0, 1000)  # [1, 1000]
     success = 0  # successful conjugation = 1
     conj_rate_rel_div_rate = expected_conj_time / expected_donor_div_time
     if distr < (1000.0 / turn_rate) / conj_rate_rel_div_rate:
@@ -269,35 +303,14 @@ def count_cells():  # returns a list of current cell counts: [# of empty, # of r
     return [E, R, D]
 
 
-def antibiotic():  # introduces antibiotic and kills donor cells
-    for i in xrange(n):
-        for j in xrange(n):
-            loc = [i, j]
-            if is_donor(loc):
-                lattice[i][j] = Empty(loc)
-    return
-
-
-def new_donor_round():  # introduce new round of donor cells
-    for i in xrange(n):
-        for j in xrange(n):
-            loc = [i, j]
-            if is_empty(loc):
-                distr = randint(1, 1001)
-                if distr <= 500:  # place donors in 50% of empty cells
-                    lattice[i][j] = Donor(loc)
-    return
-
-
 def run_sim(T):  # T = total sim time
 
     # get stats for lattice initial condition before entering simulation loop
     [E, R, D] = count_cells()
     lattice_data.append([0, 0.0, E, R, D])
-    # print lattice_data, "\n"
     lattice_plotter(lattice, 0.0, n, plot_lattice_folder)
-    # raw_input()
 
+    # begin simulation
     turns = int(ceil(T / time_per_turn))
     for t in xrange(turns):
         print 'Turn ', t, ' : Time Elapsed ', t * time_per_turn, "h"
@@ -321,7 +334,7 @@ def run_sim(T):  # T = total sim time
                     empty_neighbours = cell.get_label_surroundings('_')
                     if not empty_neighbours:  # skip if surrounded
                         continue
-                    else:  # divide
+                    else:  # chance to divide
                         divide(cell, empty_neighbours)
                         continue
 
@@ -371,8 +384,8 @@ def run_sim(T):  # T = total sim time
 # Main Function
 # =================================================
 def main():
-    #build_lattice_random()
-    build_lattice_testing()
+    build_lattice_random()
+    #build_lattice_testing()
     run_sim(standard_run_time)
 
     data_name = "lattice_data.csv"
