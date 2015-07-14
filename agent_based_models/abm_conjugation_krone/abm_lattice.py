@@ -9,6 +9,14 @@ from plot_data import data_plotter
 from plot_lattice import lattice_plotter
 
 
+"""
+TODO
+-instead of explicit class structure for the states, could just use DICT (may be faster)
+-utilize inheritance, have the 3 subclasses
+-should we incorporate cell death
+"""
+
+
 # IO
 # =================================================
 runs_folder = "runs\\"  # store timestamped runs here
@@ -392,17 +400,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-"""
--instead of explicit class structure for the states, could just use DICT (may be faster)
--utilize inheritance, have the 3 subclasses
--should we incorporate cell death
-
-Actual lattice shape - size 4x4 (n=4)
-_ _ _ _
-_ _ _ _
-_ _ _ _
-_ _ _ _
-
-"""
