@@ -293,27 +293,29 @@ def conjugate(cell, receiver_neighbours):
     return success
 
 
-def count_cells():  # returns a list of current cell counts: [# of empty, # of receiver, # of donor]
+def count_cells():  # returns a list of current cell counts: [# of empty, # of receiver, # of donor, # of nutrients]
     E = 0
     R = 0
     D = 0
+    N = 0
     for i in xrange(n):
         for j in xrange(n):
             loc = [i, j]
+            N += get_nutrients(loc)
             if is_receiver(loc):
                 R += 1
             elif is_donor(loc):
                 D += 1
             else:
                 E += 1
-    return [E, R, D]
+    return [E, R, D, N]
 
 
 def run_sim(T):  # T = total sim time
 
     # get stats for lattice initial condition before entering simulation loop
-    [E, R, D] = count_cells()
-    lattice_data.append([0, 0.0, E, R, D])
+    [E, R, D, N] = count_cells()
+    lattice_data.append([0, 0.0, E, R, D, N])
     lattice_plotter(lattice, 0.0, n, plot_lattice_folder)
 
     # begin simulation
@@ -378,8 +380,8 @@ def run_sim(T):  # T = total sim time
                     break
 
         # get lattice stats for this timestep
-        [E, R, D] = count_cells()
-        lattice_data.append([(t + 1), (t + 1) * time_per_turn, E, R, D])
+        [E, R, D, N] = count_cells()
+        lattice_data.append([(t + 1), (t + 1) * time_per_turn, E, R, D, N])
         # print lattice_data, "\n"
         lattice_plotter(lattice, (t + 1) * time_per_turn, n, plot_lattice_folder)
         # raw_input()
@@ -390,8 +392,8 @@ def run_sim(T):  # T = total sim time
 # Main Function
 # =================================================
 def main():
-    build_lattice_random()
-    #build_lattice_testing()
+    #build_lattice_random()
+    build_lattice_testing()
     run_sim(standard_run_time)
 
     data_name = "lattice_data.csv"
@@ -406,15 +408,17 @@ def main():
     E = [x[2] for x in lattice_data]
     R = [x[3] for x in lattice_data]
     D = [x[4] for x in lattice_data]
+    N = [x[5] for x in lattice_data]
     data_dict = {'iters': iters,
                  'time': time,
                  'E': E,
                  'R': R,
-                 'D': D}
+                 'D': D,
+                 'N': N}
 
     data_plotter(data_dict, data_file, plot_data_folder)
 
-    print "\n oops"
+    print "\n Done!"
     return
 
 if __name__ == '__main__':
