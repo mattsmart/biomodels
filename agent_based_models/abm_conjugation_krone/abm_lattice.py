@@ -49,7 +49,7 @@ for dirs in dir_list:
 # Constants
 # =================================================
 # simulation dimensions
-n = 10
+n = 100
 
 # simulation lattice parameters
 seed = 5  # determines ratio of donors to recipients for random homogeneous conditions
@@ -225,7 +225,6 @@ def build_lattice_testing():
     anti_pivot = n - pivot - 1
     lattice[pivot][pivot] = Receiver([pivot, pivot], lattice[pivot][pivot].nutrients)
     lattice[anti_pivot][anti_pivot] = Donor([anti_pivot, anti_pivot], lattice[anti_pivot][anti_pivot].nutrients)
-    print lattice
     print "WARNING - testing lattice in use"
     return lattice
 
