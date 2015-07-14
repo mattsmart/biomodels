@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 
 def data_plotter(lattice_dict, datafile_dir, plot_dir):
 
-    # B = lattice_dict['E'][0] + lattice_dict['R'][0] + lattice_dict['D'][0]  # total bacteria
-    n = int(N**0.5)
+    total_cells = lattice_dict['E'][0] + lattice_dict['R'][0] + lattice_dict['D'][0]  # total bacteria
+    n = int(total_cells**0.5)
 
     plt.figure(1)
 
