@@ -29,17 +29,17 @@ for dirs in dir_list:
 
 # Constants
 # =================================================
-n = 10 # TODO FIX 100
+n = 10
 seed = 5
 standard_run_time = 24.0  # typical simulation time in h
 
-# cody: 0.5 h for staph, 0.25 h for e.coli (back to 0.5h ecoli -oct 17)
+# division and recovery times
 div_time_staph = 0.5
 div_time_ecoli = 0.5
 expected_receiver_div_time = div_time_ecoli  # avg time for 1 R cell to divide in h
 expected_donor_div_time = div_time_ecoli  # avg time for 1 D cell to divide in h
 
-# cody: staph rate could be 10^4 i.e. 10^-4
+# conjugation rate
 conj_super_rate = 1.0
 conj_ecoli_rate = 10.0
 conj_staph_rate = 10 ** 4.0
@@ -180,7 +180,16 @@ def printer():
     print
 
 
-def build_lattice():
+def build_lattice_testing():
+    pivot = n/5
+    anti_pivot = n - pivot
+    lattice[pivot][pivot] = Receiver([pivot, pivot])
+    lattice[anti_pivot][anti_pivot] = Donor([anti_pivot, anti_pivot])
+    print "WARNING - testing lattice in use"
+    return lattice
+
+
+def build_lattice_random():
     random_lattice = randint(seed, size=(n, n))
     for i in xrange(n):
         for j in xrange(n):
@@ -273,26 +282,16 @@ def new_donor_round():  # introduce new round of donor cells
 
 
 def run_sim(T):  # T = total sim time
-    turns = int(ceil(T / time_per_turn))
-    antibiotic_introduced = 0  # flag for catcing when antibiotics are introduced
-    for t in xrange(turns):
-        if antibiotic_introduced:
-            print 'Turn ', t, ' : Time Elapsed ', t * time_per_turn, "h (New Round)"
-            new_donor_round()
-            antibiotic_introduced = 0
-            [E, R, D] = count_cells()
-            lattice_data.append([t, t * time_per_turn, E, R, D])
-            lattice_plotter(lattice, t * time_per_turn, n, plot_lattice_folder)
-            continue
-        if t in turns_antibiotic:  # introduce antibiotics at turn 160 (20 h)
-            print 'Turn ', t, ' : Time Elapsed ', t * time_per_turn, "h (Antibiotics Introduced)"
-            antibiotic()
-            antibiotic_introduced = 1
-            [E, R, D] = count_cells()
-            lattice_data.append([t, t * time_per_turn, E, R, D])
-            lattice_plotter(lattice, t * time_per_turn, n, plot_lattice_folder)
-            continue
 
+    # get stats for lattice initial condition before entering simulation loop
+    [E, R, D] = count_cells()
+    lattice_data.append([0, 0.0, E, R, D])
+    # print lattice_data, "\n"
+    lattice_plotter(lattice, 0.0, n, plot_lattice_folder)
+    # raw_input()
+
+    turns = int(ceil(T / time_per_turn))
+    for t in xrange(turns):
         print 'Turn ', t, ' : Time Elapsed ', t * time_per_turn, "h"
         # printer()
         for i in xrange(n):
@@ -351,10 +350,11 @@ def run_sim(T):  # T = total sim time
                     raise Exception("Not _, R, or D")
                     break
 
+        # get lattice stats for this timestep
         [E, R, D] = count_cells()
-        lattice_data.append([t, t * time_per_turn, E, R, D])
+        lattice_data.append([(t + 1), (t + 1) * time_per_turn, E, R, D])
         # print lattice_data, "\n"
-        lattice_plotter(lattice, t * time_per_turn, n, plot_lattice_folder)
+        lattice_plotter(lattice, (t + 1) * time_per_turn, n, plot_lattice_folder)
         # raw_input()
 
     return lattice_data
@@ -363,7 +363,8 @@ def run_sim(T):  # T = total sim time
 # Main Function
 # =================================================
 def main():
-    build_lattice()
+    #build_lattice_random()
+    build_lattice_testing()
     run_sim(standard_run_time)
 
     data_name = "lattice_data.csv"
