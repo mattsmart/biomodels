@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 def data_plotter(lattice_dict, datafile_dir, plot_dir):
 
-    N = lattice_dict['E'][0] + lattice_dict['R'][0] + lattice_dict['D'][0]
+    # B = lattice_dict['E'][0] + lattice_dict['R'][0] + lattice_dict['D'][0]  # total bacteria
     n = int(N**0.5)
 
     plt.figure(1)
@@ -13,9 +13,10 @@ def data_plotter(lattice_dict, datafile_dir, plot_dir):
     plt.plot(lattice_dict['time'], lattice_dict['E'], label='Empty lattice points')
     plt.plot(lattice_dict['time'], lattice_dict['R'], label='Receivers')
     plt.plot(lattice_dict['time'], lattice_dict['D'], label='Donors')
+    plt.plot(lattice_dict['time'], lattice_dict['N'], label='Nutrients')
 
     ax = plt.gca()
-    ax.set_title('Cell Populations over time (n = %d)' % n)
+    ax.set_title('Cell and Nutrient Populations over time (n = %d)' % n)
     ax.set_ylabel('Number of cells')
     ax.set_xlabel('Time (h)')
 
@@ -28,3 +29,4 @@ def data_plotter(lattice_dict, datafile_dir, plot_dir):
     plt.clf()
     
     return
+
