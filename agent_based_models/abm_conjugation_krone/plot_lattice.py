@@ -1,6 +1,6 @@
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
-
+import matplotlib.patches as mpatches
 """
 COMMENTS:
     -radius seems to extend 85% of r, to intersect middle of line seg
@@ -31,8 +31,8 @@ def lattice_draw(lattice, n):
     cell_radius = axis_length / (2 * n)
     x0 = cell_radius
     y0 = axis_length - cell_radius
-    dx = cell_radius*2.0
-    dy = cell_radius*1.75
+    dx = cell_radius * 2.0
+    dy = cell_radius * 1.75
 
     x = x0
     y = y0
@@ -42,15 +42,16 @@ def lattice_draw(lattice, n):
             cell_label = lattice[i][j].label
             cell_colour = label_colour_dict[cell_label]
             if separation_flag:
-                cell_ij = plt.Circle((x,y), radius=cell_radius / 2, color=cell_colour, ec="k")
+                cell_ij = plt.Circle((x, y), radius=cell_radius / 2, color=cell_colour, ec="k")
                 plt.gca().add_artist(cell_ij)
             else:
-                cell_ij = mpatches.RegularPolygon((x,y), numVertices=4, radius=cell_radius, facecolor=cell_colour, ec="k")  # might be faster solid square plotter
+                cell_ij = mpatches.Rectangle((x, y), 2 * cell_radius, 2 * cell_radius, facecolor=cell_colour, ec="k")  # might be faster solid square plotter
+                ###cell_ij = mpatches.RegularPolygon((x, y), numVertices=4, radius=cell_radius, facecolor=cell_colour, ec="k")  # might be faster solid square plotter
                 plt.gca().add_patch(cell_ij)
             x += dx
 
         y -= dy
-        x = x0 + ((i + 1) % 2) * cell_radius  # shift odd rows to the right a bit
+        x = x0  # + ((i + 1) % 2) * cell_radius  # shift odd rows to the right a bit
 
     return
 
