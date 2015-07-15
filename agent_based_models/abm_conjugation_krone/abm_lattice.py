@@ -15,6 +15,7 @@ TODO
 -should we incorporate cell death
 -make conj rate nutrient dependent
 -remove or augment the maturity module
+-ICs that resemble the PDEs
 
 SPEED
 -instead of explicit class structure for the states, could just use DICT (may be faster)
@@ -27,6 +28,7 @@ SPEED
 -print plot every kth turn
 -make plotting faster or save big matrices for plotting later?
 -dont plot text in every cell for 10k cells LOL
+-might be a faster plotting package
 
 BUGS
 -potential bug if empty cells are not carefully initiated (can't distinguish between unused spot and 'Empty' cell)
@@ -393,8 +395,8 @@ def run_sim(T):  # T = total sim time
 # Main Function
 # =================================================
 def main():
-    #build_lattice_random()
-    build_lattice_testing()
+    build_lattice_random()
+    #build_lattice_testing()
     run_sim(standard_run_time)
 
     data_name = "lattice_data.csv"
