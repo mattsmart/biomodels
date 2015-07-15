@@ -47,9 +47,8 @@ def lattice_draw(lattice, n):
                 plt.gca().add_artist(cell_ij)
             else:
                 cell_ij = mpatches.Rectangle((x, y), 2 * cell_radius, 2 * cell_radius, facecolor=cell_colour, ec="k")  # might be faster solid square plotter
-                ###cell_ij = mpatches.RegularPolygon((x, y), numVertices=4, radius=cell_radius, facecolor=cell_colour, ec="k")  # might be faster solid square plotter
                 plt.gca().add_patch(cell_ij)
-            plt.text(x + 0.2 * dx, y + 0.8 * dy, str(cell_nutrients), fontsize=12)
+            #plt.text(x + 0.2 * dx, y + 0.8 * dy, str(cell_nutrients), fontsize=12)
             x += dx
 
         y -= dy
