@@ -2,6 +2,7 @@ import csv
 import datetime
 import os
 import random
+import time
 from math import ceil, floor
 from numpy.random import randint
 
@@ -22,13 +23,15 @@ SPEED
 -use location tuples instead of lists (faster assigning)
 -faster and better probability modules
 -all to numpy arrays
--iterate only over nonempty cells
+-store cell type as well as position for faster referencing?
 
 % PLOTTING SPEED
 -print plot every kth turn
 -make plotting faster or save big matrices for plotting later?
 -dont plot text in every cell for 10k cells LOL
--might be a faster plotting package
+-might be a faster plotting package: vispy, PyQtGraph, Gtk
+-multiprocessing.. but independence issues
+-could try collecting positions and calling matplotlib scatterpplot with diff color squares?
 
 BUGS
 -potential bug if empty cells are not carefully initiated (can't distinguish between unused spot and 'Empty' cell)
@@ -58,7 +61,7 @@ for dirs in dir_list:
 # Constants
 # =================================================
 # simulation dimensions
-n = 100
+n = 100  # 400 tested as feasible
 
 # simulation lattice parameters
 seed = 5  # determines ratio of donors to recipients for random homogeneous conditions
@@ -88,7 +91,7 @@ death_rate_lab = 0.0
 standard_run_time = 24.0  # typical simulation time in h
 turn_rate = 2.0  # average turns between each division; simulation step size
 time_per_turn = expected_recipient_div_time / turn_rate
-plots_period_in_turns = 2 * turn_rate
+plots_period_in_turns = 1  # 2 * turn_rate
 
 
 # Classes
@@ -387,7 +390,11 @@ def run_sim(T):  # T = total sim time
         lattice_data.append([turn, turn * time_per_turn, E, R, D, N])
         # periodically plot the lattice (it takes a while)
         if turn % plots_period_in_turns == 0:
+            t0_a = time.clock()
+            t0_b = time.time()
             lattice_plotter(lattice, turn * time_per_turn, n, plot_lattice_folder)
+            print "process time:", time.clock() - t0_a
+            print "wall time:", time.time() - t0_b
 
     return lattice_data
 
