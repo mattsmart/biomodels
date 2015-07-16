@@ -77,7 +77,7 @@ def scatterplot_dict_array(lattice, n, dict_counts):
     x0 = cell_radius
     y0 = (axis_length - cell_radius)
     dx = cell_radius * 2.0
-    dy = cell_radius * 1.65  # 1.75
+    dy = cell_radius * 1.75  # 1.75
 
     x = x0
     y = y0
@@ -96,25 +96,40 @@ def scatterplot_dict_array(lattice, n, dict_counts):
 
 def lattice_draw_fast(lattice, n, dict_counts):
     dict_array = scatterplot_dict_array(lattice, n, dict_counts)
-    f = plt.figure()
     size_param = 40 * (axis_length / n) ** 2  # 40 = 20 (default area) * 2
-    linewidth = axis_length / (10 * n)  # 0.5  # TODO FIX try cell radius / 5 or 10
+    linewidth = 0  # use 2*axis_length / (5 * n)  or  0.5  or  0
+    f = plt.figure()
+    # plot actual data
     for key in dict_array.keys():
         plt.scatter(dict_array[key][0], dict_array[key][1], s=size_param, color=label_colour_dict[key], marker='s', lw=linewidth, edgecolor='black')  # can use alpha=0.5 for 3d
     return f
 
 
 def lattice_plotter(lattice, time, n, dict_counts, lattice_plot_dir):
+    # generate figure
     if fast_flag:
         lattice_draw_fast(lattice, n, dict_counts)
     else:
         lattice_draw(lattice, n)
-    f_handle = plt.gcf()
-    f_handle.set_size_inches(16.0, 16.0)
+    # set figure size
+    fig_handle = plt.gcf()
+    fig_handle.set_size_inches(16, 16)
+    # pad figure to hide gaps between squares
+    scale_settings = {10: {'x': (-22, 122), 'y': (-20, 120)},
+                      1000: {'x': (-28, 128), 'y': (-22, 122)}}
+    if n in scale_settings.keys():
+        ax_handle = plt.gca()
+        axis_lims = scale_settings[n]
+        ax_handle.set_xlim(axis_lims['x'])
+        ax_handle.set_ylim(axis_lims['y'])
+    # hide axis
     axis_ticks = range(0, axis_tick_length + 1, 10)
     plt.xticks(axis_ticks)
     plt.yticks(axis_ticks)
     plt.axis('off')
-    plt.savefig(lattice_plot_dir + 'lattice_at_time_%f.png' % time, bbox_inches='tight', dpi=max(80.0, n/2.0))
+    # save figure
+    #plt.savefig(lattice_plot_dir + 'lattice_at_time_%f.png' % time)
+    #plt.savefig(lattice_plot_dir + 'lattice_at_time_%f.png' % time, bbox_inches='tight', figsize=(16, 16), dpi=max(80.0, n/2.0))
+    plt.savefig(lattice_plot_dir + 'lattice_at_time_%f.png' % time, dpi=max(80.0, n/2.0))
     plt.close()
     return
