@@ -67,11 +67,10 @@ def lattice_draw(lattice, n):
     return
 
 
-def scatterplot_dict_array(lattice, n, cell_counts):
-    dict_array = {'_': np.zeros((2, cell_counts[0]), dtype=np.float32),
-                  'R': np.zeros((2, cell_counts[1]), dtype=np.float32),
-                  'D': np.zeros((2, cell_counts[2]), dtype=np.float32)}
-    dict_increment = {'_': 0, 'R': 0, 'D': 0}
+def scatterplot_dict_array(lattice, n, dict_counts):
+    keys = ['_', 'R', 'D']
+    dict_array = {key: np.zeros((2, dict_counts[key]), dtype=np.float32) for key in keys}
+    dict_increment = {key: 0 for key in keys}
 
     # assume cell_per_row = n, cell_per_col = n
     cell_radius = axis_length / (2 * n)
@@ -95,20 +94,19 @@ def scatterplot_dict_array(lattice, n, cell_counts):
     return dict_array
 
 
-def lattice_draw_fast(lattice, n, cell_counts):
-    dict_array = scatterplot_dict_array(lattice, n, cell_counts)
+def lattice_draw_fast(lattice, n, dict_counts):
+    dict_array = scatterplot_dict_array(lattice, n, dict_counts)
     f = plt.figure()
     size_param = 40 * (axis_length / n) ** 2  # 40 = 20 (default area) * 2
-    linewidth = 0.5  # TODO FIX
+    linewidth = axis_length / (10 * n)  # 0.5  # TODO FIX try cell radius / 5 or 10
     for key in dict_array.keys():
         plt.scatter(dict_array[key][0], dict_array[key][1], s=size_param, color=label_colour_dict[key], marker='s', lw=linewidth, edgecolor='black')  # can use alpha=0.5 for 3d
     return f
 
 
-def lattice_plotter(lattice, time, n, cell_counts, lattice_plot_dir):
-    # cell counts have the form E R D N
+def lattice_plotter(lattice, time, n, dict_counts, lattice_plot_dir):
     if fast_flag:
-        lattice_draw_fast(lattice, n, cell_counts)
+        lattice_draw_fast(lattice, n, dict_counts)
     else:
         lattice_draw(lattice, n)
     f_handle = plt.gcf()

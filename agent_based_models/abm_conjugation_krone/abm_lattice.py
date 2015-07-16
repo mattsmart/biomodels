@@ -1,5 +1,6 @@
 import csv
 import datetime
+import numpy as np
 import os
 import random
 import time
@@ -26,13 +27,14 @@ SPEED
 -store cell type as well as position for faster referencing?
 -when counting cell types, simply add to the current count rather than recounting every step
 
-% PLOTTING SPEED
+PLOTTING SPEED
 -print plot every kth turn
 -make plotting faster or save big matrices for plotting later?
 -dont plot text in every cell for 10k cells LOL
 -might be a faster plotting package: vispy, PyQtGraph, Gtk
 -multiprocessing.. but independence issues
 -could try collecting positions and calling matplotlib scatterpplot with diff color squares?
+-could save more time but not storing or plotting empties?
 
 BUGS
 -potential bug if empty cells are not carefully initiated (can't distinguish between unused spot and 'Empty' cell)
@@ -92,7 +94,7 @@ death_rate_lab = 0.0
 standard_run_time = 24.0  # typical simulation time in h
 turn_rate = 2.0  # average turns between each division; simulation step size
 time_per_turn = expected_recipient_div_time / turn_rate
-plots_period_in_turns = 1  # 2 * turn_rate
+plots_period_in_turns = 1000  # 1 or 1000 or 2 * turn_rate
 
 
 # Classes
@@ -213,8 +215,8 @@ class Donor(Cell):
     def __init__(self, location, nutrients):
         Cell.__init__(self, 'D', location, nutrients)
         self.pause = 0  # 0 if cell is active, non-zero means turns until active
-        self.maturity = 0  # starting probability of conjugation
-        self.maxmaturity = 50  # max probability of conjugation
+        #self.maturity = 0  # starting probability of conjugation
+        #self.maxmaturity = 50  # max probability of conjugation
         self.refractory_conj = ceil(0.25 / time_per_turn)  # OLD VERSION: expected_conj_time/16/time_per_turn # refractory period after conjugation in turns
         self.refractory_div = ceil(0.50 / time_per_turn)  # OLD VERSION: expected_donor_div_time/4/time_per_turn # refractory period after division in turns
 
@@ -285,7 +287,7 @@ def divide(cell, empty_neighbours, new_cell_locations):
         daughter_loc_nutrients = get_nutrients(daughter_loc)
         if 'D' == cell.label:
             lattice[daughter_loc[0]][daughter_loc[1]] = Donor(daughter_loc, daughter_loc_nutrients)
-            cell.maturity = floor(cell.maturity / 2)
+            #cell.maturity = floor(cell.maturity / 2)
         elif 'R' == cell.label:
             lattice[daughter_loc[0]][daughter_loc[1]] = Receiver(daughter_loc, daughter_loc_nutrients)
         else:
@@ -307,7 +309,7 @@ def conjugate(cell, recipient_neighbours):
     return success
 
 
-def count_cells():  # returns a list of current cell counts: [# of empty, # of recipient, # of donor, # of nutrients]
+def count_cells():  # returns a dict of current cell counts: [# of empty, # of recipient, # of donor, # of nutrients]
     E = 0
     R = 0
     D = 0
@@ -322,7 +324,7 @@ def count_cells():  # returns a list of current cell counts: [# of empty, # of r
                 D += 1
             else:
                 E += 1
-    return [E, R, D, N]
+    return {'_': E, 'R': R, 'D': D, 'N': N}
 
 
 def get_cell_locations():
@@ -338,64 +340,83 @@ def get_cell_locations():
 def run_sim(T):  # T = total sim time
 
     # get stats for lattice initial condition before entering simulation loop
-    [E, R, D, N] = count_cells()
-    lattice_data.append([0, 0.0, E, R, D, N])
-    lattice_plotter(lattice, 0.0, n, [E, R, D, N], plot_lattice_folder)
+    dict_counts = count_cells()
 
-    # begin simulation
+    # add timestep 0 info to lattice data
+    lattice_data.append([0, 0.0, dict_counts['_'], dict_counts['R'], dict_counts['D'], dict_counts['N']])
+
+    # plot initial conditions
+    #lattice_plotter(lattice, 0.0, n, [E, R, D, N], plot_lattice_folder)  # TODO Re-add
+
+    # simulation loop initialization
     new_cell_locations = []
     cell_locations = get_cell_locations()
     turns = int(ceil(T / time_per_turn))
+
+
     for turn in xrange(1, turns + 1):
         print 'Turn ', turn, ' : Time Elapsed ', turn * time_per_turn, "h"
-        # printer()
         cell_locations = cell_locations + new_cell_locations
         new_cell_locations = []
+
+        # timestep profiling
+        t0_a = time.clock()
+        t0_b = time.time()
+
         for loc in cell_locations:
             cell = lattice[loc[0]][loc[1]]
             if 0 < cell.pause:  # if paused, decrement pause timer
                 cell.pause -= 1
             else:
                 empty_neighbours = cell.get_label_surroundings('_', search_radius_bacteria)
-
                 # recipient behaviour
                 if is_recipient(loc):
-                    divide(cell, empty_neighbours, new_cell_locations)
-
+                    if divide(cell, empty_neighbours, new_cell_locations):
+                        dict_counts['R'] += 1
                 # donor behaviour
                 elif is_donor(loc):
-                    if cell.maturity < cell.maxmaturity:
-                        cell.maturity += 10
+                    #if cell.maturity < cell.maxmaturity:
+                    #    cell.maturity += 10
                     recipient_neighbours = cell.get_label_surroundings('R', search_radius_bacteria)
                     no_division_flag = not empty_neighbours
                     no_conjugation_flag = not recipient_neighbours
                     if no_division_flag and no_conjugation_flag:
                         pass
                     elif no_division_flag:
-                        conjugate(cell, recipient_neighbours)
+                        if conjugate(cell, recipient_neighbours):
+                            dict_counts['D'] += 1
                     elif no_conjugation_flag:
-                        divide(cell, empty_neighbours, new_cell_locations)
+                        if divide(cell, empty_neighbours, new_cell_locations):
+                            dict_counts['D'] += 1
                     else:  # chance to either conjugate or divide, randomize the order of potential events
                         if 1 == randint(1, 3):  # try to divide first (33% of the time)
                             if not divide(cell, empty_neighbours, new_cell_locations):
-                                conjugate(cell, recipient_neighbours)
+                                if conjugate(cell, recipient_neighbours):
+                                    dict_counts['D'] += 1
                         else:  # try to conjugate first
                             if not conjugate(cell, recipient_neighbours):
-                                divide(cell, empty_neighbours, new_cell_locations)
+                                if divide(cell, empty_neighbours, new_cell_locations):
+                                    dict_counts['D'] += 1
                 else:
                     print "WARNING - Cell not R or D"
                     raise Exception("Cell not R or D")
 
         # get lattice stats for this timestep
-        [E, R, D, N] = count_cells()
-        lattice_data.append([turn, turn * time_per_turn, E, R, D, N])
+        #[E, R, D, N] = count_cells()
+        lattice_data.append([turn, turn * time_per_turn, dict_counts['_'], dict_counts['R'], dict_counts['D'], dict_counts['N']])
+
+        # timestep profiling
+        print "SIM process time:", time.clock() - t0_a
+        print "SIM wall time:", time.time() - t0_b, "\n"
+
         # periodically plot the lattice (it takes a while)
         if turn % plots_period_in_turns == 0:
             t0_a = time.clock()
             t0_b = time.time()
-            lattice_plotter(lattice, turn * time_per_turn, n, [E, R, D, N], plot_lattice_folder)
-            print "process time:", time.clock() - t0_a
-            print "wall time:", time.time() - t0_b
+            lattice_plotter(lattice, turn * time_per_turn, n, dict_counts, plot_lattice_folder)
+            print "PLOT process time:", time.clock() - t0_a
+            print "PLOT wall time:", time.time() - t0_b, "\n"
+
 
     return lattice_data
 
