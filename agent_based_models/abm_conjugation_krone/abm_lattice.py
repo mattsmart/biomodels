@@ -20,25 +20,16 @@ TODO
 -ICs that resemble the PDEs
 
 SPEED
--instead of explicit class structure for the states, could just use DICT (may be faster)
+-instead of explicit class structure for the states, could just use dicts (should be faster)
 -use location tuples instead of lists (faster assigning)
 -faster and better probability modules
 -all to numpy arrays
 -store cell type as well as position for faster referencing?
--when counting cell types, simply add to the current count rather than recounting every step
 
 PLOTTING SPEED
--print plot every kth turn
--make plotting faster or save big matrices for plotting later?
--dont plot text in every cell for 10k cells LOL
--might be a faster plotting package: vispy, PyQtGraph, Gtk
--multiprocessing.. but independence issues
--could try collecting positions and calling matplotlib scatterpplot with diff color squares?
--could save more time but not storing or plotting empties?
+-could save more time by not storing or plotting empties?
 
 BUGS
--potential bug if empty cells are not carefully initiated (can't distinguish between unused spot and 'Empty' cell)
-    -might be able to turn this into speedup by having not used == empty
 -should skip self when going through surroundings, but not nutrients (i.e. dont count your current position)
 """
 
@@ -94,7 +85,8 @@ death_rate_lab = 0.0
 standard_run_time = 24.0  # typical simulation time in h
 turn_rate = 2.0  # average turns between each division; simulation step size
 time_per_turn = expected_recipient_div_time / turn_rate
-plots_period_in_turns = 1000  # 1 or 1000 or 2 * turn_rate
+plots_period_in_turns = 1  # 1 or 1000 or 2 * turn_rate
+total_turns = int(ceil(standard_run_time / time_per_turn))
 
 
 # Classes
@@ -224,7 +216,7 @@ class Donor(Cell):
 # Initiate Cell Lattice and Data Directory
 # =================================================
 lattice = [[Empty([x, y], nutrient_initial_condition) for y in xrange(n)] for x in xrange(n)]
-lattice_data = []  # list of list, sublists are [iters, time, E, R, D]
+lattice_data = np.zeros((total_turns +1, 6))  # sublists are [turn, time, E, R, D, N]
 
 
 # Functions
@@ -337,25 +329,22 @@ def get_cell_locations():
     return cell_locations
 
 
-def run_sim(T):  # T = total sim time
+def run_sim():
 
-    # get stats for lattice initial condition before entering simulation loop
+    # get stats for lattice initial condition before entering simulation loop, add to lattice data
+    print 'Turn ', 0, ' : Time Elapsed ', 0.0, "h"
     dict_counts = count_cells()
-
-    # add timestep 0 info to lattice data
-    lattice_data.append([0, 0.0, dict_counts['_'], dict_counts['R'], dict_counts['D'], dict_counts['N']])
+    lattice_data[0, :] = np.array([0, 0.0, dict_counts['_'], dict_counts['R'], dict_counts['D'], dict_counts['N']])
 
     # plot initial conditions
-    #lattice_plotter(lattice, 0.0, n, [E, R, D, N], plot_lattice_folder)  # TODO Re-add
+    lattice_plotter(lattice, 0.0, n, dict_counts, plot_lattice_folder)  # TODO Re-add
 
     # simulation loop initialization
     new_cell_locations = []
     cell_locations = get_cell_locations()
-    turns = int(ceil(T / time_per_turn))
 
-
-    for turn in xrange(1, turns + 1):
-        print 'Turn ', turn, ' : Time Elapsed ', turn * time_per_turn, "h"
+    for turn in xrange(1, total_turns + 1):
+        print '\nTurn ', turn, ' : Time Elapsed ', turn * time_per_turn, "h"
         cell_locations = cell_locations + new_cell_locations
         new_cell_locations = []
 
@@ -373,10 +362,12 @@ def run_sim(T):  # T = total sim time
                 if is_recipient(loc):
                     if divide(cell, empty_neighbours, new_cell_locations):
                         dict_counts['R'] += 1
+                        dict_counts['N'] -= 1
+                        dict_counts['_'] -= 1
                 # donor behaviour
                 elif is_donor(loc):
-                    #if cell.maturity < cell.maxmaturity:
-                    #    cell.maturity += 10
+                    #  if cell.maturity < cell.maxmaturity:
+                    #      cell.maturity += 10
                     recipient_neighbours = cell.get_label_surroundings('R', search_radius_bacteria)
                     no_division_flag = not empty_neighbours
                     no_conjugation_flag = not recipient_neighbours
@@ -385,29 +376,45 @@ def run_sim(T):  # T = total sim time
                     elif no_division_flag:
                         if conjugate(cell, recipient_neighbours):
                             dict_counts['D'] += 1
+                            dict_counts['R'] -= 1
                     elif no_conjugation_flag:
                         if divide(cell, empty_neighbours, new_cell_locations):
                             dict_counts['D'] += 1
+                            dict_counts['N'] -= 1
+                            dict_counts['_'] -= 1
                     else:  # chance to either conjugate or divide, randomize the order of potential events
                         if 1 == randint(1, 3):  # try to divide first (33% of the time)
                             if not divide(cell, empty_neighbours, new_cell_locations):
                                 if conjugate(cell, recipient_neighbours):
                                     dict_counts['D'] += 1
+                                    dict_counts['R'] -= 1
+                            else:
+                                dict_counts['D'] += 1
+                                dict_counts['N'] -= 1
+                                dict_counts['_'] -= 1
                         else:  # try to conjugate first
                             if not conjugate(cell, recipient_neighbours):
                                 if divide(cell, empty_neighbours, new_cell_locations):
                                     dict_counts['D'] += 1
+                                    dict_counts['N'] -= 1
+                                    dict_counts['_'] -= 1
+                            else:
+                                dict_counts['D'] += 1
+                                dict_counts['R'] -= 1
+
                 else:
                     print "WARNING - Cell not R or D"
                     raise Exception("Cell not R or D")
 
         # get lattice stats for this timestep
-        #[E, R, D, N] = count_cells()
-        lattice_data.append([turn, turn * time_per_turn, dict_counts['_'], dict_counts['R'], dict_counts['D'], dict_counts['N']])
+        counts = count_cells()
+        lattice_data[turn, :] = np.array([turn, turn * time_per_turn, dict_counts['_'], dict_counts['R'], dict_counts['D'], dict_counts['N']])
+        # print "COUNTS actual", counts
+        # print "COUNTS dict", dict_counts
 
         # timestep profiling
         print "SIM process time:", time.clock() - t0_a
-        print "SIM wall time:", time.time() - t0_b, "\n"
+        print "SIM wall time:", time.time() - t0_b
 
         # periodically plot the lattice (it takes a while)
         if turn % plots_period_in_turns == 0:
@@ -415,8 +422,7 @@ def run_sim(T):  # T = total sim time
             t0_b = time.time()
             lattice_plotter(lattice, turn * time_per_turn, n, dict_counts, plot_lattice_folder)
             print "PLOT process time:", time.clock() - t0_a
-            print "PLOT wall time:", time.time() - t0_b, "\n"
-
+            print "PLOT wall time:", time.time() - t0_b
 
     return lattice_data
 
@@ -426,7 +432,7 @@ def run_sim(T):  # T = total sim time
 def main():
     build_lattice_random()
     #build_lattice_testing()
-    run_sim(standard_run_time)
+    run_sim()
 
     data_name = "lattice_data.csv"
     data_file = data_folder + data_name
@@ -435,11 +441,11 @@ def main():
         writer.writerows(lattice_data)
 
     # convert lattice_data to a dictionary
-    iters = [x[0] for x in lattice_data]
+    iters = [int(x[0]) for x in lattice_data]
     time = [x[1] for x in lattice_data]
-    E = [x[2] for x in lattice_data]
-    R = [x[3] for x in lattice_data]
-    D = [x[4] for x in lattice_data]
+    E = [int(x[2]) for x in lattice_data]
+    R = [int(x[3]) for x in lattice_data]
+    D = [int(x[4]) for x in lattice_data]
     N = [x[5] for x in lattice_data]
     data_dict = {'iters': iters,
                  'time': time,
