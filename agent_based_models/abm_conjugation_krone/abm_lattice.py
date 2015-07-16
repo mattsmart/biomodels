@@ -55,7 +55,7 @@ for dirs in dir_list:
 # Constants
 # =================================================
 # simulation dimensions
-n = 1000  # up to 1000 tested as feasible
+n = 100  # up to 1000 tested as feasible
 
 # simulation lattice parameters
 seed = 5  # determines ratio of donors to recipients for random homogeneous conditions
@@ -213,10 +213,20 @@ class Donor(Cell):
         self.refractory_div = ceil(0.50 / time_per_turn)  # OLD VERSION: expected_donor_div_time/4/time_per_turn # refractory period after division in turns
 
 
+class Transconjugant(Cell):
+    def __init__(self, location, nutrients):
+        Cell.__init__(self, 'T', location, nutrients)
+        self.pause = 0  # 0 if cell is active, non-zero means turns until active
+        #self.maturity = 0  # starting probability of conjugation
+        #self.maxmaturity = 50  # max probability of conjugation
+        self.refractory_conj = ceil(0.25 / time_per_turn)  # OLD VERSION: expected_conj_time/16/time_per_turn # refractory period after conjugation in turns
+        self.refractory_div = ceil(0.50 / time_per_turn)  # OLD VERSION: expected_donor_div_time/4/time_per_turn # refractory period after division in turns
+
+
 # Initiate Cell Lattice and Data Directory
 # =================================================
-lattice = [[Empty([x, y], nutrient_initial_condition) for y in xrange(n)] for x in xrange(n)]
-lattice_data = np.zeros((total_turns +1, 6))  # sublists are [turn, time, E, R, D, N]
+lattice = [[Empty((x, y), nutrient_initial_condition) for y in xrange(n)] for x in xrange(n)]
+lattice_data = np.zeros((total_turns + 1, 7))  # sublists are [turn, time, E, R, D, T, N]
 
 
 # Functions
@@ -264,6 +274,10 @@ def is_donor(loc):
     return 'D' == lattice[loc[0]][loc[1]].label
 
 
+def is_transconjugant(loc):
+    return 'T' == lattice[loc[0]][loc[1]].label
+
+
 def get_nutrients(loc):
     return lattice[loc[0]][loc[1]].nutrients
 
@@ -271,7 +285,7 @@ def get_nutrients(loc):
 def divide(cell, empty_neighbours, new_cell_locations):
     nutrients_are_available = cell.is_nutrient_available()
     distr = randint(0, 100)
-    success = 0  # successful division = 1
+    success = 0  # note that successful division = 1
     if distr < 100.0 / turn_rate and nutrients_are_available and len(empty_neighbours) > 0:
         success = 1
         daughter_loc = random.choice(empty_neighbours)
@@ -279,6 +293,9 @@ def divide(cell, empty_neighbours, new_cell_locations):
         daughter_loc_nutrients = get_nutrients(daughter_loc)
         if 'D' == cell.label:
             lattice[daughter_loc[0]][daughter_loc[1]] = Donor(daughter_loc, daughter_loc_nutrients)
+            #cell.maturity = floor(cell.maturity / 2)
+        elif 'T' == cell.label:
+            lattice[daughter_loc[0]][daughter_loc[1]] = Transconjugant(daughter_loc, daughter_loc_nutrients)
             #cell.maturity = floor(cell.maturity / 2)
         elif 'R' == cell.label:
             lattice[daughter_loc[0]][daughter_loc[1]] = Receiver(daughter_loc, daughter_loc_nutrients)
@@ -291,12 +308,12 @@ def divide(cell, empty_neighbours, new_cell_locations):
 
 def conjugate(cell, recipient_neighbours):
     distr = randint(0, 1000)  # [1, 1000]
-    success = 0  # successful conjugation = 1
+    success = 0  # note that successful conjugation = 1
     conj_rate_rel_div_rate = expected_conj_time / expected_donor_div_time
     if distr < (1000.0 / turn_rate) / conj_rate_rel_div_rate and len(recipient_neighbours) > 0:
         success = 1
         mate_loc = random.choice(recipient_neighbours)
-        lattice[mate_loc[0]][mate_loc[1]] = Donor(mate_loc, get_nutrients(mate_loc))
+        lattice[mate_loc[0]][mate_loc[1]] = Transconjugant(mate_loc, get_nutrients(mate_loc))
         cell.pause = cell.refractory_conj
     return success
 
@@ -305,6 +322,7 @@ def count_cells():  # returns a dict of current cell counts: [# of empty, # of r
     E = 0
     R = 0
     D = 0
+    T = 0
     N = 0
     for i in xrange(n):
         for j in xrange(n):
@@ -314,9 +332,11 @@ def count_cells():  # returns a dict of current cell counts: [# of empty, # of r
                 R += 1
             elif is_donor(loc):
                 D += 1
+            elif is_transconjugant(loc):
+                T += 1
             else:
                 E += 1
-    return {'_': E, 'R': R, 'D': D, 'N': N}
+    return {'_': E, 'R': R, 'D': D, 'T': T, 'N': N}
 
 
 def get_cell_locations():
@@ -324,7 +344,7 @@ def get_cell_locations():
     for i in xrange(n):
         for j in xrange(n):
             loc = [i, j]
-            if is_donor(loc) or is_recipient(loc):
+            if not is_empty(loc):
                 cell_locations.append(loc)
     return cell_locations
 
@@ -334,7 +354,7 @@ def run_sim():
     # get stats for lattice initial condition before entering simulation loop, add to lattice data
     print 'Turn ', 0, ' : Time Elapsed ', 0.0, "h"
     dict_counts = count_cells()
-    lattice_data[0, :] = np.array([0, 0.0, dict_counts['_'], dict_counts['R'], dict_counts['D'], dict_counts['N']])
+    lattice_data[0, :] = np.array([0, 0.0, dict_counts['_'], dict_counts['R'], dict_counts['D'], dict_counts['T'], dict_counts['N']])
 
     # plot initial conditions
     lattice_plotter(lattice, 0.0, n, dict_counts, plot_lattice_folder)  # TODO Re-add
@@ -365,7 +385,8 @@ def run_sim():
                         dict_counts['N'] -= 1
                         dict_counts['_'] -= 1
                 # donor behaviour
-                elif is_donor(loc):
+                elif is_donor(loc) or is_transconjugant(loc):
+                    cell_label = cell.label
                     #  if cell.maturity < cell.maxmaturity:
                     #      cell.maturity += 10
                     recipient_neighbours = cell.get_label_surroundings('R', search_radius_bacteria)
@@ -375,40 +396,40 @@ def run_sim():
                         pass
                     elif no_division_flag:
                         if conjugate(cell, recipient_neighbours):
-                            dict_counts['D'] += 1
+                            dict_counts['T'] += 1
                             dict_counts['R'] -= 1
                     elif no_conjugation_flag:
                         if divide(cell, empty_neighbours, new_cell_locations):
-                            dict_counts['D'] += 1
+                            dict_counts[cell_label] += 1
                             dict_counts['N'] -= 1
                             dict_counts['_'] -= 1
                     else:  # chance to either conjugate or divide, randomize the order of potential events
                         if 1 == randint(1, 3):  # try to divide first (33% of the time)
                             if not divide(cell, empty_neighbours, new_cell_locations):
                                 if conjugate(cell, recipient_neighbours):
-                                    dict_counts['D'] += 1
+                                    dict_counts['T'] += 1
                                     dict_counts['R'] -= 1
                             else:
-                                dict_counts['D'] += 1
+                                dict_counts[cell_label] += 1
                                 dict_counts['N'] -= 1
                                 dict_counts['_'] -= 1
                         else:  # try to conjugate first
                             if not conjugate(cell, recipient_neighbours):
                                 if divide(cell, empty_neighbours, new_cell_locations):
-                                    dict_counts['D'] += 1
+                                    dict_counts[cell_label] += 1
                                     dict_counts['N'] -= 1
                                     dict_counts['_'] -= 1
                             else:
-                                dict_counts['D'] += 1
+                                dict_counts['T'] += 1
                                 dict_counts['R'] -= 1
 
                 else:
-                    print "WARNING - Cell not R or D"
-                    raise Exception("Cell not R or D")
+                    print "WARNING - Cell not R or D or T"
+                    raise Exception("Cell not R or D or T")
 
         # get lattice stats for this timestep
         counts = count_cells()
-        lattice_data[turn, :] = np.array([turn, turn * time_per_turn, dict_counts['_'], dict_counts['R'], dict_counts['D'], dict_counts['N']])
+        lattice_data[turn, :] = np.array([turn, turn * time_per_turn, dict_counts['_'], dict_counts['R'], dict_counts['D'], dict_counts['T'], dict_counts['N']])
         # print "COUNTS actual", counts
         # print "COUNTS dict", dict_counts
 
@@ -446,12 +467,14 @@ def main():
     E = [int(x[2]) for x in lattice_data]
     R = [int(x[3]) for x in lattice_data]
     D = [int(x[4]) for x in lattice_data]
-    N = [x[5] for x in lattice_data]
+    T = [int(x[5]) for x in lattice_data]
+    N = [x[6] for x in lattice_data]
     data_dict = {'iters': iters,
                  'time': time,
                  'E': E,
                  'R': R,
                  'D': D,
+                 'T': T,
                  'N': N}
 
     data_plotter(data_dict, data_file, plot_data_folder)

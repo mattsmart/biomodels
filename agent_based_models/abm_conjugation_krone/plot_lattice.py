@@ -20,8 +20,9 @@ OUTPUT: rectangular lattice with labels coloured appropriately
 axis_buffer = 20.0
 axis_length = 100.0
 axis_tick_length = int(axis_length + axis_buffer)
-label_colour_dict = {'R': "seagreen",  # red
-                     'D': "crimson",  # cyan
+label_colour_dict = {'R': "mediumseagreen",  # red or mediumseagreen or darkolivegreen
+                     'D': "firebrick",  # cyan or crimson or indianred or firebrick or palevioletred or salmon
+                     'T': "goldenrod",  # goldenrod or gold or sandybrown or coral or darkorange
                      '_': "none"}  # or white
 fast_flag = True  # True - fast / simple plotting
 nutrient_text_flag = False  # True - plot nutrient quantity at each grid location (slow)
@@ -68,7 +69,7 @@ def lattice_draw(lattice, n):
 
 
 def scatterplot_dict_array(lattice, n, dict_counts):
-    keys = ['_', 'R', 'D']
+    keys = ['_', 'R', 'D', 'T']
     dict_array = {key: np.zeros((2, dict_counts[key]), dtype=np.float32) for key in keys}
     dict_increment = {key: 0 for key in keys}
 
