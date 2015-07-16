@@ -1,5 +1,6 @@
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 """
@@ -66,31 +67,36 @@ def lattice_draw(lattice, n):
     return
 
 
-def scatterplot_dict_array(lattice, n):
-    dict_array = {'R': [[], []], 'D': [[], []], '_': [[], []]}  # get current from data access / pass in from main loop to initialize (faster)
+def scatterplot_dict_array(lattice, n, cell_counts):
+    dict_array = {'_': np.zeros((2, cell_counts[0]), dtype=np.float32),
+                  'R': np.zeros((2, cell_counts[1]), dtype=np.float32),
+                  'D': np.zeros((2, cell_counts[2]), dtype=np.float32)}
+    dict_increment = {'_': 0, 'R': 0, 'D': 0}
 
     # assume cell_per_row = n, cell_per_col = n
     cell_radius = axis_length / (2 * n)
     x0 = cell_radius
     y0 = (axis_length - cell_radius)
     dx = cell_radius * 2.0
-    dy = cell_radius * 1.65 # 1.75
+    dy = cell_radius * 1.65  # 1.75
 
     x = x0
     y = y0
     for i in xrange(n):
         for j in xrange(n):
             cell_label = lattice[i][j].label
-            dict_array[cell_label][0].append(x)
-            dict_array[cell_label][1].append(y)
+            idx = dict_increment[cell_label]
+            dict_array[cell_label][0, idx] = x
+            dict_array[cell_label][1, idx] = y
+            dict_increment[cell_label] += 1
             x += dx
         y -= dy
         x = x0
     return dict_array
 
 
-def lattice_draw_fast(lattice, n):
-    dict_array = scatterplot_dict_array(lattice, n)
+def lattice_draw_fast(lattice, n, cell_counts):
+    dict_array = scatterplot_dict_array(lattice, n, cell_counts)
     f = plt.figure()
     size_param = 40 * (axis_length / n) ** 2  # 40 = 20 (default area) * 2
     linewidth = 0.5  # TODO FIX
@@ -99,9 +105,10 @@ def lattice_draw_fast(lattice, n):
     return f
 
 
-def lattice_plotter(lattice, time, n, lattice_plot_dir):
+def lattice_plotter(lattice, time, n, cell_counts, lattice_plot_dir):
+    # cell counts have the form E R D N
     if fast_flag:
-        lattice_draw_fast(lattice, n)
+        lattice_draw_fast(lattice, n, cell_counts)
     else:
         lattice_draw(lattice, n)
     f_handle = plt.gcf()
