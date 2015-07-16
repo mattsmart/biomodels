@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
 # note:
-# dict keys are iters, time, E, R, D
+# dict keys are iters, time, E, R, D, N
 
 def data_plotter(lattice_dict, datafile_dir, plot_dir):
 
