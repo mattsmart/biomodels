@@ -24,6 +24,7 @@ SPEED
 -faster and better probability modules
 -all to numpy arrays
 -store cell type as well as position for faster referencing?
+-when counting cell types, simply add to the current count rather than recounting every step
 
 % PLOTTING SPEED
 -print plot every kth turn
@@ -61,7 +62,7 @@ for dirs in dir_list:
 # Constants
 # =================================================
 # simulation dimensions
-n = 100  # 400 tested as feasible
+n = 1000  # up to 1000 tested as feasible
 
 # simulation lattice parameters
 seed = 5  # determines ratio of donors to recipients for random homogeneous conditions
@@ -339,7 +340,7 @@ def run_sim(T):  # T = total sim time
     # get stats for lattice initial condition before entering simulation loop
     [E, R, D, N] = count_cells()
     lattice_data.append([0, 0.0, E, R, D, N])
-    lattice_plotter(lattice, 0.0, n, plot_lattice_folder)
+    lattice_plotter(lattice, 0.0, n, [E, R, D, N], plot_lattice_folder)
 
     # begin simulation
     new_cell_locations = []
@@ -392,7 +393,7 @@ def run_sim(T):  # T = total sim time
         if turn % plots_period_in_turns == 0:
             t0_a = time.clock()
             t0_b = time.time()
-            lattice_plotter(lattice, turn * time_per_turn, n, plot_lattice_folder)
+            lattice_plotter(lattice, turn * time_per_turn, n, [E, R, D, N], plot_lattice_folder)
             print "process time:", time.clock() - t0_a
             print "wall time:", time.time() - t0_b
 
