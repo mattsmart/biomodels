@@ -16,6 +16,7 @@ TODO
 -make conj rate nutrient dependent
 -remove or augment the maturity module
 -ICs that resemble the PDEs
+-convert lattice to np array and ref with tuples instead of separate loc 0 and loc 1 (cleaner, maybe faster)
 
 SPEED
 -instead of explicit class structure for the states, could just use dicts (should be faster)
@@ -53,7 +54,7 @@ for dirs in dir_list:
 # Constants
 # =================================================
 # simulation dimensions
-n = 1000  # up to 1000 tested as feasible
+n = 100  # up to 1000 tested as feasible
 
 # simulation lattice parameters
 seed = 5  # determines ratio of donors to recipients for random homogeneous conditions
@@ -83,7 +84,7 @@ death_rate_lab = 0.0
 standard_run_time = 24.0  # typical simulation time in h
 turn_rate = 2.0  # average turns between each division; simulation step size
 time_per_turn = expected_recipient_div_time / turn_rate
-plots_period_in_turns = 1000  # 1 or 1000 or 2 * turn_rate
+plots_period_in_turns = 2 * turn_rate  # 1 or 1000 or 2 * turn_rate
 total_turns = int(ceil(standard_run_time / time_per_turn))
 
 
@@ -154,7 +155,7 @@ class Cell(object):
         # remove duplicates
         for radius in xrange(max_nutrient_radius, 1, -1):
             for loc in location_layers_nutrients[radius-1]:
-                location_layers_nutrients[radius].remove(loc)
+                location_layers_nutrients[radius].remove(loc)  # TODO possible bug
 
         return location_layers_nutrients
 
@@ -182,7 +183,7 @@ class Cell(object):
                         lattice[loc[0]][loc[1]].deplete_nutrients()
                         return
                     else:
-                        nutrient_location_layer.remove(loc)
+                        nutrient_location_layer.remove(loc)  # TODO possible bug
                 else:
                     nutrient_layers.remove(nutrient_location_layer)
         print "WARNING - choosing to exhaust nutrients when none are available, continuing anyways"
@@ -223,7 +224,7 @@ class Transconjugant(Cell):
 
 # Initiate Cell Lattice and Data Directory
 # =================================================
-lattice = [[Empty((x, y), nutrient_initial_condition) for y in xrange(n)] for x in xrange(n)]
+lattice = [[Empty((x, y), nutrient_initial_condition) for y in xrange(n)] for x in xrange(n)]  # this can be made faster as np array
 lattice_data = np.zeros((total_turns + 1, 7))  # sublists are [turn, time, E, R, D, T, N]
 
 
@@ -239,8 +240,8 @@ def printer():
 def build_lattice_testing():
     pivot = n/5
     anti_pivot = n - pivot - 1
-    lattice[pivot][pivot] = Receiver([pivot, pivot], lattice[pivot][pivot].nutrients)
-    lattice[anti_pivot][anti_pivot] = Donor([anti_pivot, anti_pivot], lattice[anti_pivot][anti_pivot].nutrients)
+    lattice[pivot][pivot] = Receiver((pivot, pivot), lattice[pivot][pivot].nutrients)
+    lattice[anti_pivot][anti_pivot] = Donor((anti_pivot, anti_pivot), lattice[anti_pivot][anti_pivot].nutrients)
     print "WARNING - testing lattice in use"
     return lattice
 
@@ -251,11 +252,11 @@ def build_lattice_random():
         for j in xrange(n):
             m = random_lattice[i][j]
             if m == 0:
-                lattice[i][j] = Receiver([i, j], nutrient_initial_condition)
+                lattice[i][j] = Receiver((i, j), nutrient_initial_condition)
             elif m == 1:
-                lattice[i][j] = Donor([i, j], nutrient_initial_condition)
+                lattice[i][j] = Donor((i, j), nutrient_initial_condition)
             elif m in range(2, seed):
-                lattice[i][j] = Empty([i, j], nutrient_initial_condition)
+                lattice[i][j] = Empty((i, j), nutrient_initial_condition)
     print random_lattice, "\n"
     return
 
@@ -278,6 +279,10 @@ def is_transconjugant(loc):
 
 def get_nutrients(loc):
     return lattice[loc[0]][loc[1]].nutrients
+
+
+def get_label(loc):
+    return lattice[loc[0]][loc[1]].label
 
 
 def divide(cell, empty_neighbours, new_cell_locations, dict_counts):
@@ -324,24 +329,14 @@ def conjugate(cell, recipient_neighbours, dict_counts):
 
 
 def count_cells():  # returns a dict of current cell counts: [# of empty, # of recipient, # of donor, # of nutrients]
-    E = 0
-    R = 0
-    D = 0
-    T = 0
-    N = 0
+    keys = ['_', 'R', 'D', 'T', 'N']
+    counts = {key: 0 for key in keys}
     for i in xrange(n):
         for j in xrange(n):
-            loc = [i, j]
-            N += get_nutrients(loc)
-            if is_recipient(loc):
-                R += 1
-            elif is_donor(loc):
-                D += 1
-            elif is_transconjugant(loc):
-                T += 1
-            else:
-                E += 1
-    return {'_': E, 'R': R, 'D': D, 'T': T, 'N': N}
+            loc = (i, j)
+            counts['N'] += get_nutrients(loc)
+            counts[get_label(loc)] += 1
+    return counts
 
 
 def get_cell_locations():
