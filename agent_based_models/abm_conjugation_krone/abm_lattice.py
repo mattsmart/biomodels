@@ -18,6 +18,7 @@ TODO
 -make conj rate nutrient dependent
 -remove or augment the maturity module
 -ICs that resemble the PDEs
+-move increments into the divide and conjugate functions (much cleaner), see if speed/RAM hurt
 
 SPEED
 -instead of explicit class structure for the states, could just use dicts (should be faster)
