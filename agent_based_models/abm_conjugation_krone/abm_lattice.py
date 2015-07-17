@@ -54,7 +54,7 @@ for dirs in dir_list:
 # Constants
 # =================================================
 # simulation dimensions
-n = 1000  # up to 1000 tested as feasible
+n = 100  # up to 1000 tested as feasible
 
 # simulation lattice parameters
 seed = 5  # determines ratio of donors to recipients for random homogeneous conditions
@@ -118,12 +118,9 @@ class Cell(object):
         """
         row = self.location[0]
         col = self.location[1]
-        # intiialize list for speedup
-        # TODO surroundings = [0] * (search_radius ** 2)
         surroundings = [(row_to_search % n, col_to_search % n)
                         for row_to_search in xrange(row - search_radius, row + search_radius + 1)
                         for col_to_search in xrange(col - search_radius, col + search_radius + 1)]
-        # assert len(surroundings) == (2 * search_radius + 1) ** 2
         return surroundings
 
     def get_label_surroundings(self, cell_label, search_radius):
@@ -147,15 +144,14 @@ class Cell(object):
             - very VERY inefficient algorithm, should clean it up
         """
         # create initial surroundings, with duplicates
-        location_layers_nutrients = [(0, 0)] * (max_nutrient_radius + 1)
+        location_layers_nutrients = [[0]] * (max_nutrient_radius + 1)
         for radius in xrange(max_nutrient_radius + 1):
-            surroundings = self.get_surroundings_square(radius)
-            location_layers_nutrients[radius] = surroundings
+            location_layers_nutrients[radius] = self.get_surroundings_square(radius)  # TODO speed this up later
 
         # remove duplicates
         for radius in xrange(max_nutrient_radius, 1, -1):
             for loc in location_layers_nutrients[radius-1]:
-                location_layers_nutrients[radius].remove(loc)  # TODO possible bug
+                location_layers_nutrients[radius].remove(loc)
 
         return location_layers_nutrients
 
@@ -164,8 +160,8 @@ class Cell(object):
         """
         nutrient_layers = self.get_nutrient_surroundings_ordered(max_search_radius_nutrient)
         for nutrient_location_layer in nutrient_layers:
-            for row, col in nutrient_location_layer:
-                if lattice[row][col].nutrients > 0:
+            for loc in nutrient_location_layer:
+                if lattice[loc[0]][loc[1]].nutrients > 0:
                     return True
         return False
 
@@ -224,7 +220,7 @@ class Transconjugant(Cell):
 
 # Initiate Cell Lattice and Data Directory
 # =================================================
-lattice = [[Empty((x, y), nutrient_initial_condition) for y in xrange(n)] for x in xrange(n)]  # this can be made faster as np array
+lattice = [[Empty([x, y], nutrient_initial_condition) for y in xrange(n)] for x in xrange(n)]  # this can be made faster as np array
 lattice_data = np.zeros((total_turns + 1, 7))  # sublists are [turn, time, E, R, D, T, N]
 
 
@@ -343,7 +339,7 @@ def get_cell_locations():
     cell_locations = []
     for i in xrange(n):
         for j in xrange(n):
-            loc = [i, j]
+            loc = (i, j)
             if not is_empty(loc):
                 cell_locations.append(loc)
     return cell_locations
