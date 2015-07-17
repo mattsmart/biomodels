@@ -57,7 +57,6 @@ for dirs in dir_list:
 n = 100  # up to 1000 tested as feasible
 
 # simulation lattice parameters
-seed = 5  # determines ratio of donors to recipients for random homogeneous conditions
 search_radius_bacteria = 1
 max_search_radius_nutrient = 3
 assert search_radius_bacteria < n / 2 and max_search_radius_nutrient < n / 2
@@ -242,7 +241,8 @@ def build_lattice_testing():
     return lattice
 
 
-def build_lattice_random():
+def build_lattice_random(seed=5):
+    # seed: determines ratio of donors to recipients for random homogeneous conditions
     random_lattice = randint(seed, size=(n, n))
     for i in xrange(n):
         for j in xrange(n):
