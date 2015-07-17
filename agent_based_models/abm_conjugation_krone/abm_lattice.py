@@ -54,7 +54,7 @@ for dirs in dir_list:
 # Constants
 # =================================================
 # simulation dimensions
-n = 100  # up to 1000 tested as feasible
+n = 1000  # up to 1000 tested as feasible
 
 # simulation lattice parameters
 seed = 5  # determines ratio of donors to recipients for random homogeneous conditions
@@ -240,8 +240,8 @@ def printer():
 def build_lattice_testing():
     pivot = n/5
     anti_pivot = n - pivot - 1
-    lattice[pivot][pivot] = Receiver((pivot, pivot), lattice[pivot][pivot].nutrients)
-    lattice[anti_pivot][anti_pivot] = Donor((anti_pivot, anti_pivot), lattice[anti_pivot][anti_pivot].nutrients)
+    lattice[pivot][pivot] = Receiver([pivot, pivot], lattice[pivot][pivot].nutrients)
+    lattice[anti_pivot][anti_pivot] = Donor([anti_pivot, anti_pivot], lattice[anti_pivot][anti_pivot].nutrients)
     print "WARNING - testing lattice in use"
     return lattice
 
@@ -252,11 +252,11 @@ def build_lattice_random():
         for j in xrange(n):
             m = random_lattice[i][j]
             if m == 0:
-                lattice[i][j] = Receiver((i, j), nutrient_initial_condition)
+                lattice[i][j] = Receiver([i, j], nutrient_initial_condition)
             elif m == 1:
-                lattice[i][j] = Donor((i, j), nutrient_initial_condition)
+                lattice[i][j] = Donor([i, j], nutrient_initial_condition)
             elif m in range(2, seed):
-                lattice[i][j] = Empty((i, j), nutrient_initial_condition)
+                lattice[i][j] = Empty([i, j], nutrient_initial_condition)
     print random_lattice, "\n"
     return
 
