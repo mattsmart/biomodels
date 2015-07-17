@@ -16,7 +16,6 @@ TODO
 -make conj rate nutrient dependent
 -remove or augment the maturity module
 -ICs that resemble the PDEs
--move increments into the divide and conjugate functions (much cleaner), see if speed/RAM hurt
 
 SPEED
 -instead of explicit class structure for the states, could just use dicts (should be faster)
@@ -54,7 +53,7 @@ for dirs in dir_list:
 # Constants
 # =================================================
 # simulation dimensions
-n = 100  # up to 1000 tested as feasible
+n = 1000  # up to 1000 tested as feasible
 
 # simulation lattice parameters
 seed = 5  # determines ratio of donors to recipients for random homogeneous conditions
@@ -84,7 +83,7 @@ death_rate_lab = 0.0
 standard_run_time = 24.0  # typical simulation time in h
 turn_rate = 2.0  # average turns between each division; simulation step size
 time_per_turn = expected_recipient_div_time / turn_rate
-plots_period_in_turns = 1  # 1 or 1000 or 2 * turn_rate
+plots_period_in_turns = 1000  # 1 or 1000 or 2 * turn_rate
 total_turns = int(ceil(standard_run_time / time_per_turn))
 
 
@@ -281,7 +280,7 @@ def get_nutrients(loc):
     return lattice[loc[0]][loc[1]].nutrients
 
 
-def divide(cell, empty_neighbours, new_cell_locations):
+def divide(cell, empty_neighbours, new_cell_locations, dict_counts):
     nutrients_are_available = cell.is_nutrient_available()
     distr = randint(0, 100)
     success = 0  # note that successful division = 1
@@ -301,11 +300,15 @@ def divide(cell, empty_neighbours, new_cell_locations):
         else:
             raise Exception("Illegal cell type")
         cell.pause = cell.refractory_div
+        # update tracking variables
         new_cell_locations.append(daughter_loc)
+        dict_counts[cell.label] += 1
+        dict_counts['N'] -= 1
+        dict_counts['_'] -= 1
     return success
 
 
-def conjugate(cell, recipient_neighbours):
+def conjugate(cell, recipient_neighbours, dict_counts):
     distr = randint(0, 1000)  # [1, 1000]
     success = 0  # note that successful conjugation = 1
     conj_rate_rel_div_rate = expected_conj_time / expected_donor_div_time
@@ -314,6 +317,9 @@ def conjugate(cell, recipient_neighbours):
         mate_loc = random.choice(recipient_neighbours)
         lattice[mate_loc[0]][mate_loc[1]] = Transconjugant(mate_loc, get_nutrients(mate_loc))
         cell.pause = cell.refractory_conj
+        # update tracking variables
+        dict_counts['T'] += 1
+        dict_counts['R'] -= 1
     return success
 
 
@@ -356,7 +362,7 @@ def run_sim():
     lattice_data[0, :] = np.array([0, 0.0, dict_counts['_'], dict_counts['R'], dict_counts['D'], dict_counts['T'], dict_counts['N']])
 
     # plot initial conditions
-    lattice_plotter(lattice, 0.0, n, dict_counts, plot_lattice_folder)  # TODO Re-add
+    #lattice_plotter(lattice, 0.0, n, dict_counts, plot_lattice_folder)  # TODO Re-add
 
     # simulation loop initialization
     new_cell_locations = []
@@ -377,15 +383,13 @@ def run_sim():
                 cell.pause -= 1
             else:
                 empty_neighbours = cell.get_label_surroundings('_', search_radius_bacteria)
+
                 # recipient behaviour
                 if is_recipient(loc):
-                    if divide(cell, empty_neighbours, new_cell_locations):
-                        dict_counts['R'] += 1
-                        dict_counts['N'] -= 1
-                        dict_counts['_'] -= 1
+                    divide(cell, empty_neighbours, new_cell_locations, dict_counts)
+
                 # donor behaviour
                 elif is_donor(loc) or is_transconjugant(loc):
-                    cell_label = cell.label
                     #  if cell.maturity < cell.maxmaturity:
                     #      cell.maturity += 10
                     recipient_neighbours = cell.get_label_surroundings('R', search_radius_bacteria)
@@ -394,33 +398,16 @@ def run_sim():
                     if no_division_flag and no_conjugation_flag:
                         pass
                     elif no_division_flag:
-                        if conjugate(cell, recipient_neighbours):
-                            dict_counts['T'] += 1
-                            dict_counts['R'] -= 1
+                        conjugate(cell, recipient_neighbours, dict_counts)
                     elif no_conjugation_flag:
-                        if divide(cell, empty_neighbours, new_cell_locations):
-                            dict_counts[cell_label] += 1
-                            dict_counts['N'] -= 1
-                            dict_counts['_'] -= 1
+                        divide(cell, empty_neighbours, new_cell_locations, dict_counts)
                     else:  # chance to either conjugate or divide, randomize the order of potential events
                         if 1 == randint(1, 3):  # try to divide first (33% of the time)
-                            if not divide(cell, empty_neighbours, new_cell_locations):
-                                if conjugate(cell, recipient_neighbours):
-                                    dict_counts['T'] += 1
-                                    dict_counts['R'] -= 1
-                            else:
-                                dict_counts[cell_label] += 1
-                                dict_counts['N'] -= 1
-                                dict_counts['_'] -= 1
+                            if not divide(cell, empty_neighbours, new_cell_locations, dict_counts):
+                                conjugate(cell, recipient_neighbours, dict_counts)
                         else:  # try to conjugate first
-                            if not conjugate(cell, recipient_neighbours):
-                                if divide(cell, empty_neighbours, new_cell_locations):
-                                    dict_counts[cell_label] += 1
-                                    dict_counts['N'] -= 1
-                                    dict_counts['_'] -= 1
-                            else:
-                                dict_counts['T'] += 1
-                                dict_counts['R'] -= 1
+                            if not conjugate(cell, recipient_neighbours, dict_counts):
+                                divide(cell, empty_neighbours, new_cell_locations, dict_counts)
 
                 else:
                     print "WARNING - Cell not R or D or T"
