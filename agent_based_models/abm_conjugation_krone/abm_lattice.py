@@ -456,28 +456,21 @@ def main():
     #build_lattice_testing()
     run_sim()
 
+    # write data to file
     data_name = "lattice_data.csv"
     data_file = data_folder + data_name
     with open(data_file, "wb") as f:
         writer = csv.writer(f)
         writer.writerows(lattice_data)
 
-    # convert lattice_data to a dictionary
-    iters = [int(x[0]) for x in lattice_data]
-    time = [x[1] for x in lattice_data]
-    E = [int(x[2]) for x in lattice_data]
-    R = [int(x[3]) for x in lattice_data]
-    D = [int(x[4]) for x in lattice_data]
-    T = [int(x[5]) for x in lattice_data]
-    N = [x[6] for x in lattice_data]
-    data_dict = {'iters': iters,
-                 'time': time,
-                 'E': E,
-                 'R': R,
-                 'D': D,
-                 'T': T,
-                 'N': N}
-
+    # convert lattice_data to a dictionary and plot it
+    data_dict = {'iters': lattice_data[:, 0],
+                 'time': lattice_data[:, 1],
+                 'E': lattice_data[:, 2],
+                 'R': lattice_data[:, 3],
+                 'D': lattice_data[:, 4],
+                 'T': lattice_data[:, 5],
+                 'N': lattice_data[:, 6]}
     data_plotter(data_dict, data_file, plot_data_folder)
 
     print "\nDone!"
