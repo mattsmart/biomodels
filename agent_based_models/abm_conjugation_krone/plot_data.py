@@ -1,11 +1,11 @@
 import matplotlib.pyplot as plt
 
-# note:
-# dict keys are iters, time, E, R, D, T, N
 
 def data_plotter(lattice_dict, datafile_dir, plot_dir):
+    # dict keys are iters, time, E, R, D, T, N
 
-    total_cells = lattice_dict['E'][0] + lattice_dict['R'][0] + lattice_dict['D'][0] + lattice_dict['T'][0]  # total bacteria
+    # total spaces on grid implies grid size
+    total_cells = lattice_dict['E'][0] + lattice_dict['R'][0] + lattice_dict['D'][0] + lattice_dict['T'][0]
     n = int(total_cells**0.5)
 
     plt.figure(1)
@@ -30,4 +30,3 @@ def data_plotter(lattice_dict, datafile_dir, plot_dir):
     plt.clf()
     
     return
-
