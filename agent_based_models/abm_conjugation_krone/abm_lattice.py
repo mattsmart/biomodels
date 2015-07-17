@@ -13,8 +13,6 @@ from plot_lattice import lattice_plotter
 
 """
 TODO
--finally utilize inheritance, have the 3 subclasses
--should we incorporate cell death
 -make conj rate nutrient dependent
 -remove or augment the maturity module
 -ICs that resemble the PDEs
