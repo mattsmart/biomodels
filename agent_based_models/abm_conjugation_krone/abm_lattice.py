@@ -123,8 +123,8 @@ class Cell(object):
         return surroundings
 
     def get_label_surroundings(self, cell_label, search_radius):
-        if cell_label not in ['_', 'R', 'D']:
-            raise Exception("Illegal cell label (_, R, or D)")
+        if cell_label not in ['_', 'R', 'D', 'T']:
+            raise Exception("Illegal cell label (_, R, D, or T)")
         neighbours = self.get_surroundings_square(search_radius=search_radius)
         neighbours_of_specified_type = []
         for loc in neighbours:  # TODO should skip self when going through (i.e. don't count your current position)
