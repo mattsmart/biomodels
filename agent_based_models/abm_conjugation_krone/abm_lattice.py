@@ -74,7 +74,7 @@ expected_donor_div_time = div_time_ecoli  # avg time for 1 D cell to divide in h
 conj_super_rate = 1.0
 conj_ecoli_rate = 10.0
 conj_staph_rate = 10 ** 4.0
-expected_conj_time = conj_ecoli_rate  # avg time for 1 cell to conjugate in h (Jama: 10h for e.coli, more for staph)
+expected_conj_time = conj_super_rate  # avg time for 1 cell to conjugate in h (Jama: 10h for e.coli, more for staph)
 
 # general cell settings
 death_rate_lab = 0.0
@@ -362,6 +362,7 @@ def run_sim():
     for turn in xrange(1, total_turns + 1):
         print '\nTurn ', turn, ' : Time Elapsed ', turn * time_per_turn, "h"
         cell_locations = cell_locations + new_cell_locations
+        #random.shuffle(cell_locations)  # TODO verify that we want to do this/runtime hit
         new_cell_locations = []
 
         # timestep profiling
