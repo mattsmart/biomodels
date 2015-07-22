@@ -17,6 +17,7 @@ TODO
 -remove or augment the maturity module
 -ICs that resemble the PDEs
 -convert lattice to np array and ref with tuples instead of separate loc 0 and loc 1 (cleaner, maybe faster)
+-plasmid stats
 
 SPEED
 -instead of explicit class structure for the states, could just use dicts (should be faster)
@@ -77,7 +78,7 @@ conj_staph_rate = 10 ** 4.0
 expected_conj_time = conj_super_rate  # avg time for 1 cell to conjugate in h (Jama: 10h for e.coli, more for staph)
 
 # general cell settings
-death_rate_lab = 0.0
+donor_plasmid_max = 10.0
 
 # simulation time settings
 standard_run_time = 24.0  # typical simulation time in h
@@ -91,10 +92,12 @@ total_turns = int(ceil(standard_run_time / time_per_turn))
 # =================================================
 # represents the state of a lattice cell: empty, donor, recipient
 class Cell(object):
-    def __init__(self, label, location, nutrients):
+    def __init__(self, label, location, nutrients, plasmid_donor=0, plasmid_recipient=0):
         self.label = label  # symbol; either "(_) Empty, (R)eceiver, (D)onor"
         self.location = location  # list [i,j]
         self.nutrients = nutrients
+        self.plasmid_donor = plasmid_donor
+        self.plasmid_recipient = plasmid_recipient
 
     def __str__(self):
         return self.label
@@ -198,8 +201,8 @@ class Receiver(Cell):
 
 
 class Donor(Cell):
-    def __init__(self, location, nutrients):
-        Cell.__init__(self, 'D', location, nutrients)
+    def __init__(self, location, nutrients, plasmid_donor):
+        Cell.__init__(self, 'D', location, nutrients, plasmid_donor=plasmid_donor)
         self.pause = 0  # 0 if cell is active, non-zero means turns until active
         #self.maturity = 0  # starting probability of conjugation
         #self.maxmaturity = 50  # max probability of conjugation
@@ -208,8 +211,8 @@ class Donor(Cell):
 
 
 class Transconjugant(Cell):
-    def __init__(self, location, nutrients):
-        Cell.__init__(self, 'T', location, nutrients)
+    def __init__(self, location, nutrients, plasmid_donor):
+        Cell.__init__(self, 'T', location, nutrients, plasmid_donor=plasmid_donor)
         self.pause = 0  # 0 if cell is active, non-zero means turns until active
         #self.maturity = 0  # starting probability of conjugation
         #self.maxmaturity = 50  # max probability of conjugation
@@ -283,20 +286,29 @@ def get_label(loc):
 
 def divide(cell, empty_neighbours, new_cell_locations, dict_counts):
     nutrients_are_available = cell.is_nutrient_available()
-    distr = randint(0, 100)
-    success = 0  # note that successful division = 1
+    distr = randint(0, 100)  # division probability is tied to the turn rate
+    success = 0
     if distr < 100.0 / turn_rate and nutrients_are_available and len(empty_neighbours) > 0:
-        success = 1
-        daughter_loc = random.choice(empty_neighbours)
-        cell.choose_and_exhaust_nutrient()
-        daughter_loc_nutrients = get_nutrients(daughter_loc)
+        success = 1  # report division success to the simulation
+        daughter_loc = random.choice(empty_neighbours)  # choose one of the empty neighbour cells to divide into
+        cell.choose_and_exhaust_nutrient()  # exhaust nutrients using random search procedure
+        daughter_loc_nutrients = get_nutrients(daughter_loc)  # store nutrients at daughter location
+
+        if cell.plasmid_donor != 0:
+            daughter_plasmid_donor = np.random.binomial(cell.plasmid_donor, 0.5)
+            cell.plasmid_donor -= daughter_plasmid_donor
+        else:
+            daughter_plasmid_donor = 0
+
         if 'D' == cell.label:
-            lattice[daughter_loc[0]][daughter_loc[1]] = Donor(daughter_loc, daughter_loc_nutrients)
+            np.random.binomial(cell.plasmid_count, 0.5)  # split cells plasmids using a binomial process, p=0.5
+            lattice[daughter_loc[0]][daughter_loc[1]] = Donor(daughter_loc, daughter_loc_nutrients, daughter_plasmid_donor)  # TODO BUG SEG LOSS
             #cell.maturity = floor(cell.maturity / 2)
         elif 'T' == cell.label:
-            lattice[daughter_loc[0]][daughter_loc[1]] = Transconjugant(daughter_loc, daughter_loc_nutrients)
+            np.random.binomial(cell.plasmid_count, 0.5)  # split cells plasmids using a binomial process, p=0.5
+            lattice[daughter_loc[0]][daughter_loc[1]] = Transconjugant(daughter_loc, daughter_loc_nutrients, daughter_plasmid_donor)
             #cell.maturity = floor(cell.maturity / 2)
-        elif 'R' == cell.label:
+        elif 'R' == cell.label or daughter_plasmid_donor = 0: # TODO BUG SEG LOSS
             lattice[daughter_loc[0]][daughter_loc[1]] = Receiver(daughter_loc, daughter_loc_nutrients)
         else:
             raise Exception("Illegal cell type")
