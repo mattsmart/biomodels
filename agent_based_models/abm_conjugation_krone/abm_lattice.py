@@ -9,6 +9,7 @@ from numpy.random import randint
 
 from plot_data import data_plotter
 from plot_lattice import lattice_plotter
+from plot_plasmids import plasmid_plotter_wrapper
 
 
 """
@@ -17,7 +18,7 @@ TODO
 -remove or augment the maturity module
 -ICs that resemble the PDEs
 -convert lattice to np array and ref with tuples instead of separate loc 0 and loc 1 (cleaner, maybe faster)
--plasmid stats
+-plasmid stats, fix replicate_plasmids method for single plasmid copy control
 
 SPEED
 -instead of explicit class structure for the states, could just use dicts (should be faster)
@@ -78,7 +79,7 @@ conj_staph_rate = 10 ** 4.0
 expected_conj_time = conj_super_rate  # avg time for 1 cell to conjugate in h (Jama: 10h for e.coli, more for staph)
 
 # general cell settings
-donor_plasmid_max = 10.0
+PLASMID_UPPER_BOUND = 10
 
 # simulation time settings
 standard_run_time = 24.0  # typical simulation time in h
@@ -92,12 +93,13 @@ total_turns = int(ceil(standard_run_time / time_per_turn))
 # =================================================
 # represents the state of a lattice cell: empty, donor, recipient
 class Cell(object):
-    def __init__(self, label, location, nutrients, plasmid_amensal=0, plasmid_recipient=0):
+    def __init__(self, label, location, nutrients, plasmid_amensal=0, plasmid_target=0):
         self.label = label  # symbol; either "(_) Empty, (R)eceiver, (D)onor, (T)ransconjugant"
         self.location = location  # list [i,j]
         self.nutrients = nutrients
         self.plasmid_amensal = plasmid_amensal
-        self.plasmid_recipient = plasmid_recipient
+        self.plasmid_target = plasmid_target
+        self.plasmid_upper_bound = PLASMID_UPPER_BOUND  # TODO constant global
 
     def __str__(self):
         return self.label
@@ -187,6 +189,16 @@ class Cell(object):
         print "WARNING - choosing to exhaust nutrients when none are available, continuing anyways"
         return
 
+    def replicate_plasmids(self):
+        assert self.plasmid_target == 0  # TODO NOT IMPLEMENTED
+        if self.plasmid_amensal == 0:
+            print "Warning: updating amensal plasmid count in a cell with no amensal plasmids"
+        elif self.plasmid_amensal == self.plasmid_upper_bound:
+            print "Warning: updating amensal plasmid count in a cell when its already at max -- should this even be printed?"
+        else:
+            self.plasmid_amensal += ceil((self.plasmid_upper_bound - self.plasmid_amensal) / 2)  # TODO make this sensible... or stochastic
+        return
+
 
 class Empty(Cell):
     def __init__(self, location, nutrients):
@@ -199,6 +211,8 @@ class Receiver(Cell):
         self.pause = 0  # 0 if cell is active, non-zero means turns until active
         self.refractory_div = expected_donor_div_time / 4 / time_per_turn  # refractory period after division in turns
 
+        assert self.plasmid_amensal == 0
+        assert self.plasmid_target == 0
 
 class Donor(Cell):
     def __init__(self, location, nutrients, plasmid_amensal, plasmid_target):
@@ -209,6 +223,8 @@ class Donor(Cell):
         self.refractory_conj = ceil(0.25 / time_per_turn)  # OLD VERSION: expected_conj_time/16/time_per_turn # refractory period after conjugation in turns
         self.refractory_div = ceil(0.50 / time_per_turn)  # OLD VERSION: expected_donor_div_time/4/time_per_turn # refractory period after division in turns
 
+        assert self.plasmid_amensal > 0
+        assert self.plasmid_target == 0
 
 class Transconjugant(Cell):
     def __init__(self, location, nutrients, plasmid_amensal, plasmid_target):
@@ -219,11 +235,14 @@ class Transconjugant(Cell):
         self.refractory_conj = ceil(0.25 / time_per_turn)  # OLD VERSION: expected_conj_time/16/time_per_turn # refractory period after conjugation in turns
         self.refractory_div = ceil(0.50 / time_per_turn)  # OLD VERSION: expected_donor_div_time/4/time_per_turn # refractory period after division in turns
 
+        assert self.plasmid_amensal > 0
+        assert self.plasmid_target == 0
+
 
 # Initiate Cell Lattice and Data Directory
 # =================================================
 lattice = [[Empty([x, y], nutrient_initial_condition) for y in xrange(n)] for x in xrange(n)]  # this can be made faster as np array
-lattice_data = np.zeros((total_turns + 1, 7))  # sublists are [turn, time, E, R, D, T, N]
+lattice_data = np.zeros((total_turns + 1, 7))  # sublists are [turn, time, E, R, D, T, N]  # TODO 7 shouldn't be hardcoded
 
 
 # Functions
@@ -235,12 +254,11 @@ def printer():
     print
 
 
-def build_lattice_testing():
+def build_lattice_opposites():
     pivot = n/5
     anti_pivot = n - pivot - 1
-    lattice[pivot][pivot] = Receiver([pivot, pivot], lattice[pivot][pivot].nutrients)
-    lattice[anti_pivot][anti_pivot] = Donor([anti_pivot, anti_pivot], lattice[anti_pivot][anti_pivot].nutrients)
-    print "WARNING - testing lattice in use"
+    lattice[pivot][pivot] = Receiver([pivot, pivot], lattice[pivot][pivot].nutrients, 0)
+    lattice[anti_pivot][anti_pivot] = Donor([anti_pivot, anti_pivot], lattice[anti_pivot][anti_pivot].nutrients, PLASMID_UPPER_BOUND)
     return lattice
 
 
@@ -251,9 +269,9 @@ def build_lattice_random(seed=5):
         for j in xrange(n):
             m = random_lattice[i][j]
             if m == 0:
-                lattice[i][j] = Receiver([i, j], nutrient_initial_condition)
+                lattice[i][j] = Receiver([i, j], nutrient_initial_condition, 0)
             elif m == 1:
-                lattice[i][j] = Donor([i, j], nutrient_initial_condition)
+                lattice[i][j] = Donor([i, j], nutrient_initial_condition, randint(PLASMID_UPPER_BOUND/2, PLASMID_UPPER_BOUND + 1))
             elif m in range(2, seed):
                 lattice[i][j] = Empty([i, j], nutrient_initial_condition)
     print random_lattice, "\n"
@@ -285,10 +303,15 @@ def get_label(loc):
 
 
 def divide(cell, empty_neighbours, new_cell_locations, dict_counts):
+
+    # division assessment parameters
     nutrients_are_available = cell.is_nutrient_available()
     distr = randint(0, 100)  # division probability is tied to the turn rate
     success = 0
+
     if distr < 100.0 / turn_rate and nutrients_are_available and len(empty_neighbours) > 0:
+
+        # immediate division parameters
         success = 1  # report division success to the simulation
         daughter_loc = random.choice(empty_neighbours)  # choose one of the empty neighbour cells to divide into
         cell.choose_and_exhaust_nutrient()  # exhaust nutrients using random search procedure
@@ -302,24 +325,33 @@ def divide(cell, empty_neighbours, new_cell_locations, dict_counts):
             cell.plasmid_amensal -= daughter_plasmid_amensal
         else:
             daughter_plasmid_amensal = 0
+        if cell.plasmid_target != 0:
+            raise Exception("Plasmid displacement not yet implemented")  # TODO implement displacement dynamics
 
-        if 'R' == cell.label or daughter_plasmid_amensal == 0:  # need condition for segregative loss
+        # division events by cell type
+        if 'R' == cell.label or daughter_plasmid_amensal == 0:  # represents condition for segregative loss
+            daughter_label = 'R'
             lattice[daughter_loc[0]][daughter_loc[1]] = Receiver(daughter_loc, daughter_loc_nutrients)
         elif 'D' == cell.label:
+            daughter_label = 'D'
             lattice[daughter_loc[0]][daughter_loc[1]] = Donor(daughter_loc, daughter_loc_nutrients, daughter_plasmid_amensal)
             #cell.maturity = floor(cell.maturity / 2)
         elif 'T' == cell.label:
-            np.random.binomial(cell.plasmid_count, 0.5)  # split cells plasmids using a binomial process, p=0.5
+            daughter_label = 'T'
             lattice[daughter_loc[0]][daughter_loc[1]] = Transconjugant(daughter_loc, daughter_loc_nutrients, daughter_plasmid_amensal)
             #cell.maturity = floor(cell.maturity / 2)
         else:
             raise Exception("Illegal cell type")
+
+        # post-division events
         cell.pause = cell.refractory_div
+
         # update tracking variables
         new_cell_locations.append(daughter_loc)
-        dict_counts[cell.label] += 1
+        dict_counts[daughter_label] += 1
         dict_counts['N'] -= 1
         dict_counts['_'] -= 1
+
     return success
 
 
@@ -328,10 +360,20 @@ def conjugate(cell, recipient_neighbours, dict_counts):
     success = 0  # note that successful conjugation = 1
     conj_rate_rel_div_rate = expected_conj_time / expected_donor_div_time
     if distr < (1000.0 / turn_rate) / conj_rate_rel_div_rate and len(recipient_neighbours) > 0:
+
+        # immediate conjugation parameters
         success = 1
         mate_loc = random.choice(recipient_neighbours)
-        lattice[mate_loc[0]][mate_loc[1]] = Transconjugant(mate_loc, get_nutrients(mate_loc))
+        mate = lattice[mate_loc[0]][mate_loc[1]]
+
+        # conjugation events
+        lattice[mate_loc[0]][mate_loc[1]] = Transconjugant(mate_loc, get_nutrients(mate_loc), 1, mate.plasmid_target)  # TODO transfer more than 1 amensal plasmid?
+
+        # post-conjugation events
         cell.pause = cell.refractory_conj
+        cell.amensal_plasmid -= 1  # TODO bug if donor or transconjugant only had 1 plasmid and transferred it, would need to set up as recipient
+        assert cell.amensal_plasmid > 0  # TODO fix bug and remove this assert, note this could randomly crash the code
+
         # update tracking variables
         dict_counts['T'] += 1
         dict_counts['R'] -= 1
@@ -367,7 +409,8 @@ def run_sim():
     lattice_data[0, :] = np.array([0, 0.0, dict_counts['_'], dict_counts['R'], dict_counts['D'], dict_counts['T'], dict_counts['N']])
 
     # plot initial conditions
-    #lattice_plotter(lattice, 0.0, n, dict_counts, plot_lattice_folder)  # TODO Re-add
+    lattice_plotter(lattice, dict_counts, n, 0.0, plot_lattice_folder)
+    plasmid_plotter_wrapper(lattice, dict_counts, 0.0, plot_data_folder)
 
     # simulation loop initialization
     new_cell_locations = []
@@ -385,6 +428,7 @@ def run_sim():
 
         for loc in cell_locations:
             cell = lattice[loc[0]][loc[1]]
+            cell.replicate_plasmids()
             if 0 < cell.pause:  # if paused, decrement pause timer
                 cell.pause -= 1
             else:
@@ -434,6 +478,7 @@ def run_sim():
             t0_a = time.clock()
             t0_b = time.time()
             lattice_plotter(lattice, turn * time_per_turn, n, dict_counts, plot_lattice_folder)
+            plasmid_plotter_wrapper(lattice, dict_counts, turn * time_per_turn, plot_data_folder)
             print "PLOT process time:", time.clock() - t0_a
             print "PLOT wall time:", time.time() - t0_b
 
@@ -444,7 +489,7 @@ def run_sim():
 # =================================================
 def main():
     build_lattice_random()
-    #build_lattice_testing()
+    #build_lattice_opposites()
     run_sim()
 
     # write data to file
