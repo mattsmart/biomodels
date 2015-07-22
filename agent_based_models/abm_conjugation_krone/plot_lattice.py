@@ -68,7 +68,7 @@ def lattice_draw(lattice, n):
     return
 
 
-def scatterplot_dict_array(lattice, n, dict_counts):
+def scatterplot_dict_array(lattice, dict_counts, n):
     keys = ['_', 'R', 'D', 'T']
     dict_array = {key: np.zeros((2, dict_counts[key]), dtype=np.float32) for key in keys}
     dict_increment = {key: 0 for key in keys}
@@ -95,8 +95,8 @@ def scatterplot_dict_array(lattice, n, dict_counts):
     return dict_array
 
 
-def lattice_draw_fast(lattice, n, dict_counts):
-    dict_array = scatterplot_dict_array(lattice, n, dict_counts)
+def lattice_draw_fast(lattice, dict_counts, n):
+    dict_array = scatterplot_dict_array(lattice, dict_counts, n)
     size_param = 40 * (axis_length / n) ** 2  # 40 = 20 (default area) * 2
     linewidth = 0  # use 2*axis_length / (5 * n)  or  0.5  or  0
     f = plt.figure()
@@ -106,10 +106,10 @@ def lattice_draw_fast(lattice, n, dict_counts):
     return f
 
 
-def lattice_plotter(lattice, time, n, dict_counts, lattice_plot_dir):
+def lattice_plotter(lattice, dict_counts, n, time, lattice_plot_dir):
     # generate figure
     if fast_flag:
-        lattice_draw_fast(lattice, n, dict_counts)
+        lattice_draw_fast(lattice, dict_counts, n)
     else:
         lattice_draw(lattice, n)
     # set figure size
