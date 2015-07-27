@@ -192,9 +192,11 @@ class Cell(object):
     def replicate_plasmids(self):
         assert self.plasmid_target == 0  # TODO NOT IMPLEMENTED
         if self.plasmid_amensal == 0:
-            print "Warning: updating amensal plasmid count in a cell with no amensal plasmids"
+            #print "Warning: updating amensal plasmid count in a cell with no amensal plasmids"
+            pass
         elif self.plasmid_amensal == self.plasmid_upper_bound:
-            print "Warning: updating amensal plasmid count in a cell when its already at max -- should this even be printed?"
+            #print "Warning: updating amensal plasmid count in a cell when its already at max -- should this even be printed?"
+            pass
         else:
             self.plasmid_amensal += ceil((self.plasmid_upper_bound - self.plasmid_amensal) / 2)  # TODO make this sensible... or stochastic
         return
@@ -210,21 +212,21 @@ class Receiver(Cell):
         Cell.__init__(self, 'R', location, nutrients, plasmid_target=plasmid_target)  # note plasmid_amensal defaults to 0
         self.pause = 0  # 0 if cell is active, non-zero means turns until active
         self.refractory_div = expected_donor_div_time / 4 / time_per_turn  # refractory period after division in turns
-
         assert self.plasmid_amensal == 0
         assert self.plasmid_target == 0
 
+
 class Donor(Cell):
-    def __init__(self, location, nutrients, plasmid_amensal, plasmid_target):
+    def __init__(self, location, nutrients, plasmid_amensal):
         Cell.__init__(self, 'D', location, nutrients, plasmid_amensal=plasmid_amensal)  # note plasmid_target defaults to 0
         self.pause = 0  # 0 if cell is active, non-zero means turns until active
         #self.maturity = 0  # starting probability of conjugation
         #self.maxmaturity = 50  # max probability of conjugation
         self.refractory_conj = ceil(0.25 / time_per_turn)  # OLD VERSION: expected_conj_time/16/time_per_turn # refractory period after conjugation in turns
         self.refractory_div = ceil(0.50 / time_per_turn)  # OLD VERSION: expected_donor_div_time/4/time_per_turn # refractory period after division in turns
-
         assert self.plasmid_amensal > 0
         assert self.plasmid_target == 0
+
 
 class Transconjugant(Cell):
     def __init__(self, location, nutrients, plasmid_amensal, plasmid_target):
@@ -234,7 +236,6 @@ class Transconjugant(Cell):
         #self.maxmaturity = 50  # max probability of conjugation
         self.refractory_conj = ceil(0.25 / time_per_turn)  # OLD VERSION: expected_conj_time/16/time_per_turn # refractory period after conjugation in turns
         self.refractory_div = ceil(0.50 / time_per_turn)  # OLD VERSION: expected_donor_div_time/4/time_per_turn # refractory period after division in turns
-
         assert self.plasmid_amensal > 0
         assert self.plasmid_target == 0
 
@@ -316,6 +317,7 @@ def divide(cell, empty_neighbours, new_cell_locations, dict_counts):
         daughter_loc = random.choice(empty_neighbours)  # choose one of the empty neighbour cells to divide into
         cell.choose_and_exhaust_nutrient()  # exhaust nutrients using random search procedure
         daughter_loc_nutrients = get_nutrients(daughter_loc)  # store nutrients at daughter location
+        daughter_plasmid_target = 0  # TODO implement target/displacement module
 
         # plasmid segregation module
         if cell.plasmid_amensal != 0:
@@ -331,14 +333,14 @@ def divide(cell, empty_neighbours, new_cell_locations, dict_counts):
         # division events by cell type
         if 'R' == cell.label or daughter_plasmid_amensal == 0:  # represents condition for segregative loss
             daughter_label = 'R'
-            lattice[daughter_loc[0]][daughter_loc[1]] = Receiver(daughter_loc, daughter_loc_nutrients)
+            lattice[daughter_loc[0]][daughter_loc[1]] = Receiver(daughter_loc, daughter_loc_nutrients, daughter_plasmid_target)
         elif 'D' == cell.label:
             daughter_label = 'D'
             lattice[daughter_loc[0]][daughter_loc[1]] = Donor(daughter_loc, daughter_loc_nutrients, daughter_plasmid_amensal)
             #cell.maturity = floor(cell.maturity / 2)
         elif 'T' == cell.label:
             daughter_label = 'T'
-            lattice[daughter_loc[0]][daughter_loc[1]] = Transconjugant(daughter_loc, daughter_loc_nutrients, daughter_plasmid_amensal)
+            lattice[daughter_loc[0]][daughter_loc[1]] = Transconjugant(daughter_loc, daughter_loc_nutrients, daughter_plasmid_amensal, daughter_plasmid_target)
             #cell.maturity = floor(cell.maturity / 2)
         else:
             raise Exception("Illegal cell type")
@@ -359,6 +361,7 @@ def conjugate(cell, recipient_neighbours, dict_counts):
     distr = randint(0, 1000)  # [1, 1000]
     success = 0  # note that successful conjugation = 1
     conj_rate_rel_div_rate = expected_conj_time / expected_donor_div_time
+    assert cell.plasmid_amensal >= 1  # sanity check
     if distr < (1000.0 / turn_rate) / conj_rate_rel_div_rate and len(recipient_neighbours) > 0:
 
         # immediate conjugation parameters
@@ -371,8 +374,6 @@ def conjugate(cell, recipient_neighbours, dict_counts):
 
         # post-conjugation events
         cell.pause = cell.refractory_conj
-        cell.amensal_plasmid -= 1  # TODO bug if donor or transconjugant only had 1 plasmid and transferred it, would need to set up as recipient
-        assert cell.amensal_plasmid > 0  # TODO fix bug and remove this assert, note this could randomly crash the code
 
         # update tracking variables
         dict_counts['T'] += 1
@@ -477,8 +478,9 @@ def run_sim():
         if turn % plots_period_in_turns == 0:
             t0_a = time.clock()
             t0_b = time.time()
-            lattice_plotter(lattice, turn * time_per_turn, n, dict_counts, plot_lattice_folder)
-            plasmid_plotter_wrapper(lattice, dict_counts, turn * time_per_turn, plot_data_folder)
+            timepoint = turn * time_per_turn
+            lattice_plotter(lattice, dict_counts, n, timepoint, plot_lattice_folder)
+            plasmid_plotter_wrapper(lattice, dict_counts, timepoint, plot_data_folder)
             print "PLOT process time:", time.clock() - t0_a
             print "PLOT wall time:", time.time() - t0_b
 

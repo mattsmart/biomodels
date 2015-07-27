@@ -12,25 +12,27 @@ def plasmid_stats(lattice, dict_counts):
     for i in xrange(n):
         for j in xrange(n):
             cell = lattice[i][j]
-            idx = cell_type_iterator[cell.label]
-            plasmid_counts_by_type[cell.label][idx] = cell.plasmid_amensal
-            cell_type_iterator[cell.label] += 1
+            if cell.label != '_':
+                idx = cell_type_iterator[cell.label]
+                plasmid_counts_by_type[cell.label][idx] = cell.plasmid_amensal
+                cell_type_iterator[cell.label] += 1
 
     return plasmid_counts_by_type
 
 
 def plasmid_plotter(plasmid_counts, plot_path):
-    total_cells = len(plasmid_counts)
-    f = plt.figure()
-    plt.hist(plasmid_counts)
-    ax = plt.gca()
-    ax.set_title('Plasmid Count Histogram (cells = %d)' % total_cells)
-    ax.set_ylabel('Number of cells')
-    ax.set_xlabel('Plasmid Count')
-    f.set_size_inches(20.0, 8.0)  # alternative: 20.0, 8.0
-    f.tight_layout()
-    plt.savefig(plot_path)
-    plt.clf()
+    if len(plasmid_counts) > 0:
+        total_cells = len(plasmid_counts)
+        f = plt.figure()
+        plt.hist(plasmid_counts)
+        ax = plt.gca()
+        ax.set_title('Plasmid Count Histogram (cells = %d)' % total_cells)
+        ax.set_ylabel('Number of cells')
+        ax.set_xlabel('Plasmid Count')
+        f.set_size_inches(20.0, 8.0)  # alternative: 20.0, 8.0
+        f.tight_layout()
+        plt.savefig(plot_path)
+        plt.clf()
     return
 
 
