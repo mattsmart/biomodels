@@ -1,46 +1,47 @@
-% levin ODEs for conjugation, distinguish transconjugants from donors
-% reference: levin, stewart, and rice (1978)
-% usage: [t,x] = conjugation_model_levin_basic([0,12],[1e5;0;1e5])
+% competition ODEs for n species
+% reference: Boyce and DiPrima Ch.9 (text), 
+% usage: [t,x] = conjugation_model_levin_basic([0,12],[1e5;1e4])
 % input:
 % - tspan: initial time, final time as an array
 % - x0: array of initial state values
 % output:
 % - matrix of values over time, representing state evolution
 
-function [t,x] = conjugation_model_levin_basic(tspan, x0)
+function [t,x] = ode_competition(tspan, x0)
 
 assert(length(tspan) == 2)
-assert(length(x0) == 3)
+assert(length(x0) == 2)
 
 % constants:
-R = 1.0;   % [per hour] growth rate
-K = 1e-9;  % [per hour] conjugation/transmission rate
+% growth rates by species
+epsilon = [1.0; 2.0];
+% growth rate / saturation level by species
+saturation_limit = 1e4;  % match abm limit
+theta = epsilon / saturation_limit;
+% competitiveness by species
+alpha = [1.0; 2.0];
 
-% states: donors (x_1), transconjugants (x_2), recipients (x_3)
-% we write x = [x_1, x_2, x_3] so that x(1) == x_1, etc
+% states: species 1 (x_1), species 2 (x_2)
+% we write x = [x_1, x_2] so that x(1) == x_1, etc
 % initial state values: x0 prespecified
 % tspan: tspan prespecified
 
 % equations of motion:
 function dxdt = dstate(t,x)
     dxdt = zeros(size(x0));
-    dxdt(1) = R * x(1);
-    dxdt(2) = R * x(2) + K * x(3) * (x(1) + x(2));
-    dxdt(3) = R * x(3) - K * x(3) * (x(1) + x(2));
+    dxdt(1) = x(1) * (epsilon(1) - theta(1) * x(1) - alpha(1) * x(2));
+    dxdt(2) = x(2) * (epsilon(2) - theta(2) * x(2) - alpha(2) * x(1));
 end
 
 % solve the DEs subject to initial conditions and timespan
 [t,x] = ode45(@dstate, tspan, x0);
 
 % plots
-subplot(2,2,1);
+subplot(1,2,1);
 plot(t,x(:,1));
-title('Donors');
-subplot(2,2,2);
+title('Species 1');
+subplot(1,2,2);
 plot(t,x(:,2));
-title('Transconjugants');
-subplot(2,2,3);
-plot(t,x(:,3))
-title('Recipients');
+title('Species 2');
 
 end
