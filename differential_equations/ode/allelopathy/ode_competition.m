@@ -1,6 +1,6 @@
 % competition ODEs for n species
 % reference: Boyce and DiPrima Ch.9 (text), 
-% usage: [t,x] = conjugation_model_levin_basic([0,12],[1e5;1e4])
+% usage: [t,x] = ode_competition([0,12],[1e5;1e4])
 % input:
 % - tspan: initial time, final time as an array
 % - x0: array of initial state values
