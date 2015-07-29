@@ -1,6 +1,6 @@
 % competition ODEs for n species
 % reference: Boyce and DiPrima Ch.9 (text), 
-% usage: [t,x] = ode_competition([0,12],[1e5;1e4])
+% usage: [t,x] = ode_competition([0,20],[10; 10])
 % input:
 % - tspan: initial time, final time as an array
 % - x0: array of initial state values
@@ -14,12 +14,12 @@ assert(length(x0) == 2)
 
 % constants:
 % growth rates by species
-epsilon = [1.0; 2.0];
+epsilon = [1.0; 1.0];
 % growth rate / saturation level by species
 saturation_limit = 1e4;  % match abm limit
 theta = epsilon / saturation_limit;
-% competitiveness by species
-alpha = [1.0; 2.0];
+% competitiveness by species (smaller alpha_i means species i is more fit)
+alpha = [1.00001; 1.0];
 
 % states: species 1 (x_1), species 2 (x_2)
 % we write x = [x_1, x_2] so that x(1) == x_1, etc
