@@ -1,5 +1,5 @@
-n = 2;
-step = 0.1;
+n = 10;
+step = 0.01;
 
 c_range = [1];
 e1_range = [1];
@@ -17,10 +17,12 @@ for c = c_range
                 for a2 = a2_range
                     [eval1, eval2, is_stable] = ode_competition_stability(c,e1,e2,a1,a2);
                     stats_array(counter,:) = [eval1, eval2, is_stable];
-                    counter = counter + 1
+                    counter = counter + 1;
                 end
             end
         end
     end
 end
-stats_array
+stats_array;
+stability_column = stats_array(:,3);
+stable_combinations = sum(stability_column)
