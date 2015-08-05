@@ -1,4 +1,4 @@
-function [evals1, evals2, is_stable] = ode_competition_stability(c, e1, e2, a1, a2)
+function [eval1, eval2, is_stable] = ode_competition_stability(c, e1, e2, a1, a2)
 %   check stability at the non-trivial EQ point based on eigenvalues
 
     function J = get_jacobian_at_crit(c, e1, e2, a1, a2)
