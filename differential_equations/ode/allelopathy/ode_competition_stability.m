@@ -1,4 +1,4 @@
-function is_stable = ode_competition_stability(c, e1, e2, a1, a2)
+function [evals1, evals2, is_stable] = ode_competition_stability(c, e1, e2, a1, a2)
 %   check stability at the non-trivial EQ point based on eigenvalues
 
     function J = get_jacobian_at_crit(c, e1, e2, a1, a2)
@@ -12,17 +12,23 @@ function is_stable = ode_competition_stability(c, e1, e2, a1, a2)
         J = [j11, j12; j21, j22];
     end
 
-    function is_stable = stability_at_crit(c, e1, e2, a1, a2)
+    function evals = stability_at_crit(c, e1, e2, a1, a2)
         J_crit = get_jacobian_at_crit(c, e1, e2, a1, a2);
         [V,D] = eig(J_crit);
         evals = diag(D);
-        if (evals(1) > 0) && (evals(2) > 0)
+    end
+   
+    function is_stable = assess_evals(evals)
+        if (real(evals(1)) < 0) && (real(evals(2)) < 0)
             is_stable = true;
         else
             is_stable = false;
         end
     end
-   
-    is_stable = stability_at_crit(c, e1, e2, a1, a2);
+
+    evals = stability_at_crit(c, e1, e2, a1, a2);
+    is_stable = assess_evals(evals);
+    eval1 = evals(1)
+    eval2 = evals(2)
 
 end
