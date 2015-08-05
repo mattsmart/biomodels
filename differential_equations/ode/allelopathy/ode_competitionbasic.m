@@ -7,7 +7,7 @@
 % output:
 % - matrix of values over time, representing state evolution
 
-function [t,x] = ode_competition(tspan, x0)
+function [t,x] = ode_competitionbasic(tspan, x0)
 
 assert(length(tspan) == 2)
 assert(length(x0) == 2)
@@ -29,8 +29,8 @@ alpha = [4.0; 1.0];
 % equations of motion:
 function dxdt = dstate(t, x)
     dxdt = zeros(size(x0));
-    dxdt(1) = x(1) * (epsilon(1) - theta(1) * (x(1) + x(2)) - alpha(1) * x(2));
-    dxdt(2) = x(2) * (epsilon(2) - theta(2) * (x(1) + x(2)) - alpha(2) * x(1));
+    dxdt(1) = x(1) * (epsilon(1) - theta(1) * x(1) - alpha(1) * x(2));
+    dxdt(2) = x(2) * (epsilon(2) - theta(2) * x(2) - alpha(2) * x(1));
 end
 
 % solve the DEs subject to initial conditions and timespan
