@@ -28,7 +28,7 @@ function [eval1, eval2, is_stable] = ode_competitionbasic_stability(c, e1, e2, a
 
     evals = stability_at_crit(c, e1, e2, a1, a2);
     is_stable = assess_evals(evals);
-    eval1 = evals(1)
-    eval2 = evals(2)
+    eval1 = evals(1);
+    eval2 = evals(2);
 
 end
