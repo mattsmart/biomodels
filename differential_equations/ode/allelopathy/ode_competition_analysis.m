@@ -1,11 +1,11 @@
-n = 10;
+n = 2;
 step = 0.01;
 
 c_range = [1];
 e1_range = [1];
-e2_range = [0+step:n, step];
-a1_range = [0+step:n, step];
-a2_range = [0+step:n, step];
+e2_range = [0+step:step:n];
+a1_range = [0+step:step:n];
+a2_range = [0+step:step:n];
 
 n = length(c_range)*length(e1_range)*length(e2_range)*length(a1_range)*length(a2_range)
 
