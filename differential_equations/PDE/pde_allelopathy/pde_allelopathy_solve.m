@@ -1,4 +1,4 @@
-function [u, model, tlist] = pde_conjugation_solve(t0,t1,timesteps)
+function [u, model, tlist] = pde_allelopathy_solve(t0,t1,timesteps)
 % Args:
 %     t0,t1      -- [scalars] start and end times
 %     timesteps  -- [scalar] number of steps between t0 and t1
@@ -8,12 +8,9 @@ function [u, model, tlist] = pde_conjugation_solve(t0,t1,timesteps)
 %     tlist      -- [vector] times
 
 % STATES
-% u1 - D    donors
-% u2 - R    recipients
-% u3 - T    transconjugants
-% u4 - Dr   refractory donors; just conjugated
-% u5 - Tr   refractory transconjugants; just received plasmid
-% u6 - n    nutrients
+% u1 - Da   Donor Type A
+% u2 - Db   Donor Type B
+% u3 - B    blockade/debris
 
 
 % =======================================================================
