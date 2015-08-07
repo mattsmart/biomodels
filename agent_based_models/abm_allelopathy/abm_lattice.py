@@ -70,10 +70,10 @@ expected_donor_A_shoot_time = expected_shoot_time
 expected_donor_B_shoot_time = expected_shoot_time
 
 # simulation time settings
-standard_run_time = 1 * 24.0  # typical simulation time in h
-turn_rate = 10.0  # 2.0  # average turns between each division; simulation step size
+standard_run_time = 2 * 24.0  # typical simulation time in h
+turn_rate = 2.0  # 2.0  # average turns between each division; simulation step size
 time_per_turn = min(expected_donor_A_div_time, expected_donor_B_div_time) / turn_rate
-plots_period_in_turns = 4 * turn_rate  # 1 or 1000 or 2 * turn_rate
+plots_period_in_turns = turn_rate  # 1 or 1000 or 2 * turn_rate
 total_turns = int(ceil(standard_run_time / time_per_turn))
 
 # miscellaneous cell settings
