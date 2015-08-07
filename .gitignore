@@ -13,3 +13,4 @@ differential_equations/pde/plots/
 # ABM Output
 agent_based_models/abm_conjugation_simple/runs/
 agent_based_models/abm_conjugation_krone/runs/
+agent_based_models/abm_allelopathy/runs/
