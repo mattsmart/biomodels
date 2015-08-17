@@ -9,6 +9,8 @@ from numpy.random import randint
 
 from plot_data import data_plotter
 from plot_lattice import lattice_plotter
+from ..utils.make_video import make_video_ffmpeg
+#from make_video import make_video_ffmpeg
 
 
 """
@@ -16,6 +18,8 @@ TODO
 -remove or augment the maturity module
 -ICs that resemble the PDEs
 -convert lattice to np array and ref with tuples instead of separate loc 0 and loc 1 (cleaner, maybe faster)
+-make paths independent of OS (use os.path.join(...))
+-ffmpeg dependency fix
 
 SPEED
 -instead of explicit class structure for the states, could just use dicts (should be faster)
@@ -408,6 +412,15 @@ def main():
                  'D_b': lattice_data[:, 4],
                  'B': lattice_data[:, 5]}
     data_plotter(data_dict, data_file, plot_data_folder)
+
+    # make video of results
+    from make_video import make_video_ffmpeg
+
+    # create video of results
+    fps = 15
+    ffmpeg_dir = "C:\\Users\\mattsmart\\Desktop\\ffmpeg\\"
+    video_path = os.path.join(current_run_folder, "plot_lattice_%_%dfps.mp4" % fps)
+    make_video_ffmpeg(plot_lattice_folder, ffmpeg_dir, current_run_folder, fps)
 
     print "\nDone!"
     return
