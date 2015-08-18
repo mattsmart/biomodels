@@ -3,14 +3,17 @@ import datetime
 import numpy as np
 import os
 import random
+import sys
 import time
 from math import ceil, floor
 from numpy.random import randint
 
 from plot_data import data_plotter
 from plot_lattice import lattice_plotter
-from ..utils.make_video import make_video_ffmpeg
-#from make_video import make_video_ffmpeg
+
+# CROSS-PACKAGE IMPORT HACK
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname( __file__ ), os.pardir)))
+from utils import make_video
 
 
 """
@@ -57,7 +60,7 @@ for dirs in dir_list:
 # Constants
 # =================================================
 # simulation dimensions
-n = 100  # up to 1000 tested as feasible
+n = 10  # up to 1000 tested as feasible
 
 # simulation lattice parameters
 search_radius_bacteria = 1
@@ -74,7 +77,7 @@ expected_donor_A_shoot_time = expected_shoot_time
 expected_donor_B_shoot_time = expected_shoot_time
 
 # simulation time settings
-standard_run_time = 2 * 24.0  # typical simulation time in h
+standard_run_time = 24.0  # typical simulation time in h
 turn_rate = 2.0  # 2.0  # average turns between each division; simulation step size
 time_per_turn = min(expected_donor_A_div_time, expected_donor_B_div_time) / turn_rate
 plots_period_in_turns = turn_rate  # 1 or 1000 or 2 * turn_rate
@@ -420,7 +423,7 @@ def main():
     fps = 15
     ffmpeg_dir = "C:\\Users\\mattsmart\\Desktop\\ffmpeg\\"
     video_path = os.path.join(current_run_folder, "plot_lattice_%_%dfps.mp4" % fps)
-    make_video_ffmpeg(plot_lattice_folder, ffmpeg_dir, current_run_folder, fps)
+    make_video.make_video_ffmpeg(plot_lattice_folder, ffmpeg_dir, current_run_folder, fps)
 
     print "\nDone!"
     return
