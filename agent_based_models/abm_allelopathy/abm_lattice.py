@@ -47,9 +47,12 @@ time_folder = current_time + "\\"
 current_run_folder = runs_folder + time_folder
 
 # subfolders in the timestamped run directory:
-data_folder = current_run_folder + "data\\"
-plot_lattice_folder = current_run_folder + "plot_lattice\\"
-plot_data_folder = current_run_folder + "plot_data\\"
+#data_folder = current_run_folder + "data\\"
+#plot_lattice_folder = current_run_folder + "plot_lattice\\"
+#plot_data_folder = current_run_folder + "plot_data\\"
+data_folder = os.path.join(current_run_folder, "data")
+plot_lattice_folder = os.path.join(current_run_folder, "plot_lattice")
+plot_data_folder = os.path.join(current_run_folder, "plot_data")
 
 dir_list = [runs_folder, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder]
 for dirs in dir_list:
@@ -60,7 +63,7 @@ for dirs in dir_list:
 # Constants
 # =================================================
 # simulation dimensions
-n = 100  # up to 1000 tested as feasible
+n = 10  # up to 1000 tested as feasible
 
 # simulation lattice parameters
 search_radius_bacteria = 1
@@ -77,7 +80,7 @@ expected_donor_A_shoot_time = expected_shoot_time
 expected_donor_B_shoot_time = expected_shoot_time
 
 # simulation time settings
-standard_run_time = 24.0  # typical simulation time in h
+standard_run_time = 0.2*24.0  # typical simulation time in h
 turn_rate = 2.0  # 2.0  # average turns between each division; simulation step size
 time_per_turn = min(expected_donor_A_div_time, expected_donor_B_div_time) / turn_rate
 plots_period_in_turns = turn_rate  # 1 or 1000 or 2 * turn_rate
@@ -402,7 +405,7 @@ def main():
 
     # write data to file
     data_name = "lattice_data.csv"
-    data_file = data_folder + data_name
+    data_file = os.path.join(data_folder, data_name)
     with open(data_file, "wb") as f:
         writer = csv.writer(f)
         writer.writerows(lattice_data)
@@ -418,9 +421,8 @@ def main():
 
     # create video of results
     fps = 15
-    ffmpeg_dir = "C:\\Users\\mattsmart\\Desktop\\ffmpeg\\"
     video_path = os.path.join(current_run_folder, "plot_lattice_%dh_%dfps.mp4" % (standard_run_time, fps))
-    make_video.make_video_ffmpeg(plot_lattice_folder, ffmpeg_dir, video_path, fps)
+    make_video.make_video_ffmpeg(plot_lattice_folder, video_path, fps=15)
 
     print "\nDone!"
     return

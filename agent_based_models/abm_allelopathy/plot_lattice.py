@@ -1,6 +1,7 @@
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 
 """
@@ -131,6 +132,6 @@ def lattice_plotter(lattice, time, n, dict_counts, lattice_plot_dir):
     # save figure
     #plt.savefig(lattice_plot_dir + 'lattice_at_time_%f.png' % time)
     #plt.savefig(lattice_plot_dir + 'lattice_at_time_%f.png' % time, bbox_inches='tight', figsize=(16, 16), dpi=max(80.0, n/2.0))
-    plt.savefig(lattice_plot_dir + 'lattice_at_time_%f.png' % time, dpi=max(80.0, n/2.0))
+    plt.savefig(os.path.join(lattice_plot_dir, 'lattice_at_time_%f.png' % time), dpi=max(80.0, n/2.0))
     plt.close()
     return

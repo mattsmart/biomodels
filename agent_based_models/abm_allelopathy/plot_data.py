@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import os
 
 
 def data_plotter(lattice_dict, datafile_dir, plot_dir):
@@ -24,7 +25,7 @@ def data_plotter(lattice_dict, datafile_dir, plot_dir):
     f = plt.gcf()
     f.set_size_inches(20.0, 8.0)  # alternative: 20.0, 8.0
     f.tight_layout()
-    plt.savefig(plot_dir + 'population_vs_time' + '.png')
+    plt.savefig(os.path.join(plot_dir, 'population_vs_time.png'))
     plt.clf()
     
     return

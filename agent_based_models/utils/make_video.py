@@ -5,6 +5,9 @@ import shutil
 import subprocess
 
 
+FFMPEG_DIR = "C:\\Users\\mattsmart\\Desktop\\ffmpeg\\"
+
+
 def natural_sort(unsorted_list):
     """Used to sort lists like a human
     e.g. [1, 10, 11, 2, 3] to [1, 2, 3, 10, 11]
@@ -41,13 +44,13 @@ def copy_and_rename_plots(plot_lattice_dir, output_dir):
     return
 
 
-def make_video_ffmpeg(plot_lattice_dir, ffmpeg_dir, output_path, fps):
+def make_video_ffmpeg(plot_lattice_dir, output_path, fps=15, ffmpeg_dir=FFMPEG_DIR):
     """Makes a video using ffmpeg - also copies the lattice plot dir, changes filenames, and deletes the copy
     Args:
         plot_lattice_dir: source directory
-        ffmpeg_dir: location of the ffmpeg directory (root where bin containing ffmpeg.exe is)
         output_path: path and filename of the output video
         fps: frames per second of the output video
+        ffmpeg_dir: location of the ffmpeg directory (root where bin containing ffmpeg.exe is)
     Returns:
         None
     """
