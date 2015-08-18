@@ -60,7 +60,7 @@ for dirs in dir_list:
 # Constants
 # =================================================
 # simulation dimensions
-n = 10  # up to 1000 tested as feasible
+n = 100  # up to 1000 tested as feasible
 
 # simulation lattice parameters
 search_radius_bacteria = 1
@@ -416,14 +416,11 @@ def main():
                  'B': lattice_data[:, 5]}
     data_plotter(data_dict, data_file, plot_data_folder)
 
-    # make video of results
-    from make_video import make_video_ffmpeg
-
     # create video of results
     fps = 15
     ffmpeg_dir = "C:\\Users\\mattsmart\\Desktop\\ffmpeg\\"
-    video_path = os.path.join(current_run_folder, "plot_lattice_%_%dfps.mp4" % fps)
-    make_video.make_video_ffmpeg(plot_lattice_folder, ffmpeg_dir, current_run_folder, fps)
+    video_path = os.path.join(current_run_folder, "plot_lattice_%dh_%dfps.mp4" % (standard_run_time, fps))
+    make_video.make_video_ffmpeg(plot_lattice_folder, ffmpeg_dir, video_path, fps)
 
     print "\nDone!"
     return
