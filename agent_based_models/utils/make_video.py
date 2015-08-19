@@ -71,3 +71,6 @@ def make_video_ffmpeg(plot_lattice_dir, output_path, fps=15, ffmpeg_dir=FFMPEG_D
     shutil.rmtree(temp_plot_dir)
 
     return
+
+#plots ="C:\\Users\\mattsmart\\Documents\\biomodels\\agent_based_models\\testing2\\plot_lattice"
+#make_video_ffmpeg(plots, os.path.join(plots, "out.mp4"), fps=1)

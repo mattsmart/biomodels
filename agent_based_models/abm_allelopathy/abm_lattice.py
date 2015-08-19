@@ -63,7 +63,7 @@ for dirs in dir_list:
 # Constants
 # =================================================
 # simulation dimensions
-n = 10  # up to 1000 tested as feasible
+n = 1000  # up to 1000 tested as feasible
 
 # simulation lattice parameters
 search_radius_bacteria = 1
@@ -80,7 +80,7 @@ expected_donor_A_shoot_time = expected_shoot_time
 expected_donor_B_shoot_time = expected_shoot_time
 
 # simulation time settings
-standard_run_time = 0.2*24.0  # typical simulation time in h
+standard_run_time = 2 * 24.0  # typical simulation time in h
 turn_rate = 2.0  # 2.0  # average turns between each division; simulation step size
 time_per_turn = min(expected_donor_A_div_time, expected_donor_B_div_time) / turn_rate
 plots_period_in_turns = turn_rate  # 1 or 1000 or 2 * turn_rate
@@ -91,6 +91,8 @@ expected_donor_A_div_refractory_turns = ceil((expected_donor_A_div_time / 2) / t
 expected_donor_B_div_refractory_turns = ceil((expected_donor_B_div_time / 2) / time_per_turn)  # refractory period after division in turns
 debris_decay_time = div_time_cholera * 2.01
 
+# miscellaneous settings
+video_flag = False
 
 # Classes
 # =================================================
@@ -188,12 +190,11 @@ def printer():
     print
 
 
-def build_lattice_testing():
-    pivot = n/5
+def build_lattice_colonies():
+    pivot = int(0.45 * n)
     anti_pivot = n - pivot - 1
     lattice[pivot][pivot] = DonorTypeA([pivot, pivot])
     lattice[anti_pivot][anti_pivot] = DonorTypeB([anti_pivot, anti_pivot])
-    print "WARNING - testing lattice in use"
     return lattice
 
 
@@ -232,6 +233,28 @@ def build_lattice_concentric():
             else:
                 lattice[i][j] = DonorTypeB([i, j])
     return
+
+
+def build_lattice_sprinkle(ratio_A=0.2, ratio_B=0.2, size=m):
+    """Sprinkle cells in the center, IC edge size m
+    Args:
+        ratio_A, ratio_B: determine sprinkling in IC region
+        size: size of IC region
+    """
+    ratio_empty = 1 - ratio_A - ratio_B
+    random_lattice = randint(10, size=(m, m))
+    for i in xrange(n):
+        for j in xrange(n):
+            m = random_lattice[i][j]
+            if m == 0:
+                lattice[i][j] = DonorTypeA([i, j])
+            elif m == 1:
+                lattice[i][j] = DonorTypeB([i, j])
+            elif m in range(2, seed):
+                lattice[i][j] = Empty([i, j])
+    print random_lattice, "\n"
+    return
+
 
 
 def is_empty(loc):
@@ -396,8 +419,8 @@ def run_sim():
 # =================================================
 def main():
     # choose ICs
-    build_lattice_random()
-    #build_lattice_testing()
+    #build_lattice_random()
+    build_lattice_colonies()
     #build_lattice_diag()
     #build_lattice_concentric()
 
@@ -420,9 +443,10 @@ def main():
     data_plotter(data_dict, data_file, plot_data_folder)
 
     # create video of results
-    fps = 15
-    video_path = os.path.join(current_run_folder, "plot_lattice_%dh_%dfps.mp4" % (standard_run_time, fps))
-    make_video.make_video_ffmpeg(plot_lattice_folder, video_path, fps=15)
+    if video_flag:
+        fps = 15
+        video_path = os.path.join(current_run_folder, "plot_lattice_%dh_%dfps.mp4" % (standard_run_time, fps))
+        make_video.make_video_ffmpeg(plot_lattice_folder, video_path, fps=fps)
 
     print "\nDone!"
     return
