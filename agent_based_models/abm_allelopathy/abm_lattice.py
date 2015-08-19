@@ -63,7 +63,7 @@ for dirs in dir_list:
 # Constants
 # =================================================
 # simulation dimensions
-n = 1000  # up to 1000 tested as feasible
+n = 100  # up to 1000 tested as feasible
 
 # simulation lattice parameters
 search_radius_bacteria = 1
@@ -235,23 +235,30 @@ def build_lattice_concentric():
     return
 
 
-def build_lattice_sprinkle(ratio_A=0.2, ratio_B=0.2, size=m):
-    """Sprinkle cells in the center, IC edge size m
+def build_lattice_sprinkle(ratio_a=0.2, ratio_b=0.2, ic_radius_fraction=0.1):
+    """Sprinkle cells in the center, IC edge size n * m
     Args:
-        ratio_A, ratio_B: determine sprinkling in IC region
-        size: size of IC region
+        ratio_a, ratio_b: determine sprinkling in IC region
+        ic_radius_fraction: size fraction of IC radius
     """
-    ratio_empty = 1 - ratio_A - ratio_B
-    random_lattice = randint(10, size=(m, m))
-    for i in xrange(n):
-        for j in xrange(n):
-            m = random_lattice[i][j]
-            if m == 0:
-                lattice[i][j] = DonorTypeA([i, j])
-            elif m == 1:
-                lattice[i][j] = DonorTypeB([i, j])
-            elif m in range(2, seed):
-                lattice[i][j] = Empty([i, j])
+    # ic setup
+    ic_radius_units = n * ic_radius_fraction
+    top_left = int(n / 2 - ic_radius_units)
+    # probability setup
+    sample_range_a = (0, 100 * ratio_a)
+    sample_range_b = (100 * ratio_a, 100 * (ratio_a + ratio_b))
+    sample_range_empty = (100 * (ratio_a + ratio_b), 100)
+    random_lattice = randint(100, size=(2 * ic_radius_units, 2 * ic_radius_units))
+    # generate ic
+    for idx_i, lattice_i in enumerate(xrange(top_left, top_left + 2 * ic_radius_units)):
+        for idx_j, lattice_j in enumerate(xrange(top_left, top_left + 2 * ic_radius_units)):
+            m = random_lattice[idx_i][idx_j]
+            if 0 <= m <= sample_range_a[1]:
+                lattice[lattice_i][lattice_j] = DonorTypeA([lattice_i, lattice_j])
+            elif sample_range_b[0] <= m <= sample_range_b[1]:
+                lattice[lattice_i][lattice_j] = DonorTypeB([lattice_i, lattice_j])
+            else:
+                lattice[lattice_i][lattice_j] = Empty([lattice_i, lattice_j])
     print random_lattice, "\n"
     return
 
@@ -420,9 +427,10 @@ def run_sim():
 def main():
     # choose ICs
     #build_lattice_random()
-    build_lattice_colonies()
+    #build_lattice_colonies()
     #build_lattice_diag()
     #build_lattice_concentric()
+    build_lattice_sprinkle()
 
     run_sim()
 
