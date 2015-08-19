@@ -80,7 +80,7 @@ expected_donor_A_shoot_time = expected_shoot_time
 expected_donor_B_shoot_time = expected_shoot_time
 
 # simulation time settings
-standard_run_time = 2 * 24.0  # typical simulation time in h
+standard_run_time = 1 * 24.0  # typical simulation time in h
 turn_rate = 2.0  # 2.0  # average turns between each division; simulation step size
 time_per_turn = min(expected_donor_A_div_time, expected_donor_B_div_time) / turn_rate
 plots_period_in_turns = turn_rate  # 1 or 1000 or 2 * turn_rate
@@ -92,7 +92,7 @@ expected_donor_B_div_refractory_turns = ceil((expected_donor_B_div_time / 2) / t
 debris_decay_time = div_time_cholera * 2.01
 
 # miscellaneous settings
-video_flag = False
+video_flag = True
 
 # Classes
 # =================================================
@@ -224,14 +224,30 @@ def build_lattice_diag():
     return
 
 
-def build_lattice_concentric():
-    radius_inner = np.ceil(n * 0.25)
+def build_lattice_concentric_random(sprinkle=0.2):
+    """Two concentric circles with potential sprinkling (sparse placement) of each bacterial type
+    Args:
+        sprinkle_prob: default 0.2, 1.0 is completely filled circles
+    """
+    assert 0.0 <= sprinkle <= 1.0
+    radius_inner = np.ceil(n * 0.10)
+    radius_outer = np.ceil(n * 0.20)
     for i in xrange(n):
         for j in xrange(n):
-            if np.sqrt((i - n/2)**2 + (j - n/2)**2) <= radius_inner:
-                lattice[i][j] = DonorTypeA([i, j])
+            radius = np.sqrt((i - n/2)**2 + (j - n/2)**2)
+            # probability module
+            m = randint(0, 100)
+            if 100*sprinkle >= m:
+                insert_cell = True
             else:
+                insert_cell = False
+            # circle module
+            if radius <= radius_inner and insert_cell:
+                lattice[i][j] = DonorTypeA([i, j])
+            elif radius <= radius_outer and insert_cell:
                 lattice[i][j] = DonorTypeB([i, j])
+            else:
+                continue
     return
 
 
@@ -428,8 +444,8 @@ def main():
     #build_lattice_random()
     #build_lattice_colonies()
     #build_lattice_diag()
-    #build_lattice_concentric()
-    build_lattice_sprinkle()
+    build_lattice_concentric_random()
+    #build_lattice_sprinkle()
 
     run_sim()
 
