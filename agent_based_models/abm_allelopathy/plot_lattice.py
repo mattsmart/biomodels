@@ -2,6 +2,8 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+from matplotlib.patches import Rectangle
+
 
 
 """
@@ -120,12 +122,15 @@ def lattice_plotter(lattice, time, n, dict_counts, lattice_plot_dir):
     # pad figure to hide gaps between squares
     scale_settings = {10: {'x': (-22, 122), 'y': (-20, 120)},
                       100: {'x': (-4, 104), 'y': (-4, 104)},
+                      250: {'x': (-28, 128), 'y': (-22, 122)},
+                      500: {'x': (-28, 128), 'y': (-22, 122)},
                       1000: {'x': (-28, 128), 'y': (-22, 122)}}
     if n in scale_settings.keys():
         ax_handle = plt.gca()
         axis_lims = scale_settings[n]
         ax_handle.set_xlim(axis_lims['x'])
         ax_handle.set_ylim(axis_lims['y'])
+        ax_handle.add_patch((Rectangle((0, 12.5), 100, 87.5, facecolor="none")))
     # hide axis
     axis_ticks = range(0, axis_tick_length + 1, 10)
     plt.xticks(axis_ticks)
