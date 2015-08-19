@@ -242,20 +242,19 @@ def build_lattice_sprinkle(ratio_a=0.2, ratio_b=0.2, ic_radius_fraction=0.1):
         ic_radius_fraction: size fraction of IC radius
     """
     # ic setup
-    ic_radius_units = n * ic_radius_fraction
+    ic_radius_units = int(n * ic_radius_fraction)
     top_left = int(n / 2 - ic_radius_units)
     # probability setup
-    sample_range_a = (0, 100 * ratio_a)
-    sample_range_b = (100 * ratio_a, 100 * (ratio_a + ratio_b))
-    sample_range_empty = (100 * (ratio_a + ratio_b), 100)
+    sample_range_a_upper = int(100 * ratio_a)
+    sample_range_b_upper = int(100 * (ratio_a + ratio_b))
     random_lattice = randint(100, size=(2 * ic_radius_units, 2 * ic_radius_units))
     # generate ic
     for idx_i, lattice_i in enumerate(xrange(top_left, top_left + 2 * ic_radius_units)):
         for idx_j, lattice_j in enumerate(xrange(top_left, top_left + 2 * ic_radius_units)):
             m = random_lattice[idx_i][idx_j]
-            if 0 <= m <= sample_range_a[1]:
+            if 0 <= m <= sample_range_a_upper:
                 lattice[lattice_i][lattice_j] = DonorTypeA([lattice_i, lattice_j])
-            elif sample_range_b[0] <= m <= sample_range_b[1]:
+            elif sample_range_a_upper <= m <= sample_range_b_upper:
                 lattice[lattice_i][lattice_j] = DonorTypeB([lattice_i, lattice_j])
             else:
                 lattice[lattice_i][lattice_j] = Empty([lattice_i, lattice_j])
