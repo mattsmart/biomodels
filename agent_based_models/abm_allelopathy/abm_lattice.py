@@ -75,7 +75,7 @@ expected_donor_A_div_time = div_time_cholera  # avg time for 1 R cell to divide 
 expected_donor_B_div_time = div_time_cholera  # avg time for 1 D cell to divide in h
 
 # conjugation rate
-expected_shoot_time = div_time_cholera / 2  # avg time for 1 cell to conjugate in h (Jama: 10h for e.coli, more for staph)
+expected_shoot_time = div_time_cholera / 2
 expected_donor_A_shoot_time = expected_shoot_time
 expected_donor_B_shoot_time = expected_shoot_time
 
