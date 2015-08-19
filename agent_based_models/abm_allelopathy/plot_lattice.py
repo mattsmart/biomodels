@@ -70,7 +70,7 @@ def lattice_draw(lattice, n):
 
 
 def scatterplot_dict_array(lattice, n, dict_counts):
-    keys = ['_', 'D_a', 'D_b', 'B']
+    keys = ['D_a', 'D_b', 'B']
     dict_array = {key: np.zeros((2, dict_counts[key]), dtype=np.float32) for key in keys}
     dict_increment = {key: 0 for key in keys}
 
@@ -86,10 +86,11 @@ def scatterplot_dict_array(lattice, n, dict_counts):
     for i in xrange(n):
         for j in xrange(n):
             cell_label = lattice[i][j].label
-            idx = dict_increment[cell_label]
-            dict_array[cell_label][0, idx] = x
-            dict_array[cell_label][1, idx] = y
-            dict_increment[cell_label] += 1
+            if cell_label != '_':
+                idx = dict_increment[cell_label]
+                dict_array[cell_label][0, idx] = x
+                dict_array[cell_label][1, idx] = y
+                dict_increment[cell_label] += 1
             x += dx
         y -= dy
         x = x0
@@ -118,6 +119,7 @@ def lattice_plotter(lattice, time, n, dict_counts, lattice_plot_dir):
     fig_handle.set_size_inches(16, 16)
     # pad figure to hide gaps between squares
     scale_settings = {10: {'x': (-22, 122), 'y': (-20, 120)},
+                      100: {'x': (-4, 104), 'y': (-4, 104)},
                       1000: {'x': (-28, 128), 'y': (-22, 122)}}
     if n in scale_settings.keys():
         ax_handle = plt.gca()
