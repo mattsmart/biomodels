@@ -63,6 +63,7 @@ assert search_radius_bacteria < n / 2
 div_mean_cholera = 20.0 / 60.0  # 20 minutes in hours
 div_sd_cholera = 2.5 / 60.0  # 2.5 minutes in hours
 death_by_poison_mean_cholera = 5.0 / 60.0  # 5 minutes in hours
+death_by_poison_sd_cholera = 1.0 / 60.0  # 1 minutes in hours
 targets_min_cholera = 0
 targets_max_cholera = 5
 
@@ -72,6 +73,7 @@ donor_A_div_sd = div_sd_cholera
 donor_A_targets_min = targets_min_cholera
 donor_A_targets_max = targets_max_cholera
 donor_A_death_by_poison_mean = death_by_poison_mean_cholera
+donor_A_death_by_poison_sd = death_by_poison_sd_cholera
 
 # donor type B - division and target timings
 donor_B_div_mean = div_mean_cholera
@@ -79,6 +81,7 @@ donor_B_div_sd = div_sd_cholera
 donor_B_targets_min = targets_min_cholera
 donor_B_targets_max = targets_max_cholera
 donor_B_death_by_poison_mean = death_by_poison_mean_cholera
+donor_B_death_by_poison_sd = death_by_poison_sd_cholera
 
 # miscellaneous cell settings
 #debris_decay_time = div_mean_cholera * 2.01
@@ -159,6 +162,7 @@ class DonorTypeA(Cell):
         else:
             raise Exception("distribution must be 'normal' or 'uniform'")
         self.death_by_poison_mean = donor_A_death_by_poison_mean
+        self.death_by_poison_sd = donor_A_death_by_poison_sd
         self.time_to_death_by_poison = None
 
     def set_normal_time_to_div(self):
@@ -169,7 +173,8 @@ class DonorTypeA(Cell):
 
     def start_poison_timer(self):
         if self.time_to_death_by_poison is None:
-            self.time_to_death_by_poison = self.death_by_poison_mean
+            #self.time_to_death_by_poison = self.death_by_poison_mean
+            self.time_to_death_by_poison = np.random.normal(self.death_by_poison_mean, self.death_by_poison_sd)
 
     def decrement_poison_timer_and_report_death(self):
         death_flag = 0
@@ -195,6 +200,7 @@ class DonorTypeB(Cell):
         else:
             raise Exception("distribution must be 'normal' or 'uniform'")
         self.death_by_poison_mean = donor_B_death_by_poison_mean
+        self.death_by_poison_sd = donor_B_death_by_poison_sd
         self.time_to_death_by_poison = None
 
     def set_normal_time_to_div(self):
@@ -205,7 +211,8 @@ class DonorTypeB(Cell):
 
     def start_poison_timer(self):
         if self.time_to_death_by_poison is None:
-            self.time_to_death_by_poison = self.death_by_poison_mean
+            #self.time_to_death_by_poison = self.death_by_poison_mean
+            self.time_to_death_by_poison = np.random.normal(self.death_by_poison_mean, self.death_by_poison_sd)
 
     def decrement_poison_timer_and_report_death(self):
         death_flag = 0
