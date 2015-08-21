@@ -69,30 +69,29 @@ n = 100  # up to 1000 tested as feasible
 search_radius_bacteria = 1
 assert search_radius_bacteria < n / 2
 
-# division and recovery times
-div_time_cholera = 0.333
-expected_donor_A_div_time = div_time_cholera  # avg time for 1 R cell to divide in h
-expected_donor_B_div_time = div_time_cholera  # avg time for 1 D cell to divide in h
+# division timings
+div_mean_cholera = 20.0 / 60.0  # 20 minutes in hours
+div_sd_cholera = 2.5 / 60.0  # 2.5 minutes in hours
+donor_A_div_mean = div_mean_cholera
+donor_A_div_sd = div_sd_cholera
+donor_B_div_mean = div_mean_cholera
+donor_B_div_sd = div_sd_cholera
+targets_min_cholera = 0
+targets_max_cholera = 5
 
-# conjugation rate
-expected_shoot_time = div_time_cholera / 2
-expected_donor_A_shoot_time = expected_shoot_time
-expected_donor_B_shoot_time = expected_shoot_time
+# miscellaneous cell settings
+debris_decay_time = div_mean_cholera * 2.01
 
 # simulation time settings
 standard_run_time = 1 * 24.0  # typical simulation time in h
 turn_rate = 2.0  # 2.0  # average turns between each division; simulation step size
-time_per_turn = min(expected_donor_A_div_time, expected_donor_B_div_time) / turn_rate
+time_per_turn = min(donor_A_div_mean, donor_B_div_mean) / turn_rate  # currently 20min / turn rate
 plots_period_in_turns = turn_rate  # 1 or 1000 or 2 * turn_rate
 total_turns = int(ceil(standard_run_time / time_per_turn))
 
-# miscellaneous cell settings
-expected_donor_A_div_refractory_turns = ceil((expected_donor_A_div_time / 2) / time_per_turn)  # refractory period after division in turns
-expected_donor_B_div_refractory_turns = ceil((expected_donor_B_div_time / 2) / time_per_turn)  # refractory period after division in turns
-debris_decay_time = div_time_cholera * 2.01
+# miscellaneous simulation settings
+video_flag = False  # WARNING: auto video creation requires proper ffmpeg setup and folder permissions and luck
 
-# miscellaneous settings
-video_flag = True
 
 # Classes
 # =================================================
@@ -142,37 +141,52 @@ class Empty(Cell):
 
 
 class DonorTypeA(Cell):
-    def __init__(self, location):
+    def __init__(self, location, time_to_div_distribution='normal'):
         Cell.__init__(self, 'D_a', location)
-        self.pause = 0  # 0 if cell is active, non-zero means turns until active
-        self.refractory_shoot = 0.0
-        self.refractory_div = expected_donor_A_div_refractory_turns  # floor(0.50 / time_per_turn)  # OLD VERSION: expected_donor_div_time/4/time_per_turn # refractory period after division in turns
-        self.div_time_fraction = 1.0  # 0.5  # 1.0 is default, 0.0 is 100% success every turn
-        self.shoot_time_fraction = 1.0  # 0.5  # 1.0 is default, 0.0 is 100% success every turn
-        self.div_time = expected_donor_A_div_time
-        self.shoot_time = expected_donor_A_shoot_time
-        self.targets_min = 0
-        self.targets_max = 5
+        self.div_mean = donor_A_div_mean
+        self.div_sd = donor_A_div_sd
+        self.targets_min = targets_min_cholera
+        self.targets_max = targets_max_cholera
+        self.time_to_div = None
+        if time_to_div_distribution == 'normal':
+            self.set_normal_time_to_div()
+        elif time_to_div_distribution == 'uniform':
+            self.set_uniform_time_to_div()
+        else:
+            raise Exception("distribution must be 'normal' or 'uniform'")
+
+    def set_normal_time_to_div(self):
+        self.time_to_div = np.random.normal(self.div_mean, self.div_sd)
+
+    def set_uniform_time_to_div(self):
+        self.time_to_div = np.random.uniform(0.0, self.div_mean)
 
 
 class DonorTypeB(Cell):
-    def __init__(self, location):
+    def __init__(self, location, time_to_div_distribution='normal'):
         Cell.__init__(self, 'D_b', location)
-        self.pause = 0  # 0 if cell is active, non-zero means turns until active
-        self.refractory_shoot = 0.0
-        self.refractory_div = expected_donor_B_div_refractory_turns  # OLD VERSION: expected_donor_div_time/4/time_per_turn # refractory period after division in turns
-        self.div_time_fraction = 1.0  # 1.0 is default, 0.0 is 100% success every turn
-        self.shoot_time_fraction = 1.0  # 1.0 is default, 0.0 is 100% success every turn
-        self.div_time = expected_donor_B_div_time
-        self.shoot_time = expected_donor_B_shoot_time
-        self.targets_min = 0
-        self.targets_max = 5
+        self.div_mean = donor_B_div_mean
+        self.div_sd = donor_B_div_sd
+        self.targets_min = targets_min_cholera
+        self.targets_max = targets_max_cholera
+        self.time_to_div = None
+        if time_to_div_distribution == 'normal':
+            self.set_normal_time_to_div()
+        elif time_to_div_distribution == 'uniform':
+            self.set_uniform_time_to_div()
+        else:
+            raise Exception("distribution must be 'normal' or 'uniform'")
 
+    def set_normal_time_to_div(self):
+        self.time_to_div = np.random.normal(self.div_mean, self.div_sd)
+
+    def set_uniform_time_to_div(self):
+        self.time_to_div = np.random.uniform(0.0, self.div_mean)
 
 class Debris(Cell):
     def __init__(self, location):
         Cell.__init__(self, 'B', location)
-        self.decay_timer = debris_decay_time  # time (in hours) until debris decays
+        self.time_to_decay = debris_decay_time  # time (in hours) until debris decays
 
 
 # Initiate Cell Lattice and Data Directory
@@ -193,8 +207,8 @@ def printer():
 def build_lattice_colonies():
     pivot = int(0.45 * n)
     anti_pivot = n - pivot - 1
-    lattice[pivot][pivot] = DonorTypeA([pivot, pivot])
-    lattice[anti_pivot][anti_pivot] = DonorTypeB([anti_pivot, anti_pivot])
+    lattice[pivot][pivot] = DonorTypeA([pivot, pivot], time_to_div_distribution='uniform')
+    lattice[anti_pivot][anti_pivot] = DonorTypeB([anti_pivot, anti_pivot], time_to_div_distribution='uniform')
     return lattice
 
 
@@ -205,9 +219,9 @@ def build_lattice_random(seed=5):
         for j in xrange(n):
             m = random_lattice[i][j]
             if m == 0:
-                lattice[i][j] = DonorTypeA([i, j])
+                lattice[i][j] = DonorTypeA([i, j], time_to_div_distribution='uniform')
             elif m == 1:
-                lattice[i][j] = DonorTypeB([i, j])
+                lattice[i][j] = DonorTypeB([i, j], time_to_div_distribution='uniform')
             elif m in range(2, seed):
                 lattice[i][j] = Empty([i, j])
     print random_lattice, "\n"
@@ -218,9 +232,9 @@ def build_lattice_diag():
     for i in xrange(n):
         for j in xrange(n):
             if j < i:
-                lattice[i][j] = DonorTypeA([i, j])
+                lattice[i][j] = DonorTypeA([i, j], time_to_div_distribution='uniform')
             else:
-                lattice[i][j] = DonorTypeB([i, j])
+                lattice[i][j] = DonorTypeB([i, j], time_to_div_distribution='uniform')
     return
 
 
@@ -243,9 +257,9 @@ def build_lattice_concentric_random(sprinkle=0.2):
                 insert_cell = False
             # circle module
             if radius <= radius_inner and insert_cell:
-                lattice[i][j] = DonorTypeA([i, j])
+                lattice[i][j] = DonorTypeA([i, j], time_to_div_distribution='uniform')
             elif radius <= radius_outer and insert_cell:
-                lattice[i][j] = DonorTypeB([i, j])
+                lattice[i][j] = DonorTypeB([i, j], time_to_div_distribution='uniform')
             else:
                 continue
     return
@@ -269,14 +283,13 @@ def build_lattice_sprinkle(ratio_a=0.2, ratio_b=0.2, ic_radius_fraction=0.1):
         for idx_j, lattice_j in enumerate(xrange(top_left, top_left + 2 * ic_radius_units)):
             m = random_lattice[idx_i][idx_j]
             if 0 <= m <= sample_range_a_upper:
-                lattice[lattice_i][lattice_j] = DonorTypeA([lattice_i, lattice_j])
+                lattice[lattice_i][lattice_j] = DonorTypeA([lattice_i, lattice_j], time_to_div_distribution='uniform')
             elif sample_range_a_upper <= m <= sample_range_b_upper:
-                lattice[lattice_i][lattice_j] = DonorTypeB([lattice_i, lattice_j])
+                lattice[lattice_i][lattice_j] = DonorTypeB([lattice_i, lattice_j], time_to_div_distribution='uniform')
             else:
                 lattice[lattice_i][lattice_j] = Empty([lattice_i, lattice_j])
     print random_lattice, "\n"
     return
-
 
 
 def is_empty(loc):
@@ -299,24 +312,25 @@ def get_label(loc):
     return lattice[loc[0]][loc[1]].label
 
 
-def divide(cell, empty_neighbours, new_cell_locations, dict_counts):
-    distr = randint(0, 100)
-    success = 0  # note that successful division = 1
-    if distr * cell.div_time_fraction < 100.0 / turn_rate and len(empty_neighbours) > 0:
-        success = 1
-        daughter_loc = random.choice(empty_neighbours)
-        if 'D_a' == cell.label:
-            lattice[daughter_loc[0]][daughter_loc[1]] = DonorTypeA(daughter_loc)
-            #cell.maturity = floor(cell.maturity / 2)
-        elif 'D_b' == cell.label:
-            lattice[daughter_loc[0]][daughter_loc[1]] = DonorTypeB(daughter_loc)
-        else:
-            raise Exception("Illegal cell type")
-        cell.pause = cell.refractory_div
-        # update tracking variables
-        new_cell_locations.append(daughter_loc)
-        dict_counts[cell.label] += 1
-        dict_counts['_'] -= 1
+def divide(cell, new_cell_locations, dict_counts):
+    success = 0
+    if cell.time_to_div < 0:
+        empty_neighbours = cell.get_label_surroundings('_', search_radius_bacteria)
+        if len(empty_neighbours) > 0:
+            success = 1
+            daughter_loc = random.choice(empty_neighbours)
+            if 'D_a' == cell.label:
+                lattice[daughter_loc[0]][daughter_loc[1]] = DonorTypeA(daughter_loc)
+            elif 'D_b' == cell.label:
+                lattice[daughter_loc[0]][daughter_loc[1]] = DonorTypeB(daughter_loc)
+            else:
+                raise Exception("Illegal cell type")
+            # update parent cell time to div
+            cell.set_normal_time_to_div()
+            # update tracking variables
+            new_cell_locations.append(daughter_loc)
+            dict_counts[cell.label] += 1
+            dict_counts['_'] -= 1
     return success
 
 
@@ -394,8 +408,8 @@ def run_sim():
 
             # debris behaviour
             if is_debris(loc):
-                cell.decay_timer -= time_per_turn
-                if cell.decay_timer <= 0:
+                cell.time_to_decay -= time_per_turn
+                if cell.time_to_decay < 0:
                     lattice[loc[0]][loc[1]] = Empty(loc)
                     locations_to_remove.append(loc)
                     dict_counts['B'] -= 1
@@ -403,13 +417,16 @@ def run_sim():
 
             # donor behaviour
             elif is_donor_type_a(loc) or is_donor_type_b(loc):
-                if 0.0 < cell.pause:  # if paused, decrement pause timer
-                    cell.pause -= 1
+                # decrement division timer
+                cell.time_to_div -= time_per_turn
+                # flip coin to see if shooting or dividing first
+                coinflip_heads = randint(2)
+                if coinflip_heads:
+                    divide(cell, new_cell_locations, dict_counts)
+                    shoot(cell, dict_counts)
                 else:
-                    empty_neighbours = cell.get_label_surroundings('_', search_radius_bacteria)
-                    # TRY TO DIVIDE BEFORE SHOOTING
-                    if not divide(cell, empty_neighbours, new_cell_locations, dict_counts):
-                        shoot(cell, dict_counts)
+                    shoot(cell, dict_counts)
+                    divide(cell, new_cell_locations, dict_counts)
 
             else:
                 print "WARNING - Cell not D_a or D_b or B"
@@ -441,12 +458,13 @@ def run_sim():
 # =================================================
 def main():
     # choose ICs
-    #build_lattice_random()
+    build_lattice_random()
     #build_lattice_colonies()
     #build_lattice_diag()
-    build_lattice_concentric_random()
+    #build_lattice_concentric_random()
     #build_lattice_sprinkle()
 
+    # run the simulation
     run_sim()
 
     # write data to file
