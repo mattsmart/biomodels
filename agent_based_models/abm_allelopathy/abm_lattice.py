@@ -53,7 +53,7 @@ for dirs in dir_list:
 # Constants
 # =================================================
 # simulation dimensions
-n = 1000  # up to 1000 tested as feasible
+n = 100  # up to 1000 tested as feasible
 
 # simulation lattice parameters
 search_radius_bacteria = 1
@@ -503,11 +503,11 @@ def run_sim():
 # =================================================
 def main():
     # choose ICs
-    #build_lattice_random()
+    build_lattice_random()
     #build_lattice_colonies()
     #build_lattice_diag()
     #build_lattice_concentric_random()
-    build_lattice_sprinkle()
+    #build_lattice_sprinkle()
 
     # run the simulation
     run_sim()
