@@ -35,21 +35,19 @@ PLOTTING SPEED
 -could save more time by not storing or plotting empties?
 
 IMPORTANT
--turn time needs to be tied to the time to shoot/kill
+- turn time needs to be tied to the time to shoot/kill -- fix this
+- make donorA and donorB inherit from a general donor class -- this WILL reduce bugs lol
 """
 
 
 # IO
 # =================================================
-runs_folder = "runs\\"  # store timestamped runs here
+runs_folder = "runs" + os.sep  # store timestamped runs here
 current_time = datetime.datetime.now().strftime("%Y-%m-%d %I.%M.%S%p")
-time_folder = current_time + "\\"
+time_folder = current_time + os.sep
 current_run_folder = runs_folder + time_folder
 
 # subfolders in the timestamped run directory:
-#data_folder = current_run_folder + "data\\"
-#plot_lattice_folder = current_run_folder + "plot_lattice\\"
-#plot_data_folder = current_run_folder + "plot_data\\"
 data_folder = os.path.join(current_run_folder, "data")
 plot_lattice_folder = os.path.join(current_run_folder, "plot_lattice")
 plot_data_folder = os.path.join(current_run_folder, "plot_data")
@@ -58,7 +56,6 @@ dir_list = [runs_folder, current_run_folder, data_folder, plot_lattice_folder, p
 for dirs in dir_list:
     if not os.path.exists(dirs):
         os.makedirs(dirs)
-
 
 # Constants
 # =================================================
@@ -95,13 +92,14 @@ debris_decay_time = div_mean_cholera * 2.01
 
 # simulation time settings
 standard_run_time = 1 * 24.0  # typical simulation time in h
-turn_rate = 2.0  # 2.0  # average turns between each division; simulation step size
+turn_rate = 10.0  # 2.0  # average turns between each division; simulation step size
 time_per_turn = min(donor_A_div_mean, donor_B_div_mean) / turn_rate  # currently 20min / turn rate
-plots_period_in_turns = turn_rate  # 1 or 1000 or 2 * turn_rate
+plots_period_in_turns = 10  # 1 or 1000 or 2 * turn_rate
 total_turns = int(ceil(standard_run_time / time_per_turn))
 
 # miscellaneous simulation settings
-video_flag = False  # WARNING: auto video creation requires proper ffmpeg setup and folder permissions and luck
+video_flag = True  # WARNING: auto video creation requires proper ffmpeg setup and folder permissions and luck
+FPS = 6
 
 
 # Classes
@@ -175,7 +173,8 @@ class DonorTypeA(Cell):
         self.time_to_div = np.random.uniform(0.0, self.div_mean)
 
     def start_poison_timer(self):
-        self.time_to_death_by_poison = self.death_by_poison_mean
+        if self.time_to_death_by_poison is None:
+            self.time_to_death_by_poison = self.death_by_poison_mean
 
     def decrement_poison_timer_and_report_death(self):
         death_flag = 0
@@ -528,9 +527,8 @@ def main():
 
     # create video of results
     if video_flag:
-        fps = 15
-        video_path = os.path.join(current_run_folder, "plot_lattice_%dh_%dfps.mp4" % (standard_run_time, fps))
-        make_video.make_video_ffmpeg(plot_lattice_folder, video_path, fps=fps)
+        video_path = os.path.join(current_run_folder, "plot_lattice_%dh_%dfps.mp4" % (standard_run_time, FPS))
+        make_video.make_video_ffmpeg(plot_lattice_folder, video_path, fps=FPS)
 
     print "\nDone!"
     return
