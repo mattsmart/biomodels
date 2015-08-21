@@ -69,15 +69,26 @@ n = 100  # up to 1000 tested as feasible
 search_radius_bacteria = 1
 assert search_radius_bacteria < n / 2
 
-# division timings
+# cholera-specific parameters
 div_mean_cholera = 20.0 / 60.0  # 20 minutes in hours
 div_sd_cholera = 2.5 / 60.0  # 2.5 minutes in hours
-donor_A_div_mean = div_mean_cholera
-donor_A_div_sd = div_sd_cholera
-donor_B_div_mean = div_mean_cholera
-donor_B_div_sd = div_sd_cholera
+death_by_poison_mean_cholera = 10.0 / 60.0  # 10 minutes in hours
 targets_min_cholera = 0
 targets_max_cholera = 5
+
+# donor type A - division and target timings
+donor_A_div_mean = div_mean_cholera
+donor_A_div_sd = div_sd_cholera
+donor_A_targets_min = targets_min_cholera
+donor_A_targets_max = targets_max_cholera
+donor_A_death_by_poison_mean = death_by_poison_mean_cholera
+
+# donor type B - division and target timings
+donor_B_div_mean = div_mean_cholera
+donor_B_div_sd = div_sd_cholera
+donor_B_targets_min = targets_min_cholera
+donor_B_targets_max = targets_max_cholera
+donor_B_death_by_poison_mean = death_by_poison_mean_cholera
 
 # miscellaneous cell settings
 debris_decay_time = div_mean_cholera * 2.01
@@ -145,8 +156,8 @@ class DonorTypeA(Cell):
         Cell.__init__(self, 'D_a', location)
         self.div_mean = donor_A_div_mean
         self.div_sd = donor_A_div_sd
-        self.targets_min = targets_min_cholera
-        self.targets_max = targets_max_cholera
+        self.targets_min = donor_A_targets_min
+        self.targets_max = donor_A_targets_max
         self.time_to_div = None
         if time_to_div_distribution == 'normal':
             self.set_normal_time_to_div()
@@ -154,12 +165,25 @@ class DonorTypeA(Cell):
             self.set_uniform_time_to_div()
         else:
             raise Exception("distribution must be 'normal' or 'uniform'")
+        self.death_by_poison_mean = donor_A_death_by_poison_mean
+        self.time_to_death_by_poison = None
 
     def set_normal_time_to_div(self):
         self.time_to_div = np.random.normal(self.div_mean, self.div_sd)
 
     def set_uniform_time_to_div(self):
         self.time_to_div = np.random.uniform(0.0, self.div_mean)
+
+    def start_poison_timer(self):
+        self.time_to_death_by_poison = self.death_by_poison_mean
+
+    def decrement_poison_timer_and_report_death(self):
+        death_flag = 0
+        if self.time_to_death_by_poison is not None:
+            self.time_to_death_by_poison -= time_per_turn
+            if self.time_to_death_by_poison < 0:
+                death_flag = 1
+        return death_flag
 
 
 class DonorTypeB(Cell):
@@ -167,8 +191,8 @@ class DonorTypeB(Cell):
         Cell.__init__(self, 'D_b', location)
         self.div_mean = donor_B_div_mean
         self.div_sd = donor_B_div_sd
-        self.targets_min = targets_min_cholera
-        self.targets_max = targets_max_cholera
+        self.targets_min = donor_B_targets_min
+        self.targets_max = donor_B_targets_max
         self.time_to_div = None
         if time_to_div_distribution == 'normal':
             self.set_normal_time_to_div()
@@ -176,12 +200,27 @@ class DonorTypeB(Cell):
             self.set_uniform_time_to_div()
         else:
             raise Exception("distribution must be 'normal' or 'uniform'")
+        self.death_by_poison_mean = donor_B_death_by_poison_mean
+        self.time_to_death_by_poison = None
 
     def set_normal_time_to_div(self):
         self.time_to_div = np.random.normal(self.div_mean, self.div_sd)
 
     def set_uniform_time_to_div(self):
         self.time_to_div = np.random.uniform(0.0, self.div_mean)
+
+    def start_poison_timer(self):
+        if self.time_to_death_by_poison is None:
+            self.time_to_death_by_poison = self.death_by_poison_mean
+
+    def decrement_poison_timer_and_report_death(self):
+        death_flag = 0
+        if self.time_to_death_by_poison is not None:
+            self.time_to_death_by_poison -= time_per_turn
+            if self.time_to_death_by_poison < 0:
+                death_flag = 1
+        return death_flag
+
 
 class Debris(Cell):
     def __init__(self, location):
@@ -344,10 +383,7 @@ def shoot(cell, dict_counts):
         assert cell.label in ['D_a', 'D_b']
         if target.label in ['D_a', 'D_b'] and target.label != cell.label:  # target is valid and susceptible
             success = 1
-            lattice[target_loc[0]][target_loc[1]] = Debris(target_loc)
-            #new_cell_locations.append(target_loc)
-            dict_counts['B'] += 1
-            dict_counts[target.label] -= 1
+            target.start_poison_timer()
     return success
 
 
@@ -417,16 +453,23 @@ def run_sim():
 
             # donor behaviour
             elif is_donor_type_a(loc) or is_donor_type_b(loc):
-                # decrement division timer
-                cell.time_to_div -= time_per_turn
-                # flip coin to see if shooting or dividing first
-                coinflip_heads = randint(2)
-                if coinflip_heads:
-                    divide(cell, new_cell_locations, dict_counts)
-                    shoot(cell, dict_counts)
+                # death check for poisoned cells first
+                death_flag = cell.decrement_poison_timer_and_report_death()
+                if death_flag:
+                    lattice[loc[0]][loc[1]] = Debris(loc)
+                    dict_counts['B'] += 1
+                    dict_counts[cell.label] -= 1
                 else:
-                    shoot(cell, dict_counts)
-                    divide(cell, new_cell_locations, dict_counts)
+                    # decrement division timer
+                    cell.time_to_div -= time_per_turn
+                    # flip coin to see if shooting or dividing first
+                    coinflip_heads = randint(2)
+                    if coinflip_heads:
+                        divide(cell, new_cell_locations, dict_counts)
+                        shoot(cell, dict_counts)
+                    else:
+                        shoot(cell, dict_counts)
+                        divide(cell, new_cell_locations, dict_counts)
 
             else:
                 print "WARNING - Cell not D_a or D_b or B"
