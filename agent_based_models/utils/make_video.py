@@ -18,6 +18,8 @@ def copy_and_rename_plots(plot_lattice_dir, output_dir):
     """
     Given a plot_lattice or plot_grid directory, copies it and renames the files in an order that
     ffmpeg.exe likes, e.g. (0001, 0002, 0003, ... , 0010, 0011, ...)
+    Notes:
+        - assumes less than 10000 files are being copied (for ffmpeg simplicity)
     """
     # copy the folder
     try:
@@ -29,13 +31,13 @@ def copy_and_rename_plots(plot_lattice_dir, output_dir):
             raise
     # naturally sort the copied files
     unsorted_files = os.listdir(plot_lattice_dir)
-    assert len(unsorted_files) <= 9999  # assume <= 4 digits later
+    assert len(unsorted_files) <= 99999  # assume <= 5 digits later
     sorted_files = natural_sort(unsorted_files)
     # rename the files accordingly
     basename = "lattice_at_time_"
     filetype = ".png"
     for i, filename in enumerate(sorted_files):
-        num = "%04d" % i
+        num = "%05d" % i
         newname = basename + num + filetype
         os.rename(os.path.join(output_dir, filename), os.path.join(output_dir, newname))
     return
@@ -53,13 +55,14 @@ def make_video_ffmpeg(plot_lattice_dir, output_path, fps=15, ffmpeg_dir=None):
     Notes:
         - assumes ffmpeg has been extracted on your system and added to the path
         - if it's not added to path, point to it (the directory containing ffmpeg bin) using ffmpeg_dir arg
+        - assumes less than 10000 images are being joined (for ffmpeg simplicity)
     """
     # make temp dir
     temp_plot_dir = os.path.join(plot_lattice_dir, os.pardir, "temp")
     copy_and_rename_plots(plot_lattice_dir, temp_plot_dir)
 
     # make video
-    command_line = ["ffmpeg", "-framerate", "%d" % fps, "-i", os.path.join(temp_plot_dir, "lattice_at_time_%04d.png"),
+    command_line = ["ffmpeg", "-framerate", "%d" % fps, "-i", os.path.join(temp_plot_dir, "lattice_at_time_%05d.png"),
                     "-c:v", "libx264", "-r", "%d" % fps, "-pix_fmt", "yuv420p", "%s" % output_path]
     if ffmpeg_dir is not None:
         app_path = os.path.join(ffmpeg_dir, "bin", "ffmpeg.exe")
