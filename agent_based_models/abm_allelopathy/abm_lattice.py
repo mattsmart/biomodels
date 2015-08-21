@@ -81,7 +81,9 @@ donor_B_targets_max = targets_max_cholera
 donor_B_death_by_poison_mean = death_by_poison_mean_cholera
 
 # miscellaneous cell settings
-debris_decay_time = div_mean_cholera * 2.01
+#debris_decay_time = div_mean_cholera * 2.01
+debris_decay_time = div_mean_cholera * 2.0
+debris_decay_sd = 5.0
 
 # simulation time settings
 standard_run_time = 1 * 24.0  # typical simulation time in h
@@ -91,7 +93,7 @@ plots_period_in_turns = 10  # 1 or 1000 or 2 * turn_rate
 total_turns = int(ceil(standard_run_time / time_per_turn))
 
 # miscellaneous simulation settings
-video_flag = True  # WARNING: auto video creation requires proper ffmpeg setup and folder permissions and luck
+video_flag = False  # WARNING: auto video creation requires proper ffmpeg setup and folder permissions and luck
 FPS = 6
 
 
@@ -217,7 +219,8 @@ class DonorTypeB(Cell):
 class Debris(Cell):
     def __init__(self, location):
         Cell.__init__(self, 'B', location)
-        self.time_to_decay = debris_decay_time  # time (in hours) until debris decays
+        #self.time_to_decay = debris_decay_time  # time (in hours) until debris decays
+        self.time_to_decay = np.random.normal(debris_decay_time, debris_decay_sd)
 
 
 # Initiate Cell Lattice and Data Directory
