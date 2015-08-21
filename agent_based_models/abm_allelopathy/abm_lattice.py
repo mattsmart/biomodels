@@ -18,21 +18,14 @@ from utils import make_video
 
 """
 TODO
--remove or augment the maturity module
--ICs that resemble the PDEs
 -convert lattice to np array and ref with tuples instead of separate loc 0 and loc 1 (cleaner, maybe faster)
 -make paths independent of OS (use os.path.join(...))
--ffmpeg dependency fix
 
 SPEED
 -instead of explicit class structure for the states, could just use dicts (should be faster)
 -use location tuples instead of lists (faster assigning)
--faster and better probability modules
 -all to numpy arrays
 -store cell type as well as position for faster referencing?
-
-PLOTTING SPEED
--could save more time by not storing or plotting empties?
 
 IMPORTANT
 - turn time needs to be tied to the time to shoot/kill -- fix this
@@ -60,7 +53,7 @@ for dirs in dir_list:
 # Constants
 # =================================================
 # simulation dimensions
-n = 100  # up to 1000 tested as feasible
+n = 1000  # up to 1000 tested as feasible
 
 # simulation lattice parameters
 search_radius_bacteria = 1
@@ -69,7 +62,7 @@ assert search_radius_bacteria < n / 2
 # cholera-specific parameters
 div_mean_cholera = 20.0 / 60.0  # 20 minutes in hours
 div_sd_cholera = 2.5 / 60.0  # 2.5 minutes in hours
-death_by_poison_mean_cholera = 10.0 / 60.0  # 10 minutes in hours
+death_by_poison_mean_cholera = 5.0 / 60.0  # 5 minutes in hours
 targets_min_cholera = 0
 targets_max_cholera = 5
 
@@ -500,11 +493,11 @@ def run_sim():
 # =================================================
 def main():
     # choose ICs
-    build_lattice_random()
+    #build_lattice_random()
     #build_lattice_colonies()
     #build_lattice_diag()
     #build_lattice_concentric_random()
-    #build_lattice_sprinkle()
+    build_lattice_sprinkle()
 
     # run the simulation
     run_sim()
