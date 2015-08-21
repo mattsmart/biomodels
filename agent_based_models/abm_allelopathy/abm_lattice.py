@@ -92,7 +92,7 @@ debris_decay_sd = 5.0
 standard_run_time = 1 * 24.0  # typical simulation time in h
 turn_rate = 10.0  # 2.0  # average turns between each division; simulation step size
 time_per_turn = min(donor_A_div_mean, donor_B_div_mean) / turn_rate  # currently 20min / turn rate
-plots_period_in_turns = 10  # 1 or 1000 or 2 * turn_rate
+plots_period_in_turns = 5  # 1 or 1000 or 2 * turn_rate
 total_turns = int(ceil(standard_run_time / time_per_turn))
 
 # miscellaneous simulation settings
@@ -503,11 +503,11 @@ def run_sim():
 # =================================================
 def main():
     # choose ICs
-    build_lattice_random()
+    #build_lattice_random()
     #build_lattice_colonies()
     #build_lattice_diag()
     #build_lattice_concentric_random()
-    #build_lattice_sprinkle()
+    build_lattice_sprinkle()
 
     # run the simulation
     run_sim()
