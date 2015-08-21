@@ -74,7 +74,7 @@ def make_video_ffmpeg(plot_lattice_dir, output_path, fps=15, ffmpeg_dir=None):
 
     return
 
-
+"""
 # MESSY CODE FOR QUICK PLOTS
 # =============================================
 desktop_base = "C:\\Games\\Development\\repositories\\biomodels\\agent_based_models\\abm_allelopathy\\runs\\"
@@ -85,3 +85,4 @@ folder_in_runs = "tosend1\\plot_lattice"
 plots = base + folder_in_runs
 make_video_ffmpeg(plots, os.path.join(plots, os.pardir, "out.mp4"), fps=5)
 # =============================================
+"""
