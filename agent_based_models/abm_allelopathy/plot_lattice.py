@@ -131,6 +131,7 @@ def lattice_plotter(lattice, time, n, dict_counts, lattice_plot_dir):
         ax_handle.set_xlim(axis_lims['x'])
         ax_handle.set_ylim(axis_lims['y'])
         ax_handle.add_patch((Rectangle((0, 12.5), 100, 87.5, facecolor="none")))
+        ax_handle.text(46, 102, 't = %.3f h' % time)
     # hide axis
     axis_ticks = range(0, axis_tick_length + 1, 10)
     plt.xticks(axis_ticks)
