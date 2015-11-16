@@ -2,8 +2,8 @@
 % Define Static Concentrations for each graph
 % ==========================
 
-n1_default = 0.1 % in units of M
-n2_default = 10^(-3)*0.1 % in units of molar
+n1_default = 0.1; % in units of M
+n2_default = 10^(-3)*0.1; % in units of molar
 
 np_vals_3A1 = 10^(-6)*[0,0.1,1,10];
 n2_vals_3A2 = 10^(-3)*[0.1,0.5,1.0,5.0];
@@ -24,7 +24,7 @@ n2_vals_various_AMPs = 10^(-3)*[0.1,0.5,1.0,5.0];
 
 % Get AMP plots for various AMPs
 for i = 1:4
-    n1 = n1_default
-    n2 = n2_vals_various_AMPs(i)
-    data = compute_amp(n1,n2)
+    n1 = n1_default;
+    n2 = n2_vals_various_AMPs(i);
+    data = compute_amp(n1,n2);
 end
