@@ -5,4 +5,4 @@ Main Languages: Python and MATLAB
 Contents: 
 - ODEs and PDEs (bacterial conjugation and population growth)
 - agent-based models (bacterial interaction on a grid)
-- meanfield theory thermodynamics (effect of antimicrobial peptides on bacterial membranes)
+- thermodynamic mean-field theory (effect of antimicrobial peptides on bacterial membranes)
