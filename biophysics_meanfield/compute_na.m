@@ -1,4 +1,4 @@
-function OUTPUTS = MATLAB_Na(n2, np)
+function outputs = compute_na(n2, np)
 
 % n2 should be 0.0001, 0.0005, 0.001 (0.1 mM, 0.5 mM, 1mM)
 
@@ -1231,7 +1231,7 @@ function main = main()
     %get_data_no_AMP_no_Mg()
     %data_plot = get_custom_data()
     Q = get_tension_data()
-    OUTPUTS = 1;
+    outputs = 1;
 end
 
 main()

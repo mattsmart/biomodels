@@ -1,4 +1,4 @@
-function OUTPUTS = MATLAB_AMP_old(n1,n2)
+function outputs = compute_amp_old(n1,n2)
 
 % Conversion notes: 
 %   will need to call n1eff(i) with i = 1
@@ -903,7 +903,7 @@ function main = main()
     n1
     n2*1000
     np_array*1000*1000
-    OUTPUTS = 1;
+    outputs = 1;
 end
 
 main()

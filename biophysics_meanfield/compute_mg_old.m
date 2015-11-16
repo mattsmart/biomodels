@@ -1,4 +1,4 @@
-function OUTPUTS = MATLAB_Mg(n1,np)
+function outputs = compute_mg_old(n1,np)
 
 % Conversion notes: 
 %   will need to call n1eff(i) with i = 1
@@ -829,7 +829,7 @@ function main = main()
     %get_data_no_AMP()
     %Q = get_tension_data()
     get_custom_data()
-    OUTPUTS = 1;
+    outputs = 1;
 end
 
 main()
