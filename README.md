@@ -1,7 +1,8 @@
 # biomodels
 Scripts for a variety of modelling projects
+Main Languages: Python and MATLAB 
 
-Modules: 
-- MATLAB ODEs and PDEs
-- PyRosetta scripts and batch files
-- agent based model associated scripts
+Contents: 
+- ODEs and PDEs (bacterial conjugation and population growth)
+- agent-based models (bacterial interaction on a grid)
+- meanfield theory thermodynamics (effect of antimicrobial peptides on bacterial membranes)
