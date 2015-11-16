@@ -1,5 +1,5 @@
 # biomodels
-Scripts for a variety of modelling projects  
+Scripts for a few different modelling projects  
 Main Languages: Python and MATLAB 
 
 Contents: 
