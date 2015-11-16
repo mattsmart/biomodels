@@ -31,12 +31,12 @@ n2_vals_various_AMPs = 10^(-3)*[0.1,0.5,1.0,5.0];
 %{
 for i = 1:5
     n1_test = 0.150; % Molar
-    dataset = MATLAB_AMP(n1_test,n2_vals_test(i));
+    dataset = compute_amp(n1_test,n2_vals_test(i));
 end
 
 for i = 1:5
     n1_test = 0.100; % Molar
-    dataset = MATLAB_AMP(n1_test,n2_vals_test(i));
+    dataset = compute_amp(n1_test,n2_vals_test(i));
 end
 %}
 
@@ -44,21 +44,21 @@ end
 % for i = 2:4
 %     np = 0
 %     n2 = n2_vals_4A1(i)
-%     data = MATLAB_Na(n2,np)
+%     data = compute_na(n2,np)
 % end
 
 % Get Plot 4A2 Data (still need 2 curves)
 % for i = 2:4
 %     n2 = n2_default
 %     np = np_vals_4A2(i)
-%     data = MATLAB_Na(n2,np)
+%     data = compute_na(n2,np)
 % end
 
 % Get Plot 4B1 Data (still need 1 curve)
 % for i = 2:5
 %     n1 = n1_default
 %     np = np_vals_4B1(i)
-%     data = MATLAB_Mg(n1,np)
+%     data = compute_mg(n1,np)
 % end
 
 %{
@@ -111,48 +111,38 @@ TENSION vs [AMP] microM
 
 %}
 
-% January Mg Figures
-
+% Mg Figures
 % Get Plot 4B1 Data (still need "0" amp curve)
 for i = 1:3
     n1 = n1_default
     np = np_vals_paper1(i)
-    %data = MATLAB_Mg(n1,np)
-    %data = MATLAB_Mg_old(n1,np)
+    %data = compute_mg(n1,np)
 end
 for i = 1:2
     n1 = n1_default
     np = np_vals_paper1_extra(i)
-    %data = MATLAB_Mg(n1,np)
-    %data = MATLAB_Mg_old(n1,np)
+    %data = compute_mg(n1,np)
 end
 
 % Get Plot 4B2 Data
 for i = 1:5
     n1 = n1_default
     n2 = n2_vals_4B2(i)
-    %data = MATLAB_AMP(n1,n2)
-    %data = MATLAB_AMP_old(n1,n2)
+    %data = compute_amp(n1,n2)
 end
 
 % Get Plot 4B2 Data (bigger spread)
 for i = 1:2
-    n1 = n1_default
-    n2 = n2_vals_MHL_test(i)
-    %data = MATLAB_AMP(n1,n2)
-    %data = MATLAB_AMP_old(n1,n2)
+    n1 = n1_default;
+    n2 = n2_vals_MHL_test(i);
+    %data = compute_amp(n1,n2);
 end
-
-
-% SUNDAY
 
 
 % Get AMP plots for various AMPs
 for i = 1:4
-    n1 = n1_default
-    n2 = n2_vals_various_AMPs(i)
-    %data = MATLAB_AMP(n1,n2)
-    %data = MATLAB_AMP_old(n1,n2)
-    data = MATLAB_AMP_old_delete(n1,n2)
+    n1 = n1_default;
+    n2 = n2_vals_various_AMPs(i);
+    data = compute_amp(n1,n2);
 end
 

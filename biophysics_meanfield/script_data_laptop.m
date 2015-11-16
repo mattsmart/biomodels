@@ -26,6 +26,5 @@ n2_vals_various_AMPs = 10^(-3)*[0.1,0.5,1.0,5.0];
 for i = 1:4
     n1 = n1_default
     n2 = n2_vals_various_AMPs(i)
-    %data = MATLAB_AMP(n1,n2)
-    data = MATLAB_AMP_old(n1,n2)
+    data = compute_amp(n1,n2)
 end
