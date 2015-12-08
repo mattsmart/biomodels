@@ -509,34 +509,40 @@ res = 0; % OK this one isn't new
 % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 function FreeEnergy = FreeEnergy(i, aa)
+    % repeated variables
     kap = kappa(i);
     delt = Delta(i);
     ion = cond(i, aa, d1);                 % Here "ion" <=> sigma
+    % energy components
     es = delt * pi * lb / kap * (1/aa^2 - ion)^2;
     entr = ion * log(ion*aa^2) + (1/aa^2-ion) * log(1 - ion*aa^2) - ion * mu1b(i, ion*aa^2);
     corr = -delt * lb * ((1/aa^2 - ion)^2 * M1(Q, kap, aa)/2 + ion/d1);
-    res = aa^2*(es + entr + corr);
+    res = aa^2*(es + entr + corr);  % sum components
     FreeEnergy = res;
 end
 
 function FreeEnergy2 = FreeEnergy2(i, aa)
+    % repeated variables
     kap = kappa(i);
     delt = Delta(i);
     ion = cond2(i, aa, d1, d2);                 % Here "ion" <=> Ni, N2 tilted
+    % energy components
     es = delt * pi * lb / kap * (ion(1) + 2*ion(2))^2/aa^2;
     entr = ion(1) * log(ion(1)) + (ion(2)+0.5) * log((ion(2)+0.5)) + (0.5-ion(1)-ion(2)) * log(0.5-ion(1)-ion(2)) - ion(1) * mu1b(i,ion(1)) - (ion(2)+0.5) * mu2b(i,ion(2));
     corr = delt * lb * (-(ion(1)+2*ion(2))^2/aa^2 * M1(Q, kap, aa)/2 + 2*(ion(2)+0.5)*(0.5-ion(1)-ion(2)) * SumC(10, kap, aa) +(- ion(1)*1/d1 - (ion(2)+0.5)*2/d2));
-    res = es + entr + corr;
+    res = es + entr + corr;  % sum components
     FreeEnergy2 = res;
 end
 
 function FreeEnergyp = FreeEnergyp(i, aa) % NEW: Correction terms
+    % repeated variables
     kap = kappa(i);
     delt = Delta(i);
     m1 = M1(Q, kap, aa);
     mp = Mp(Q, kap, aa);
     m1_lattc = M1(Q, kap, lattc);
     mp_lattc = Mp(Q, kap, lattc);
+    % F_LPS components
     ion = condp(i, aa);
     es = delt * pi * lb / kap * (ion(1)+2*ion(2)+Q*ion(3))^2/aa^2;
     entr = (ion(1) * log(ion(1)) + (ion(2)+0.5) * log((ion(2)+0.5)) + ion(3) * log(ion(3)) + (0.5-ion(1)-ion(2)-Q*ion(3)) * log(0.5-ion(1)-ion(2)-Q*ion(3))) + (-ion(1) * mu1b(i,ion(1)) - (ion(2)+0.5) * mu2b(i,ion(2)) - ion(3) * mupb(i,ion(3)));
@@ -544,11 +550,12 @@ function FreeEnergyp = FreeEnergyp(i, aa) % NEW: Correction terms
     corr = delt * lb * ((-0.5*m1*((ion(1)+2*ion(2))^2) + m1*Q*ion(3) - 0.5*(m1 + mp)*(Q*ion(3))*(ion(1)+2*ion(2)+1)-0.5*mp*(Q*ion(3))^2  + 0.5*Q*ion(3)*((mp - m1)-1/delt*aa^2/lattc^2*(mp_lattc - m1_lattc)))/aa^2 + 2*(ion(2)+0.5)*(0.5-ion(1)-ion(2)-Q*ion(3)) * SumC(10, kap, aa) + (-ion(1)/d1 - 2*(ion(2)+0.5)/d2- Q*ion(3)/dp)); 
     mech = (1/4)*kA*(dA*ion(3)/lattc)^2;
     hydro = ion(3)*H;
-    res = es + entr + corr + entr2 + hydro + mech;
+    res = es + entr + corr + entr2 + hydro + mech;  % sum components
     FreeEnergyp = res;
 end  
 
 function FreeEnergymp = FreeEnergymp(i, aa)
+    % repeated variables
     kap = kappa(i);
     delt = Delta(i);
     m1 = M1(Q, kap, aa);
@@ -556,17 +563,18 @@ function FreeEnergymp = FreeEnergymp(i, aa)
     m1_lattc = M1(Q, kap, lattc);
     mp_lattc = Mp(Q, kap, lattc);
     ion = condmp(i, aa);
+    % energy components
     es = delt * pi * lb / kap * (ion(1)+Q*ion(2)-1)^2/aa^2;
 	entr = ion(1) * log(ion(1)) + ion(2) * log(ion(2)) + (1-ion(1)-Q*ion(2)) * log(1-ion(1)-Q*ion(2)) - ion(1) * mu1b(i,ion(1)) - ion(2) * mupb(i,ion(2));
 	entr2 = ((1-Q)/Q) * (1 - Q*ion(2)) * log(1 - Q*ion(2)) -ion(2)*(25/4/pi+1-log(Q))-log(1-Q*ion(2))/Q+(25/4/pi/Q)/(1-Q*ion(2));
 	corr = delt * lb * ((-0.5*m1*(ion(1)-1)^2 + m1*Q*ion(2) - 0.5*(m1 + mp)*(Q*ion(2))*(ion(1))-0.5*mp*(Q*ion(2))^2+ 0.5*Q*ion(2)*((mp-m1)-1/delt*aa^2/lattc^2*(mp_lattc - m1_lattc)))/aa^2  + (-ion(1)/d1 - Q*ion(2)/dp)) ;
     mech = (1/4)*kA*(dA*ion(2)/lattc)^2;
     hydro = ion(2)*H;
-    res = es + entr + corr + entr2 + hydro + mech;
+    res = es + entr + corr + entr2 + hydro + mech;  % sum components
     FreeEnergymp = res;
 end
 
-function FreeEnergy0 = FreeEnergy0(i_, aa)
+function FreeEnergy0 = FreeEnergy0(i, aa)
     es = Delta(i) * lb * 1 / aa^4 * (pi/ kappa(i));
     res = es;
     FreeEnergy0 = res;
@@ -706,7 +714,7 @@ function plot_freep_Na = plot_freep_Na()
     saveas(h, 'na_freep_MHL.jpg')
 end
 
-% Plot #Tension
+% Plot Tension
 % Delta_pi (tension) with monovalent ions, divalent ions, and AMPs  Fig17, LPS_Ma.pdf 
 function plot_tensionp_Na = plot_tensionp_Na()    
     aa = lattc;
