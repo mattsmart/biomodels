@@ -14,9 +14,9 @@ format long
 % ==========================
 
 % For [Na] Varying
-n1 = [0.00001, 0.001, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2];
+n1_array = [0.00001, 0.001, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.11, 0.12, 0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.19, 0.2];
 
-%n1 = [0.150]
+%n1_array = [0.150]
 %n2 = 5*10^(-3); % mg may be 0.1 mM, 0.5 mM, 1mM
 %np = 0.615*10^(-6); % 10 micromolar
 
@@ -75,7 +75,6 @@ vp = 2.5;              % Peptide volume in nm^3 in solution (free)
 eps_sp = 25/(4*pi);    % Peptide shape parameter (from scaled particle theory)
 
 
-
 % ==========================
 % Declaring Functions
 % ==========================
@@ -106,24 +105,17 @@ kbval1_2 = log(Kb(1, d1));
 kbval2 = Kb(2, 0.43);
 
 % (A) Free Na+ in soln
-function n1eff = n1eff(jj)  % Translation Verified
-    ref = n1(jj);
+function n1eff = n1eff(n1_index)  % Translation Verified
+    ref = n1_array(n1_index);
     tmp = 0.6022*ref;
     func = @(x) x/(tmp - x)^2 - kbval1_1;
     x0 = ref*0.01;
     n1eff = ref - fzero(func, x0)/0.6022;
 end
 
-% (B)
-function n1eff2 = n1eff2(jjj)  % Translation BROKEN (this gives NaNs)
-    tmp = 0.6022 * n1eff(jjj);
-    func = @(x) log(x/(1-x)/tmp) - kbval1_2;
-    x0 = 0.01;
-    n1eff2 = fzero(func, x0);
-end
-
 % (C) Free Mg2+ in soln
-function n2eff = n2eff()  % Translation Verified
+function n2eff = n2eff(n2_index)  % Translation Verified
+    % note: n2_index is a dummy variable unless script is compute_mg.m
     tmp = 0.6022*n2;
     func = @(x) x/(tmp - x)^2 - kbval2;
     x0 = n2/2;
@@ -145,19 +137,6 @@ function n1eff = n1eff(jj)   % using this instead of A1 breaks things
     %n1eff = ref - a/0.6022;
 end
 
-% (B2)
-function n1eff2 = n1eff2(jjj)     %using these instead of B,C doesnt change things up to plot2()
-    tmp = 0.6022 * n1eff(jjj);
-    function F = nle(x)
-        F = log(x*tmp/(1-x)) - kbval1_2;
-    end
-    x0 = 0.01;
-    n1eff2 = fsolve(@nle, x0);
-    %ob = fzero(func, x0);
-    %a = ob;
-    %n1eff2 = a;
-end
-
 % (C2) Free Mg2+ in soln
 function n2eff = n2eff() 
     tmp = 0.6022*n2;
@@ -174,7 +153,7 @@ end
 
 % ~~~~~~~~~~~~~~~~~~~~~~~
 % Can declare as global (may need to change)
-n2eff_val = n2eff();
+n2eff_val = n2eff(1);
 % ~~~~~~~~~~~~~~~~~~~~~~~
 
 % (3) Debye Length
@@ -393,8 +372,8 @@ function cond2 = cond2(i,aa,d1,d2)
         F = [mu1b(i,x(1)) - mu1cc(i, aa, x(1), x(2), d1);
             mu2b(i,x(2)) - mu2cc(i, aa, x(1), x(2), d2)];
     end
-    x0 = [0.2*sqrt( n1(i) ); 
-        0.2*sqrt( n1(i) )];
+    x0 = [0.2*sqrt( n1_array(i) ); 
+        0.2*sqrt( n1_array(i) )];
     ob = fsolve(@nle,x0);
     a = ob(1);
     b = ob(2);
@@ -431,9 +410,9 @@ function condp = condp(i,aa)  % Translation Verified
         %    mu2b(i, x(2)) - mu2ccc(i, aa, x(1), x(2), x(3));
         %    mupb(i, x(3)) - mupccc(i, aa, x(1), x(2), x(3))];
     end
-    x0 = [n1(i)^0.5; 
-         -0.01-n1(i)^0.5;
-         0.01-0*0.3*n1(i)^0.5]; % LAM has 0*0.3*n1(i)^0.5].. why the 0* ?
+    x0 = [n1_array(i)^0.5; 
+         -0.01-n1_array(i)^0.5;
+         0.01-0*0.3*n1_array(i)^0.5]; % LAM has 0*0.3*n1_array(i)^0.5].. why the 0* ?
     ob = fsolve(@nle,x0);
     a = ob(1);
     b = ob(2);
@@ -479,8 +458,8 @@ function condmp = condmp(i,aa)
         F = [mu1b(i,x(1)) - mu1ccm(i, aa, x(1), x(2));
             mupb(i,x(2)) - mupccm(i, aa, x(1), x(2))];
     end
-    x0 = [10*n1(i)^2;
-         0.25 - 6*n1(i)^2];
+    x0 = [10*n1_array(i)^2;
+         0.25 - 6*n1_array(i)^2];
     ob = fsolve(@nle,x0);
     a = ob(1);
     b = ob(2);
@@ -593,40 +572,6 @@ function FreeEnergy0 = FreeEnergy0(i_, aa)
     FreeEnergy0 = res;
 end
 
-
-% (12) The lipid energy expressions
-% COMMENTS: what are these functions?
-
-% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-% Some new global vars, as Lam had it
-ah = 0;
-ai = 0;
-b0 = 0;
-b = 0; % this isn't new?
-elastic = 0;
-res = 0; % also not new
-% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-function LipidEnergy = LipidEnergy(area, aa, i, curv, delta)
-    ah = area * (1 + curv * (delta + lh));
-    ai = area * (1 + curv * delta );
-    b0 = nu / area;
-    b = b0 * (1 + curv * (b0/2 - delta) + curv^2 / 2 * (b0^2 - 3 * b0 * delta + 2 * delta^2));
-    elastic = lipidB / ah + lipidG * ai + lipidT * b^2;
-    res = elastic + FreeEnergy(i, aa)*area;
-    LipidEnergy = res;
-end
-
-function LipidEnergy2 = LipidEnergy2(area, aa, i, curv, delta)
-    ah = area * (1 + curv * (delta + lh));
-    ai = area * (1 + curv * delta );
-    b0 = nu / area;
-    b = b0 * (1 + curv * (b0/2 - delta) + curv^2 / 2 * (b0^2 - 3 * b0 * delta + 2 * delta^2));
-    elastic = lipidB / ah + lipidG * ai + lipidT * b^2;
-    res = elastic + FreeEnergy2(i, aa)*area
-    LipidEnergy2 = res;
-end
-
 % (13) Tension expressions
 % COMMENTS: how to modify when a itself is a function, a(Np)
 function Tension = Tension(i, a0)
@@ -690,13 +635,13 @@ functions: input (i,aa)
 
 % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % Some reused plotting constants/lists
-len = length(n1);
+len = length(n1_array);
 % ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 % Plot Fractional Site Ocuupancy
 % Plots the fractional site occupancy based on [Na] for N1, N2, QNp
 function plot_frac_site_Na = plot_frac_site_Na()
-    xlist = n1;
+    xlist = n1_array;
     ylist_1 = zeros(1,len);
     ylist_2 = zeros(1,len);
     ylist_p = zeros(1,len);
@@ -708,7 +653,7 @@ function plot_frac_site_Na = plot_frac_site_Na()
     end
     h = figure
     plot(xlist,ylist_1,':bs',xlist,ylist_2,':ks',xlist,ylist_p,':rs')
-    xmax = n1(len) + n1(len)/len;
+    xmax = n1_array(len) + n1_array(len)/len;
     axis([-0.001,xmax,-0.01,1.01]) %xmin xmax ymin ymax
     title(['Fractional Site Occupancy vs [Na^{+}]; [Mg^{2+}] =  ', num2str(n2), ' M, [AMP] = ', num2str(np), ' M'])
     xlabel('[Na^{+}] (M)')
@@ -720,7 +665,7 @@ end
 % Plot Fractional Charge Ocuupancy
 % Plots the fractional CHARGE occupancy based on [Na] for N1, N2, QNp
 function plot_frac_charge_Na = plot_frac_charge_Na()
-    xlist = n1;
+    xlist = n1_array;
     ylist_1 = zeros(1,len);
     ylist_2 = zeros(1,len);
     ylist_p = zeros(1,len);
@@ -732,7 +677,7 @@ function plot_frac_charge_Na = plot_frac_charge_Na()
     end
     h = figure
     plot(xlist,ylist_1,':bs',xlist,ylist_2,':ks',xlist,ylist_p,':rs')
-    xmax = n1(len) + n1(len)/len;
+    xmax = n1_array(len) + n1_array(len)/len;
     axis([-0.001,xmax,-0.01,1.01]) %xmin xmax ymin ymax
     title(['Fractional Charge Occupancy vs [Na^{+}]; [Mg^{2+}] =  ', num2str(n2), ' M, [AMP] = ', num2str(np), ' M'])
     xlabel('[Na^{+}] (M)')
@@ -745,7 +690,7 @@ end
 % Free energy to understand
 function plot_freep_Na = plot_freep_Na()    
     aa = lattc;
-    xlist = n1;
+    xlist = n1_array;
     len_mod = length(xlist);
     ylist_free_p = zeros(1,len);
     for i = 1:len
@@ -765,7 +710,7 @@ end
 % Delta_pi (tension) with monovalent ions, divalent ions, and AMPs  Fig17, LPS_Ma.pdf 
 function plot_tensionp_Na = plot_tensionp_Na()    
     aa = lattc;
-    xlist = n1;
+    xlist = n1_array;
     ylist_tensionp = zeros(1,len);
     for i = 1:len
         ylist_tensionp(i) = Tensionp(i,lattc);
@@ -783,62 +728,25 @@ end
 % Plot #2
 % Lateral Pressure vs [Na]
 function plot2 = plot2()
-    xlist = n1;
+    xlist = n1_array;
     ylist = zeros(1,len);
     for i = 1:len
         ylist(i) = Tension(i,lattc);
     end
     figure
     plot(xlist,ylist,':rs')
-    xmax = n1(len) + n1(len)/len;
+    xmax = n1_array(len) + n1_array(len)/len;
     %axis([-0.001,xmax,-2,2]) %xmin xmax ymin ymax
     title(['Lateral Pressure vs [Na^{+}]; [Mg^{2+}] =  ', num2str(n2), ' M, [AMP] = ', num2str(np), ' M'])
     xlabel('[Na^{+}] (M)')
     ylabel('Lateral Pressure (mN)')
 end
 
-% Plot #3
-% "This plots N1,N2,Np, -sigmareff/sigma0 for a given concentration"
-% "Comparable to Fig15, LPS_Ma.pdf (Not sure what is [Mg2+] in that plot"
-%     {Table[{n1[[i]],sigmaprp[i,lattc]},{i,1,pts}], 
-%     Table[{n1[[i]],sigmapr1[i,lattc]},{i,1,pts}] , 
-%     Table[{n1[[i]],sigmapr2[i,lattc]},{i,1,pts}] , 
-%     Table[{n1[[i]],negsigmapreff[i,lattc]},{i,1,pts}]} , 
-%     PlotRange\[Rule]{{0,0.21},{0,2.2}}, 
-%     PlotLegends->{"\!\(\*SubscriptBox[\(sigma\), \(p\)]\)/\!\(\*SubscriptBox[\(sigma\), \(0\)]\)", "\!\(\*SubscriptBox[\(sigma\), \(1\)]\)/\!\(\*SubscriptBox[\(sigma\), \(0\)]\)", "\!\(\*SubscriptBox[\(sigma\), \(2\)]\)/\!\(\*SubscriptBox[\(sigma\), \(0\)]\)", "-\!\(\*SubscriptBox[\(sigma\), \(eff\)]\)/\!\(\*SubscriptBox[\(sigma\), \(0\)]\)"},
-%     AxesLabel->{"[\!\(\*SuperscriptBox[\(Na\), \(+\)]\)](M)","sigma/\!\(\*SubscriptBox[\(sigma\), \(0\)]\)"}, 
-%     PlotLabel-> "\!\(\*SubscriptBox[\(sigma\), \(i\)]\)/\!\(\*SubscriptBox[\(sigma\), \(0\)]\) and -\!\(\*SubscriptBox[\(sigma\), \(eff\)]\)/\!\(\*SubscriptBox[\(sigma\), \(0\)]\) vs [\!\(\*SuperscriptBox[\(Na\), \(+\)]\)], [\!\(\*SuperscriptBox[\(Mg\), \(\(2\)\(+\)\)]\)]=1mM, [AMP]=1\[Micro]M, new MF Correction"]*)
-function plot3 = plot3()
-    xlist = n1;
-    ylist_1 = zeros(1,len);
-    ylist_2 = zeros(1,len);
-    ylist_p = zeros(1,len);
-    ylist_negsigmapreff = zeros(1,len);
-    for i = 1:len
-        condp_tmp = condp(i,lattc);
-        ylist_1(i) = condp_tmp(1); % from sigmapr1(i,lattc)
-        ylist_2(i) = 0.5 + condp_tmp(2); % from sigmapr2(i,lattc)
-        ylist_p(i) = condp_tmp(3); % from sigmaprp(i,lattc), no Q mult as per lam plot calls above
-        ylist_negsigmapreff(i) = condp_tmp(1) + 2*condp_tmp(2) + Q*condp_tmp(3); % from negsigmapreff(i, lattc)
-    end
-    figure
-    plot(xlist,ylist_1,':bs',xlist,ylist_2,':ks',xlist,ylist_p,':rs',xlist,ylist_negsigmapreff,':gs')
-    %xmax = n1(len) + n1(len)/len;
-    %axis([-0.001,xmax,0,2.2]) %xmin xmax ymin ymax
-    title(['N_{x} / N_{0} and -\sigma_{eff} / \sigma_{0} vs [Na^{+}]']); % [Mg^{2+}] =  ', num2str(n2), ' M, [AMP] = ', num2str(np), ' M']);
-    xlabel('[Na^{+}] (M)');
-    ylabel('N_{x} / \N_{0}');
-    legend('N_{1} / N_{0} (Na^{+})','N_{2} / N_{0} (Mg^{2+})','N_{p} / N_{0} (AMP)','N_{eff} / N_{0} (???)','Location','northeast');
-end
-
 % Plot #4
 % plot for sigmaeffp
-%   ListPlot[Table[{n1[[i]],sigmaeffp[i,0.8]}, {i,1,pts}],
-%   AxesLabel->{"[\!\(\*SuperscriptBox[\(Na\), \(+\)]\)](M)","sigmaeff(\!\(\*SuperscriptBox[\(nm\), \(-2\)]\))"}, 
-%   PlotLabel->"sigmaeff vs [\!\(\*SuperscriptBox[\(Na\), \(+\)]\)], [\!\(\*SuperscriptBox[\(MG\), \(\(2\)\(+\)\)]\)]=1mM,[P]=10\[Micro]M"];
 function plot4 = plot4()
     aa = 0.8;
-    xlist = n1;
+    xlist = n1_array;
     ylist_sigmaeffp = zeros(1,len);
     for i = 1:len
         condp_tmp = condp(i,aa);
@@ -852,14 +760,8 @@ function plot4 = plot4()
 end
 
 % Plot #5
-%   {Table[{n1[[i]],sigmampr1[i,lattc]},{i,1,pts}], 
-%   Table[{n1[[i]],Q*sigmamprp[i,lattc]},{i,1,pts}]} , 
-%   PlotRange->{{0,0.21},{0,1.1}}, 
-%   PlotLegends->{"\!\(\*SubscriptBox[\(sigma\), \(1\)]\)/\!\(\*SubscriptBox[\(sigma\), \(0\)]\)", "\!\(\*SubscriptBox[\(sigma\), \(p\)]\)/\!\(\*SubscriptBox[\(sigma\), \(0\)]\)"},
-%   AxesLabel->{"[\!\(\*SuperscriptBox[\(Na\), \(+\)]\)](M)","sigma/\!\(\*SubscriptBox[\(sigma\), \(0\)]\)"}, 
-%   PlotLabel-> "Site Occupancy vs [\!\(\*SuperscriptBox[\(Na\), \(+\)]\)], [AMP]=1\[Micro]M, Revised"]*)
 function plot5 = plot5()
-    xlist = n1;
+    xlist = n1_array;
     ylist_m1 = zeros(1,len);
     ylist_mp = zeros(1,len);
     for i = 1:len
@@ -877,16 +779,10 @@ function plot5 = plot5()
 end
 
 % Plot #6
-% Fig11, LPS_Ma.pdf         (*This plots N1 with or without Mg ions*)      
-%   {Table[{n1[[i]],sigma1r1[i,lattc]},{i,1,pts}], 
-%   Table[{n1[[i]],sigma2r1[i,lattc]},{i,1,pts}]} , 
-%   PlotRange->{{0,0.2},{0,1}}, 
-%   PlotLegends->{"[\!\(\*SuperscriptBox[\(Mg\), \(\(2\)\(+\)\)]\)]=0","[\!\(\*SuperscriptBox[\(Mg\), \(\(2\)\(+\)\)]\)]=1\[Micro]M" },
-%   AxesLabel->{"[\!\(\*SuperscriptBox[\(Na\), \(+\)]\)](M)","sigma/\!\(\*SubscriptBox[\(sigma\), \(0\)]\)"}, 
-%   PlotLabel-> HoldForm["\!\(\*SubscriptBox[\(sigma\), \(1\)]\)/\!\(\*SubscriptBox[\(sigma\), \(0\)]\) vs [\!\(\*SuperscriptBox[\(Na\), \(+\)]\)], [\!\(\*SuperscriptBox[\(Mg\), \(\(2\)\(+\)\)]\)]=0 and 1\[Micro]M ,a="lattc "nm"]]*)
+% Fig11, LPS_Ma.pdf         (*This plots N1 with or without Mg ions*)
 function plot6 = plot6()
     aa = lattc;
-    xlist = n1;
+    xlist = n1_array;
     ylist_1r1 = zeros(1,len);
     ylist_2r1 = zeros(1,len);
     for i = 1:len
@@ -906,16 +802,9 @@ end
 
 % Plot #7
 % Fig11, LPS_Ma.pdf         (*This plots N1,N2, -sigmareff/sigma0 for a given concentration*)     
-%   {Table[{n1[[i]],negsigma2reff[i,lattc]},{i,1,pts}], 
-%   Table[{n1[[i]],sigma2r1[i,lattc]},{i,1,pts}] , 
-%   Table[{n1[[i]],sigma2r2[i,lattc]},{i,1,pts}]} , 
-%   PlotRange->{{0,0.21},{-0.5,1}}, 
-%   PlotLegends->{"-\!\(\*SubscriptBox[\(sigma\), \(eff\)]\)/\!\(\*SubscriptBox[\(sigma\), \(0\)]\)", "\!\(\*SubscriptBox[\(sigma\), \(1\)]\)/\!\(\*SubscriptBox[\(sigma\), \(0\)]\)", "\!\(\*SubscriptBox[\(sigma\), \(2\)]\)/\!\(\*SubscriptBox[\(sigma\), \(0\)]\)"},
-%   AxesLabel->{"[\!\(\*SuperscriptBox[\(Na\), \(+\)]\)](M)","sigma/\!\(\*SubscriptBox[\(sigma\), \(0\)]\)"}, 
-%   PlotLabel-> "\!\(\*SubscriptBox[\(sigma\), \(i\)]\)/\!\(\*SubscriptBox[\(sigma\), \(0\)]\) and -\!\(\*SubscriptBox[\(sigma\), \(eff\)]\)/\!\(\*SubscriptBox[\(sigma\), \(0\)]\) vs [\!\(\*SuperscriptBox[\(Na\), \(+\)]\)], [\!\(\*SuperscriptBox[\(Mg\), \(\(2\)\(+\)\)]\)]=1mM, Revised Script"]*)
 function plot7 = plot7()
     aa = lattc;
-    xlist = n1;
+    xlist = n1_array;
     ylist_negsigma2reff = zeros(1,len);
     ylist_2r1 = zeros(1,len);
     ylist_2r2 = zeros(1,len);
@@ -936,12 +825,9 @@ end
 
 % Plot #8
 % plots sigma1eff
-%    Table[{n1[[i]],sigma1eff[i,0.8]}, {i,1,pts}], 
-%    AxesLabel->{"[Na^+](M)","sigmaeff(nm^-2)"}, 
-%    PlotLabel->"sigmaeff for only monvalent counterions, "]
 function plot8 = plot8()
     aa = 0.8;
-    xlist = n1;
+    xlist = n1_array;
     ylist_1eff = zeros(1,len);
     for i = 1:len
         cond_tmp = cond(i, aa, d1);
@@ -957,14 +843,9 @@ end
 
 % Plot #9
 % plots sigma1r1
-%   {Table[{n1[[i]],sigma1r1[i,lattc]}, {i,1,pts}]}, 
-%   PlotRange->{{0,0.2},{-0.5,1}}, 
-%   PlotLegends->{"\!\(\*SubscriptBox[\(sigma\), \(1\)]\)/\!\(\*SubscriptBox[\(sigma\), \(0\)]\)"}, 
-%   AxesLabel->{"[\!\(\*SuperscriptBox[\(Na\), \(+\)]\)](M)","sigma/\!\(\*SubscriptBox[\(sigma\), \(0\)]\)"}, 
-%   PlotLabel-> HoldForm["N1 vs [\!\(\*SuperscriptBox[\(Na\), \(+\)]\)], [\!\(\*SuperscriptBox[\(Mg\), \(\(2\)\(+\)\)]\)]=0"]]*)
 function plot9 = plot9()
     aa = lattc;
-    xlist = n1;
+    xlist = n1_array;
     ylist_1r1 = zeros(1,len);
     for i = 1:len
         cond_tmp = cond(i, aa, d1);
@@ -980,15 +861,9 @@ end
 
 % Plot #10
 % plots 
-%   {Table[{n1[[i]],-sigma1reff[i,lattc]}, {i,1,pts}], 
-%   Table[{n1[[i]],sigma1r1[i,lattc]}, {i,1,pts}]}, 
-%   PlotRange->{{0,0.2},{-0.5,1}}, 
-%   PlotLegends->{"-\!\(\*SubscriptBox[\(sigma\), \(eff\)]\)/\!\(\*SubscriptBox[\(sigma\), \(0\)]\)", "\!\(\*SubscriptBox[\(sigma\), \(1\)]\)/\!\(\*SubscriptBox[\(sigma\), \(0\)]\)"}, 
-%   AxesLabel->{"[\!\(\*SuperscriptBox[\(Na\), \(+\)]\)](M)","sigma/\!\(\*SubscriptBox[\(sigma\), \(0\)]\)"}, 
-%   PlotLabel-> HoldForm["\!\(\*SubscriptBox[\(sigma\), \(i\)]\)/\!\(\*SubscriptBox[\(sigma\), \(0\)]\) and -\!\(\*SubscriptBox[\(sigma\), \(eff\)]\)/\!\(\*SubscriptBox[\(sigma\), \(0\)]\) vs [\!\(\*SuperscriptBox[\(Na\), \(+\)]\)], [\!\(\*SuperscriptBox[\(Mg\), \(\(2\)\(+\)\)]\)]=0 ,a="a "nm"]];*)
 function plot10 = plot10()
     aa = lattc;
-    xlist = n1;
+    xlist = n1_array;
     ylist_1reff = zeros(1,len);
     ylist_1r1 = zeros(1,len);
     for i = 1:len
@@ -1007,13 +882,9 @@ end
 
 % Plot #11
 % Delta_pi (tension) with only monovalent and divalent ions         (*Fig12, LPS_Ma.pdf*) 
-%   [Table[{n1[[i]],Tension2[i,lattc]},{i,1,pts}], 
-%   PlotRange->{{0,0.21},{-3,3}}, 
-%   AxesLabel->{"[\!\(\*SuperscriptBox[\(Na\), \(+\)]\)](M)","\[CapitalDelta]\[pi] (Subscript[k, B]T/nm^2)"}, 
-%   PlotLabel->" \[CapitalDelta]\[pi] vs [\!\(\*SuperscriptBox[\(Na\), \(+\)]\)], [\!\(\*SuperscriptBox[\(Mg\), \(\(2\)\(+\)\)]\)]=10mM, Revised"]*)
 function plot11 = plot11()
     aa = lattc;
-    xlist = n1;
+    xlist = n1_array;
     ylist_tension2 = zeros(1,len);
     for i = 1:len
         ylist_tension2(i) = Tension2(i,lattc);
@@ -1028,15 +899,9 @@ end
 
 % Plot #12
 % Delta_pi (tension) with only monovalent and divalent ions         (*Fig12, LPS_Ma.pdf*) 
-%   [{Table[{n1[[i]],Tension2[i,lattc]},{i,1,pts}],
-%   Table[{n1[[i]],Tension[i,lattc]},{i,1,pts}]}, 
-%   PlotRange\[Rule]{{0,0.21},{-3,3}}, 
-%   AxesLabel->{"[\!\(\*SuperscriptBox[\(Na\), \(+\)]\)](M)","\[CapitalDelta]\[pi] (\!\(\*SubscriptBox[\(k\), \(B\)]\)T/\!\(\*SuperscriptBox[\(nm\), \(2\)]\))"}, 
-%   PlotLegends->{"[\!\(\*SuperscriptBox[\(Mg\), \(\(2\)\(+\)\)]\)]=1\[Micro]M","[\!\(\*SuperscriptBox[\(Mg\), \(\(2\)\(+\)\)]\)]=0"},  
-%   PlotLabel->" \[CapitalDelta]\[pi] vs [\!\(\*SuperscriptBox[\(Na\), \(+\)]\)], [\!\(\*SuperscriptBox[\(Mg\), \(\(2\)\(+\)\)]\)]=1\[Micro]M ,a=0.8nm"]*)
 function plot12 = plot12()
     aa = lattc;
-    xlist = n1;
+    xlist = n1_array;
     ylist_tension2 = zeros(1,len);
     ylist_tension = zeros(1,len);
     for i = 1:len
@@ -1056,7 +921,7 @@ end
 % Delta_pi (tension) with monovalent ions, divalent ions, and AMPs  Fig17, LPS_Ma.pdf 
 function plot13c = plot13c()    
     aa = lattc;
-    xlist = 1000*n1(1:17);
+    xlist = 1000*n1_array(1:17);
     len_mod = length(xlist);
     ylist_tensionp = zeros(1,len_mod);
     for i = 1:len_mod
@@ -1073,15 +938,9 @@ end
 
 % Plot #14
 % Delta_pi (tension) with monovalent ions, divalent ions, and with or without AMPs*)  (*Fig17, LPS_Ma.pdf*) 
-%   [{Table[{n1[[i]],Tensionp[i,lattc]},{i,1,pts}],
-%   Table[{n1[[i]],Tension2[i,lattc]},{i,1,pts}]}, 
-%   PlotRange->{{0,0.2},{-2,2}}, 
-%   AxesLabel->{"[\!\(\*SuperscriptBox[\(Na\), \(+\)]\)](M)","\[CapitalDelta]\[pi] (\!\(\*SubscriptBox[\(k\), \(B\)]\)T/\!\(\*SuperscriptBox[\(nm\), \(2\)]\))"}, 
-%   PlotLegends->{"[\!\(\*SuperscriptBox[\(Mg\), \(\(2\)\(+\)\)]\)]=1mM","[\!\(\*SuperscriptBox[\(Mg\), \(\(2\)\(+\)\)]\)]=0"},  
-%   PlotLabel->" \[CapitalDelta]\[pi] vs [\!\(\*SuperscriptBox[\(Na\), \(+\)]\)], [\!\(\*SuperscriptBox[\(Mg\), \(\(2\)\(+\)\)]\)]=1mM [AMP]=0 or 1\[Micro]M, new MF Correction"]*)
 function plot14 = plot14()
     aa = lattc;
-    xlist = n1;
+    xlist = n1_array;
     ylist_tensionp = zeros(1,len);
     ylist_tension2 = zeros(1,len);
     for i = 1:len
@@ -1099,13 +958,9 @@ end
 
 % Plot #15
 % Delta_pi (tension) with monovalent ions and AMPs only*)
-%   [Table[{n1[[i]],Tensionm[i,lattc]},{i,1,pts}], 
-%   PlotRange->{{0,0.21},{-2,2}}, 
-%   AxesLabel->{"[\!\(\*SuperscriptBox[\(Na\), \(+\)]\)](M)","\[CapitalDelta]\[pi] (\!\(\*SubscriptBox[\(k\), \(B\)]\)T/\!\(\*SuperscriptBox[\(nm\), \(2\)]\))"}, 
-%   PlotLabel->" \[CapitalDelta]\[pi] vs [\!\(\*SuperscriptBox[\(Na\), \(+\)]\)], [AMP]=10nM, Revised"]*)
 function plot15 = plot15()    
     aa = lattc;
-    xlist = n1;
+    xlist = n1_array;
     ylist_tensionm = zeros(1,len);
     for i = 1:len
         ylist_tensionm(i) = Tensionm(i,lattc);
@@ -1125,7 +980,7 @@ end
 % ==========================
 
 function get_custom_data = get_custom_data()
-    xlist = n1;
+    xlist = n1_array;
     ylist_1 = zeros(1,len);
     ylist_2 = zeros(1,len);
     ylist_p = zeros(1,len);
@@ -1140,7 +995,7 @@ function get_custom_data = get_custom_data()
         ylist_tensionp(i) = Tensionp(i,lattc);
     end
     ylist_22 = 2*ylist_2; % reps frac charge occ for Mg
-    M = real([n1', ylist_1', ylist_2', ylist_22', ylist_p', ylist_free_p', ylist_tensionp'])
+    M = real([n1_array', ylist_1', ylist_2', ylist_22', ylist_p', ylist_free_p', ylist_tensionp'])
     filename = sprintf('data\\na_custom_mg_%1.1f_mM_amp_%1.1f_muM_MHL.txt', 1000*n2, 1e6*np);
     fid = fopen(filename, 'w');
     fprintf(fid, '[Na],N_1 / N_0,N_2 / N_0,2*N_2 / N_0,Q*N_p / N_0,Free Energy,Tension\n');
@@ -1151,12 +1006,12 @@ function get_custom_data = get_custom_data()
 end
 
 function get_data_no_AMP = get_data_no_AMP()
-    xlist = n1;
+    xlist = n1_array;
     ylist_tension2 = zeros(1,len);
     for i = 1:len
         ylist_tension2(i) = Tension2(i,lattc);
     end
-    M = real([n1', ylist_tension2'])
+    M = real([n1_array', ylist_tension2'])
     filename = sprintf('data\\na_custom_mg_%1.1f_mM_amp_ZERO_muM_MHL.txt', 1000*n2);
     fid = fopen(filename, 'w');
     fprintf(fid, '[Na],Tension\n');
@@ -1166,12 +1021,12 @@ function get_data_no_AMP = get_data_no_AMP()
 end
 
 function get_data_no_AMP_no_Mg = get_data_no_AMP_no_Mg()
-    xlist = n1;
+    xlist = n1_array;
     ylist_tension = zeros(1,len);
     for i = 1:len
         ylist_tension(i) = Tension(i,lattc);
     end
-    M = real([n1', ylist_tension'])
+    M = real([n1_array', ylist_tension'])
     filename = sprintf('data\\na_custom_mg_ZERO_mM_amp_ZERO_muM_MHL.txt');
     fid = fopen(filename, 'w');
     fprintf(fid, '[Na],Tension\n');
@@ -1181,7 +1036,7 @@ function get_data_no_AMP_no_Mg = get_data_no_AMP_no_Mg()
 end
 
 function get_site_free_tension_Na = get_site_free_tension_Na()
-    xlist = n1;
+    xlist = n1_array;
     ylist_1 = zeros(1,len);
     ylist_2 = zeros(1,len);
     ylist_p = zeros(1,len);
@@ -1196,7 +1051,7 @@ function get_site_free_tension_Na = get_site_free_tension_Na()
         ylist_tensionp(i) = Tensionp(i,lattc);
     end
     ylist_22 = 2*ylist_2; % reps frac charge occ for Mg
-    M = real([n1', ylist_1', ylist_2', ylist_22', ylist_p', ylist_free_p', ylist_tensionp'])
+    M = real([n1_array', ylist_1', ylist_2', ylist_22', ylist_p', ylist_free_p', ylist_tensionp'])
     filename = 'data\\na_data.txt';
     fid = fopen(filename, 'w');
     fprintf(fid, '[Na],N_1 / N_0,N_2 / N_0,2*N_2 / N_0,Q*N_p / N_0,Free Energy,Tension\n');
@@ -1214,7 +1069,7 @@ function get_tension_data = get_tension_data()
         ylist_tensionmech(i) = TensionMech(i,lattc)*conversion_factor;
         ylist_tensionelec(i) = Tensionp(i,lattc)*conversion_factor
     end
-    M = real([n1', ylist_tensionmech', ylist_tensionelec'])
+    M = real([n1_array', ylist_tensionmech', ylist_tensionelec'])
     get_tension_data = M;
 end
 
@@ -1224,19 +1079,17 @@ end
 
 function main = main()
     %plot_frac_site_Na()
-    %plot_frac_charge_Na()
+    plot_frac_charge_Na()
     %plot_freep_Na()
     %plot_tensionp_Na()
     %get_data_no_AMP()
     %get_data_no_AMP_no_Mg()
     %data_plot = get_custom_data()
-    Q = get_tension_data()
-    outputs = 1;
+    %Q = get_tension_data()
+    outputs = get_custom_data;
 end
 
 main()
-%OUTPUTS = get_data_no_AMP();
-%OUTPUTS = get_data_no_AMP_no_Mg();
 
 end
 

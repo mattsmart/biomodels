@@ -130,12 +130,8 @@ kbval1_1 = Kb(1, 0.34);
 kbval2 = Kb(2, 0.43);
 
 % (A) Free Na+ in soln
-%{
-n1eff := Module[{ob, a, res=0},                         (*Free Na+ in soln *)
-					  ob = FindRoot[x/(0.6022*n1-x)^2 == Kb[1, 0.34], {x, n1*0.01}];      
-					  a = x /. ob; res = n1-a/0.6022];
-%}
-function n1eff = n1eff(jj)  % Translation Verified
+function n1eff = n1eff(n1_index)  % Translation Verified
+    % note: n1_index is a dummy variable unless script is compute_na.m
     ref = n1;
     tmp = 0.6022*ref;
     func = @(x) x/(tmp - x)^2 - kbval1_1;
@@ -144,22 +140,15 @@ function n1eff = n1eff(jj)  % Translation Verified
 end
 
 % (C) Free Mg2+ in soln
-%{
-n2eff[jjjj_] := Module[{ob, a, res=0},                                  (*Free Mg+ in soln *)
-					  ob = FindRoot[x/(0.6022*n2[[jjjj]] - x)^2 == Kb[2, 0.43], {x, n2[[jjjj]] *0.01}];     (*1M = 0.6022 nm^-3*)
-					  a = x /. ob; res = n2[[jjjj]] - a/0.6022];
-%}
-function n2eff = n2eff(jj)  % Translation Verified
-    tmp = 0.6022*n2_array(jj);
+function n2eff = n2eff(n2_index)  % Translation Verified
+    tmp = 0.6022*n2_array(n2_index);
     func = @(x) x/(tmp - x)^2 - kbval2;
-    x0 = n2_array(jj)*0.01; % Na script had n2/2
-    n2eff = n2_array(jj) - fzero(func, x0)/0.6022;
+    x0 = n2_array(n2_index)*0.01; % Na script had n2/2
+    n2eff = n2_array(n2_index) - fzero(func, x0)/0.6022;
 end
 
 % ~~~~~~~~~~~~~~~~~~~~~~~
-% Can declare as global (may need to change)
-%n2eff_val = n2eff();
-% for the mg script it would be 
+% declare these as globals using dummy variable 
 n1eff_mg = n1eff(1);
 % ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -605,39 +594,6 @@ function FreeEnergy0 = FreeEnergy0(i_, aa)
 end
 
 
-% (12) The lipid energy expressions
-% COMMENTS: what are these functions?
-
-% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-% Some new global vars, as Lam had it
-ah = 0;
-ai = 0;
-b0 = 0;
-b = 0; % this isn't new?
-elastic = 0;
-res = 0; % also not new
-% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-function LipidEnergy = LipidEnergy(area, aa, i, curv, delta)
-    ah = area * (1 + curv * (delta + lh));
-    ai = area * (1 + curv * delta );
-    b0 = nu / area;
-    b = b0 * (1 + curv * (b0/2 - delta) + curv^2 / 2 * (b0^2 - 3 * b0 * delta + 2 * delta^2));
-    elastic = lipidB / ah + lipidG * ai + lipidT * b^2;
-    res = elastic + FreeEnergy(i, aa)*area;
-    LipidEnergy = res;
-end
-
-function LipidEnergy2 = LipidEnergy2(area, aa, i, curv, delta)
-    ah = area * (1 + curv * (delta + lh));
-    ai = area * (1 + curv * delta );
-    b0 = nu / area;
-    b = b0 * (1 + curv * (b0/2 - delta) + curv^2 / 2 * (b0^2 - 3 * b0 * delta + 2 * delta^2));
-    elastic = lipidB / ah + lipidG * ai + lipidT * b^2;
-    res = elastic + FreeEnergy2(i, aa)*area
-    LipidEnergy2 = res;
-end
-
 % (13) Tension expressions
 % COMMENTS: how to modify when a itself is a function, a(Np)
 function Tension = Tension(i, a0)
@@ -851,24 +807,21 @@ function main = main()
 %    plot_tensionp_Mg()
 %    get_data_no_AMP()
 %    Q = get_tension_data()
-    get_custom_data()
-    outputs = 1;
+    outputs = get_custom_data();
 end
 
 main()
 
 end
 
-
 %{
-
 TODO
-    1. decide whether or not to fix (POSSIBLE ERROR) mu1c M1[,kap,i]
+    1. check/fix (POSSIBLE ERROR) mu1c M1[,kap,i]
     2. Q: why does [mupccc] have different expressions in [Na] and [Mg] sripts?
            -there seems to be some (possibly incorrect factoring), and 
             the lattc part is now treated as a (in M1[],Mp[])
     3. get plot calls from the mg script?
     4. change n2(i) calls to n2_array(i)
     5. mg script in [condmp] it calls [mupb] without ANY input variable,
-       definitely needs i though?
+       definitely needs i though
 %}

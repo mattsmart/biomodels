@@ -24,7 +24,6 @@ np_back = (1*10^-7)*[1:9,10:5:100];
 np_front = [10^(-9)*[1,5], (1*10^-8)*[1:9]];
 np_array = [np_front, np_back]; % 0.01 microM to 10 microM
 
-
 %n1 = 0.150
 %n2 = 10^(-3)*5.0
 %np_array = 10^(-6)*[0.15]
@@ -99,9 +98,9 @@ vp_pg1 = 2.60;
 eps_sp_pg1 = 16/(3*pi); % 3x1 rectangle
 
 % only 1 or none may be "on"
-gs_flag = 1
-pb_flag = 0
-pg1_flag = 0
+gs_flag = 0;
+pb_flag = 0;
+pg1_flag = 0;
 
 if gs_flag
     Q = Q_gs;                % Charge # for peptides
@@ -153,21 +152,14 @@ function Kb = Kb(q,d)  % Translation Verified
 end
 
 % (2) Free ion concentrations in solutions (1M = 0.6022 nm^-3):
-% COMMENTS I understand that roots are being found in each of the three
-% function calls, but I don't know what is being done with them? 
-% What's ob? a? res??? why is x being called undeclared? is x just 0?
 
 % function handle speedups
 kbval1_1 = Kb(1, 0.34);
 kbval2 = Kb(2, 0.43);
 
 % (A) Free Na+ in soln
-%{
-n1eff := Module[{ob, a, res=0},                         (*Free Na+ in soln *)
-					  ob = FindRoot[x/(0.6022*n1-x)^2 == Kb[1, 0.34], {x, n1*0.01}];      
-					  a = x /. ob; res = n1-a/0.6022];
-%}
-function n1eff = n1eff(jj)  % Translation Verified
+function n1eff = n1eff(n1_index)  % Translation Verified
+    % note: n1_index is a dummy variable unless script is compute_na.m
     ref = n1;
     tmp = 0.6022*ref;
     func = @(x) x/(tmp - x)^2 - kbval1_1;
@@ -176,12 +168,8 @@ function n1eff = n1eff(jj)  % Translation Verified
 end
 
 % (C) Free Mg2+ in soln
-%{
-n2eff[jjjj_] := Module[{ob, a, res=0},                                  (*Free Mg+ in soln *)
-					  ob = FindRoot[x/(0.6022*n2[[jjjj]] - x)^2 == Kb[2, 0.43], {x, n2[[jjjj]] *0.01}];     (*1M = 0.6022 nm^-3*)
-					  a = x /. ob; res = n2[[jjjj]] - a/0.6022];
-%}
-function n2eff = n2eff(jj)  % Translation Verified
+function n2eff = n2eff(n2_index)  % Translation Verified
+    % note: n2_index is a dummy variable unless script is compute_mg.m
     tmp = 0.6022*n2;
     func = @(x) x/(tmp - x)^2 - kbval2;
     x0 = n2*0.01; % Na script had n2/2
@@ -189,9 +177,7 @@ function n2eff = n2eff(jj)  % Translation Verified
 end
 
 % ~~~~~~~~~~~~~~~~~~~~~~~
-% Can declare as global (may need to change)
-%n2eff_val = n2eff();
-% for the mg script it would be 
+% declare these as globals using dummy variable
 n1eff_amp = n1eff(1);
 n2eff_amp = n2eff(1);
 % ~~~~~~~~~~~~~~~~~~~~~~~
@@ -641,29 +627,6 @@ function FreeEnergy0 = FreeEnergy0(i_, aa)
 end
 
 
-% (12) The lipid energy expressions
-% COMMENTS: what are these functions?
-
-function LipidEnergy = LipidEnergy(area, aa, i, curv, delta)
-    ah = area * (1 + curv * (delta + lh));
-    ai = area * (1 + curv * delta );
-    b0 = nu / area;
-    b = b0 * (1 + curv * (b0/2 - delta) + curv^2 / 2 * (b0^2 - 3 * b0 * delta + 2 * delta^2));
-    elastic = lipidB / ah + lipidG * ai + lipidT * b^2;
-    res = elastic + FreeEnergy(i, aa)*area;
-    LipidEnergy = res;
-end
-
-function LipidEnergy2 = LipidEnergy2(area, aa, i, curv, delta)
-    ah = area * (1 + curv * (delta + lh));
-    ai = area * (1 + curv * delta );
-    b0 = nu / area;
-    b = b0 * (1 + curv * (b0/2 - delta) + curv^2 / 2 * (b0^2 - 3 * b0 * delta + 2 * delta^2));
-    elastic = lipidB / ah + lipidG * ai + lipidT * b^2;
-    res = elastic + FreeEnergy2(i, aa)*area
-    LipidEnergy2 = res;
-end
-
 % (13) Tension expressions
 % COMMENTS: how to modify when a itself is a function, a(Np)
 function Tension = Tension(i, a0)
@@ -888,26 +851,23 @@ end
 
 function main = main()
     %plot_frac_site_AMP()
-    %plot_frac_charge_AMP()
+    plot_frac_charge_AMP()
     %plot_freep_AMP()    
     %plot_tensionp_AMP()
     plot_tensionmech_AMP()
-    %get_custom_data()
     %get_line()
     %get_tension_data()
-    n1
-    n2*1000
-    np_array*1000*1000
-    outputs = 1;
+    %n1
+    %n2*1000
+    %np_array*1000*1000
+    outputs = get_custom_data();
 end
 
 main()
 
 end
 
-
 %{
-
 TODO
     1. fix mupccc
 %}
