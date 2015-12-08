@@ -167,12 +167,8 @@ kbval1_1 = Kb(1, 0.34);
 kbval2 = Kb(2, 0.43);
 
 % (A) Free Na+ in soln
-%{
-n1eff := Module[{ob, a, res=0},                         (*Free Na+ in soln *)
-					  ob = FindRoot[x/(0.6022*n1-x)^2 == Kb[1, 0.34], {x, n1*0.01}];      
-					  a = x /. ob; res = n1-a/0.6022];
-%}
-function n1eff = n1eff(jj)  % Translation Verified
+function n1eff = n1eff(n1_index)  % Translation Verified
+    % note: n1_index is a dummy variable unless script is compute_na.m
     ref = n1;
     tmp = 0.6022*ref;
     func = @(x) x/(tmp - x)^2 - kbval1_1;
@@ -181,12 +177,8 @@ function n1eff = n1eff(jj)  % Translation Verified
 end
 
 % (C) Free Mg2+ in soln
-%{
-n2eff[jjjj_] := Module[{ob, a, res=0},                                  (*Free Mg+ in soln *)
-					  ob = FindRoot[x/(0.6022*n2[[jjjj]] - x)^2 == Kb[2, 0.43], {x, n2[[jjjj]] *0.01}];     (*1M = 0.6022 nm^-3*)
-					  a = x /. ob; res = n2[[jjjj]] - a/0.6022];
-%}
-function n2eff = n2eff(jj)  % Translation Verified
+function n2eff = n2eff(n2_index)  % Translation Verified
+    % note: n2_index is a dummy variable unless script is compute_mg.m
     tmp = 0.6022*n2;
     func = @(x) x/(tmp - x)^2 - kbval2;
     x0 = n2*0.01; % Na script had n2/2
@@ -194,9 +186,7 @@ function n2eff = n2eff(jj)  % Translation Verified
 end
 
 % ~~~~~~~~~~~~~~~~~~~~~~~
-% Can declare as global (may need to change)
-%n2eff_val = n2eff();
-% for the mg script it would be 
+% declare these as globals using dummy variable
 n1eff_amp = n1eff(1);
 n2eff_amp = n2eff(1);
 % ~~~~~~~~~~~~~~~~~~~~~~~
@@ -896,23 +886,20 @@ function main = main()
     plot_frac_charge_AMP()
     %plot_freep_AMP()    
     %plot_tensionp_AMP()
-    %plot_tensionmech_AMP()
-    %get_custom_data()
+    plot_tensionmech_AMP()
     %get_line()
     %get_tension_data()
-    n1
-    n2*1000
-    np_array*1000*1000
-    outputs = 1;
+    %n1
+    %n2*1000
+    %np_array*1000*1000
+    outputs = get_custom_data();
 end
 
 main()
 
 end
 
-
 %{
-
 TODO
     1. fix mupccc
 %}
