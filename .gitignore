@@ -1,6 +1,9 @@
 # MATLAB .asv files
 *.asv
 
+# MATLAB plot images
+*.jpg
+
 # Python compiled scripts
 *.pyc
 
