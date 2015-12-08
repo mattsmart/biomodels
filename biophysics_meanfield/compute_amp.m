@@ -66,7 +66,7 @@ d = 4.0;          % r_min for Kb
 A0 = 1.2e9;            % Initial surface area in nm^2
 cJ  = 4.114*10^(-18);  % conversion factor for mJ to kB T 
 cA = 10^(18);          % convert m^2 to nm^2
-k0 = 80; %120 %100;
+k0 = 120; %120 %100;
 kA = k0/(cA*cJ);       % Area compression modulus in mN/m = mJ/m^2, with Joules converted to kbT
 
 % ==========================
@@ -143,9 +143,9 @@ function a_Np = a_Np(a, da, Np)
 end
 
 % (1) Association Constant
-function Kb = Kb(q,d)  % Translation Verified
+function Kb = Kb(q,d)
     tmp = q.*lb;
-    integrand = @(r) r.^2.*exp(tmp./r);            % dots cuz integral fn using matrices
+    integrand = @(r) r.^2.*exp(tmp./r);  %dots, integral fn using matrices
     rmin = d;
     rmax = q.*lb./2;
     Kb = 4.*pi.*integral(integrand, rmin, rmax);
@@ -158,7 +158,7 @@ kbval1_1 = Kb(1, 0.34);
 kbval2 = Kb(2, 0.43);
 
 % (A) Free Na+ in soln
-function n1eff = n1eff(n1_index)  % Translation Verified
+function n1eff = n1eff(n1_index)
     % note: n1_index is a dummy variable unless script is compute_na.m
     ref = n1;
     tmp = 0.6022*ref;
@@ -168,7 +168,7 @@ function n1eff = n1eff(n1_index)  % Translation Verified
 end
 
 % (C) Free Mg2+ in soln
-function n2eff = n2eff(n2_index)  % Translation Verified
+function n2eff = n2eff(n2_index)
     % note: n2_index is a dummy variable unless script is compute_mg.m
     tmp = 0.6022*n2;
     func = @(x) x/(tmp - x)^2 - kbval2;
@@ -184,7 +184,7 @@ n2eff_amp = n2eff(1);
 
 % (3) Debye Length
 % COMMENTS: *0.3081^2 = D*episilon_ 0*kT/2z^2*e^2 ? *)   (*definition from Roham p37*)
-function kappa = kappa(j)  % Translation Verified
+function kappa = kappa(j)
     kappa = sqrt(n1eff_amp + 3*n2eff_amp) / 0.3081; 
 end
 
@@ -195,7 +195,7 @@ function sigma = sigma(sig00, sig11, sig22)
 end
 
 % (5) Dielectric Discontinuity
-function Delta = Delta(i)  % Translation Verified
+function Delta = Delta(i)
     kap = kappa(i);
     Delta = (epsilon + kap*d) / (2*epsilon + kap*d)*2;
 end
@@ -204,7 +204,7 @@ end
 % COMMENTS:
 
 % Correction terms for 1*1 site
-function M1 = M1(p, kappa, a)  % Translation Verified
+function M1 = M1(p, kappa, a)
     tmp = a/2;
     integrand = @(x,y) exp(-kappa.*sqrt(x.^2 + y.^2)) ./ sqrt(x.^2 + y.^2);
     xmin = 0; xmax = tmp;
@@ -213,7 +213,7 @@ function M1 = M1(p, kappa, a)  % Translation Verified
 end
 
 % Correction terms for Q*1 site
-function Mp = Mp(p, kappa, a)  % Translation Verified
+function Mp = Mp(p, kappa, a)
     integrand = @(x,y) exp(-kappa.*sqrt(x.^2 + y.^2)) ./ sqrt(x.^2 + y.^2);
     xmin = 0; xmax = p*a/2;
     ymin = 0; ymax = a/2;
@@ -221,7 +221,7 @@ function Mp = Mp(p, kappa, a)  % Translation Verified
 end
 
 % ???
-function M2 = M2(p, kappa, a)  % Translation Verified
+function M2 = M2(p, kappa, a)
     tmp = a/2;
     integrand = @(x,y) exp(-kappa.*sqrt(x.^2 + y.^2)) ./ sqrt(x.^2 + y.^2);
     xmin = -tmp; xmax = tmp;
@@ -234,7 +234,7 @@ end
 %         kappa is debye length
 %         lc is lattice constant, may not be a constant
 % COMMENTS:
-function SumC = SumC(m,kappa,lc)  % Translation Verified
+function SumC = SumC(m,kappa,lc)
     summ = 0;
     for i = 1:(m*partition)
         for j = 0:i
@@ -389,15 +389,15 @@ end
 
 % Fig10, LPS_Ma.pdf    
 
-function sigma1r1 = sigma1r1(i, aa)  % Translation Verified
+function sigma1r1 = sigma1r1(i, aa)
     sigma1r1 = cond(i, aa,d1)*aa^2;
 end
 
-function sigma1eff = sigma1eff(i, aa)  % Translation Verified
-    sigma1eff = (1/aa^2 - cond(i, aa,d1));               % Same condition as Fig10c in LPS_Ma.pdf
+function sigma1eff = sigma1eff(i, aa)
+    sigma1eff = (1/aa^2 - cond(i, aa,d1));  % Same condition as Fig10c in LPS_Ma.pdf
 end
 
-function sigma1reff = sigma1reff(i, aa)  % Translation Verified
+function sigma1reff = sigma1reff(i, aa)
     sigma1reff = 1 - cond(i, aa,d1)*aa^2;
 end
 
@@ -419,24 +419,24 @@ function cond2 = cond2(i,aa,d1,d2)
     cond2 = res;
 end
 
-function sigma2r1 = sigma2r1(i, aa)  % Translation Verified
+function sigma2r1 = sigma2r1(i, aa)
     tmp = cond2(i,aa,d1,d2);
     sigma2r1 = tmp(1);
 end
 
-function sigma2r2 = sigma2r2(i, aa)  % Translation Verified
+function sigma2r2 = sigma2r2(i, aa)
     tmp = cond2(i,aa,d1,d2);
     sigma2r2 = 0.5 + tmp(2);
 end
 
-function sigma2r2t = sigma2r2t(i, aa)  % Translation Verified
+function sigma2r2t = sigma2r2t(i, aa)
     tmp = cond2(i,aa,d1,d2);
     sigma2r2t = tmp(2);
 end
 
-function negsigma2reff = negsigma2reff(i, aa)  % Translation Verified
+function negsigma2reff = negsigma2reff(i, aa)
     tmp = cond2(i,aa,d1,d2);
-    negsigma2reff = tmp(1) + 2*tmp(2);              % Same condition as Fig10c in LPS_Ma.pdf
+    negsigma2reff = tmp(1) + 2*tmp(2);  % Same condition as Fig10c in LPS_Ma.pdf
 end
 
 % piece-wise functions used to solve initial guess problem for mdp case
@@ -444,7 +444,7 @@ end
 %testfcn2[i_] :=  If[i<30, -0.15-0.2*90*np_array(i)^0.5, -0.49]; 
 %testfcnp[i_] :=  If[i<30, 0.2*75*np_array(i)^0.5, 60*np_array(i)^0.5]; 
 
-function condp = condp(i,aa)  % Translation Verified
+function condp = condp(i,aa)
     function F = nle(x)
         F = [mu1b(i, x(1)) - mu1ccc(i, a_Np(aa,dA,x(3)), x(1), x(2), x(3));
             mu2b(i, x(2)) - mu2ccc(i, a_Np(aa,dA,x(3)), x(1), x(2), x(3));
@@ -473,29 +473,29 @@ function condp = condp(i,aa)  % Translation Verified
     condp = res;
 end
 
-function sigmapr1 = sigmapr1(i, aa)  % Translation Verified
+function sigmapr1 = sigmapr1(i, aa)
     tmp_p = condp(i, aa);
     sigmapr1 = tmp_p(1);
 end
 
-function sigmapr2t = sigmapr2t(i, aa)  % Translation Verified
+function sigmapr2t = sigmapr2t(i, aa)
     tmp_p = condp(i, aa);
     sigmapr2t = tmp_p(2);
 end
 
-function sigmapr2 = sigmapr2(i, aa)  % Translation Verified
+function sigmapr2 = sigmapr2(i, aa)
     tmp_p = condp(i, aa);
     sigmapr2 = 0.5 + tmp_p(2);
 end
 
-function sigmaprp = sigmaprp(i, aa)  % Translation Verified
+function sigmaprp = sigmaprp(i, aa)
     tmp_p = condp(i, aa);
     sigmaprp = tmp_p(3);
 end
 
-function negsigmapreff = negsigmapreff(i, aa)  % Translation Verified
+function negsigmapreff = negsigmapreff(i, aa)
     tmp_p = condp(i, aa);
-    negsigmapreff = tmp_p(1) + 2*tmp_p(2) + Q*tmp_p(3);                 % (*Same condiion as Fig10c in LPS_Ma.pdf)*)
+    negsigmapreff = tmp_p(1) + 2*tmp_p(2) + Q*tmp_p(3);  % (*Same condiion as Fig10c in LPS_Ma.pdf)*)
 end
 
 % this function was left commented out:  
@@ -523,17 +523,17 @@ function condmp = condmp(i,aa)
     condmp = res;
 end
 
-function sigmampr1 = sigmampr1(i, aa)  % Translation Verified
+function sigmampr1 = sigmampr1(i, aa)
     tmp_mp = condmp(i, aa);
     sigmampr1 = tmp_mp(1);
 end
 
-function sigmamprp = sigmamprp(i, aa)  % Translation Verified
+function sigmamprp = sigmamprp(i, aa)
     tmp_mp = condmp(i, aa);
     sigmamprp = tmp_mp(2);
 end
 
-function negsigmampreff = negsigmampreff(i, aa)  % Translation Verified
+function negsigmampreff = negsigmampreff(i, aa)
     tmp_mp = condmp(i, aa);
     tmp_p = condp(i, aa);
     negsigmampreff = tmp_mp(1) + Q*tmp_p(2);   % MATT: not sure if its condmp..(2) or condp..(2) but he had the latter, i think it should be the first
@@ -623,8 +623,8 @@ function FreeEnergymp = FreeEnergymp(i, aa)
 	entr = ion(1) * log(ion(1)) + ion(2) * log(ion(2)) + (1-ion(1)-Q*ion(2)) * log(1-ion(1)-Q*ion(2)) - ion(1) * mu1b(i,ion(1)) - ion(2) * mupb(i,ion(2));
 	entr2 = ((1-Q)/Q) * (1 - Q*ion(2)) * log(1 - Q*ion(2)) -ion(2)*(eps_sp+1-log(Q))-log(1-Q*ion(2))/Q+(eps_sp/Q)/(1-Q*ion(2));
 	corr = delt * lb * ((-0.5*m1*(ion(1)-1)^2 + m1*Q*ion(2) - 0.5*(m1 + mp)*(Q*ion(2))*(ion(1))-0.5*mp*(Q*ion(2))^2+ 0.5*Q*ion(2)*((mp-m1)-1/delt*aa^2/lattc^2*(mp_lattc - m1_lattc)))/aa^2  + (-ion(1)/d1 - Q*ion(2)/dp)) ;
-    mech = (1/4)*kA*(dA*ion(2)/lattc)^2;
-    hydro = ion(2)*H;
+    mech = (1/4)*kA*(dA*ion(2)/lattc)^2;  % should be ion(3)?
+    hydro = ion(2)*H;  % should be ion(3)?
     res = es + entr + corr + entr2 + hydro + mech;  % sum components
     FreeEnergymp = res;
 end
@@ -664,11 +664,8 @@ end
 % ==========================
 % Plotting
 % ==========================
-
-% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % Some reused plotting constants/lists
 len = length(np_array);
-% ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 % Plot Fractional ite Occupancy (AMP modified)
 % Plots the fractional site occupancy based on [AMP] for N1, N2, QNp
@@ -860,9 +857,9 @@ end
 
 function main = main()
     %plot_frac_site_AMP()
-    plot_frac_charge_AMP()
+    %plot_frac_charge_AMP()
     %plot_freep_AMP()    
-    %plot_tensionp_AMP()
+    plot_tensionp_AMP()
     plot_tensionmech_AMP()
     %get_line()
     %get_tension_data()
@@ -878,5 +875,5 @@ end
 
 %{
 TODO
-    1. fix mupccc
+    1. fix mupccc, mu1c
 %}

@@ -62,7 +62,7 @@ d = 4.0;          % r_min for Kb
 A0 = 1.2e9;            % Initial surface area in nm^2
 cJ  = 4.114*10^(-18);  % conversion factor for mJ to kB T 
 cA = 10^(18);          % convert m^2 to nm^2
-k0 = 120 %100;
+k0 = 120 %80; %100;
 kA = k0/(cA*cJ);       % Area compression modulus in mN/m = mJ/m^2, with Joules converted to kbT
 
 % ==========================
