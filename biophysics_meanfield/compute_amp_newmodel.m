@@ -220,15 +220,6 @@ function Mp = Mp(p, kappa, a)
     Mp = 4*integral2(integrand,xmin,xmax,ymin,ymax);
 end
 
-% ???
-function M2 = M2(p, kappa, a)
-    tmp = a/2;
-    integrand = @(x,y) exp(-kappa.*sqrt(x.^2 + y.^2)) ./ sqrt(x.^2 + y.^2);
-    xmin = -tmp; xmax = tmp;
-    ymin = -tmp; ymax = tmp;
-    M2 = integral2(integrand,xmin,xmax,ymin,ymax);
-end
-
 % (6) Sum C, the lateral correlation function
 % INPUTS: m is ~ 10, # of grids per side to integrate)
 %         kappa is debye length
@@ -369,21 +360,6 @@ function cond = cond(i,aa,d1)
 end
 %}
 
-% (9) First "cond" thing
-% COMMENTS: this fsolve version causes "equation solved" messages to
-% appear, and gives a bad initial/second value (in plot2) i think based on n1 array
-function cond = cond(i,aa,d1)
-    function F = nle(x)
-        F = mu1b(i,x) - mu1c(i, aa, x, d1);
-    end
-    x0 = 0.1;
-    ob = fsolve(@nle, x0);
-    a = ob;
-    res = a;
-    cond = res;
-end
-
-
 % (10) Block of plot stuff
 % COMMENTS: this WILL need to be tweaked
 
@@ -399,24 +375,6 @@ end
 
 function sigma1reff = sigma1reff(i, aa)
     sigma1reff = 1 - cond(i, aa,d1)*aa^2;
-end
-
-function cond2 = cond2(i,aa,d1,d2) 
-    function F = nle(x)
-        F = [mu1b(i,x(1)) - mu1cc(i, aa, x(1), x(2), d1);
-            mu2b(i,x(2)) - mu2cc(i, aa, x(1), x(2), d2)];
-    end
-    % Na script guesses
-    %x0 = [0.2*sqrt( n1(i) );
-    %    0.2*sqrt( n1(i) )];
-    % Mg and AMP script guesses
-    x0 = [0.1;
-        -0.1];
-    ob = fsolve(@nle,x0);
-    a = ob(1);
-    b = ob(2);
-    res = ob;
-    cond2 = res;
 end
 
 function sigma2r1 = sigma2r1(i, aa)
@@ -437,40 +395,6 @@ end
 function negsigma2reff = negsigma2reff(i, aa)
     tmp = cond2(i,aa,d1,d2);
     negsigma2reff = tmp(1) + 2*tmp(2);  % Same condition as Fig10c in LPS_Ma.pdf
-end
-
-% piece-wise functions used to solve initial guess problem for mdp case
-%testfcn1[i_] :=  If[i<30, 0.2-0.2*55*np_array(i).5, 0.01]; 
-%testfcn2[i_] :=  If[i<30, -0.15-0.2*90*np_array(i)^0.5, -0.49]; 
-%testfcnp[i_] :=  If[i<30, 0.2*75*np_array(i)^0.5, 60*np_array(i)^0.5]; 
-
-function condp = condp(i,aa)
-    function F = nle(x)
-        F = [mu1b(i, x(1)) - mu1ccc(i, a_Np(aa,dA,x(3)), x(1), x(2), x(3));
-            mu2b(i, x(2)) - mu2ccc(i, a_Np(aa,dA,x(3)), x(1), x(2), x(3));
-            mupb(i, x(3)) - mupccc(i, a_Np(aa,dA,x(3)), x(1), x(2), x(3))];
-        %F = [mu1b(i, x(1)) - mu1ccc(i, aa, x(1), x(2), x(3));
-        %    mu2b(i, x(2)) - mu2ccc(i, aa, x(1), x(2), x(3));
-        %    mupb(i, x(3)) - mupccc(i, aa, x(1), x(2), x(3))];
-    end
-    % Na script guesses
-    %x0 = [n1(i)^0.5; 
-    %     -0.01-n1(i)^0.5;
-    %     0.01-0*0.3*n1(i)^0.5]; % LAM has 0*0.3*n1(i)^0.5].. why the 0* ?
-    % Mg script guesses
-    %x0 = [0.6-3*4.5*n2_array(i)^0.5;
-    %     -0.5+3*3*n2_array(i)^0.5;
-    %     0.05 - n2_array(i)^0.5];
-    % AMP script guesses
-    x0 = [0.2-0.2*55*np_array(i)^0.5;
-         -0.15-0.2*90*np_array(i)^0.5;
-         0.2*75*np_array(i)^0.5];
-    ob = fsolve(@nle,x0);
-    a = ob(1);
-    b = ob(2);
-    c = ob(3);
-    res = ob;
-    condp = res;
 end
 
 function sigmapr1 = sigmapr1(i, aa)
@@ -505,24 +429,6 @@ function sigmaeffp = sigmaeffp(i,aa)  % Translation Verified
     sigmaeffp = (tmp_p(1) + 2*tmp_p(2) + Q*tmp_p(3) ) / aa^2;
 end
 
-function condmp = condmp(i,aa)
-    function F = nle(x)
-        F = [mu1b(i,x(1)) - mu1ccm(i, aa, x(1), x(2)); % variables appropriately removed in the mg script for the mu1b, mupb calls
-            mupb(i,x(2)) - mupccm(i, aa, x(1), x(2))];
-    end
-    % Na script guesses
-    %x0 = [10*n1(i)^2;
-    %     0.25 - 6*n1(i)^2];
-    % Mg and AMP script guesses
-    x0 = [0.001;
-         0.24];
-    ob = fsolve(@nle,x0);
-    a = ob(1);
-    b = ob(2);
-    res = ob;
-    condmp = res;
-end
-
 function sigmampr1 = sigmampr1(i, aa)
     tmp_mp = condmp(i, aa);
     sigmampr1 = tmp_mp(1);
@@ -539,48 +445,7 @@ function negsigmampreff = negsigmampreff(i, aa)
     negsigmampreff = tmp_mp(1) + Q*tmp_p(2);   % MATT: not sure if its condmp..(2) or condp..(2) but he had the latter, i think it should be the first
 end
 
-function cond2test = cond2test(i,aa,empty)
-    function F = nle(x)
-        tmp = cond2(i, aa, d1, x);
-        F = 1/2 - tmp(i) - tmp(2) - empty;
-    end
-    x0 = 0.3;
-    ob = fsolve(@nle, x0);
-    a = ob;
-    res = ob;
-    cond2test = res;
-end
-
 % (11) The free energy expressions
-% COMMENTS: why the modules again? is it for plotting?
-
-function FreeEnergy = FreeEnergy(i, aa)
-    % repeated variables
-    kap = kappa(i);
-    delt = Delta(i);
-    ion = cond(i, aa, d1);                 % Here "ion" <=> sigma
-    % energy components
-    es = delt * pi * lb / kap * (1/aa^2 - ion)^2;
-    entr = ion * log(ion*aa^2) + (1/aa^2-ion) * log(1 - ion*aa^2) - ion * mu1b(i, ion*aa^2); % idk if last input is needed... ion*aa^2
-    corr = -delt * lb * ((1/aa^2 - ion)^2 * M1(Q, kap, aa)/2 + ion/d1);
-    res = aa^2*(es + entr + corr);  % sum components
-    FreeEnergy = res;
-end
-
-function FreeEnergy2 = FreeEnergy2(i, aa)
-    % repeated variables
-    kap = kappa(i);
-    delt = Delta(i);
-    ion = cond2(i, aa, d1, d2);                 % Here "ion" <=> Ni, N2 tilted
-    % energy components
-    es = delt * pi * lb / kap * (ion(1) + 2*ion(2))^2/aa^2;
-    entr = ion(1) * log(ion(1)) + (ion(2)+0.5) * log((ion(2)+0.5)) + (0.5-ion(1)-ion(2)) * log(0.5-ion(1)-ion(2)) - ion(1) * mu1b(i,ion(1)) - (ion(2)+0.5) * mu2b(i,ion(2));
-    corr = delt * lb * (-(ion(1)+2*ion(2))^2/aa^2 * M1(Q, kap, aa)/2 + 2*(ion(2)+0.5)*(0.5-ion(1)-ion(2)) * SumC(10, kap, aa) +(- ion(1)*1/d1 - (ion(2)+0.5)*2/d2));
-    res = es + entr + corr;  % sum components
-    FreeEnergy2 = res;
-end
-
-
 function FreeEnergyp = FreeEnergyp(i, aa) % NEW: Correction terms
     % repeated variables
     kap = kappa(i);
@@ -609,26 +474,6 @@ function FreeEnergyp = FreeEnergyp(i, aa) % NEW: Correction terms
     FreeEnergyp = res;
 end  
 
-function FreeEnergymp = FreeEnergymp(i, aa)
-    % repeated variables
-    kap = kappa(i);
-    delt = Delta(i);
-    m1 = M1(Q, kap, aa);
-    mp = Mp(Q, kap, aa);
-    m1_lattc = M1(Q, kap, lattc);
-    mp_lattc = Mp(Q, kap, lattc);
-    ion = condmp(i, aa);
-    % energy components
-    es = delt * pi * lb / kap * (ion(1)+Q*ion(2)-1)^2/aa^2;
-	entr = ion(1) * log(ion(1)) + ion(2) * log(ion(2)) + (1-ion(1)-Q*ion(2)) * log(1-ion(1)-Q*ion(2)) - ion(1) * mu1b(i,ion(1)) - ion(2) * mupb(i,ion(2));
-	entr2 = ((1-Q)/Q) * (1 - Q*ion(2)) * log(1 - Q*ion(2)) -ion(2)*(eps_sp+1-log(Q))-log(1-Q*ion(2))/Q+(eps_sp/Q)/(1-Q*ion(2));
-	corr = delt * lb * ((-0.5*m1*(ion(1)-1)^2 + m1*Q*ion(2) - 0.5*(m1 + mp)*(Q*ion(2))*(ion(1))-0.5*mp*(Q*ion(2))^2+ 0.5*Q*ion(2)*((mp-m1)-1/delt*aa^2/lattc^2*(mp_lattc - m1_lattc)))/aa^2  + (-ion(1)/d1 - Q*ion(2)/dp)) ;
-    mech = (1/4)*kA*(dA*ion(2)/lattc)^2;  % should be ion(3)?
-    hydro = ion(2)*H;  % should be ion(3)?
-    res = es + entr + corr + entr2 + hydro + mech;  % sum components
-    FreeEnergymp = res;
-end
-
 function FreeEnergy0 = FreeEnergy0(i, aa)
     es = Delta(i) * lb * 1 / aa^4 * (pi/ kappa(i));
     res = es;
@@ -648,10 +493,6 @@ end
 
 function Tensionp = Tensionp(i, a0)
     Tensionp = ( FreeEnergyp(i, sqrt((1-del)*a0^2))  -  FreeEnergyp(i, sqrt((1+del)*a0^2))) / (2*del*a0^2);
-end
-
-function Tensionm = Tensionm(i, a0)
-    Tensionm = ( FreeEnergymp(i,sqrt((1-del)*a0^2))  -  FreeEnergymp(i,sqrt((1+del)*a0^2))) / (2*del*a0^2);
 end
 
 % (14) Mechanical Tension (See latex formulation mechanical energy cost)
