@@ -19,18 +19,16 @@ format long
 %n2 = 0.0010; % [Mg] 0.1 mM % originally 0.002; 
 %np_array = (1*10^-7)*[1:20]; % 0 microM to 2 msicroM
 %np_array = (1*10^-7)*[1:2:9,10:5:100]; % 0.1 microM to 10 microM
+% For [AMP] Varying (2)
+%n1 = 0.150
+%n2 = 10^(-3)*5.0
+%np_array = 10^(-6)*[0.15]
+%np = {0.0000001,0.0000002,0.0000003,0.0000004,0.0000005,0.0000006,0.0000007,0.0000008,0.0000009,0.000001,0.000002,0.000003,0.000004,0.000005,0.000006,0.000007,0.000008,0.000009,0.00001,0.00002,0.00003,0.00004,0.00005,0.00006,0.00007,0.00008,0.00009,0.0001,0.0002,0.0003,0.0004,0.0005,0.0006,0.0007,0.0008,0.0009,0.001,0.002,0.003,0.004,0.005,0.006,0.007,0.008,0.009,0.01,0.02,0.03,0.04,0.05,0.06,0.07,0.08,0.09,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1,2,3,4,5,6,7,8,9,10};
+%np = (5*10^-8)*{0.001, 0.01,0.05, 0.1,0.5,1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
 
 np_back = (1*10^-7)*[1:9,10:5:100];
 np_front = [10^(-9)*[1,5], (1*10^-8)*[1:9]];
 np_array = [np_front, np_back]; % 0.01 microM to 10 microM
-
-%n1 = 0.150
-%n2 = 10^(-3)*5.0
-%np_array = 10^(-6)*[0.15]
-
-%(*np = {0.0000001,0.0000002,0.0000003,0.0000004,0.0000005,0.0000006,0.0000007,0.0000008,0.0000009,0.000001,0.000002,0.000003,0.000004,0.000005,0.000006,0.000007,0.000008,0.000009,0.00001,0.00002,0.00003,0.00004,0.00005,0.00006,0.00007,0.00008,0.00009,0.0001,0.0002,0.0003,0.0004,0.0005,0.0006,0.0007,0.0008,0.0009,0.001,0.002,0.003,0.004,0.005,0.006,0.007,0.008,0.009,0.01,0.02,0.03,0.04,0.05,0.06,0.07,0.08,0.09,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1,2,3,4,5,6,7,8,9,10};*)
-%(*np = (5*10^-8)*{0.001, 0.01,0.05, 0.1,0.5,1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};*)
-pts_np = length(np_array);
 
 % ==========================
 % Global constants
@@ -39,6 +37,10 @@ pts_np = length(np_array);
 d1 = 0.3;              % Binding site separation for NA+ in nm
 d2 = 0.25;             % Binding site separation for Mg2+ in nm
 dp = 0.4;              % Binding site separation for peptides in nm
+r1 = 0.34;             % Na ion radius in nm
+r2 = 0.43;             % Mg ion radius in nm
+v1 = 4/3*pi*(r1)^3;    % Na ion volume in nm^3
+v2 = 4/3*pi*(r2)^3;    % Mg ion volume in nm^3
 
 partition = 1;
 lattc = 0.8;           % Assumed Lattice Constant, this is a0 in nm
@@ -183,15 +185,8 @@ n2eff_amp = n2eff(1);
 % ~~~~~~~~~~~~~~~~~~~~~~~
 
 % (3) Debye Length
-% COMMENTS: *0.3081^2 = D*episilon_ 0*kT/2z^2*e^2 ? *)   (*definition from Roham p37*)
 function kappa = kappa(j)
     kappa = sqrt(n1eff_amp + 3*n2eff_amp) / 0.3081; 
-end
-
-% (4) Sigma ???
-% COMMENTS: ??? what is this
-function sigma = sigma(sig00, sig11, sig22)
-    sigma = sig00 - sig11 - 2*sig22; 
 end
 
 % (5) Dielectric Discontinuity
@@ -201,8 +196,6 @@ function Delta = Delta(i)
 end
 
 % (7) Script M Correction Functions
-% COMMENTS:
-
 % Correction terms for 1*1 site
 function M1 = M1(p, kappa, a)
     tmp = a/2;
@@ -224,7 +217,6 @@ end
 % INPUTS: m is ~ 10, # of grids per side to integrate)
 %         kappa is debye length
 %         lc is lattice constant, may not be a constant
-% COMMENTS:
 function SumC = SumC(m,kappa,lc)
     summ = 0;
     for i = 1:(m*partition)
@@ -242,255 +234,47 @@ function SumC = SumC(m,kappa,lc)
     SumC = summ; %(*+ 1/4*(3/(lc/partition)*Exp[-\[Kappa]*(lc/partition)] - 2/(lc/partition*sqrt[2])*Exp[-\[Kappa]*sqrt[2]*(lc/partition)] - 1/(lc/partition*2)*Exp[-\[Kappa]*2*(lc/partition)])*)];
 end
 
-% (7) Bulk chemical potentials
-% COMMENTS: Chemical potential in bulk should be log[n1 * v0], but log[v0] cancelled with the one in mu_condensed
-%           Should we include the effect of tthe 2nd part of bulk potentials to K_b (which we used to find n1eff,n2eff from n1,n2) ???
-% NOTE: The N1, N2, Np were initally used as input... still there
-% Some constants
-Ct = 6*(10^6)*(10^-21);   % Cell Concentration = 6E4/mL, from Azadeh's thesis          % For cell concentration effect which we argued is insignificant for general cell conc
-N0 = 1.875*(10^7);        % N0 = A/a^2, A= cell area = 1.2E9 from Azadeh's thesis      % For cell concentration effect which we argued is insignificant for general cell conc
-% NOTE: I think the N0 value is wrong and should be N0 since we have A0 = 1.2e9 nm^2 and a0 = 0.8 nm
-
-function mu1b = mu1b(i, N1)  % condp Verified
-    mu1b = log(4/3 * pi * (0.34)^3*(0.6022*n1eff_amp)) - 0.5*lb*(kappa(i)/(1+0.36*kappa(i)) + (Delta(i)-1)/d1);
-end
-
-function mu2b = mu2b(i, N2)  % condp Verified
-    mu2b = log(4/3 * pi * (0.43)^3*(0.6022*n2eff_amp)) - 2*lb*(kappa(i)/(1+0.43*kappa(i)) + (Delta(i)-1)/d2);
-end
-
-function mupb = mupb(i, Np)  % condp Verified
-    mupb = log(vp * (0.6022*np_array(i))) - 2*lb*(kappa(i)/(1+0.36*kappa(i)) + (Delta(i)-1)/dp);
-end
-
-% (8) Surface chemical potentials
-% COMMENTS: 
-
-function mu1c = mu1c(i, a, sigma1, d11)
-    kap = kappa(i);
-    mu1c = Delta(i) * lb * (-2*pi/kap*(1/a^2-sigma1) + (1/a^2-sigma1) * M1(Q, kap, a) - 1/d1) ...  %************POSSIBLE ERROR************ for mg/amp code, he had M1(kap, a)
-        + log(sigma1/(1/a^2-sigma1));
-end
-
-function mu1cc = mu1cc(i, a, N1, N2, d11)
-    kap = kappa(i);
-    mu1cc = Delta(i) * lb * (-2*(N2 + 0.5)*SumC(10, kap, a) + 2*pi / kap * (N1 + 2*N2) /a^2 ...
-        - (N1 + 2*N2)/a^2 * M1(Q, kap, a) - 1/d1) + log(N1/(0.5-N1-N2));
-end
-
-function mu2cc = mu2cc(i, a, N1, N2, d22)
-    kap = kappa(i);
-    mu2cc = Delta(i) * lb * (-2*(N1 + 2*N2)*SumC(10, kap, a) + 4*pi/kap * (N1 + 2*N2)/a^2 ...
-        - 2*(N1 + 2*N2)/a^2 * M1(Q, kap, a) - 2/d2) + log((N2+0.5)/(0.5-N1-N2));
-end
-
-function mu1ccc = mu1ccc(i, a, N1, N2, Np)  % condp Verified
-    kap = kappa(i);
-    m1 = M1(Q, kap, a);
-    mu1ccc = Delta(i) * lb * (-2*(N2+0.5)*SumC(10, kap, a) + 2*pi/kap * (N1 + 2*N2 + Q*Np)/a^2 ...
-        - ((N1 + 2*N2) * m1 + Q*Np*(m1 + Mp(Q, kap, a))/2)/a^2 - 1/d1) + log( N1/(0.5-N1-N2-Q*Np));
-end
-
-function mu2ccc = mu2ccc(i, a, N1, N2, Np)  % condp Verified
-    kap = kappa(i);
-    m1 = M1(Q, kap, a);
-    mu2ccc = Delta(i) * lb * (-2*(N1+2*N2+Q*Np)*SumC(10,kap,a) + 4*pi/kap*(N1 + 2*N2 + Q*Np)/a^2 ...
-        - 2 * ((N1 + 2*N2) * m1 + Q*Np*(m1 + Mp(Q,kap,a))/2)/a^2 - 2/d2) + log((N2+0.5)/(0.5-N1-N2-Q*Np));
-end
-
-function mupccc = mupccc(i, a, N1, N2, Np)  % condp Verified
-    kap = kappa(i);
-    delt = Delta(i);
-    m1 = M1(Q,kap,a);
-    mp = Mp(Q,kap,a);
-    % Na version
-    %mupccc = delt * lb * (-2*Q*(N2+0.5)*SumC(10,kap,a) + Q*2*pi / kap * (N1 + 2*N2 + Q*Np)/a^2 ...
-    %    - Q * (-1*m1+(N1+2*N2+1)*(m1 + mp)/2+Q*Np*mp ...
-    %    - 0.5*((mp - m1)-1/delt*(a^2/lattc^2)*(Mp(Q, kap, lattc) - M1(Q, kap, lattc))))/a^2 ...
-    %    - Q/dp)+log(Np*(1-Q*Np)^(Q-1)/(0.5-N1-N2-Q*Np)^Q)-(eps_sp+1-log(Q))+1/(1-Q*Np)+(eps_sp)/(1-Q*Np)^2 ...
-    %    + H + (kA*dA^2/2)*Np/(lattc)^2; %this term is the hydrophobic + mech energy
-    % Mg Version
-    %mupccc = delt * lb * (-2*Q*(N2+0.5)*SumC(10,kap,a) + Q*2*pi / kap * (N1 + 2*N2 + Q*Np)/a^2 ...
-    %    - Q * (-1*m1+(N1+2*N2+1)*(m1 + mp)/2+Q*Np*mp ... 
-    %    - 0.5*(1-1/delt)*(mp-m1))/a^2 ...     % THIS LINE DIFFERS from na
-    %    - Q/dp)+log(Np*(1-Q*Np)^(Q-1)/(0.5-N1-N2-Q*Np)^Q)-(eps_sp+1-log(Q))+1/(1-Q*Np)+(eps_sp)/(1-Q*Np)^2 ...
-    %    + H + (kA*dA2/2)*Np/(lattc)^2; %this term is the hydrophobic + mech energy
-    % AMP version - original
-    %mupccc = delt * lb * (-2*Q*(N2+0.5)*SumC(10,kap,a) + Q*2*pi / kap * (N1 + 2*N2 + Q*Np)/a^2 ...
-    %    - Q * (-1*m1+(N1+2*N2+1)*(m1 + mp)/2+Q*Np*mp ...
-    %    - 0.5*((mp - m1)-1/delt*(a^2/lattc^2)*(Mp(Q, kap, lattc) - M1(Q, kap, lattc))))/a^2 ...
-    %    - Q/dp)+log(Np*(1-Q*Np)^(Q-1)/(0.5-N1-N2-Q*Np)^Q) ...%- (eps_sp+1-log(Q))+1/(1-Q*Np)+(eps_sp)/(1-Q*Np)^2 ... % THIS LINE DIFFERS from na
-    %    + H + (kA*dA^2/2)*Np/(lattc)^2; %this term is the hydrophobic + mech energy
-    % AMP version - with area exclusion (same as Na)
-    mupccc = delt * lb * (-2*Q*(N2+0.5)*SumC(10,kap,a) + Q*2*pi / kap * (N1 + 2*N2 + Q*Np)/a^2 ...
-        - Q * (-1*m1+(N1+2*N2+1)*(m1 + mp)/2+Q*Np*mp ...
-        - 0.5*((mp - m1)-1/delt*(a^2/lattc^2)*(Mp(Q, kap, lattc) - M1(Q, kap, lattc))))/a^2 ...
-        - Q/dp)+log(Np*(1-Q*Np)^(Q-1)/(0.5-N1-N2-Q*Np)^Q) - (eps_sp+1-log(Q))+1/(1-Q*Np)+(eps_sp)/(1-Q*Np)^2 ...
-        + H + (kA*dA^2/2)*Np/(lattc)^2; %this term is the hydrophobic + mech energy
-end
-
-function mu1ccm = mu1ccm(i, a, N1, Np)
-    kap = kappa(i);
-    m1 = M1(Q, kap,a);
-    mu1ccm = Delta(i) * lb * (2*pi / kap * (N1 + Q*Np -1)/a^2 - 1 *((N1 - 1) * m1 ...
-        + Q*Np*(m1 + Mp(Q, kap, a))/2)/a^2  - 1/d1) + log(N1/(1-N1-Q*Np));
-end
-
-function mupccm = mupccm(i, a, N1, Np)
-    kap = kappa(i);
-    m1 = M1(Q, kap,a);
-    mp = Mp(Q,kap,a);
-    mupccm = Delta(i) * lb * (2*Q*pi / kap * (N1 + Q*Np -1)/a^2 - Q *( -1*m1 ...
-        + N1*(m1 + mp)/2+Q*Np*mp- 0.5*((mp ...
-        - m1) - 1/Delta(i)*(a^2/lattc^2)*(Mp(Q,kap,lattc)-M1(Q, kap, lattc))))/a^2 ...
-        - Q/dp) + log(Np*(1-Q*Np)^(Q-1)/(1-N1-Q*Np)^Q)-(eps_sp+1-log(Q))+1/(1-Q*Np)+(eps_sp)/(1-Q*Np)^2 ...
-        + H + (kA*dA^2/2)*Np/(lattc)^2; %this term is the hydrophobic + mech energy
-end
-
-%{
-% (9) First "cond" thing
-% COMMENTS: this may need to be tweaked
-function cond = cond(i,aa,d1)
-    func = @(x) mu1b(i,x) - mu1c(i,aa,x,d1);
-    x0 = 1; % was 0.1 before, but now I can use fzero and get valid results for plot2()
-    ob = fzero(func, x0);
-    a = ob;
-    res = a;
-    cond = res;
-end
-%}
-
-% (10) Block of plot stuff
-% COMMENTS: this WILL need to be tweaked
-
-% Fig10, LPS_Ma.pdf    
-
-function sigma1r1 = sigma1r1(i, aa)
-    sigma1r1 = cond(i, aa,d1)*aa^2;
-end
-
-function sigma1eff = sigma1eff(i, aa)
-    sigma1eff = (1/aa^2 - cond(i, aa,d1));  % Same condition as Fig10c in LPS_Ma.pdf
-end
-
-function sigma1reff = sigma1reff(i, aa)
-    sigma1reff = 1 - cond(i, aa,d1)*aa^2;
-end
-
-function sigma2r1 = sigma2r1(i, aa)
-    tmp = cond2(i,aa,d1,d2);
-    sigma2r1 = tmp(1);
-end
-
-function sigma2r2 = sigma2r2(i, aa)
-    tmp = cond2(i,aa,d1,d2);
-    sigma2r2 = 0.5 + tmp(2);
-end
-
-function sigma2r2t = sigma2r2t(i, aa)
-    tmp = cond2(i,aa,d1,d2);
-    sigma2r2t = tmp(2);
-end
-
-function negsigma2reff = negsigma2reff(i, aa)
-    tmp = cond2(i,aa,d1,d2);
-    negsigma2reff = tmp(1) + 2*tmp(2);  % Same condition as Fig10c in LPS_Ma.pdf
-end
-
-function sigmapr1 = sigmapr1(i, aa)
-    tmp_p = condp(i, aa);
-    sigmapr1 = tmp_p(1);
-end
-
-function sigmapr2t = sigmapr2t(i, aa)
-    tmp_p = condp(i, aa);
-    sigmapr2t = tmp_p(2);
-end
-
-function sigmapr2 = sigmapr2(i, aa)
-    tmp_p = condp(i, aa);
-    sigmapr2 = 0.5 + tmp_p(2);
-end
-
-function sigmaprp = sigmaprp(i, aa)
-    tmp_p = condp(i, aa);
-    sigmaprp = tmp_p(3);
-end
-
-function negsigmapreff = negsigmapreff(i, aa)
-    tmp_p = condp(i, aa);
-    negsigmapreff = tmp_p(1) + 2*tmp_p(2) + Q*tmp_p(3);  % (*Same condiion as Fig10c in LPS_Ma.pdf)*)
-end
-
-% this function was left commented out:  
-% (its just negsigmapreff(i,aa) output divided by aa^2)
-function sigmaeffp = sigmaeffp(i,aa)  % Translation Verified
-    tmp_p = conp(i,aa);
-    sigmaeffp = (tmp_p(1) + 2*tmp_p(2) + Q*tmp_p(3) ) / aa^2;
-end
-
-function sigmampr1 = sigmampr1(i, aa)
-    tmp_mp = condmp(i, aa);
-    sigmampr1 = tmp_mp(1);
-end
-
-function sigmamprp = sigmamprp(i, aa)
-    tmp_mp = condmp(i, aa);
-    sigmamprp = tmp_mp(2);
-end
-
-function negsigmampreff = negsigmampreff(i, aa)
-    tmp_mp = condmp(i, aa);
-    tmp_p = condp(i, aa);
-    negsigmampreff = tmp_mp(1) + Q*tmp_p(2);   % MATT: not sure if its condmp..(2) or condp..(2) but he had the latter, i think it should be the first
-end
-
 % (11) The free energy expressions
-function FreeEnergyp = FreeEnergyp(i, aa) % NEW: Correction terms
+function FreeEnergyp = FreeEnergyp(i, aa, ions) % NEW: Correction terms
     % repeated variables
     kap = kappa(i);
     delt = Delta(i);
     m1 = M1(Q, kap, aa);
     mp = Mp(Q, kap, aa);
-    m1_lattc = M1(Q, kap, lattc);
-    mp_lattc = Mp(Q, kap, lattc);
-    ion = condp(i, aa);
-    
-    % F_LPS components
-    es = delt * pi * lb / kap * (ion(1)+2*ion(2)+Q*ion(3))^2/aa^2;
-    entr = (ion(1) * log(ion(1)) + (ion(2)+0.5) * log((ion(2)+0.5)) + ion(3) * log(ion(3)) + (0.5-ion(1)-ion(2)-Q*ion(3)) * log(0.5-ion(1)-ion(2)-Q*ion(3))) + (-ion(1) * mu1b(i,ion(1)) - (ion(2)+0.5) * mu2b(i,ion(2)) - ion(3) * mupb(i,ion(3)));
-    
-    % (THIS IS WITH AREA EXLUSION) 
-    entr2 = ((1-Q)/Q) * (1 - Q*ion(3)) * log(1 - Q*ion(3)) - ion(3)*(eps_sp+1-log(Q)) - log(1-Q*ion(3))/Q + (eps_sp/Q)/(1-Q*ion(3));
-    
-    % (THIS IS WITHOUT AREA EXCLUSION - currently disabled)
-    %entr2 = ((1-Q)/Q) * (1 - Q*ion(3)) * log(1 - Q*ion(3)); %-ion(3)*(eps_sp+1-log(Q)) -log(1-Q*ion(3))/Q+(eps_sp/Q)/(1-Q*ion(3));
-    
-    % this was commented out in AMP original, probably depricated: (*corr = \[CapitalDelta][i] * lb * ((-0.5*M1[Q, \[Kappa][i], aa]*((ion[[1]]+2*ion[[2]])^2) +M1[Q, \[Kappa][i], lattc]*Q*ion[[3]] - 0.5(M1[Q,\[Kappa][i], aa]+Mp[Q, \[Kappa][i], aa])*(Q*ion[[3]])*(ion[[1]]+2*ion[[2]]+1)-0.5M1[Q, \[Kappa][i], aa]*(Q*ion[[3]])^2)/aa^2      +2*(ion[[2]]+0.5)(0.5-ion[[1]]-ion[[2]]-Q*ion[[3]]) * SumC[10, \[Kappa][i], aa] + (-ion[[1]]/\[Delta]1 - 2(ion[[2]]+0.5)/\[Delta]2- Q*ion[[3]]/\[Delta]p)) - 0*ion[[1]]*Log[Kbtest[i, 1, \[Delta]1]/(4/3*Pi*\[Delta]1^3)] - 0*(ion[[2]]+0.5)*Log[Kbtest[i, 2, \[Delta]2]/(4/3*Pi*\[Delta]2^3)];*)  
-    corr = delt * lb * ((-0.5*m1*((ion(1)+2*ion(2))^2) + m1*Q*ion(3) - 0.5*(m1 + mp)*(Q*ion(3))*(ion(1)+2*ion(2)+1)-0.5*mp*(Q*ion(3))^2  + 0.5*Q*ion(3)*((mp - m1)-1/delt*aa^2/lattc^2*(mp_lattc - m1_lattc)))/aa^2 + 2*(ion(2)+0.5)*(0.5-ion(1)-ion(2)-Q*ion(3)) * SumC(10, kap, aa) + (-ion(1)/d1 - 2*(ion(2)+0.5)/d2- Q*ion(3)/dp)); 
-    mech = (1/4)*kA*(dA*ion(3)/lattc)^2;
-    hydro = ion(3)*H;
-    res = es + entr + corr + entr2 + hydro + mech;  % sum components
-    FreeEnergyp = res;
+    expand_factor = 1 - Q*ions(3);
+    % compute components
+    flps_elec = delt*lb*( ...
+        (pi/kap - m1/2) * (ions(1) + 2*ions(2) + Q*ions(3) - 1)^2 / (expand_factor * aa)^2 ...
+        - (mp - m1)/2 * (Q*ions(3)*(ions(1) + 2*ions(2) + Q*ions(3))) / (expand_factor * aa)^2 ...
+        - (ions(1)/d1 + 2*ions(2)/d2 + Q*ions(3)/dp) / expand_factor ...
+        - 2*SumC(10, kap, aa) * ions(2)*(1 - ions(1) - ions(2)) / expand_factor^2);
+    flps_entr = (ions(1)*log(ions(1)/(n1*v1)) + ions(2)*log(ions(2)/(n2*v2)) + ions(3)*log(ions(3)/np_array(i)*vp) ...
+        - (ions(1) + ions(2) + ions(3)) * log(expand_factor) ... 
+        + (1 - ions(1) - ions(2)) * log((1 - ions(1) - ions(2)) / expand_factor) ...
+        + (1-Q)/Q * log(1/expand_factor) - ions(3)*(eps_sp + 1 - log(Q)) ...
+        - (log(1/expand_factor) - eps_sp/(1-Q*ions(3)/expand_factor))*expand_factor/Q) / expand_factor;
+    flps_chem = (ions(1)*0.5*lb*((delt-1)/d1 + kap/(1 + kap*r1)) ...
+        + ions(2)*0.5*4*lb*((delt-1)/d2 + kap/(1 + kap*r2)) ...
+        + ions(3)*0.5*Q*lb*((delt-1)*(1/dp + (mp-m1)/aa^2) + kap/(1 + kap*r1))) / expand_factor;
+    flps_mech = (1/4)*kA*(dA*ions(3)/lattc)^2;
+    flps_hydr = ions(3)*H;
+    % sum components
+    FreeEnergyp = flps_elec + flps_entr + + flps_chem + flps_mech + flps_hydr;  
 end  
 
-function FreeEnergy0 = FreeEnergy0(i, aa)
-    es = Delta(i) * lb * 1 / aa^4 * (pi/ kappa(i));
-    res = es;
-    FreeEnergy0 = res;
+% (12) Solve the free energy for bound ion fractions
+function [ions, flps] = minimize_flps(i, aa)
+    ions_guess = [0.1; 0.1; 0.1];
+    lowerb = [1e-5; 1e-5; 1e-5];
+    upperb = [1.0; 1.0; 1.0];
+    A = [1.0, 1.0, Q; 0.0, 0.0, 0.0; 0.0, 0.0, 0.0];
+    b = [1.0; 0.0; 0.0];
+    func = @(x)FreeEnergyp(i, aa, x);
+    [ions, flps] = fmincon(func, ions_guess, A, b, [], [], lowerb, upperb, []);
 end
-
 
 % (13) Tension expressions
 % COMMENTS: how to modify when a itself is a function, a(Np)
-function Tension = Tension(i, a0)
-    Tension = ( FreeEnergy(i,  sqrt((1-del)*a0^2))  -  FreeEnergy(i,  sqrt((1+del)*a0^2))) / (2*del*a0^2);
-end
-
-function Tension2 = Tension2(i, a0)
-    Tension2 = ( FreeEnergy2(i, sqrt((1-del)*a0^2))  -  FreeEnergy2(i, sqrt((1+del)*a0^2))) / (2*del*a0^2);
-end
-
 function Tensionp = Tensionp(i, a0)
     Tensionp = ( FreeEnergyp(i, sqrt((1-del)*a0^2))  -  FreeEnergyp(i, sqrt((1+del)*a0^2))) / (2*del*a0^2);
 end
@@ -508,23 +292,24 @@ end
 % Some reused plotting constants/lists
 len = length(np_array);
 
-% Plot Fractional ite Occupancy (AMP modified)
-% Plots the fractional site occupancy based on [AMP] for N1, N2, QNp
+
+% Plot Fractional Site Occupancy (AMP modified) Plots the fractional site
+% occupancy based on [AMP] for N1, N2, QNp
 function plot_frac_site_AMP = plot_frac_site_AMP()
     xlist = 10^6*np_array;
     ylist_1 = zeros(1,len);
     ylist_2 = zeros(1,len);
     ylist_p = zeros(1,len);
     for i = 1:len
-        condp_tmp = condp(i,lattc);
-        ylist_1(i) = condp_tmp(1); % from sigmapr1(i,lattc)
-        ylist_2(i) = 0.5 + condp_tmp(2); % from sigmapr2(i,lattc)
-        ylist_p(i) = Q*(condp_tmp(3)); % from sigmaprp(i,lattc)
+        [ions, flps] = minimize_flps(i, lattc);
+        ylist_1(i) = ions(1); % from sigmapr1(i,lattc)
+        ylist_2(i) = ions(2); % from sigmapr2(i,lattc)
+        ylist_p(i) = Q*ions(3); % from sigmaprp(i,lattc)
     end
     h = figure
     plot(xlist,ylist_1,':bs',xlist,ylist_2,':ks',xlist,ylist_p,':rs')
     xmax = 1.01*np_array(len)*10^6;
-    axis([0,xmax,-0.01,1.01]) %xmin xmax ymin ymax
+    axis([0,xmax,-0.01,0.31]) %xmin xmax ymin ymax
     title(['Fractional Site Occupancy vs [AMP]; [Na^{+}] =  ', num2str(n1), ' M, [Mg^{2+}] = ', num2str(n2), ' M'])
     xlabel('[AMP] (\muM)')
     ylabel('Fractional Site Occupancy')
@@ -532,24 +317,23 @@ function plot_frac_site_AMP = plot_frac_site_AMP()
     saveas(h, 'amp_frac_site_MH.jpg')
 end
 
-% Plot Fractional Charge Occupancy (AMP modified)
-% Plots the fractional CHARGE occupancy based on [AMP] for N1, N2, QNp
-%
+% Plot Fractional Charge Occupancy (AMP modified) Plots the fractional
+% CHARGE occupancy based on [AMP] for N1, 2*N2, QNp
 function plot_frac_charge_AMP = plot_frac_charge_AMP()
     xlist = 10^6*np_array;
     ylist_1 = zeros(1,len);
     ylist_2 = zeros(1,len);
     ylist_p = zeros(1,len);
     for i = 1:len
-        condp_tmp = condp(i,lattc);
-        ylist_1(i) = condp_tmp(1); % from sigmapr1(i,lattc)
-        ylist_2(i) = 2*(0.5 + condp_tmp(2)); % from 2*sigmapr2(i,lattc)
-        ylist_p(i) = Q*(condp_tmp(3)); % from sigmaprp(i,lattc)
+        [ions, flps] = minimize_flps(i, lattc);
+        ylist_1(i) = ions(1); % from sigmapr1(i,lattc)
+        ylist_2(i) = 2*ions(2); % from 2*sigmapr2(i,lattc)
+        ylist_p(i) = Q*ions(3); % from sigmaprp(i,lattc)
     end
-    h = figure
+    h = figure;
     plot(xlist,ylist_1,':bs',xlist,ylist_2,':ks',xlist,ylist_p,':rs')
     xmax = 1.01*np_array(len)*10^6;
-    axis([0,xmax,-0.01,1.01]) %xmin xmax ymin ymax
+    axis([0,xmax,-0.01,0.31]) %xmin xmax ymin ymax
     title(['Fractional Charge Occupancy vs [AMP]; [Na^{+}] =  ', num2str(n1), ' M, [Mg^{2+}] = ', num2str(n2), ' M'])
     xlabel('[AMP] (\muM)')
     ylabel('Fractional Charge Occupancy')
@@ -557,8 +341,8 @@ function plot_frac_charge_AMP = plot_frac_charge_AMP()
     saveas(h, 'amp_frac_charge_MH.jpg')
 end
 
-% Plot Free Energy
-% Free energy to understand tension
+%{
+% Plot Free energy to understand tension
 function plot_freep_AMP = plot_freep_AMP()    
     aa = lattc;
     xlist = 10^6*np_array;
@@ -569,21 +353,24 @@ function plot_freep_AMP = plot_freep_AMP()
     end
     h = figure
     plot(xlist,ylist_free_p,':bs')
-    %axis([0,160,-0.5,0.5])
-    %set(gca,'XTickLabel',[0:20:140]) % May need to remove this (could interfere with later plots)
+    %axis([0,160,-0.5,0.5]) set(gca,'XTickLabel',[0:20:140]) % May need to
+    %remove this (could interfere with later plots)
     title(['Free Energy vs [AMP]; [Na^{+}] =  ', num2str(1000*n1),' mM, [Mg^{2+}] = ', num2str(1000*n2), ' mM'])
     xlabel('[AMP] (\muM)')
     ylabel('Free Energy (k_{B} T)')
     saveas(h, 'amp_freep_MH.jpg')
 end
 
-% Plot Tension (AMP Modified)
-% Delta_pi (tension) with monovalent ions, divalent ions, and AMPs  Fig17, LPS_Ma.pdf 
-%   [Table[{n1[[i]],
-%   Tensionp[i,lattc]},{i,1,pts}], 
-%   PlotRange->{{0,0.21},{-2,2}}, 
-%   AxesLabel->{"[\!\(\*SuperscriptBox[\(Na\), \(+\)]\)](M)","\[CapitalDelta]\[pi] (\!\(\*SubscriptBox[\(k\), \(B\)]\)T/\!\(\*SuperscriptBox[\(nm\), \(2\)]\))"}, 
-%   PlotLabel->" \[CapitalDelta]\[pi] vs [\!\(\*SuperscriptBox[\(Na\), \(+\)]\)], [\!\(\*SuperscriptBox[\(Mg\), \(\(2\)\(+\)\)]\)]=0.5mM, [AMP]=0.5\[Micro]M, revised"]*)
+% Plot Tension (AMP Modified) Delta_pi (tension) with monovalent ions,
+% divalent ions, and AMPs  Fig17, LPS_Ma.pdf
+%   [Table[{n1[[i]], Tensionp[i,lattc]},{i,1,pts}],
+%   PlotRange->{{0,0.21},{-2,2}},
+%   AxesLabel->{"[\!\(\*SuperscriptBox[\(Na\),
+%   \(+\)]\)](M)","\[CapitalDelta]\[pi] (\!\(\*SubscriptBox[\(k\),
+%   \(B\)]\)T/\!\(\*SuperscriptBox[\(nm\), \(2\)]\))"}, PlotLabel->"
+%   \[CapitalDelta]\[pi] vs [\!\(\*SuperscriptBox[\(Na\), \(+\)]\)],
+%   [\!\(\*SuperscriptBox[\(Mg\), \(\(2\)\(+\)\)]\)]=0.5mM,
+%   [AMP]=0.5\[Micro]M, revised"]*)
 function plot_tensionp_AMP = plot_tensionp_AMP()    
     aa = lattc;
     xlist = 10^6*np_array;
@@ -618,9 +405,7 @@ function plot_tensionmech_AMP = plot_tensionmech_AMP()
     saveas(h, 'amp_tensionmech_MH.jpg')
 end
 
-% ==========================
-% Save Data
-% ==========================
+% ========================== Save Data ==========================
 
 function get_custom_data = get_custom_data()
     xlist = np_array;
@@ -640,7 +425,8 @@ function get_custom_data = get_custom_data()
         ylist_tensionmech(i) = TensionMech(i,lattc);
     end
     ylist_22 = 2*ylist_2; % reps frac charge occ for Mg
-    %M = real([np_array', ylist_1', ylist_2', ylist_22', ylist_p', ylist_free_p', ylist_tensionp']);
+    %M = real([np_array', ylist_1', ylist_2', ylist_22', ylist_p',
+    %ylist_free_p', ylist_tensionp']);
     M = real([np_array', ylist_1', ylist_2', ylist_22', ylist_p', ylist_free_p', ylist_tensionp', ylist_tensionmech']);
     filename = sprintf('data\\AMP_%s_data_na_%d_mM_mg_%1.1f_mM.txt', tag, 1000*n1, 1000*n2);
     fid = fopen(filename, 'w');
@@ -692,22 +478,17 @@ function get_tension_data = get_tension_data()
     get_tension_data = M;
 end
 
-% ==========================
-% Main
-% ==========================
+% ========================== Main ==========================
+%}
 
 function main = main()
-    %plot_frac_site_AMP()
-    %plot_frac_charge_AMP()
-    %plot_freep_AMP()    
-    plot_tensionp_AMP()
-    plot_tensionmech_AMP()
-    %get_line()
-    %get_tension_data()
-    %n1
-    %n2*1000
-    %np_array*1000*1000
-    outputs = get_custom_data();
+    plot_frac_site_AMP() 
+    plot_frac_charge_AMP() 
+    %plot_freep_AMP()
+    %plot_tensionp_AMP()
+    %plot_tensionmech_AMP()
+    %get_line() get_tension_data() n1 n2*1000 np_array*1000*1000
+    %outputs = get_custom_data();
 end
 
 main()
@@ -715,6 +496,5 @@ main()
 end
 
 %{
-TODO
-    1. fix mupccc, mu1c
+TODO 1. fix mupccc, mu1c
 %}
