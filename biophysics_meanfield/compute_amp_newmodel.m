@@ -306,10 +306,11 @@ function plot_frac_site_AMP = plot_frac_site_AMP()
         ylist_2(i) = ions(2); % from sigmapr2(i,lattc)
         ylist_p(i) = Q*ions(3); % from sigmaprp(i,lattc)
     end
-    h = figure
+    h = figure;
     plot(xlist,ylist_1,':bs',xlist,ylist_2,':ks',xlist,ylist_p,':rs')
     xmax = 1.01*np_array(len)*10^6;
-    axis([0,xmax,-0.01,0.31]) %xmin xmax ymin ymax
+    ymax = 1.01;
+    axis([0,xmax,-0.01,ymax]) %xmin xmax ymin ymax
     title(['Fractional Site Occupancy vs [AMP]; [Na^{+}] =  ', num2str(n1), ' M, [Mg^{2+}] = ', num2str(n2), ' M'])
     xlabel('[AMP] (\muM)')
     ylabel('Fractional Site Occupancy')
@@ -333,7 +334,8 @@ function plot_frac_charge_AMP = plot_frac_charge_AMP()
     h = figure;
     plot(xlist,ylist_1,':bs',xlist,ylist_2,':ks',xlist,ylist_p,':rs')
     xmax = 1.01*np_array(len)*10^6;
-    axis([0,xmax,-0.01,0.31]) %xmin xmax ymin ymax
+    ymax = 1.01;
+    axis([0,xmax,-0.01,ymax]) %xmin xmax ymin ymax
     title(['Fractional Charge Occupancy vs [AMP]; [Na^{+}] =  ', num2str(n1), ' M, [Mg^{2+}] = ', num2str(n2), ' M'])
     xlabel('[AMP] (\muM)')
     ylabel('Fractional Charge Occupancy')
