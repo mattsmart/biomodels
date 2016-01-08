@@ -259,7 +259,7 @@ function FreeEnergyp = FreeEnergyp(i, aa, ions) % NEW: Correction terms
     flps_mech = (1/4)*kA*(dA*ions(3)/lattc)^2;
     flps_hydr = ions(3)*H;
     % sum components
-    FreeEnergyp = flps_elec + flps_entr + + flps_chem + flps_mech + flps_hydr;  
+    FreeEnergyp = flps_elec + flps_entr + flps_chem + flps_mech + flps_hydr;  
 end  
 
 % (12) Solve the free energy for bound ion fractions
