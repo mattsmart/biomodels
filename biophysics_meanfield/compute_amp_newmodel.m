@@ -221,7 +221,7 @@ function SumC = SumC(m,kappa,lc)
     summ = 0;
     for i = 1:(m*partition)
         for j = 0:i
-            tempor = 1 / ((lc/partition)*sqrt(i^2 + j^2))*exp(-kappa*sqrt(i^2+j^2)*(lc/partition))*(-1)^(i+j);
+            tempor = 1 / ((lc/partition)*sqrt(i^2 + j^2))*exp(-kappa*sqrt(i^2+j^2)*(lc/partition))*(-1)^(i+j-1);
 			if j == 0
                 summ = summ + 4*tempor;
             elseif j == i
