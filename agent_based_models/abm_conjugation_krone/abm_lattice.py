@@ -321,7 +321,7 @@ def divide(cell, empty_neighbours, new_cell_locations, dict_counts):
 
         # plasmid segregation module
         if cell.plasmid_amensal != 0:
-            daughter_plasmid_amensal = np.random.binomial(cell.plasmid_amensal, 0.5)
+            daughter_plasmid_amensal = np.random.binomial(cell.plasmid_amensal - 1, 0.5)
             if daughter_plasmid_amensal == 0 or daughter_plasmid_amensal == cell.plasmid_amensal:
                 print "NOTE SEGREGATIVE LOSS EVENT"
             cell.plasmid_amensal -= daughter_plasmid_amensal
