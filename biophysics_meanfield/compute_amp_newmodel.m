@@ -258,8 +258,13 @@ function FreeEnergyp = FreeEnergyp(i, aa, ions) % NEW: Correction terms
         + ions(3)*0.5*Q*lb*((delt-1)*(1/dp + (mp-m1)/aa^2) + kap/(1 + kap*r1))) / expand_factor;
     flps_mech = (1/4)*kA*(dA*ions(3)/lattc)^2;
     flps_hydr = ions(3)*H;
-    % sum components
+    % sum components (full expression for free energy)
     FreeEnergyp = flps_elec + flps_entr + flps_chem + flps_mech + flps_hydr;  
+    % free energy with no mechanical AND no hydrophobic contribution below:
+    %FreeEnergyp = flps_elec + flps_entr + flps_chem + 0*flps_mech + 0*flps_hydr;  
+    % simple electric approximation of the free energy below:
+    %flps_simple = delt*lb * pi/kap * (ions(1) + 2*ions(2) + Q*ions(3) - 1)^2 / (expand_factor * aa)^2;
+    %FreeEnergyp = flps_simple + flps_entr + flps_chem;  
 end  
 
 % (12) Solve the free energy for bound ion fractions
@@ -276,7 +281,10 @@ end
 % (13) Tension expressions
 % COMMENTS: how to modify when a itself is a function, a(Np)
 function Tensionp = Tensionp(i, a0)
-    Tensionp = ( FreeEnergyp(i, sqrt((1-del)*a0^2))  -  FreeEnergyp(i, sqrt((1+del)*a0^2))) / (2*del*a0^2);
+    %Tensionp = ( FreeEnergyp(i, sqrt((1-del)*a0^2))  -  FreeEnergyp(i, sqrt((1+del)*a0^2))) / (2*del*a0^2);
+    [~, flps_down] = minimize_flps(i, sqrt((1-del)*a0^2));
+    [~, flps_up] = minimize_flps(i, sqrt((1+del)*a0^2));
+    Tensionp = (flps_up - flps_down) / (2*del*a0^2);
 end
 
 % (14) Mechanical Tension (See latex formulation mechanical energy cost)
@@ -292,6 +300,81 @@ end
 % Some reused plotting constants/lists
 len = length(np_array);
 
+% Plots various quantities and saves them into individual figures
+% (1) plots fractional site occupancy
+% (2) plots fractional charge occupancy
+% (3) plots free energy
+% (4) plots electric + mechanical tension
+% (5) plots purely mechanical tension
+function plot_all_results = plot_all_results()
+    conversion_factor = 4.114; % for k_B*T/nm^2 -> mN/m
+    xlist = 10^6*np_array;
+    ylist_1 = zeros(1,len);
+    ylist_2 = zeros(1,len);
+    ylist_2x2 = zeros(1,len);
+    ylist_p = zeros(1,len);
+    ylist_freep = zeros(1,len);
+    ylist_tensionp = zeros(1,len);
+    ylist_tensionmech = zeros(1,len);
+    for i = 1:len
+        [ions, flps] = minimize_flps(i, lattc);
+        ylist_1(i) = ions(1); % from sigmapr1(i,lattc)
+        ylist_2(i) = ions(2); % from sigmapr2(i,lattc)
+        ylist_2x2(i) = 2*ions(2);
+        ylist_p(i) = Q*ions(3); % from sigmaprp(i,lattc)
+        ylist_freep(i) = flps;
+        ylist_tensionp(i) = Tensionp(i, lattc);
+        ylist_tensionmech(i) = (kA*dA/lattc^2)*ions(3);
+    end
+    % Plot fractional site occupancy
+    h1 = figure;
+    plot(xlist,ylist_1,':bs',xlist,ylist_2,':ks',xlist,ylist_p,':rs')
+    xmax = 1.01*np_array(len)*10^6;
+    ymax = 1.01;
+    axis([0,xmax,-0.01,ymax]) %xmin xmax ymin ymax
+    title(['Fractional Site Occupancy vs [AMP]; [Na^{+}] =  ', num2str(n1), ' M, [Mg^{2+}] = ', num2str(n2), ' M'])
+    xlabel('[AMP] (\muM)')
+    ylabel('Fractional Site Occupancy')
+    legend('N_{1} / N_{0} (Na^{+})','N_{2} / N_{0} (Mg^{2+})','Q*N_{p} / N_{0} (AMP)','Location','northeast')
+    saveas(h1, 'amp_frac_site.jpg')
+    % Plot fractional charge occupancy
+    h2 = figure;
+    plot(xlist,ylist_1,':bs',xlist,ylist_2x2,':ks',xlist,ylist_p,':rs')
+    xmax = 1.01*np_array(len)*10^6;
+    ymax = 1.01;
+    axis([0,xmax,-0.01,ymax]) %xmin xmax ymin ymax
+    title(['Fractional Charge Occupancy vs [AMP]; [Na^{+}] =  ', num2str(n1), ' M, [Mg^{2+}] = ', num2str(n2), ' M'])
+    xlabel('[AMP] (\muM)')
+    ylabel('Fractional Charge Occupancy')
+    legend('N_{1} / N_{0} (Na^{+})','2*N_{2} / N_{0} (Mg^{2+})','Q*N_{p} / N_{0} (AMP)','Location','northeast')
+    saveas(h2, 'amp_frac_charge.jpg')
+    % Plot free energy
+    h3 = figure;
+    plot(xlist,ylist_freep,':bs')
+    %axis([0,160,-0.5,0.5]) set(gca,'XTickLabel',[0:20:140]) % May need to
+    %remove this (could interfere with later plots)
+    title(['Free Energy vs [AMP]; [Na^{+}] =  ', num2str(1000*n1),' mM, [Mg^{2+}] = ', num2str(1000*n2), ' mM'])
+    xlabel('[AMP] (\muM)')
+    ylabel('Free Energy (k_{B} T)')
+    saveas(h3, 'amp_freep.jpg')
+    % Plot differential tension
+    h4 = figure;
+    plot(xlist,ylist_tensionp,':bs')
+    %axis([0,10^6*np_array(len),-0.6,1.0])
+    title(['\Delta \Pi vs [AMP]; [Na^{+}] =  ', num2str(1000*n1),' mM, [Mg^{2+}] = ', num2str(1000*n2), ' mM'])
+    xlabel('[AMP] (\muM)')
+    ylabel('\Delta \Pi (k_{B} T / nm^2)')
+    saveas(h4, 'amp_tensionp.jpg')
+    % Plot mechanical tension
+    h5 = figure;
+    plot(xlist,ylist_tensionmech,':bs')
+    axis([0,10^6*np_array(len),0,40.0])
+    title(['\Delta \Pi (Mechanical) vs [AMP]; [Na^{+}] =  ', num2str(1000*n1),' mM, [Mg^{2+}] = ', num2str(1000*n2), ' mM'])
+    xlabel('[AMP] (\muM)')
+    %ylabel('\Delta \Pi Mechanical (k_{B} T / nm^2) ')
+    ylabel('\Delta \Pi Mechanical (mN / m) ')
+    saveas(h5, 'amp_tensionmech.jpg')
+end
 
 % Plot Fractional Site Occupancy (AMP modified) Plots the fractional site
 % occupancy based on [AMP] for N1, N2, QNp
@@ -343,7 +426,6 @@ function plot_frac_charge_AMP = plot_frac_charge_AMP()
     saveas(h, 'amp_frac_charge_MH.jpg')
 end
 
-%{
 % Plot Free energy to understand tension
 function plot_freep_AMP = plot_freep_AMP()    
     aa = lattc;
@@ -481,11 +563,11 @@ function get_tension_data = get_tension_data()
 end
 
 % ========================== Main ==========================
-%}
 
 function main = main()
-    plot_frac_site_AMP() 
-    plot_frac_charge_AMP() 
+    plot_all_results()
+    %plot_frac_site_AMP() 
+    %plot_frac_charge_AMP() 
     %plot_freep_AMP()
     %plot_tensionp_AMP()
     %plot_tensionmech_AMP()
