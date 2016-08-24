@@ -1,4 +1,4 @@
-function outputs = compute_amp(n1,n2)
+function outputs = compute_amp_newmodel(n1,n2)
 
 % Conversion notes: 
 %   will need to call n1eff(i) with i = 1
@@ -43,7 +43,7 @@ v1 = 4/3*pi*(r1)^3;    % Na ion volume in nm^3
 v2 = 4/3*pi*(r2)^3;    % Mg ion volume in nm^3
 
 partition = 1;
-lattc = 0.8;           % Assumed Lattice Constant, this is a0 in nm
+lattc = 0.64;          % Assumed Lattice Constant, this is a0 in nm (was 0.8)
 del = 0.001;           % del multiplied to x to get \[Delta]x...del canot be too much smaller or bigger than x. If its too small, the approx of the numerator / that for denumerator can vary greatly...
 %(*Also, not mentioned here is that we have r1=0.34nm, r2=0.43nm where ri is the hydration radius for ions*)
 
@@ -256,7 +256,7 @@ function FreeEnergyp = FreeEnergyp(i, aa, ions) % NEW: Correction terms
     flps_chem = (ions(1)*0.5*lb*((delt-1)/d1 + kap/(1 + kap*r1)) ...
         + ions(2)*0.5*4*lb*((delt-1)/d2 + kap/(1 + kap*r2)) ...
         + ions(3)*0.5*Q*lb*((delt-1)*(1/dp + (mp-m1)/aa^2) + kap/(1 + kap*r1))) / expand_factor;
-    flps_mech = (1/4)*kA*(dA*ions(3)/lattc)^2;
+    flps_mech = (1/2)*kA*lattc^2*(ions(3)*Q)^2 / expand_factor;
     flps_hydr = ions(3)*H;
     % sum components (full expression for free energy)
     FreeEnergyp = flps_elec + flps_entr + flps_chem + flps_mech + flps_hydr;  
