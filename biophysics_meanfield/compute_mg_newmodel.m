@@ -322,7 +322,7 @@ function plot_all_results = plot_all_results()
     xmax = 1.01*n2_array(len)*10^3;
     ymax = 1.01;
     axis([0,xmax,-0.01,ymax]) %xmin xmax ymin ymax
-    title(['Fractional Site Occupancy vs [Mg^{2+}]; [Na^{+}] =  ', num2str(n1), ' M, [AMP] = ', num2str(np*10^6), '\muM'])
+    title(['Fractional Site Occupancy vs [Mg^{2+}]; [Na^{+}] =  ', num2str(1000*n1), ' mM, [AMP] = ', num2str(np*10^6), '\muM'])
     xlabel('[Mg^{2+}] (mM)')
     ylabel('Fractional Site Occupancy')
     legend('N_{1} / N_{0} (Na^{+})','N_{2} / N_{0} (Mg^{2+})','Q*N_{p} / N_{0} (AMP)','Location','northeast')
@@ -333,7 +333,7 @@ function plot_all_results = plot_all_results()
     xmax = 1.01*n2_array(len)*10^3;
     ymax = 1.01;
     axis([0,xmax,-0.01,ymax]) %xmin xmax ymin ymax
-    title(['Fractional Site Occupancy vs [Mg^{2+}]; [Na^{+}] =  ', num2str(n1), ' M, [AMP] = ', num2str(np*10^6), '\muM'])
+    title(['Fractional Charge Occupancy vs [Mg^{2+}]; [Na^{+}] =  ', num2str(1000*n1), ' mM, [AMP] = ', num2str(np*10^6), '\muM'])
     xlabel('[Mg^{2+}] (mM)')
     ylabel('Fractional Charge Occupancy')
     legend('N_{1} / N_{0} (Na^{+})','2*N_{2} / N_{0} (Mg^{2+})','Q*N_{p} / N_{0} (AMP)','Location','northeast')
