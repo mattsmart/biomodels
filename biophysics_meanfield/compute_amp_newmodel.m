@@ -53,11 +53,6 @@ lipidT = 0.4;             % is \Tau
 nu = 0.378*6;             % is \Nu
 lh = 0.2;
 
-% could be used to fit initial guess problem
-init1=[0.000994, 0.001809, 0.002605, 0.003418, 0.004259, 0.005130, 0.006030, 0.006959, 0.007915, 0.008895];
-init2=[0.485380, 0.478778, 0.479529, 0.479266, 0.478510, 0.477475, 0.476264, 0.474937, 0.473528, 0.472059];
-temp = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-
 epsilon = 1/40;   % eps=80 for water and 2 for membrane, so epsilon = eta = eps lipid / eps water
 lb = 0.69625;     % Bjerrum length
 d = 4.0;          % r_min for Kb
@@ -65,11 +60,13 @@ d = 4.0;          % r_min for Kb
 % ==========================
 % New constants
 % ==========================
-A0 = 1.2e9;            % Initial surface area in nm^2
-cJ  = 4.114*10^(-18);  % conversion factor for mJ to kB T 
-cA = 10^(18);          % convert m^2 to nm^2
-k0 = 120; %120 %100;
-kA = k0/(cA*cJ);       % Area compression modulus in mN/m = mJ/m^2, with Joules converted to kbT
+A0 = 1.2e9;                    % Initial surface area in nm^2
+cJ  = 4.114*10^(-18);          % conversion factor for mJ to kB T 
+cA = 10^(18);                  % convert m^2 to nm^2
+k0_monolayer = 120; %120 %100;
+k0_bilayer = 2*k0_monolayer;
+k0 = k0_bilayer;               % CHOOSE monolayer or bilayer
+kA = k0_bilayer/(cA*cJ);       % Area compression modulus in mN/m = mJ/m^2, with Joules converted to kbT
 
 % ==========================
 % AMP constants
@@ -179,7 +176,7 @@ function n2eff = n2eff(n2_index)
 end
 
 % ~~~~~~~~~~~~~~~~~~~~~~~
-% declare these as globals using dummy variable
+% declare these as globals using dummy variable (both fixed like n1 n2)
 n1eff_amp = n1eff(1);
 n2eff_amp = n2eff(1);
 % ~~~~~~~~~~~~~~~~~~~~~~~
