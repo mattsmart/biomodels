@@ -280,7 +280,7 @@ end
 % (13) Tension expressions
 % COMMENTS: how to modify when a itself is a function, a(Np)
 function Tensionp = Tensionp(i, a0)
-    %Tensionp = ( FreeEnergyp(i, sqrt((1-del)*a0^2))  -  FreeEnergyp(i, sqrt((1+del)*a0^2))) / (2*del*a0^2);
+    %Tensionp = ( FreeEnergyp(i, sqrt((1-del)*a0^2))  -  FreeEnergyp(i, sqrt((1+del)*a0^2))) / (2*del*a0^2);  OLD
     [~, flps_down] = minimize_flps(i, sqrt((1-del)*a0^2));
     [~, flps_up] = minimize_flps(i, sqrt((1+del)*a0^2));
     Tensionp = (flps_up - flps_down) / (2*del*a0^2);
@@ -288,9 +288,8 @@ end
 
 % (14) Mechanical Tension (See latex formulation mechanical energy cost)
 function TensionMech = TensionMech(i, a0)
-    ion = condp(i, a0);
-    sigmap = ion(3);
-    TensionMech = (kA*dA/a0^2)*sigmap;
+    ions = condp(i, a0);
+    TensionMech = kA*Q*ions(3);  % adjusted aug 24 2016
 end
 
 % ==========================
@@ -306,7 +305,7 @@ len = length(np_array);
 % (4) plots electric + mechanical tension
 % (5) plots purely mechanical tension
 function plot_all_results = plot_all_results()
-    conversion_factor = 4.114; % for k_B*T/nm^2 -> mN/m
+    conversion_factor = 4.114;  % for 1 k_B*T/nm^2 = 4.114 mN/m
     xlist = 10^6*np_array;
     ylist_1 = zeros(1,len);
     ylist_2 = zeros(1,len);
@@ -323,7 +322,7 @@ function plot_all_results = plot_all_results()
         ylist_p(i) = Q*ions(3); % from sigmaprp(i,lattc)
         ylist_freep(i) = flps;
         ylist_tensionp(i) = Tensionp(i, lattc);
-        ylist_tensionmech(i) = (kA*dA/lattc^2)*ions(3);
+        ylist_tensionmech(i) = kA*Q*ions(3);
     end
     % Plot fractional site occupancy
     h1 = figure;
@@ -362,16 +361,15 @@ function plot_all_results = plot_all_results()
     %axis([0,10^6*np_array(len),-0.6,1.0])
     title(['\Delta \Pi vs [AMP]; [Na^{+}] =  ', num2str(1000*n1),' mM, [Mg^{2+}] = ', num2str(1000*n2), ' mM'])
     xlabel('[AMP] (\muM)')
-    ylabel('\Delta \Pi (k_{B} T / nm^2)')
+    ylabel('\Delta \Pi Differential (k_{B} T / nm^2)')
     saveas(h4, 'amp_tensionp.jpg')
     % Plot mechanical tension
     h5 = figure;
     plot(xlist,ylist_tensionmech,':bs')
-    axis([0,10^6*np_array(len),0,40.0])
+    axis([0,10^6*np_array(len),0,10.0])
     title(['\Delta \Pi (Mechanical) vs [AMP]; [Na^{+}] =  ', num2str(1000*n1),' mM, [Mg^{2+}] = ', num2str(1000*n2), ' mM'])
     xlabel('[AMP] (\muM)')
-    %ylabel('\Delta \Pi Mechanical (k_{B} T / nm^2) ')
-    ylabel('\Delta \Pi Mechanical (mN / m) ')
+    ylabel('\Delta \Pi Mechanical (k_{B} T / nm^2)')
     saveas(h5, 'amp_tensionmech.jpg')
 end
 
