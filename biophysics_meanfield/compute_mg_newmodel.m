@@ -294,7 +294,7 @@ len = length(n2_array);
 % (1) plots fractional site occupancy
 % (2) plots fractional charge occupancy
 % (3) plots free energy
-% (4) plots electric + mechanical tension
+% (4) plots differntial tension
 % (5) plots purely mechanical tension
 function plot_all_results = plot_all_results()
     conversion_factor = 4.114;  % for 1 k_B*T/nm^2 = 4.114 mN/m
@@ -365,147 +365,41 @@ function plot_all_results = plot_all_results()
     saveas(h5, 'amp_tensionmech.jpg')
 end
 
-% Plot Fractional Site Occupancy (AMP modified) Plots the fractional site
-% occupancy based on [AMP] for N1, N2, QNp
-function plot_frac_site_AMP = plot_frac_site_AMP()
-    xlist = 10^6*np_array;
+% ========================== Save Data ==========================
+
+% Plots various quantities and saves them into individual figures
+% (1) stores fractional site occupancy
+% (2) stores fractional charge occupancy
+% (3) stores free energy
+% (4) stores differential tension
+% (5) stores mechanical tension
+function get_custom_data = get_custom_data()
+    conversion_factor = 4.114;  % for 1 k_B*T/nm^2 = 4.114 mN/m
+    xlist = 10^3*n2_array;
     ylist_1 = zeros(1,len);
     ylist_2 = zeros(1,len);
+    ylist_2x2 = zeros(1,len);
     ylist_p = zeros(1,len);
+    ylist_freep = zeros(1,len);
+    ylist_tensionp = zeros(1,len);
+    ylist_tensionmech = zeros(1,len);
     for i = 1:len
         [ions, flps] = minimize_flps(i, lattc);
         ylist_1(i) = ions(1); % from sigmapr1(i,lattc)
         ylist_2(i) = ions(2); % from sigmapr2(i,lattc)
+        ylist_2x2(i) = 2*ions(2);
         ylist_p(i) = Q*ions(3); % from sigmaprp(i,lattc)
+        ylist_freep(i) = flps;
+        ylist_tensionp(i) = Tensionp(i, lattc);
+        ylist_tensionmech(i) = kA*Q*ions(3);
     end
-    h = figure;
-    plot(xlist,ylist_1,':bs',xlist,ylist_2,':ks',xlist,ylist_p,':rs')
-    xmax = 1.01*np_array(len)*10^6;
-    ymax = 1.01;
-    axis([0,xmax,-0.01,ymax]) %xmin xmax ymin ymax
-    title(['Fractional Site Occupancy vs [AMP]; [Na^{+}] =  ', num2str(n1), ' M, [Mg^{2+}] = ', num2str(n2), ' M'])
-    xlabel('[AMP] (\muM)')
-    ylabel('Fractional Site Occupancy')
-    legend('N_{1} / N_{0} (Na^{+})','N_{2} / N_{0} (Mg^{2+})','Q*N_{p} / N_{0} (AMP)','Location','northeast')
-    saveas(h, 'amp_frac_site_MH.jpg')
-end
-
-% Plot Fractional Charge Occupancy (AMP modified) Plots the fractional
-% CHARGE occupancy based on [AMP] for N1, 2*N2, QNp
-function plot_frac_charge_AMP = plot_frac_charge_AMP()
-    xlist = 10^6*np_array;
-    ylist_1 = zeros(1,len);
-    ylist_2 = zeros(1,len);
-    ylist_p = zeros(1,len);
-    for i = 1:len
-        [ions, flps] = minimize_flps(i, lattc);
-        ylist_1(i) = ions(1); % from sigmapr1(i,lattc)
-        ylist_2(i) = 2*ions(2); % from 2*sigmapr2(i,lattc)
-        ylist_p(i) = Q*ions(3); % from sigmaprp(i,lattc)
-    end
-    h = figure;
-    plot(xlist,ylist_1,':bs',xlist,ylist_2,':ks',xlist,ylist_p,':rs')
-    xmax = 1.01*np_array(len)*10^6;
-    ymax = 1.01;
-    axis([0,xmax,-0.01,ymax]) %xmin xmax ymin ymax
-    title(['Fractional Charge Occupancy vs [AMP]; [Na^{+}] =  ', num2str(n1), ' M, [Mg^{2+}] = ', num2str(n2), ' M'])
-    xlabel('[AMP] (\muM)')
-    ylabel('Fractional Charge Occupancy')
-    legend('N_{1} / N_{0} (Na^{+})','2*N_{2} / N_{0} (Mg^{2+})','Q*N_{p} / N_{0} (AMP)','Location','northeast')
-    saveas(h, 'amp_frac_charge_MH.jpg')
-end
-
-% Plot Free energy to understand tension
-function plot_freep_AMP = plot_freep_AMP()    
-    aa = lattc;
-    xlist = 10^6*np_array;
-    len = length(xlist);
-    ylist_free_p = zeros(1,len);
-    for i = 1:len
-        ylist_free_p(i) = FreeEnergyp(i,lattc)
-    end
-    h = figure
-    plot(xlist,ylist_free_p,':bs')
-    %axis([0,160,-0.5,0.5]) set(gca,'XTickLabel',[0:20:140]) % May need to
-    %remove this (could interfere with later plots)
-    title(['Free Energy vs [AMP]; [Na^{+}] =  ', num2str(1000*n1),' mM, [Mg^{2+}] = ', num2str(1000*n2), ' mM'])
-    xlabel('[AMP] (\muM)')
-    ylabel('Free Energy (k_{B} T)')
-    saveas(h, 'amp_freep_MH.jpg')
-end
-
-% Plot Tension (AMP Modified) Delta_pi (tension) with monovalent ions,
-% divalent ions, and AMPs  Fig17, LPS_Ma.pdf
-%   [Table[{n1[[i]], Tensionp[i,lattc]},{i,1,pts}],
-%   PlotRange->{{0,0.21},{-2,2}},
-%   AxesLabel->{"[\!\(\*SuperscriptBox[\(Na\),
-%   \(+\)]\)](M)","\[CapitalDelta]\[pi] (\!\(\*SubscriptBox[\(k\),
-%   \(B\)]\)T/\!\(\*SuperscriptBox[\(nm\), \(2\)]\))"}, PlotLabel->"
-%   \[CapitalDelta]\[pi] vs [\!\(\*SuperscriptBox[\(Na\), \(+\)]\)],
-%   [\!\(\*SuperscriptBox[\(Mg\), \(\(2\)\(+\)\)]\)]=0.5mM,
-%   [AMP]=0.5\[Micro]M, revised"]*)
-function plot_tensionp_AMP = plot_tensionp_AMP()    
-    aa = lattc;
-    xlist = 10^6*np_array;
-    ylist_tensionp = zeros(1,len);
-    for i = 1:len
-        ylist_tensionp(i) = Tensionp(i,lattc);
-    end
-    h = figure
-    plot(xlist,ylist_tensionp,':bs')
-    %axis([0,10^6*np_array(len),-0.6,1.0])
-    title(['\Delta \Pi vs [AMP]; [Na^{+}] =  ', num2str(1000*n1),' mM, [Mg^{2+}] = ', num2str(1000*n2), ' mM'])
-    xlabel('[AMP] (\muM)')
-    ylabel('\Delta \Pi (k_{B} T / nm^2)')
-    saveas(h, 'amp_tensionp_MH.jpg')
-end
-
-% Plot Mechanical Tension
-function plot_tensionmech_AMP = plot_tensionmech_AMP()    
-    conversion_factor = 4.114
-    xlist = 10^6*np_array;
-    ylist_tensionmech = zeros(1,len);
-    for i = 1:len
-        ylist_tensionmech(i) = TensionMech(i,lattc) * conversion_factor;
-    end
-    h = figure
-    plot(xlist,ylist_tensionmech,':bs')
-    axis([0,10^6*np_array(len),0,40.0])
-    title(['\Delta \Pi (Mechanical) vs [AMP]; [Na^{+}] =  ', num2str(1000*n1),' mM, [Mg^{2+}] = ', num2str(1000*n2), ' mM'])
-    xlabel('[AMP] (\muM)')
-    %ylabel('\Delta \Pi Mechanical (k_{B} T / nm^2) ')
-    ylabel('\Delta \Pi Mechanical (mN / m) ')
-    saveas(h, 'amp_tensionmech_MH.jpg')
-end
-
-% ========================== Save Data ==========================
-
-function get_custom_data = get_custom_data()
-    xlist = np_array;
-    ylist_1 = zeros(1,len);
-    ylist_2 = zeros(1,len);
-    ylist_p = zeros(1,len);
-    ylist_free_p = zeros(1,len);
-    ylist_tensionp = zeros(1,len);
-    ylist_tensionmech = zeros(1,len);
-    for i = 1:len
-        condp_tmp = condp(i,lattc);
-        ylist_1(i) = condp_tmp(1); % from sigmapr1(i,lattc)
-        ylist_2(i) = 0.5 + condp_tmp(2); % from sigmapr2(i,lattc)
-        ylist_p(i) = Q*(condp_tmp(3)); % from sigmaprp(i,lattc)
-        ylist_free_p(i) = FreeEnergyp(i,lattc);
-        ylist_tensionp(i) = Tensionp(i,lattc);
-        ylist_tensionmech(i) = TensionMech(i,lattc);
-    end
-    ylist_22 = 2*ylist_2; % reps frac charge occ for Mg
-    %M = real([np_array', ylist_1', ylist_2', ylist_22', ylist_p',
-    %ylist_free_p', ylist_tensionp']);
-    M = real([np_array', ylist_1', ylist_2', ylist_22', ylist_p', ylist_free_p', ylist_tensionp', ylist_tensionmech']);
-    filename = sprintf('data\\AMP_%s_data_na_%d_mM_mg_%1.1f_mM.txt', tag, 1000*n1, 1000*n2);
+    % Store data as csv
+    M = real([n2_array', ylist_1', ylist_2', ylist_2x2', ylist_p', ylist_freep', ylist_tensionp', ylist_tensionmech']);
+    filename = sprintf('data\\Mg_%s_data_na_%d_mM_amp_%1.1f_uM.txt', tag, 1000*n1, 1e6*np);
     fid = fopen(filename, 'w');
-    col_id = sprintf('_na_%d_mg_%1.1f_%s', 1000*n1, 1000*n2, tag);
-    col_header = sprintf('AMP,n1%s,n2%s,2_n2%s,Q_np%s,Free%s,Ten%s,TenMech%s\n', col_id, col_id, col_id, col_id, col_id, col_id, col_id);
-    fprintf(fid,col_header);
+    col_id = sprintf('_na_%d_amp_%1.1f_%s', 1000*n1, 1e6*np, tag);
+    col_header = sprintf('Mg,n1%s,n2%s,2_n2%s,Q_np%s,Free%s,TenDiff%s,TenMech%s\n', col_id, col_id, col_id, col_id, col_id, col_id, col_id);
+    fprintf(fid, col_header);
     fclose(fid)
     dlmwrite(filename,M,'-append','precision',4)
     get_custom_data = M;
@@ -554,14 +448,14 @@ end
 % ========================== Main ==========================
 
 function main = main()
-    plot_all_results()
+    %plot_all_results()
     %plot_frac_site_AMP() 
     %plot_frac_charge_AMP() 
     %plot_freep_AMP()
     %plot_tensionp_AMP()
     %plot_tensionmech_AMP()
     %get_line() get_tension_data() n1 n2*1000 np_array*1000*1000
-    %outputs = get_custom_data();
+    outputs = get_custom_data();
 end
 
 main()
