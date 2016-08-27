@@ -5,6 +5,8 @@
 n1_default = 0.1; % in units of M
 n2_default = 10^(-3)*0.1; % in units of molar
 
+np_vals = 10^(-6)*[0.1, 0.5, 1.0, 2.0, 5.0, 10.0];
+
 np_vals_3A1 = 10^(-6)*[0,0.1,1,10];
 n2_vals_3A2 = 10^(-3)*[0.1,0.5,1.0,5.0];
 np_vals_3B1 = 10^(-6)*[0,0.1,1,10];
@@ -22,7 +24,7 @@ np_vals_paper1_extra = 10^(-6)*[5,10];
 
 n2_vals_MHL_test = 10^(-3)*[5.0,10.0]; % in units of molar
 
-n2_vals_various_AMPs = 10^(-3)*[0.1,0.5,1.0,5.0];
+n2_vals_various_AMPs = 10^(-3)*[0.1,0.5,1.0,5.0,10.0];
 
 % ==========================
 % Main
@@ -114,35 +116,44 @@ TENSION vs [AMP] microM
 % Mg Figures
 % Get Plot 4B1 Data (still need "0" amp curve)
 for i = 1:3
-    n1 = n1_default;
-    np = np_vals_paper1(i);
+    %n1 = n1_default;
+    %np = np_vals_paper1(i);
     %data = compute_mg(n1,np)
 end
 for i = 1:2
-    n1 = n1_default;
-    np = np_vals_paper1_extra(i);
+    %n1 = n1_default;
+    %np = np_vals_paper1_extra(i);
     %data = compute_mg(n1,np)
 end
 
 % Get Plot 4B2 Data
 for i = 1:5
-    n1 = n1_default;
-    n2 = n2_vals_4B2(i);
-    %data = compute_amp(n1,n2)
+    %n1 = n1_default;
+    %n2 = n2_vals_4B2(i);
+    %data = compute_amp_newmodel(n1,n2)
 end
 
 % Get Plot 4B2 Data (bigger spread)
 for i = 1:2
-    n1 = n1_default;
-    n2 = n2_vals_MHL_test(i);
-    %data = compute_amp(n1,n2);
+    %n1 = n1_default;
+    %n2 = n2_vals_MHL_test(i);
+    %data = compute_amp_newmodel(n1,n2);
 end
 
 
 % Get AMP plots for various AMPs
 for i = 1:4
+    %n1 = n1_default;
+    %n2 = n2_vals_various_AMPs(i);
+    %data = compute_amp_newmodel(n1,n2);
+end
+
+
+% Get Mg plots for various AMPs
+for i = 1:7
     n1 = n1_default;
-    n2 = n2_vals_various_AMPs(i);
-    data = compute_amp(n1,n2);
+    %n1 = 0.150;
+    np = np_vals(i);
+    data = compute_mg_newmodel(n1,np);
 end
 
