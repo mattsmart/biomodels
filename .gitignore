@@ -17,3 +17,4 @@ differential_equations/pde/plots/
 agent_based_models/abm_conjugation_simple/runs/
 agent_based_models/abm_conjugation_krone/runs/
 agent_based_models/abm_allelopathy/runs/
+biophysics_meanfield/data/
