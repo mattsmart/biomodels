@@ -143,17 +143,17 @@ end
 
 % Get AMP plots for various AMPs
 for i = 1:4
-    %n1 = n1_default;
-    %n2 = n2_vals_various_AMPs(i);
-    %data = compute_amp_newmodel(n1,n2);
+    n1 = n1_default;
+    n2 = n2_vals_various_AMPs(i);
+    data = compute_amp_newmodel(n1,n2);
 end
 
 
 % Get Mg plots for various AMPs
-for i = 1:7
-    n1 = n1_default;
+for i = 1:6
+    %n1 = n1_default;
     %n1 = 0.150;
-    np = np_vals(i);
-    data = compute_mg_newmodel(n1,np);
+    %np = np_vals(i);
+    %data = compute_mg_newmodel(n1,np);
 end
 

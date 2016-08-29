@@ -37,6 +37,8 @@ r1 = 0.34;             % Na ion radius in nm
 r2 = 0.43;             % Mg ion radius in nm
 v1 = 4/3*pi*(r1)^3;    % Na ion volume in nm^3
 v2 = 4/3*pi*(r2)^3;    % Mg ion volume in nm^3
+am_na = 0.022990;      % Na atomic mass kg/mol
+am_mg = 0.024305;      % Mg atomic mass kg/mol
 
 partition = 1;
 lattc = 0.64;          % Assumed Lattice Constant, this is a0 in nm (was 0.8, now 0.64)
@@ -73,24 +75,28 @@ dA_mgh2 = 3.00;
 H_mgh2 = -10;
 vp_mgh2 = 2.5;
 eps_sp_mgh2 = 25/(4*pi); % 4x1 rectangle
+am_mgh2 = 2.466900;      % MGH2 atomic mass kg/mol
 % gramicidin S
 Q_gs = 2;
 dA_gs = 1.75;
 H_gs = -10; % ??????
 vp_gs = 1.4;
-eps_sp_gs = 9/(2*pi); % 2x1 rectangle  
+eps_sp_gs = 9/(2*pi);    % 2x1 rectangle
+am_gs = 9999999999;      % atomic mass kg/mol (fix************************)
 % polymyxin B
 Q_pb = 6;
 dA_pb = 2.00;
 H_pb = -10; % ??????
 vp_pb = 1.70;
-eps_sp_pb = 9/(2*pi); % 2x1 rectangle
+eps_sp_pb = 9/(2*pi);    % 2x1 rectangle
+am_pb = 9999999999;      % atomic mass kg/mol (fix************************)
 % protegrin-1
 Q_pg1 = 7;
 dA_pg1 = 2.5;
 H_pg1 = -10; % ??????
 vp_pg1 = 2.60;
-eps_sp_pg1 = 16/(3*pi); % 3x1 rectangle
+eps_sp_pg1 = 16/(3*pi);  % 3x1 rectangle
+am_pg1 = 9999999999;     % atomic mass kg/mol (fix************************)
 
 % only 1 or none may be "on"
 gs_flag = 0;
@@ -103,29 +109,35 @@ if gs_flag
     H = H_gs;                % Hydrophobic energy gain in units of kB T per peptide bound
     vp = vp_gs;              % Peptide volume in nm^3 in solution (free)
     eps_sp = eps_sp_gs;      % Peptide shape parameter (from scaled particle theory)
-    tag = 'gs'
+    am_amp = am_gs;          % Peptide atomic mass kg/mol
 elseif pb_flag
     Q = Q_pb;                % Charge # for peptides
     dA = dA_pb;              % Change in total lattice area in nm^2 per peptide bound (known to be approx 200-300 Angstrom^2 per peptide binding)
     H = H_pb;                % Hydrophobic energy gain in units of kB T per peptide bound
     vp = vp_pb;              % Peptide volume in nm^3 in solution (free)
     eps_sp = eps_sp_pb;      % Peptide shape parameter (from scaled particle theory)
-    tag = 'pb'
+    am_amp = am_pb;          % Peptide atomic mass kg/mol
 elseif pg1_flag
     Q = Q_pg1;                % Charge # for peptides
     dA = dA_pg1;              % Change in total lattice area in nm^2 per peptide bound (known to be approx 200-300 Angstrom^2 per peptide binding)
     H = H_pg1;                % Hydrophobic energy gain in units of kB T per peptide bound
     vp = vp_pg1;              % Peptide volume in nm^3 in solution (free)
     eps_sp = eps_sp_pg1;      % Peptide shape parameter (from scaled particle theory)
-    tag = 'pg1'
+    am_amp = am_pg1;          % Peptide atomic mass kg/mol
 else
     Q = Q_mgh2;                % Charge # for peptides
     dA = dA_mgh2;              % Change in total lattice area in nm^2 per peptide bound (known to be approx 200-300 Angstrom^2 per peptide binding)
     H = H_mgh2;                % Hydrophobic energy gain in units of kB T per peptide bound
     vp = vp_mgh2;              % Peptide volume in nm^3 in solution (free)
     eps_sp = eps_sp_mgh2;      % Peptide shape parameter (from scaled particle theory)
-    tag = 'mgh2'
+    am_amp = am_mgh2;          % Peptide atomic mass kg/mol
 end
+
+% ==========================
+% IO
+% ==========================
+tag = 'Mg';
+filetag = sprintf('data\\%s_na_%d_mM_amp_%1.1f_uM', tag, 1000*n1, 1e6*np);
 
 % ==========================
 % Declaring Functions
@@ -228,6 +240,12 @@ end
 
 % (11) The free energy expressions
 function FreeEnergyp = FreeEnergyp(i, aa, ions) % NEW: Correction terms
+    % molarity to SI conversion (mol/L to #/nm^3 via 6.022*10^23 #/mol * 1000 L/m^3 * (10^-9)^3 m^3/nm^3)
+    % note 6.022*10^23 * 1000 * 10^-27 = 0.6022
+    molarity_to_si = 0.6022;
+    n1_si = n1 * molarity_to_si;
+    n2_si = n2_array(i) * molarity_to_si;
+    np_si = np * molarity_to_si;
     % repeated variables
     kap = kappa(i);
     delt = Delta(i);
@@ -240,7 +258,7 @@ function FreeEnergyp = FreeEnergyp(i, aa, ions) % NEW: Correction terms
         - (mp - m1)/2 * (Q*ions(3)*(ions(1) + 2*ions(2) + Q*ions(3))) / (expand_factor * aa)^2 ...
         - (ions(1)/d1 + 2*ions(2)/d2 + Q*ions(3)/dp) / expand_factor ...
         - 2*SumC(10, kap, aa) * ions(2)*(1 - ions(1) - ions(2)) / expand_factor^2);
-    flps_entr = (ions(1)*log(ions(1)/(n1*v1)) + ions(2)*log(ions(2)/(n2_array(i)*v2)) + ions(3)*log(ions(3)/np*vp) ...
+    flps_entr = (ions(1)*log(ions(1)/(n1_si*v1)) + ions(2)*log(ions(2)/(n2_si*v2)) + ions(3)*log(ions(3)/np_si*vp) ...
         + (1 - ions(1) - ions(2)) * log(1 - ions(1) - ions(2)) ...
         - ions(3)*(eps_sp + 1 - log(Q)) ...
         + eps_sp*expand_factor^2/Q )/expand_factor;    
@@ -316,6 +334,18 @@ function plot_all_results = plot_all_results()
         ylist_tensionp(i) = Tensionp(i, lattc);
         ylist_tensionmech(i) = kA*Q*ions(3);
     end
+    
+    % Store data as csv
+    M = real([n2_array', ylist_1', ylist_2', ylist_2x2', ylist_p', ylist_freep', ylist_tensionp', ylist_tensionmech']);
+    filename = sprintf('data\\Mg_%s_data_na_%d_mM_amp_%1.1f_uM.txt', tag, 1000*n1, 1e6*np);
+    fid = fopen(filename, 'w');
+    col_id = sprintf('_na_%d_amp_%1.1f_%s', 1000*n1, 1e6*np, tag);
+    col_header = sprintf('Mg,n1%s,n2%s,2_n2%s,Q_np%s,Free%s,TenDiff%s,TenMech%s\n', col_id, col_id, col_id, col_id, col_id, col_id, col_id);
+    fprintf(fid, col_header);
+    fclose(fid)
+    dlmwrite(filename,M,'-append','precision',4)
+    get_custom_data = M;
+    
     % Plot fractional site occupancy
     h1 = figure;
     plot(xlist,ylist_1,':bs',xlist,ylist_2,':ks',xlist,ylist_p,':rs')
@@ -326,7 +356,8 @@ function plot_all_results = plot_all_results()
     xlabel('[Mg^{2+}] (mM)')
     ylabel('Fractional Site Occupancy')
     legend('N_{1} / N_{0} (Na^{+})','N_{2} / N_{0} (Mg^{2+})','Q*N_{p} / N_{0} (AMP)','Location','northeast')
-    saveas(h1, 'amp_frac_site.jpg')
+    plotname = sprintf('%s_frac_site.jpg', filetag);
+    saveas(h1, plotname)
     % Plot fractional charge occupancy
     h2 = figure;
     plot(xlist,ylist_1,':bs',xlist,ylist_2x2,':ks',xlist,ylist_p,':rs')
@@ -337,7 +368,8 @@ function plot_all_results = plot_all_results()
     xlabel('[Mg^{2+}] (mM)')
     ylabel('Fractional Charge Occupancy')
     legend('N_{1} / N_{0} (Na^{+})','2*N_{2} / N_{0} (Mg^{2+})','Q*N_{p} / N_{0} (AMP)','Location','northeast')
-    saveas(h2, 'amp_frac_charge.jpg')
+    plotname = sprintf('%s_frac_charge.jpg', filetag);
+    saveas(h2, plotname)
     % Plot free energy
     h3 = figure;
     plot(xlist,ylist_freep,':bs')
@@ -346,7 +378,8 @@ function plot_all_results = plot_all_results()
     title(['Free Energy vs [AMP]; [Na^{+}] =  ', num2str(1000*n1),' mM, [AMP] = ', num2str(np*10^6), '\muM'])
     xlabel('[Mg^{2+}] (mM)')
     ylabel('Free Energy (k_{B} T)')
-    saveas(h3, 'amp_freep.jpg')
+    plotname = sprintf('%s_freep.jpg', filetag);
+    saveas(h3, plotname)
     % Plot differential tension
     h4 = figure;
     plot(xlist,ylist_tensionp,':bs')
@@ -354,7 +387,8 @@ function plot_all_results = plot_all_results()
     title(['\Delta \Pi vs [Mg^{2+}]; [Na^{+}] =  ', num2str(1000*n1),' mM, [AMP] = ', num2str(np*10^6), '\muM'])
     xlabel('[Mg^{2+}] (mM)')
     ylabel('\Delta \Pi Differential (k_{B} T / nm^2)')
-    saveas(h4, 'amp_tensionp.jpg')
+    plotname = sprintf('%s_tensionp.jpg', filetag);
+    saveas(h4, plotname)
     % Plot mechanical tension
     h5 = figure;
     plot(xlist,ylist_tensionmech,':bs')
@@ -362,7 +396,8 @@ function plot_all_results = plot_all_results()
     title(['\Delta \Pi (Mechanical) vs [AMP]; [Na^{+}] =  ', num2str(1000*n1),' mM, [AMP] = ', num2str(np*10^6), '\muM'])
     xlabel('[Mg^{2+}] (mM)')
     ylabel('\Delta \Pi Mechanical (k_{B} T / nm^2)')
-    saveas(h5, 'amp_tensionmech.jpg')
+    plotname = sprintf('%s_tensionmech.jpg', filetag);
+    saveas(h5, plotname)
 end
 
 % ========================== Save Data ==========================
@@ -393,16 +428,7 @@ function get_custom_data = get_custom_data()
         ylist_tensionp(i) = Tensionp(i, lattc);
         ylist_tensionmech(i) = kA*Q*ions(3);
     end
-    % Store data as csv
-    M = real([n2_array', ylist_1', ylist_2', ylist_2x2', ylist_p', ylist_freep', ylist_tensionp', ylist_tensionmech']);
-    filename = sprintf('data\\Mg_%s_data_na_%d_mM_amp_%1.1f_uM.txt', tag, 1000*n1, 1e6*np);
-    fid = fopen(filename, 'w');
-    col_id = sprintf('_na_%d_amp_%1.1f_%s', 1000*n1, 1e6*np, tag);
-    col_header = sprintf('Mg,n1%s,n2%s,2_n2%s,Q_np%s,Free%s,TenDiff%s,TenMech%s\n', col_id, col_id, col_id, col_id, col_id, col_id, col_id);
-    fprintf(fid, col_header);
-    fclose(fid)
-    dlmwrite(filename,M,'-append','precision',4)
-    get_custom_data = M;
+
 end
 
 function get_tensionmech_data = get_tensionmech_data()
@@ -412,7 +438,7 @@ function get_tensionmech_data = get_tensionmech_data()
         ylist_tensionmech(i) = TensionMech(i,lattc)*conversion_factor;
     end
     M = real([np_array', ylist_tensionmech'])
-    filename = sprintf('data\\AMP_MechTen_na_%d_mM_mg_%1.1f_mM_k_%d.txt', 1000*n1, 1000*n2, k0);
+    filename = sprintf('%s.txt', filetag);
     fid = fopen(filename, 'w');
     col_id = sprintf('_na_%d_mg_%1.1f_k_%d', 1000*n1, 1000*n2, k0);
     col_header = sprintf('AMP,MechTen%s\n', col_id);
