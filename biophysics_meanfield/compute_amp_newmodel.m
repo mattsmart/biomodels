@@ -43,7 +43,7 @@ v1 = 4/3*pi*(r1)^3;    % Na ion volume in nm^3
 v2 = 4/3*pi*(r2)^3;    % Mg ion volume in nm^3
 
 partition = 1;
-lattc = 0.64;          % Assumed Lattice Constant, this is a0 in nm (was 0.8, now 0.64)
+lattc = 0.644 %0.8;          % Assumed Lattice Constant, this is a0 in nm (was 0.8, now 0.64)
 del = 0.001;           % del multiplied to x to get \[Delta]x...del canot be too much smaller or bigger than x. If its too small, the approx of the numerator / that for denumerator can vary greatly...
 %(*Also, not mentioned here is that we have r1=0.34nm, r2=0.43nm where ri is the hydration radius for ions*)
 
@@ -63,7 +63,7 @@ d = 4.0;          % r_min for Kb
 A0 = 1.2e9;                    % Initial surface area in nm^2
 cJ  = 4.114*10^(-18);          % conversion factor for mJ to kB T 
 cA = 10^(18);                  % convert m^2 to nm^2
-k0_monolayer = 120; %120 %100;
+k0_monolayer = 120 %100;
 k0_bilayer = 2*k0_monolayer;
 k0 = k0_bilayer;               % CHOOSE monolayer or bilayer
 kA = k0/(cA*cJ);               % Area compression modulus in mN/m = mJ/m^2, with Joules converted to kbT
@@ -130,7 +130,7 @@ end
 % ==========================
 % IO
 % ==========================
-tag = 'AMP';
+tag = 'AMP_a0=0.644';
 filetag = sprintf('data\\%s_na_%d_mM_mg_%1.1f_mM', tag, 1000*n1, 1000*n2);
 
 % ==========================

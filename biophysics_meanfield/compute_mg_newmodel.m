@@ -41,7 +41,7 @@ am_na = 0.022990;      % Na atomic mass kg/mol
 am_mg = 0.024305;      % Mg atomic mass kg/mol
 
 partition = 1;
-lattc = 0.64;          % Assumed Lattice Constant, this is a0 in nm (was 0.8, now 0.64)
+lattc = 0.644;          % Assumed Lattice Constant, this is a0 in nm (was 0.8, now 0.64)
 del = 0.001;           % del multiplied to x to get \[Delta]x...del canot be too much smaller or bigger than x. If its too small, the approx of the numerator / that for denumerator can vary greatly...
 %(*Also, not mentioned here is that we have r1=0.34nm, r2=0.43nm where ri is the hydration radius for ions*)
 
@@ -136,7 +136,7 @@ end
 % ==========================
 % IO
 % ==========================
-tag = 'Mg';
+tag = 'Mg_a0=0.644';
 filetag = sprintf('data\\%s_na_%d_mM_amp_%1.1f_uM', tag, 1000*n1, 1e6*np);
 
 % ==========================
@@ -481,7 +481,7 @@ function main = main()
     %plot_tensionp_AMP()
     %plot_tensionmech_AMP()
     %get_line() get_tension_data() n1 n2*1000 np_array*1000*1000
-    outputs = get_custom_data();
+    plot_all_results();
 end
 
 main()
