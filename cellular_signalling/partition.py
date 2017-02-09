@@ -1,5 +1,4 @@
 from constants import *
-
 import numpy as np
 
 # compute partition function

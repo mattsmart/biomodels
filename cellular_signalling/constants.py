@@ -8,8 +8,8 @@ KBT = 0.1  # TODO for approp temp
 
 # concentration (mol/L) of ligands
 # TODO: remove these and solve for them?cant have these and mu_i as given
-l = [2.0, 0.5]
-assert len(l) == NUM_TYPE_LIGAND
+#l = [2.0, 0.5]
+#assert len(l) == NUM_TYPE_LIGAND
 
 # number of receptors available of each type
 m = [100]
