@@ -75,11 +75,15 @@ if N == 2 and M == 2 and K == 1:
     h2_tilde = H[0,1] + H[1,1]
     goveq = Eq(a * C_tilde * (L1**2) \
                + L1*(b*C_tilde*L2 + A_tilde*H[1,0] + (A[0,0] - gamma*s[0])*h1_tilde) \
-               + c*C_tilde*L2 - gamma*s[0] - L2*((gamma*s[0]-A[0,0])*h2_tilde + A_tilde*H[1,1]) \
+               + c*C_tilde*L2**2 - gamma*s[0] - L2*((gamma*s[0]-A[0,0])*h2_tilde + A_tilde*H[1,1]) \
                , 5)
-    p1 = plot_implicit(goveq, (L1, -4, 4), (L2, -4, 4), adaptive=False)
-    #p3 = plot_implicit(Eq(x**2 + y**2, 5), (x, -4, 4), (y, -4, 4), depth = 2)
-    #p4 = plot_implicit(Eq(x**2 + y**2, 5), (x, -5, 5), (y, -2, 2), adaptive=False)
-    #p5 = plot_implicit(Eq(x**2 + y**2, 5), (x, -5, 5), (y, -2, 2), adaptive=False, points=400)
+    extent = 10
+    #p1 = plot_implicit(goveq, (L1, -extent, extent), (L2, -extent, extent), adaptive=False)
+    #p1 = plot_implicit(goveq, (L1, -extent, extent), (L2, -extent, extent), adaptive=False, points=400)
+    fig = plt.figure()
+    p1 = plot_implicit(goveq, (L1, -extent, extent), (L2, -extent, extent), depth=2, title='test', xlabel='L1', ylabel='L2', save='tester.pdf')
+    #p1.title('Ligand concentrations satisfying s=%.2f (N=%d, M=%d, K=%d)' % (s[0],N,M,K))
+    #fig.savefig('test.pdf')
+
 
 # TODO: check goveq form not right.. check hyperbola to ellipse condition.. cleanup plot
