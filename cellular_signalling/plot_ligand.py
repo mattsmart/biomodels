@@ -5,12 +5,13 @@ from matplotlib import colors
 from mpl_toolkits.mplot3d import Axes3D
 from sympy import plot_implicit, symbols, Eq
 from sympy.plotting import plot as symplt
+from sympy.plotting import plot3d_parametric_line
 
 
 # specify setup
 N = 3  # num types ligands
-M = 1  # num types receptors
-K = 1  # num types output molecules
+M = 2  # num types receptors
+K = 2  # num types output molecules
 assert(N == 2 or N == 3)  # for plotting, though maybe use colourmap for 4d
 
 print "Settings: N = %d, M = %d, K = %d\n%d Ligand types\n%d Receptor types\n%d Response molecules\n" % (N,M,K,N,M,K)
@@ -63,7 +64,6 @@ if N == 2 and M == 2 and K == 1:
     h12 = 0.0
     h22 = 0.5
     s0 = 1.0
-    
     A_fixed = np.array([[A1_fixed],[A2_fixed]])
     W_fixed = np.array([[gamma_fixed]])
     H_fixed = np.array([[h11, h21], [h12, h22]])  # Note diagonalized H corresponds to no crosstalk
@@ -141,6 +141,103 @@ if N == 3 and M == 1 and K == 1:
     fig.savefig(plt_save + '.pdf')
 
 
-if N == 3 and M == 2 and K == 2:
-    A, W, H, s = get_parameters(N,M,K)
+if N == 3 and M == 2 and K == 1:
     print "not implemented"
+
+
+if N == 3 and M == 2 and K == 2:
+    print "not fully implemented, getting unexpected negative values"
+    # NOTE: using 3d parametric form of a line
+    # Note: this is 2 planes intersect as line (xi = hii lj + ... for x1, x2 solveable)
+    A11_fixed = 10.0
+    A21_fixed = 2.0
+    A12_fixed = 3.0
+    A22_fixed = 7.0
+    A_fixed = np.array([[A11_fixed, A21_fixed],[A12_fixed, A22_fixed]])
+    gamma_1 = 9.0
+    gamma_2 = 3.0
+    W_fixed = np.array([[gamma_1, 0], [0, gamma_2]])
+    h11 = 1.0  
+    h21 = 0.1
+    h12 = 0.1
+    h22 = 1.0
+    h31 = 0.5
+    h32 = 0.5
+    H_fixed = np.array([[h11, h21, h31], [h12, h22, h32]])  # Note diagonalized H corresponds to no crosstalk
+    s1 = 1.0
+    s2 = 2.0
+    s_fixed = np.array([[s1],[s2]])
+    # either use fixed param or randomize them (default)
+    A, W, H, s = get_parameters(N,M,K, A=A_fixed, W=W_fixed, H=H_fixed, s=s_fixed)
+
+    # setup and compute variables
+    gamma_dot_s = np.dot(W, s)    
+    Ainv = np.linalg.inv(A)
+    rvec = np.dot(Ainv, gamma_dot_s)  # getting negative rvec from this..
+    x1 = rvec[0][0]/(1+rvec[0][0])
+    x2 = rvec[1][0]/(1+rvec[1][0])
+    h11, h21, h31 = H[0,0:N+1]
+    h12, h22, h32 = H[1,0:N+1]
+
+    """
+    d1 = (h21/h22 * h12 - h11)
+    m1 = (h31 - h21/h22 * h32)/d1
+    y1 = (h21/h22 * x2 - x1)/d1
+    d2 = (h11/h12 * h22 - h21)
+    m2 = (h31 - h11/h12 * h32)/d2
+    y2 = (h11/h12 * x2 - x1)/d2
+    u = symbols('u')
+    p1 = plot3d_parametric_line(u*m1 + y1, u*m2 + y2, u, (u, 0, x1/h31), \
+                                xlabel='L1', ylabel='L2', zlabel='L3', title=plt_title, color='green')
+    """
+
+    # create surface
+    intercepts_1 = [(x1/h11,0,0), (0,x1/h21,0), (0,0,x1/h31)]
+    intercepts_2 = [(x2/h12,0,0), (0,x2/h22,0), (0,0,x2/h32)]
+    
+    L1range_1 = np.linspace(0.0, x1/h11, 100)
+    L2range_1 = np.linspace(0.0, x1/h21, 100)
+    xx1, yy1 = np.meshgrid(L1range_1, L2range_1)
+    z1 = (x1 - h11*xx1 - h21*yy1) * 1. /h31
+
+    L1range_2 = np.linspace(0.0, x2/h12, 100)
+    L2range_2 = np.linspace(0.0, x2/h22, 100)
+    xx2, yy2 = np.meshgrid(L1range_2, L2range_2)
+    z2 = (x2 - h12*xx2 - h22*yy2) * 1. /h32
+
+    # plot surface
+    plt_title = 'Ligand concentrations satisfying s1=%.2f, s2=%.2f  (N=%d, M=%d, K=%d)' % (s[0,0],s[1,0],N,M,K)
+    plt_save = 'l1vsl2vsl3_%d%d%d' % (N,M,K)
+    cmap = colors.ListedColormap(['white', 'red'])
+    #bounds=[0,5,10]
+    #norm = colors.BoundaryNorm(bounds, cmap.N)
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(111,projection='3d')
+    # plot both planes and their axes intercepts
+    ax.plot_surface(xx1, yy1, z1, alpha=0.4,  cmap=cmap, color='blue')
+    ax.plot_surface(xx2, yy2, z2, alpha=0.4,  cmap=cmap, color='green')
+    ax.scatter(intercepts_1[0] , intercepts_1[1] , intercepts_1[2],  color=['red','green','blue'])
+    ax.scatter(intercepts_2[0] , intercepts_2[1] , intercepts_2[2],  color=['red','green','blue'])
+    ax.set_zlim(0.0, max(intercepts_1[2][2], intercepts_2[2][2]))
+    # plot line that we think is the intercept
+    z = np.linspace(0, max(x1/h31, x2/h32), 100)
+    d1 = (h21/h22 * h12 - h11)
+    m1 = (h31 - h21/h22 * h32)/d1
+    y1 = (h21/h22 * x2 - x1)/d1
+    d2 = (h11/h12 * h22 - h21)
+    m2 = (h31 - h11/h12 * h32)/d2
+    y2 = (h11/h12 * x2 - x1)/d2
+    x = (m1*z + y1)
+    y = (m2*z + y2)
+    ax.plot(x, y, z, label='plane intersection')
+    
+
+    plt.title(plt_title, fontsize=10)
+    ax.legend()
+    ax.set_xlabel('L1')
+    ax.set_ylabel('L2')
+    ax.set_zlabel('L3')
+    #ax.view_init(5, 35)
+    plt.show()
+    fig.savefig(plt_save + '.pdf')
