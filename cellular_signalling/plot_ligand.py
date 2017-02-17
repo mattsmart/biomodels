@@ -9,9 +9,9 @@ from sympy.plotting import plot3d_parametric_line
 
 
 # specify setup
-N = 3  # num types ligands
+N = 2  # num types ligands
 M = 2  # num types receptors
-K = 2  # num types output molecules
+K = 1  # num types output molecules
 assert(N == 2 or N == 3)  # for plotting, though maybe use colourmap for 4d
 
 print "Settings: N = %d, M = %d, K = %d\n%d Ligand types\n%d Receptor types\n%d Response molecules\n" % (N,M,K,N,M,K)
@@ -56,8 +56,8 @@ if N == 2 and M == 1 and K == 1:
     fig.savefig('l1vsl2_%d%d%d.pdf' % (N,M,K))
 
 if N == 2 and M == 2 and K == 1:
-    A1_fixed = 5.0
-    A2_fixed = 5.0
+    A1_fixed = 6.0
+    A2_fixed = 6.0
     gamma_fixed = 9.9
     h11 = 1.0  
     h21 = 0.0
@@ -79,17 +79,19 @@ if N == 2 and M == 2 and K == 1:
     center_fixed = [-(A[1,0] - W[0,0]*s[0,0]) / (C_tilde*H[0,0]), -(A[0,0] - W[0,0]*s[0,0]) / (C_tilde * H[1,1])]
     print "center at", center_fixed, "if H is diagonal"
 
-    extent = 1000
+    extent = 100
     plt_title = 'Ligand concentrations satisfying s=%.2f (N=%d, M=%d, K=%d)' % (s[0],N,M,K)
     plt_save = 'l1vsl2_%d%d%d' % (N,M,K)
     #p1 = plot_implicit(goveq, (L1, -extent, extent), (L2, -extent, extent), adaptive=False)
     #p1 = plot_implicit(goveq, (L1, -extent, extent), (L2, -extent, extent), adaptive=False, points=400)
-    p1 = plot_implicit(goveq, (L1, -extent, extent), (L2, -extent, extent), depth=2, title=plt_title, xlabel='L1', ylabel='L2')
+    p1 = plot_implicit(goveq, (L1, -extent, extent), (L2, -extent, extent), depth=2, title=plt_title+'\n', xlabel='L1', ylabel='L2', fontsize=12)
     mplplt = p1._backend
     fig = mplplt.fig
     ax = fig.gca()
     note = 'A1 = %.2f \nA2 = %.2f \ngamma = %.2f \nh11 = %.2f, h21 = %.2f\nh12 = %.2f, h22 = %.2f' % (A[0,0], A[1,0], W[0,0], H[0,0], H[0,1], H[1,0], H[1,1])
     ax.text(p1.xlim[1]*0.55, p1.ylim[1]*0.6, note, fontsize=9)
+    ax.set_xlim([-100,100])
+    ax.set_ylim([-100,100])
     ax.plot(center_fixed[0], center_fixed[1],'o')
     fig.savefig(plt_save + '.pdf')
 
