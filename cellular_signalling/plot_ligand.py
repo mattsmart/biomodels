@@ -1,15 +1,19 @@
 #from constants import *  # TODO fix constants.py first
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import colors
+from mpl_toolkits.mplot3d import Axes3D
 from sympy import plot_implicit, symbols, Eq
 from sympy.plotting import plot as symplt
 
 
 # specify setup
-N = 2  # num types ligands
-M = 2  # num types receptors
+N = 3  # num types ligands
+M = 1  # num types receptors
 K = 1  # num types output molecules
-assert(N == 2 or N == 3)  # for plotting
+assert(N == 2 or N == 3)  # for plotting, though maybe use colourmap for 4d
+
+print "Settings: N = %d, M = %d, K = %d\n%d Ligand types\n%d Receptor types\n%d Response molecules\n" % (N,M,K,N,M,K)
 
 
 def get_parameters(N, M, K, A=None, W=None, H=None, s=None):
@@ -88,3 +92,55 @@ if N == 2 and M == 2 and K == 1:
     ax.text(p1.xlim[1]*0.55, p1.ylim[1]*0.6, note, fontsize=9)
     ax.plot(center_fixed[0], center_fixed[1],'o')
     fig.savefig(plt_save + '.pdf')
+
+
+if N == 3 and M == 1 and K == 1:
+    #expect plane in this case
+    #can plot with sympy 3d parametric plot function using parametric equations for plane
+    #can plot using matplotlib plot_surface and z=z(x,y) to get height
+    A, W, H, s = get_parameters(N,M,K)
+
+    # setup variables
+    gamma = W[0,0]
+    s1 = s[0,0]
+    A1 = A[0,0]
+    h1, h2, h3 = H[0,0:3]
+    normal = [h1,h2,h3]
+    C = gamma*s1/(A1-gamma*s1)
+    intercepts = [(C/h1,0,0), (0,C/h2,0), (0,0,C/h3)]
+    
+    # create surface
+    L1range = np.linspace(0.0, C/h1, 100)
+    L2range = np.linspace(0.0, C/h2, 100)
+    print L1range
+    xx, yy = np.meshgrid(L1range, L2range)
+    z = (C - normal[0]*xx - normal[1]*yy) * 1. /normal[2]
+
+    # plot surface
+    plt_title = 'Ligand concentrations satisfying s=%.2f (N=%d, M=%d, K=%d)' % (s[0],N,M,K)
+    plt_save = 'l1vsl2vsl3_%d%d%d' % (N,M,K)
+    cmap = colors.ListedColormap(['white', 'red'])
+    bounds=[0,5,10]
+    norm = colors.BoundaryNorm(bounds, cmap.N)
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(111,projection='3d')
+    ax.plot_surface(xx, yy, z, alpha=0.4,  cmap=cmap, color='blue')
+    ax.scatter(intercepts[0] , intercepts[1] , intercepts[2],  color=['red','green','blue'])
+    ax.set_zlim(0.0, intercepts[2][2])
+    ax.set_xlabel('L1')
+    ax.set_ylabel('L2')
+    ax.set_zlabel('L3')
+    
+    note = 'A1 = %.2f \ngamma = %.2f \nh1 = %.2f, h2 = %.2f, h3 = %.2f' % (A[0,0], W[0,0], H[0,0], H[0,1], H[0,2])
+    ax.text(intercepts[0][0]*0.55, intercepts[1][1]*0.6, intercepts[2][2]*0.6, note, fontsize=7)
+
+    #ax.view_init(-45, -15)
+    ax.view_init(5, 35)
+    plt.show()
+    fig.savefig(plt_save + '.pdf')
+
+
+if N == 3 and M == 2 and K == 2:
+    A, W, H, s = get_parameters(N,M,K)
+    print "not implemented"
