@@ -10,7 +10,7 @@ from sympy.plotting import plot3d_parametric_line
 
 # specify setup
 N = 2  # num types ligands
-M = 2  # num types receptors
+M = 1  # num types receptors
 K = 1  # num types output molecules
 assert(N == 2 or N == 3)  # for plotting, though maybe use colourmap for 4d
 
@@ -48,7 +48,7 @@ if N == 2 and M == 1 and K == 1:
     fig = plt.gcf()
     ax = plt.gca()
     plt.title('Ligand concentrations satisfying s=%.2f (N=%d, M=%d, K=%d)' % (s[0],N,M,K))
-    note = 'A = %.2f \ngamma = %.2f \nh11 = %.2f, h21 = %.2f' % (A[0,0], W[0,0], sH[0,0], H[0,1])
+    note = 'A = %.2f \ngamma = %.2f \nh11 = %.2f, h21 = %.2f' % (A[0,0], W[0,0], H[0,0], H[0,1])
     ax.text(max(L1)*0.65, max(L2)*0.8, note, fontsize=11)
     plt.xlabel('[L1]', fontsize=12)
     plt.ylabel('[L2]', fontsize=12)
@@ -129,6 +129,7 @@ if N == 3 and M == 1 and K == 1:
     ax = fig.add_subplot(111,projection='3d')
     ax.plot_surface(xx, yy, z, alpha=0.4,  cmap=cmap, color='blue')
     ax.scatter(intercepts[0] , intercepts[1] , intercepts[2],  color=['red','green','blue'])
+    ax.set_title(plt_title)
     ax.set_zlim(0.0, intercepts[2][2])
     ax.set_xlabel('L1')
     ax.set_ylabel('L2')
