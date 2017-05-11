@@ -1,3 +1,4 @@
+import numpy as np
 import random
 
 # DEFINITIONS
@@ -13,6 +14,7 @@ mutant_traits = [(0.0, 0.1),   # base pop
                  (0.05, 0.0)]
 mutant_fitness = [1 + pair[0] for pair in mutant_traits]
 K = len(mutant_traits) - 1
+population = {k:0 for k in xrange(K+1)}
 print " simulating a %d-hit process on %d individuals" % (K, N)
 
 # ensure mutation fitness deviations are well-defined  
@@ -23,14 +25,45 @@ for i in xrange(K):
     assert(mutant_traits[i][1]) > 0  # intermediates can mutate 
 
 
+# FUNCTIONS
+
 def count_pop(pop_dict):
     return sum(pop_dict.values())
 
+def get_mean_fitness(pop_dict):
+    mean_fitness = sum(mutant_fitness[i]*pop_dict[i] for i in xrange(K+1)) / N
+    return mean_fitness
+
+def sample_probabilities(k, dt, mean_fitness):
+    p_a = dt*(1 + mutant_fitness[k] - mean_fitness)
+    p_b = dt*mutant_traits[k][1]
+    p_c = dt
+    rgn = np.random.rand(3)
+    return rgn[0] < p_a, rgn[1] < p_b, rgn[2] < p_c
+
+def increment_pop(increment_list, pop_dict):
+    for k in xrange(K+1):
+        pop_dict[k] += increment_list[k]
+    if count_pop(pop_dict) != N:
+        return normalize_pop(pop_dict)
+    else:
+        return pop_dict
+
+def normalize_pop(pop_dict):
+    weight = float(N) / count_pop(pop_dict)
+    for k in xrange(K+1):
+        pop_dict[k] = int(round(pop_dict[k]*weight))
+    return pop_dict
+
+
 # INITIALIZE
 population[0] = N  # note initial pop assumed to have 0 mutants
+print get_mean_fitness(population)
+print count_pop(population)
 
-
-# SIMULATE
+# SIMULATE (see p9, Section 5 of paper)
+dt = 0.01
+t = 0.0
 # 0. set timestep dt (they use dt = 10^-2 = 0.01 generations)
 # 1. calculate mean fitness w_bar
 # 2. each k-mutant does either A, B, or C independently
@@ -42,6 +75,29 @@ population[0] = N  # note initial pop assumed to have 0 mutants
 # 4. repeat until N_K = N (i.e. whole pop is K-mutants)
 # 5. at end of run, return last time there were no K-mutants, call this
 #    "time to production of first successful K-mutant"
+while 1:
+    t += dt
+    w_bar = get_mean_fitness(population)
+    increments = [0 for k in xrange(K+1)]
+    for k in xrange(K+1):
+        for n in xrange(population[k]):
+            (A, B, C) = sample_probabilities(k, dt, w_bar)  # TODO fix this part maybe wrong
+            if A:
+                increments[k] += 1
+            if B:
+                increments[k] -= 1
+                increments[k+1] += 1
+            if C:
+                increments[k] -= 1
+    population = increment_pop(increments, population)
+    print population
+    if population[K] == N:
+        print "K-mutants have fixated at time %.2f (%d steps)" % (t, t/dt)
+        break
 
+print "broke from loop"
+    
+                
+    
 #number_to_mutate
 #random.sample(range[N], number_to_mutate)
