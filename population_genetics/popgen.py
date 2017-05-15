@@ -21,8 +21,8 @@ print " simulating a %d-hit process on %d individuals" % (K, N)
 assert(1.0/float(N) < mutant_traits[-1][0] < 1.0)  # K-mutant moderately fit
 assert(mutant_traits[-1][1] == 0.0)  # K-mutants don't mutate
 for i in xrange(K):
-    assert(mutant_traits[i][0]) <= 0  # intermediates less fit
-    assert(mutant_traits[i][1]) > 0  # intermediates can mutate 
+    assert(mutant_traits[i][0] <= 0)  # intermediates less fit
+    assert(mutant_traits[i][1] > 0)  # intermediates can mutate 
 
 
 # FUNCTIONS
