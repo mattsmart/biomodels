@@ -4,7 +4,7 @@ import numpy as np
 from simulate import popgen_simulate
 
 # parameters to replicate figure 5a of 2014 valley crossing paper
-delta_1 = 2e-4
+delta = -2e-4
 s = 0.1
 mu_0 = 1e-5
 mu_1 = 1e-4
