@@ -87,4 +87,5 @@ def popgen_simulate(N=DEFAULT_N, mutant_traits=DEFAULT_MUTANT_TRAITS, dt=DEFAULT
             break
     return population, t
 
-popgen_simulate()
+if __name__ == '__main__':
+    popgen_simulate()
