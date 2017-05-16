@@ -81,7 +81,7 @@ def popgen_simulate(N=DEFAULT_N, mutant_traits=DEFAULT_MUTANT_TRAITS, dt=DEFAULT
             if mutations != 0:
                 increments[k+1] += mutations
         population = increment_pop(increments, population, K, N)
-        print population
+        #print population
         if population[K] == N:
             print "K-mutants have fixated at time %.2f (%d steps)" % (t, t/dt)
             break
