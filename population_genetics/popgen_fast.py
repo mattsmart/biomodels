@@ -34,13 +34,16 @@ def get_mean_fitness(pop_dict):
     mean_fitness = sum(mutant_fitness[i]*pop_dict[i] for i in xrange(K+1)) / N
     return mean_fitness
 
-def sample_probabilities(k, dt, mean_fitness):
-    p_a = dt*(1 + mutant_fitness[k] - mean_fitness)
-    p_b = dt*mutant_traits[k][1]
-    p_c = dt
-    rgn = np.random.rand(3)
-    return rgn[0] < p_a, rgn[1] < p_b, rgn[2] < p_c
-
+def sample_events(pop_dict, k, dt, mean_fitness):
+    p_a = dt*(1 + mutant_fitness[k] - mean_fitness)  # divide
+    p_b = dt*mutant_traits[k][1]                     # mutate
+    p_c = dt                                         # die
+    n = pop_dict[k]
+    divisions = np.random.binomial(n, p_a)
+    mutations = np.random.binomial(n, p_b)
+    deaths = np.random.binomial(n, p_c)
+    return divisions, mutations, deaths
+    
 def increment_pop(increment_list, pop_dict):
     for k in xrange(K+1):
         pop_dict[k] += increment_list[k]
@@ -80,15 +83,10 @@ while 1:
     w_bar = get_mean_fitness(population)
     increments = [0 for k in xrange(K+1)]
     for k in xrange(K+1):
-        for n in xrange(population[k]):
-            (A, B, C) = sample_probabilities(k, dt, w_bar)  # TODO fix this part maybe wrong
-            if A:
-                increments[k] += 1
-            if B:
-                increments[k] -= 1
-                increments[k+1] += 1
-            if C:
-                increments[k] -= 1
+        divisions, mutations, deaths = sample_events(population, k, dt, w_bar)
+        increments[k] += divisions - mutations - deaths
+        if mutations != 0:
+            increments[k+1] += mutations
     population = increment_pop(increments, population)
     print population
     if population[K] == N:
