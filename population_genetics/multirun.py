@@ -20,12 +20,12 @@ def get_average_run(N, mutant_traits, repeats=10):
     for i in xrange(repeats):
         population, t = popgen_simulate(N, mutant_traits)
         trials[i] = t
-    return sum(trials) / float(repeats)
+    return sum(trials)/float(repeats)
 
 
 t_list = [0 for N in N_list]
 for i, N in enumerate(N_list):
-    population, t = get_average_run(N, mutant_traits)
+    t = get_average_run(N, mutant_traits)
     t_list[i] = t
 
 # plot output
