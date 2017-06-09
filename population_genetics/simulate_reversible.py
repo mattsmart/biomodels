@@ -7,7 +7,7 @@ from constants import *
 # NOTES
 # note base fitness is 1
 # k-mutant fitness is 1 + mutant_traits[k][0]
-# form of mutant_traits is [... (w_k, mu_k) ...]
+# form of mutant_traits is [... (w_k, mu_k_forward, mu_k_back) ...]
 # population is dict of k:N_k mutant category to mutant pop
 
 def count_pop(pop_dict):
@@ -20,14 +20,16 @@ def get_mean_fitness(pop_dict, mutant_traits, K, N):
 
 def sample_events(pop_dict, k, dt, mutant_traits, mean_fitness):
     mutant_fitness = mutant_traits[k][0] + 1
-    p_a = dt*(1 + mutant_fitness - mean_fitness)  # divide
-    p_b = dt*mutant_traits[k][1]                     # mutate
+    p_a = dt*(1 + mutant_fitness - mean_fitness)     # divide
+    p_b1 = dt*mutant_traits[k][1]                    # mutate forward
+    p_b2 = dt*mutant_traits[k][2]                    # mutate back
     p_c = dt                                         # die
     n = pop_dict[k]
     divisions = np.random.binomial(n, p_a)
-    mutations = np.random.binomial(n, p_b)
+    mutations_forward = np.random.binomial(n, p_b1)
+    mutations_backward = np.random.binomial(n, p_b2)
     deaths = np.random.binomial(n, p_c)
-    return divisions, mutations, deaths
+    return divisions, mutations_forward, mutations_backward, deaths
     
 def increment_pop(increment_list, pop_dict, K, N):
     for k in xrange(K+1):
@@ -43,7 +45,7 @@ def normalize_pop(pop_dict, K, N):
         pop_dict[k] = int(round(pop_dict[k]*weight))
     return pop_dict
 
-def popgen_simulate(N=DEFAULT_N, mutant_traits=DEFAULT_MUTANT_TRAITS, dt=DEFAULT_DT):
+def popgen_simulate_reversible(N=DEFAULT_N, mutant_traits=DEFAULT_MUTANT_TRAITS_REVERSIBLE, dt=DEFAULT_DT):
 
     # setup
     K = len(mutant_traits) - 1
@@ -53,17 +55,21 @@ def popgen_simulate(N=DEFAULT_N, mutant_traits=DEFAULT_MUTANT_TRAITS, dt=DEFAULT
 
     # ensure mutation fitness deviations are well-defined  
     assert(1.0/float(N) < mutant_traits[-1][0] < 1.0)  # K-mutant moderately fit
-    assert(mutant_traits[-1][1] == 0.0)  # K-mutants don't mutate
+    assert(mutant_traits[-1][1] == 0.0)  # K-mutants don't mutate forward
+    assert(mutant_traits[-1][2] >= 0.0)  # K-mutants may mutate backward
+    assert(mutant_traits[0][2] == 0.0)  # 0-mutants don't mutate backward
     for i in xrange(K):
         assert(mutant_traits[i][0] <= 0)  # intermediates less fit
-        assert(mutant_traits[i][1] > 0)  # intermediates can mutate 
+        assert(mutant_traits[i][1] > 0)   # intermediates must mutate forward
+        assert(mutant_traits[i][2] >= 0)  # intermediates may mutate backward
 
     # SIMULATE (see p9, Section 5 of paper)
     # 0. set timestep dt (they use dt = 10^-2 = 0.01 generations)
     # 1. calculate mean fitness w_bar
-    # 2. each k-mutant does either A, B, or C independently
+    # 2. each k-mutant does either A, B1 or B2, or C independently
     #        A: divides into two k_mutants, prob (1 + w_k - w_bar)*dt
-    #        B: divides with one k-mutant, one k+1 mutant, prob (mu_k)*dt
+    #        B1: divides with one k-mutant, one k+1 mutant, prob (mu_k_forward)*dt
+    #        B2: divides with one k-mutant, one k-1 mutant, prob (mu_k_back)*dt
     #        C: dies, prob (1)*dt
     #        note there are thus 3N indep events per timestep
     # 3. if pop N* after 2. is not N, then multiply each N_k by N/N* and round to nearest int
@@ -76,10 +82,12 @@ def popgen_simulate(N=DEFAULT_N, mutant_traits=DEFAULT_MUTANT_TRAITS, dt=DEFAULT
         w_bar = get_mean_fitness(population, mutant_traits, K, N)
         increments = [0 for k in xrange(K+1)]
         for k in xrange(K+1):
-            divisions, mutations, deaths = sample_events(population, k, dt, mutant_traits, w_bar)
-            increments[k] += divisions - mutations - deaths
-            if mutations != 0:
-                increments[k+1] += mutations
+            divisions, mutations_forward, mutations_backward, deaths = sample_events(population, k, dt, mutant_traits, w_bar)
+            increments[k] += divisions - mutations_forward - mutations_backward - deaths
+            if mutations_forward != 0:
+                increments[k+1] += mutations_forward
+            if mutations_backward != 0:
+                increments[k-1] += mutations_backward
         population = increment_pop(increments, population, K, N)
         #print population
         if population[K] == N:
@@ -88,4 +96,4 @@ def popgen_simulate(N=DEFAULT_N, mutant_traits=DEFAULT_MUTANT_TRAITS, dt=DEFAULT
     return population, t
 
 if __name__ == '__main__':
-    popgen_simulate()
+    popgen_simulate_reversible()
