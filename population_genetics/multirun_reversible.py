@@ -5,7 +5,7 @@ from simulate import popgen_simulate
 from simulate_reversible import popgen_simulate_reversible
 
 N_list = [1e2, 5*1e2, 1e3, 5*1e3, 1e4, 5*1e4, 1e5, 5*1e5, 1e6, 5*1e6, 1e7]
-N_list = [1e3, 5*1e3, 1e4, 5*1e4, 1e5, 5*1e5, 1e6, 5*1e6, 1e7]
+
 # parameters to replicate figure 5a of 2014 valley crossing paper
 # for each param combo, they average over 500 independent runs
 delta = -2e-4
@@ -24,7 +24,7 @@ mutant_traits_reversible_fast = [(0.0, mu_0, 0.0),                      # base p
                                  (s, 0.0, 0.0)]                         # 2-mutantN_list = [1e2, 5*1e2, 1e3, 5*1e3, 1e4, 5*1e4, 1e5, 5*1e5, 1e6, 5*1e6, 1e7]
 
 
-def get_average_run(N, mutant_traits, repeats=1):
+def get_average_run(N, mutant_traits, repeats=10):
     trials = [0 for i in xrange(repeats)]
     for i in xrange(repeats):
         population, t = popgen_simulate_reversible(N, mutant_traits)
