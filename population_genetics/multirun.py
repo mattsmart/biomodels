@@ -15,7 +15,8 @@ mutant_traits = [(0.0, mu_0),    # base pop
 N_list = [1e2, 5*1e2, 1e3, 5*1e3, 1e4, 5*1e4, 1e5, 5*1e5, 1e6, 5*1e6, 1e7]
 
 
-def get_average_run(N, mutant_traits, repeats=10):
+REPEATS=10
+def get_average_run(N, mutant_traits, repeats=REPEATS):
     trials = [0 for i in xrange(repeats)]
     for i in xrange(repeats):
         population, t = popgen_simulate(N, mutant_traits)
@@ -29,10 +30,12 @@ for i, N in enumerate(N_list):
     t_list[i] = t
 
 # plot output
-plt.plot(N_list, t_list, 'x')
+plt.plot(N_list, t_list, '--x', label='default')
 ax = plt.gca()
 ax.set_xscale('log')
 ax.set_yscale('log')
 plt.xlabel('N')
 plt.ylabel('time')
+plt.legend(loc='upper right')
+plt.title('Mean fixation time (avg %d runs per data point)' % REPEATS)
 plt.show()

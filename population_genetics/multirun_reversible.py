@@ -10,21 +10,18 @@ N_list = [1e2, 5*1e2, 1e3, 5*1e3, 1e4, 5*1e4, 1e5, 5*1e5, 1e6, 5*1e6, 1e7]
 # for each param combo, they average over 500 independent runs
 delta = -2e-4
 s = 0.1
-mu_0 = 1e-5
-mu_1 = 1e-4
-mu_1_backward = 1e-4 * 0.5
-mutant_traits_fig5a = [(0.0, mu_0, 0.0),    # base pop
-                       (delta, mu_1, 0.0),  # 1-mutant
-                       (s, 0.0, 0.0)]       # 2-mutant
+mu_0 = 1e-4
+mu_0_backward = 1e-4
+mu_1 = 1e-5
 mutant_traits_reversible = [(0.0, mu_0, 0.0),              # base pop
-                            (delta, mu_1, mu_1_backward),  # 1-mutant
+                            (delta, mu_1, mu_0_backward),  # 1-mutant
                             (s, 0.0, 0.0)]                 # 2-mutant
 mutant_traits_reversible_fast = [(0.0, mu_0, 0.0),                      # base pop
-                                 (delta, 100*mu_1, 100*mu_1_backward),  # 1-mutant
-                                 (s, 0.0, 0.0)]                         # 2-mutantN_list = [1e2, 5*1e2, 1e3, 5*1e3, 1e4, 5*1e4, 1e5, 5*1e5, 1e6, 5*1e6, 1e7]
+                                 (delta, mu_1, 0.1*mu_0_backward),      # 1-mutant
+                                 (s, 0.0, 0.0)]                         # 2-mutant
 
-
-def get_average_run(N, mutant_traits, repeats=10):
+REPEATS=10
+def get_average_run(N, mutant_traits, repeats=REPEATS):
     trials = [0 for i in xrange(repeats)]
     for i in xrange(repeats):
         population, t = popgen_simulate_reversible(N, mutant_traits)
@@ -44,14 +41,15 @@ for i, N in enumerate(N_list):
     t_list_fast[i] = t_fast
     
 # plot output
-plt.plot(N_list, t_list_fig5a, '--x', label='default')
-plt.plot(N_list, t_list_reversible, '--o', label='rev')
-plt.plot(N_list, t_list_fast, '--d', label='rev_fast')
+plt.plot(N_list, t_list_reversible, '--o', label='reversible')
+plt.plot(N_list, t_list_fast, '--d', label='less reversible')
 ax = plt.gca()
 ax.set_xscale('log')
 ax.set_yscale('log')
 plt.xlabel('N')
 plt.ylabel('time')
 plt.legend(loc='upper right')
+plt.title('Mean fixation time (avg %d runs per data point)' % REPEATS)
+
 
 plt.show()
