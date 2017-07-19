@@ -1,4 +1,4 @@
-function [x_list, stab_list] = phenotype_model_B_bifurcdiagram_get(params)
+function [x_list, stab_list] = oncogenesis_fp_get(params)
 
 %{
 params is array of parameters in following format
@@ -64,9 +64,8 @@ stab1 = all(all(J1d(:,:)<=0));
 stab2 = all(all(J2d(:,:)<=0));
 stab3 = all(all(J3d(:,:)<=0));
 
-
-threshold1 = 2*s + delta + alpha_plus + alpha_minus + mu
-threshold2 = (s + alpha_plus)*(s + delta + alpha_minus + mu) - alpha_minus*alpha_plus
+threshold1 = 2*s + delta + alpha_plus + alpha_minus + mu;
+threshold2 = (s + alpha_plus)*(s + delta + alpha_minus + mu) - alpha_minus*alpha_plus;
 
 x_list = [x1,x2,x3];
 stab_list = [stab1, stab2, stab3];
