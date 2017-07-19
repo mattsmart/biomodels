@@ -38,9 +38,6 @@ for idx = 1:nn
     x2_array(idx, :) = fp(:,3);
 end
 
-fixed_points
-stabilities
-
 figure
 %plot simplex
 simplex_colour = [0 0.75 0.75];
@@ -61,7 +58,6 @@ axis([-axis_lim axis_lim -axis_lim axis_lim -axis_lim axis_lim]);
 xlabel('X');
 ylabel('Y');
 zlabel('Z');
-
 
 bvec = bifurcation_search';
 csvwrite('mat_bx1x2.dat', [bvec, x1_array, x2_array])
