@@ -80,17 +80,12 @@ def xvec_get(q, delta):
     zi = N - xi - yi
     return xi, yi, zi 
 
-
-# =====================
 # FIGURE SETUP
-# =====================
 fig = plot_simplex(N)
 ax = fig.gca()
 ax.set_title(HEADER_TITLE)
 
-# =====================
-# Get Fixed Points and Stability 
-# =====================
+# FIND FIXED POINTS
 for idx, bif_param in enumerate(bifurcation_search):
     b = bif_param
     delta = 1-b
@@ -102,21 +97,17 @@ for idx, bif_param in enumerate(bifurcation_search):
         #print bif_param, x1_array[idx,0], x1_array[idx,1], x1_array[idx,2]
         ax.text(x1_array[idx,0], x1_array[idx,1], x1_array[idx,2], '%.3f' % bif_param)
 
-# =====================
+
 # PLOTTING
-# =====================
 # plot fixed point curves
 ax.scatter(x1_array[:,0], x1_array[:,1], x1_array[:,2], label='q_plus', color=X1_COL)
 ax.scatter(x2_array[:,0], x2_array[:,1], x2_array[:,2], label='q_minus', color=X2_COL)
 # plot settings
 ax.view_init(5, 35)  #ax.view_init(-45, -15)
-axisscale = 1
-#ax.set_xlim(-N*0.2, N*0.2)  # may need to flip both of orders
-#ax.set_ylim(-N*0.2, N*0.2)
-#ax.set_zlim(N*0.5, N*1.5)
-ax.set_xlim(-N*axisscale, N*axisscale)  # may need to flip both of orders
-ax.set_ylim(-N*axisscale, N*axisscale)
-ax.set_zlim(-N*axisscale, N*axisscale)
+axis_scale = 1
+ax.set_xlim(-N*axis_scale, N*axis_scale)  # may need to flip order
+ax.set_ylim(-N*axis_scale, N*axis_scale)
+ax.set_zlim(-N*axis_scale, N*axis_scale)
 ax.legend()
 # plot io
 if FLAG_SHOWPLT:
@@ -127,7 +118,7 @@ if FLAG_SAVEPLT:
 # =====================
 # DATA OUTPUT
 # =====================
-#note: shuld use csv or something instead
+# note: should use csv or something instead
 if FLAG_SAVEDATA:
     np.savetxt(OUTPUT_DIR + sep + 'pyx1fp.txt', x1_array)
     np.savetxt(OUTPUT_DIR + sep + 'pyx2fp.txt', x2_array)
