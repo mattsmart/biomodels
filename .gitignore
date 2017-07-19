@@ -21,3 +21,4 @@ biophysics_meanfield/data/
 *.pdf
 population_genetics/simulate - time - testing.py
 population_genetics/simulate - time.py
+oncogenesis_dynamics/python/output/

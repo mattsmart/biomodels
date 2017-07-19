@@ -9,7 +9,7 @@ from simplex import plot_simplex
 """
 Comments
 - current implementation for bifurcation along VALID_BIFURCATION_PARAMS only
-- no stability calculation implemented (see matlab)
+- no stability calculation implemented (see matlab code for that)
 """
 
 # MATPLOTLIB GLOBAL SETTINGS
@@ -28,7 +28,7 @@ SPACING_BIFTEXT = int(SEARCH_AMOUNT/10)
 FLAG_BIFTEXT = 1
 FLAG_SHOWPLT = 1
 FLAG_SAVEPLT = 1
-FLAG_SAVEDATA = 0
+FLAG_SAVEDATA = 1
 OUTPUT_DIR = "output"
 HEADER_TITLE = 'Fixed Points'
 HEADER_SAVE = 'model_b_fps'
