@@ -1,16 +1,13 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import colors
 import matplotlib.pylab as pylab
 from os import sep
-from mpl_toolkits.mplot3d import Axes3D
-from sympy import plot_implicit, symbols, Eq
-from sympy.plotting import plot as symplt
-from sympy.plotting import plot3d_parametric_line
+
+from simplex import plot_simplex
 
 
-# COMMENTS
 """
+Comments
 - current implementation for bifurcation along VALID_BIFURCATION_PARAMS only
 - no stability calculation implemented (see matlab)
 """
@@ -87,31 +84,9 @@ def xvec_get(q, delta):
 # =====================
 # FIGURE SETUP
 # =====================
-normal = [1,1,1]
-intercepts = [(N,0,0), (0,N,0), (0,0,N)]
-# create surface
-x1range = np.linspace(0.0, N, 100)
-x2range = np.linspace(0.0, N, 100)
-xx, yy = np.meshgrid(x1range, x2range)
-z = (N - normal[0]*xx - normal[1]*yy) * 1. /normal[2]
-
-# plot surface
-cmap = colors.ListedColormap(['white', 'red'])
-bounds=[0,5,10]
-norm = colors.BoundaryNorm(bounds, cmap.N)
-
-fig = plt.figure()
-ax = fig.add_subplot(111,projection='3d')
-ax.plot_surface(xx, yy, z, alpha=0.4,  cmap=cmap, color='blue')
-ax.scatter(intercepts[0] , intercepts[1] , intercepts[2],  color=['red','green','blue'])
+fig = plot_simplex(N)
+ax = fig.gca()
 ax.set_title(HEADER_TITLE)
-ax.set_zlim(0.0, intercepts[2][2])
-ax.set_xlabel('x')
-ax.set_ylabel('y')
-ax.set_zlabel('z')
-
-#note = 'A1 = %.2f \ngamma = %.2f \nh1 = %.2f, h2 = %.2f, h3 = %.2f' % (A[0,0], W[0,0], H[0,0], H[0,1], H[0,2])
-#ax.text(intercepts[0][0]*0.55, intercepts[1][1]*0.6, intercepts[2][2]*0.6, note, fontsize=7)
 
 # =====================
 # Get Fixed Points and Stability 
@@ -119,17 +94,13 @@ ax.set_zlabel('z')
 for idx, bif_param in enumerate(bifurcation_search):
     b = bif_param
     delta = 1-b
-
     q1 = q_get(+1, delta)
     q2 = q_get(-1, delta)
-
     x1_array[idx, :] = xvec_get(q1, delta)
     x2_array[idx,:] = xvec_get(q2, delta)
-
     if FLAG_BIFTEXT and idx % SPACING_BIFTEXT == 0:
         #print bif_param, x1_array[idx,0], x1_array[idx,1], x1_array[idx,2]
         ax.text(x1_array[idx,0], x1_array[idx,1], x1_array[idx,2], '%.3f' % bif_param)
-
 
 # =====================
 # PLOTTING
@@ -139,7 +110,6 @@ ax.scatter(x1_array[:,0], x1_array[:,1], x1_array[:,2], label='q_plus', color=X1
 ax.scatter(x2_array[:,0], x2_array[:,1], x2_array[:,2], label='q_minus', color=X2_COL)
 # plot settings
 ax.view_init(5, 35)  #ax.view_init(-45, -15)
-ax.legend()
 axisscale = 1
 #ax.set_xlim(-N*0.2, N*0.2)  # may need to flip both of orders
 #ax.set_ylim(-N*0.2, N*0.2)
@@ -147,6 +117,7 @@ axisscale = 1
 ax.set_xlim(-N*axisscale, N*axisscale)  # may need to flip both of orders
 ax.set_ylim(-N*axisscale, N*axisscale)
 ax.set_zlim(-N*axisscale, N*axisscale)
+ax.legend()
 # plot io
 if FLAG_SHOWPLT:
     plt.show()
