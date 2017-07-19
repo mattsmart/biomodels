@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import colors
 import matplotlib.pylab as pylab
+from os import sep
 from mpl_toolkits.mplot3d import Axes3D
 from sympy import plot_implicit, symbols, Eq
 from sympy.plotting import plot as symplt
@@ -30,10 +31,11 @@ SEARCH_END = 1.4
 SEARCH_AMOUNT = 10000
 SPACING_BIFTEXT = int(SEARCH_AMOUNT/10)
 FLAG_BIFTEXT = 1
-PLT_TITLE = 'Model B FPs'
-PLT_SAVE = 'model_b_fps'
+HEADER_TITLE = 'Fixed Points'
+HEADER_SAVE = 'model_b_fps'
 X1_COL = "blue"  # blue stable (dashed unstable)
 X2_COL = "green"  # green stable (dashed unstable)
+OUTPUT_DIR = "output"
 
 # SIMULATION PARAMETERS
 # CURRENT BIFUCATION PARAMETER: b (or delta)
@@ -106,7 +108,7 @@ fig = plt.figure()
 ax = fig.add_subplot(111,projection='3d')
 ax.plot_surface(xx, yy, z, alpha=0.4,  cmap=cmap, color='blue')
 ax.scatter(intercepts[0] , intercepts[1] , intercepts[2],  color=['red','green','blue'])
-ax.set_title(PLT_TITLE)
+ax.set_title(HEADER_TITLE)
 ax.set_zlim(0.0, intercepts[2][2])
 ax.set_xlabel('x')
 ax.set_ylabel('y')
@@ -130,7 +132,7 @@ for idx, bif_param in enumerate(bifurcation_search):
     x2_array[idx,:] = xvec_get(q2, delta)
 
     if FLAG_BIFTEXT and idx % SPACING_BIFTEXT == 0:
-        print bif_param, x1_array[idx,0], x1_array[idx,1], x1_array[idx,2]
+        #print bif_param, x1_array[idx,0], x1_array[idx,1], x1_array[idx,2]
         ax.text(x1_array[idx,0], x1_array[idx,1], x1_array[idx,2], '%.3f' % bif_param)
 
 
@@ -153,15 +155,15 @@ ax.set_zlim(N*0.5, N*1.5)
 #ax.set_ylim(-N*axisscale, N*axisscale)
 #ax.set_zlim(-N*axisscale, N*axisscale)
 plt.show()
-fig.savefig(PLT_SAVE + '.pdf')
+fig.savefig(OUTPUT_DIR + sep + HEADER_SAVE + '.pdf')
 
 # =====================
 # DATA OUTPUT
 # =====================
 #note: shuld use csv or something instead
-#np.savetxt('pyx1.txt', x1_array)
-#np.savetxt('pyx2.txt', x2_array)
-#np.savetxt('pybif.txt', bifurcation_search)
+#np.savetxt(OUTPUT_DIR + sep + 'pyx1.txt', x1_array)
+#np.savetxt(OUTPUT_DIR + sep + 'pyx2.txt', x2_array)
+#np.savetxt(OUTPUT_DIR + sep + 'pybif.txt', bifurcation_search)
 
 
 #threshold1 = 2*s + delta + alpha_plus + alpha_minus + mu
