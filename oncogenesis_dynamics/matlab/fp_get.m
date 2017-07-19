@@ -1,4 +1,4 @@
-function [x_list, stab_list] = oncogenesis_fp_get(params)
+function [x_list, stab_list] = fp_get(params)
 
 %{
 params is array of parameters in following format
