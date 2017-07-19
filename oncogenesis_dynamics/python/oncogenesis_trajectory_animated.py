@@ -26,16 +26,6 @@ pointer = arrow(pos=(N,0,0), axis=(5,0,0), shaftwidth=3)
 pointer = arrow(pos=(0,N,0), axis=(5,0,0), shaftwidth=3)
 pointer = arrow(pos=(0,0,N), axis=(5,0,0), shaftwidth=3)
 pyramid(pos=(0,0,0), axis=(0,0,1), size=(N/2,N/2,N), up=(0,0,1))
-"""
-mybox = box(pos=vector(x0,y0,z0), 
-            axis=vector(a,b,c), length=L,
-            height=H, width=W, up=vector(q,r,s))
-#tr = paths.triangle(length=5)
-mybox = box(pos=(N/3,N/3,N/3),
-            axis=(0, -N/2, -N/2),
-            length=N, height=N, width=0.1,
-            up=vector(N/3,N/3,N/3)) 
-"""
 
 #dt = 0.0001
 dt = 0.005
