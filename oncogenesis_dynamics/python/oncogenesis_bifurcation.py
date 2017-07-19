@@ -11,16 +11,13 @@ from sympy.plotting import plot3d_parametric_line
 
 # COMMENTS
 """
-Current implementation for bifurcation along VALID_BIFURCATION_PARAMS only
+- current implementation for bifurcation along VALID_BIFURCATION_PARAMS only
+- no stability calculation implemented (see matlab)
 """
 
 # MATPLOTLIB GLOBAL SETTINGS
-params = {'legend.fontsize': 'x-large',
-          'figure.figsize': (15, 5),
-         'axes.labelsize': 'x-large',
-         'axes.titlesize':'x-large',
-         'xtick.labelsize':'x-large',
-         'ytick.labelsize':'x-large'}
+params = {'legend.fontsize': 'x-large', 'figure.figsize': (8, 5), 'axes.labelsize': 'x-large',
+         'axes.titlesize':'x-large', 'xtick.labelsize':'x-large', 'ytick.labelsize':'x-large'}
 pylab.rcParams.update(params)
 
 # SCRIPT PARAMETERS
@@ -34,15 +31,14 @@ SPACING_BIFTEXT = int(SEARCH_AMOUNT/10)
 FLAG_BIFTEXT = 1
 FLAG_SHOWPLT = 1
 FLAG_SAVEPLT = 1
-GLAG_SAVEDATA = 0
+FLAG_SAVEDATA = 0
 OUTPUT_DIR = "output"
 HEADER_TITLE = 'Fixed Points'
 HEADER_SAVE = 'model_b_fps'
 X1_COL = "blue"  # blue stable (dashed unstable)
 X2_COL = "green"  # green stable (dashed unstable)
 
-# SIMULATION PARAMETERS
-# CURRENT BIFUCATION PARAMETER: b (or delta)
+# DYNAMICS PARAMETERS
 alpha_plus = 0.4
 alpha_minus = 0.5
 mu = 0.01
@@ -53,15 +49,13 @@ c = 1.2
 s = c - 1
 N = 100
 
+# DYNAMICS SETUP
 bifurcation_search = np.linspace(SEARCH_START, SEARCH_END, SEARCH_AMOUNT)
-#bifurcation_search = np.linspace(0.8, 1.6, density)
 nn = len(bifurcation_search)
 x1_array = np.zeros((nn, 3))
 x2_array = np.zeros((nn, 3))
-x1_stabilities = np.zeros((nn,1))
-x2_stabilities = np.zeros((nn,1))
-#scatter_colours = np.zeros((nn*3,3)
-
+# x1_stabilities = np.zeros((nn,1))  # not implemented
+# x2_stabilities = np.zeros((nn,1))  # not implemented
 
 # FUNCTIONS
 def bifurc_get(bifurc_name):
@@ -72,7 +66,6 @@ def bifurc_get(bifurc_name):
     else:
         raise ValueError(bifruc_name + ' not valid bifurc_name')
 
-        
 def threshold_1(delta):
     return 2*s + delta + alpha_plus + alpha_minus + mu
 
@@ -80,8 +73,7 @@ def threshold_2(delta):
     return (s + alpha_plus)*(s + delta + alpha_minus + mu) - alpha_minus*alpha_plus
 
 def q_get(sign, delta):
-    #sign: must be +1 or -1
-    assert sign in [-1,+1]
+    assert sign in [-1, +1]
     bterm = alpha_plus - alpha_minus - mu - delta
     return 0.5/alpha_minus * (bterm + sign*np.sqrt(bterm**2 + 4*alpha_minus*alpha_plus))
                               
