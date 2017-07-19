@@ -8,6 +8,13 @@ from sympy import plot_implicit, symbols, Eq
 from sympy.plotting import plot as symplt
 from sympy.plotting import plot3d_parametric_line
 
+
+# COMMENTS
+"""
+Current implementation for bifurcation along VALID_BIFURCATION_PARAMS only
+"""
+
+# MATPLOTLIB GLOBAL SETTINGS
 params = {'legend.fontsize': 'x-large',
           'figure.figsize': (15, 5),
          'axes.labelsize': 'x-large',
@@ -15,12 +22,6 @@ params = {'legend.fontsize': 'x-large',
          'xtick.labelsize':'x-large',
          'ytick.labelsize':'x-large'}
 pylab.rcParams.update(params)
-
-# COMMENTS
-"""
-Current implementation for bifurcation along VALID_BIFURCATION_PARAMS only
-"""
-
 
 # SCRIPT PARAMETERS
 BIFURC_ID = "delta"
@@ -31,11 +32,14 @@ SEARCH_END = 1.4
 SEARCH_AMOUNT = 10000
 SPACING_BIFTEXT = int(SEARCH_AMOUNT/10)
 FLAG_BIFTEXT = 1
+FLAG_SHOWPLT = 1
+FLAG_SAVEPLT = 1
+GLAG_SAVEDATA = 0
+OUTPUT_DIR = "output"
 HEADER_TITLE = 'Fixed Points'
 HEADER_SAVE = 'model_b_fps'
 X1_COL = "blue"  # blue stable (dashed unstable)
 X2_COL = "green"  # green stable (dashed unstable)
-OUTPUT_DIR = "output"
 
 # SIMULATION PARAMETERS
 # CURRENT BIFUCATION PARAMETER: b (or delta)
@@ -120,7 +124,6 @@ ax.set_zlabel('z')
 # =====================
 # Get Fixed Points and Stability 
 # =====================
-
 for idx, bif_param in enumerate(bifurcation_search):
     b = bif_param
     delta = 1-b
@@ -139,39 +142,38 @@ for idx, bif_param in enumerate(bifurcation_search):
 # =====================
 # PLOTTING
 # =====================
-
+# plot fixed point curves
 ax.scatter(x1_array[:,0], x1_array[:,1], x1_array[:,2], label='q_plus', color=X1_COL)
 ax.scatter(x2_array[:,0], x2_array[:,1], x2_array[:,2], label='q_minus', color=X2_COL)
-
-#ax.view_init(-45, -15)
-ax.view_init(5, 35)
+# plot settings
+ax.view_init(5, 35)  #ax.view_init(-45, -15)
 ax.legend()
-
 axisscale = 1
-ax.set_xlim(-N*0.2, N*0.2)  # may need to flip both of orders
-ax.set_ylim(-N*0.2, N*0.2)
-ax.set_zlim(N*0.5, N*1.5)
-#ax.set_xlim(-N*axisscale, N*axisscale)  # may need to flip both of orders
-#ax.set_ylim(-N*axisscale, N*axisscale)
-#ax.set_zlim(-N*axisscale, N*axisscale)
-plt.show()
-fig.savefig(OUTPUT_DIR + sep + HEADER_SAVE + '.pdf')
+#ax.set_xlim(-N*0.2, N*0.2)  # may need to flip both of orders
+#ax.set_ylim(-N*0.2, N*0.2)
+#ax.set_zlim(N*0.5, N*1.5)
+ax.set_xlim(-N*axisscale, N*axisscale)  # may need to flip both of orders
+ax.set_ylim(-N*axisscale, N*axisscale)
+ax.set_zlim(-N*axisscale, N*axisscale)
+# plot io
+if FLAG_SHOWPLT:
+    plt.show()
+if FLAG_SAVEPLT:
+    fig.savefig(OUTPUT_DIR + sep + HEADER_SAVE + '.pdf')
 
 # =====================
 # DATA OUTPUT
 # =====================
 #note: shuld use csv or something instead
-#np.savetxt(OUTPUT_DIR + sep + 'pyx1.txt', x1_array)
-#np.savetxt(OUTPUT_DIR + sep + 'pyx2.txt', x2_array)
-#np.savetxt(OUTPUT_DIR + sep + 'pybif.txt', bifurcation_search)
+if FLAG_SAVEDATA:
+    np.savetxt(OUTPUT_DIR + sep + 'pyx1fp.txt', x1_array)
+    np.savetxt(OUTPUT_DIR + sep + 'pyx2fp.txt', x2_array)
+    np.savetxt(OUTPUT_DIR + sep + 'pybif.txt', bifurcation_search)
 
-
+"""
 #threshold1 = 2*s + delta + alpha_plus + alpha_minus + mu
 #threshold2 = (s + alpha_plus)*(s + delata + alpha_minus + mu) - alpha_minus*alpha_plus
-print "thresholds"
+print "delta thresholds"
 print -(2*s + alpha_plus + alpha_minus + mu);
 print alpha_minus*alpha_plus / (s + alpha_plus) - (s + alpha_minus + mu);
-
-
-
- 
+"""
