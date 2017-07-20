@@ -124,10 +124,7 @@ if FLAG_SHOWPLT:
 if FLAG_SAVEPLT:
     fig.savefig(OUTPUT_DIR + sep + HEADER_SAVE + '.png')
 
-# =====================
 # DATA OUTPUT
-# =====================
-# note: should use csv or something instead
 if FLAG_SAVEDATA:
     np.savetxt(OUTPUT_DIR + sep + 'pyx1fp.txt', x1_array)
     np.savetxt(OUTPUT_DIR + sep + 'pyx2fp.txt', x2_array)
