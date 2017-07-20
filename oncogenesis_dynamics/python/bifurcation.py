@@ -122,7 +122,7 @@ ax.legend()
 if FLAG_SHOWPLT:
     plt.show()
 if FLAG_SAVEPLT:
-    fig.savefig(OUTPUT_DIR + sep + HEADER_SAVE + '.pdf')
+    fig.savefig(OUTPUT_DIR + sep + HEADER_SAVE + '.png')
 
 # =====================
 # DATA OUTPUT
