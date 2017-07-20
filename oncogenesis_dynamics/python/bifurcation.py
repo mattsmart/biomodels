@@ -1,28 +1,41 @@
+"""
+Comments
+- current implementation for bifurcation along VALID_BIFURCATION_PARAMS only
+- currently supports one bifurcation direction at a time
+- no stability calculation implemented (see matlab code for that)
+
+Conventions
+- params is 7-vector of the form: params[0] -> alpha_plus
+                                  params[1] -> alpha_minus
+                                  params[2] -> mu
+                                  params[3] -> a           (usually normalized to 1)
+                                  params[4] -> b           (b = 1 - delta)
+                                  params[5] -> c           (c = 1 + s)
+                                  params[6] -> N
+- if an element of params is specified as None then a bifurcation range will be be found and used
+
+TODO
+- csv for data output
+"""
+
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.pylab as pylab
 from os import sep
 
+from constants import PARAMS_DICT, VALID_BIFURCATION_PARAMS
+from formulae import bifurc_value, q_get, fp_location
 from simplex import plot_simplex
 
 
-"""
-Comments
-- current implementation for bifurcation along VALID_BIFURCATION_PARAMS only
-- no stability calculation implemented (see matlab code for that)
-"""
-
 # MATPLOTLIB GLOBAL SETTINGS
-params = {'legend.fontsize': 'x-large', 'figure.figsize': (8, 5), 'axes.labelsize': 'x-large',
+mpl_params = {'legend.fontsize': 'x-large', 'figure.figsize': (8, 5), 'axes.labelsize': 'x-large',
          'axes.titlesize':'x-large', 'xtick.labelsize':'x-large', 'ytick.labelsize':'x-large'}
-pylab.rcParams.update(params)
+pylab.rcParams.update(mpl_params)
 
 # SCRIPT PARAMETERS
-BIFURC_ID = "delta"
-VALID_BIFURCATION_PARAMS = ["delta"]
-assert BIFURC_ID in VALID_BIFURCATION_PARAMS
-SEARCH_START = 1.3
-SEARCH_END = 1.4
+SEARCH_START = 0.9  # start at SEARCH_START*bifurcation_point
+SEARCH_END = 1.1  # end at SEARCH_END*bifurcation_point
 SEARCH_AMOUNT = 10000
 SPACING_BIFTEXT = int(SEARCH_AMOUNT/10)
 FLAG_BIFTEXT = 1
@@ -40,45 +53,43 @@ alpha_plus = 0.4
 alpha_minus = 0.5
 mu = 0.01
 a = 1.0
-#b = 1.376666 #1.3
-#delta = 1-b
+b = None
 c = 1.2
-s = c - 1
 N = 100
+if b is not None:
+    delta = 1 - b
+if c is not None:
+    s = c - 1
+params = [alpha_plus, alpha_minus, mu, a, b, c, N]
+print "Specified parameters: \nalpha_plus = " + str(alpha_plus) + "\nalpha_minus = " + str(alpha_minus) + \
+      "\nmu = " + str(mu) + "\na = " + str(a) + "\nb = " + str(b) + "\nc = " + str(c) + "\nN = " + str(N)
 
-# DYNAMICS SETUP
-bifurcation_search = np.linspace(SEARCH_START, SEARCH_END, SEARCH_AMOUNT)
+# FP SEARCH SETUP
+bifurc_ids = []
+for idx in xrange(len(params)):
+    if params[idx] is None:
+        # identify bifurcation points
+        bifurc_idx = idx
+        bifurc_id = PARAMS_DICT[idx]
+        bifurc_ids.append(bifurc_id)
+        assert bifurc_id in VALID_BIFURCATION_PARAMS
+        bifurc_loc = bifurc_value(params, bifurc_id)
+        print "Bifurcation in %s possibly at %.3f" % (bifurc_id, bifurc_loc)
+        print "Searching in window: %.3f to %.3f with %d points" \
+              % (SEARCH_START*bifurc_loc, SEARCH_END*bifurc_loc, SEARCH_AMOUNT)
+        bifurcation_search = np.linspace(SEARCH_START*bifurc_loc, SEARCH_END*bifurc_loc, SEARCH_AMOUNT)
 nn = len(bifurcation_search)
 x1_array = np.zeros((nn, 3))
 x2_array = np.zeros((nn, 3))
+params_ensemble = np.zeros((nn, len(params)))
+for idx in xrange(len(params)):
+    if params[idx] is not None:
+        params_ensemble[:,idx] = params[idx]
+    else:
+        params_ensemble[:,idx] = bifurcation_search
+
 # x1_stabilities = np.zeros((nn,1))  # not implemented
 # x2_stabilities = np.zeros((nn,1))  # not implemented
-
-# FUNCTIONS
-def bifurc_get(bifurc_name):
-    #assumes threshold_2 is stronger constraint, atm hardcode rearrange expression for bifruc param
-    if bifurc_name == "delta":
-        bifurc_val = alpha_minus*alpha_plus/(s + alpha_plus) - (s + alpha_minus + mu)
-        return bifurc_val
-    else:
-        raise ValueError(bifruc_name + ' not valid bifurc_name')
-
-def threshold_1(delta):
-    return 2*s + delta + alpha_plus + alpha_minus + mu
-
-def threshold_2(delta):
-    return (s + alpha_plus)*(s + delta + alpha_minus + mu) - alpha_minus*alpha_plus
-
-def q_get(sign, delta):
-    assert sign in [-1, +1]
-    bterm = alpha_plus - alpha_minus - mu - delta
-    return 0.5/alpha_minus * (bterm + sign*np.sqrt(bterm**2 + 4*alpha_minus*alpha_plus))
-                              
-def xvec_get(q, delta):
-    xi = N*(s + alpha_plus - alpha_minus*q) / (s + (delta + s)*q)
-    yi = q*xi
-    zi = N - xi - yi
-    return xi, yi, zi 
 
 # FIGURE SETUP
 fig = plot_simplex(N)
@@ -86,17 +97,15 @@ ax = fig.gca()
 ax.set_title(HEADER_TITLE)
 
 # FIND FIXED POINTS
-for idx, bif_param in enumerate(bifurcation_search):
-    b = bif_param
-    delta = 1-b
-    q1 = q_get(+1, delta)
-    q2 = q_get(-1, delta)
-    x1_array[idx, :] = xvec_get(q1, delta)
-    x2_array[idx,:] = xvec_get(q2, delta)
+for idx, bifurc_param_val in enumerate(bifurcation_search):
+    params_step = params_ensemble[idx, :]
+    q1 = q_get(params_step, +1)
+    q2 = q_get(params_step, -1)
+    x1_array[idx, :] = fp_location(params_step, q1)
+    x2_array[idx, :] = fp_location(params_step, q2)
     if FLAG_BIFTEXT and idx % SPACING_BIFTEXT == 0:
-        #print bif_param, x1_array[idx,0], x1_array[idx,1], x1_array[idx,2]
-        ax.text(x1_array[idx,0], x1_array[idx,1], x1_array[idx,2], '%.3f' % bif_param)
-
+        #print bifurc_param_val, x1_array[idx,0], x1_array[idx,1], x1_array[idx,2]
+        ax.text(x1_array[idx,0], x1_array[idx,1], x1_array[idx,2], '%.3f' % bifurc_param_val)
 
 # PLOTTING
 # plot fixed point curves
@@ -123,11 +132,3 @@ if FLAG_SAVEDATA:
     np.savetxt(OUTPUT_DIR + sep + 'pyx1fp.txt', x1_array)
     np.savetxt(OUTPUT_DIR + sep + 'pyx2fp.txt', x2_array)
     np.savetxt(OUTPUT_DIR + sep + 'pybif.txt', bifurcation_search)
-
-"""
-#threshold1 = 2*s + delta + alpha_plus + alpha_minus + mu
-#threshold2 = (s + alpha_plus)*(s + delata + alpha_minus + mu) - alpha_minus*alpha_plus
-print "delta thresholds"
-print -(2*s + alpha_plus + alpha_minus + mu);
-print alpha_minus*alpha_plus / (s + alpha_plus) - (s + alpha_minus + mu);
-"""
