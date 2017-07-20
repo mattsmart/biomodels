@@ -10,6 +10,8 @@ Conventions
 - if an element of params is specified as None then a bifurcation range will be be found and used
 """
 
+import numpy as np
+
 
 def bifurc_value(params, bifurc_name):
     """
