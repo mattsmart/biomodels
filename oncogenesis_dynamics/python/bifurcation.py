@@ -15,9 +15,11 @@ Conventions
 - if an element of params is specified as None then a bifurcation range will be be found and used
 
 TODO
-- csv for data output
+- implement stability checks
+- implement other bifurcation parameters
 """
 
+import csv
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.pylab as pylab
@@ -126,6 +128,10 @@ if FLAG_SAVEPLT:
 
 # DATA OUTPUT
 if FLAG_SAVEDATA:
-    np.savetxt(OUTPUT_DIR + sep + 'pyx1fp.txt', x1_array)
-    np.savetxt(OUTPUT_DIR + sep + 'pyx2fp.txt', x2_array)
-    np.savetxt(OUTPUT_DIR + sep + 'pybif.txt', bifurcation_search)
+    with open(OUTPUT_DIR + sep + 'pycsv.csv', "wb") as csv_file:
+        writer = csv.writer(csv_file, delimiter=',')
+        csv_header = [bifurc_id, 'x1_x', 'x1_y', 'x1_z', 'x2_x', 'x2_y', 'x2_z']
+        writer.writerow(csv_header)
+        for idx in xrange(nn):
+            line = [bifurcation_search[idx]] + list(x1_array[idx,:]) + list(x2_array[idx,:])
+            writer.writerow(line)
