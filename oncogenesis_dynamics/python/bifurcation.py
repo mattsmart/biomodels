@@ -36,9 +36,9 @@ mpl_params = {'legend.fontsize': 'x-large', 'figure.figsize': (8, 5), 'axes.labe
 pylab.rcParams.update(mpl_params)
 
 # SCRIPT PARAMETERS
-SEARCH_START = 0.9  # start at SEARCH_START*bifurcation_point
-SEARCH_END = 1.1  # end at SEARCH_END*bifurcation_point
-SEARCH_AMOUNT = 10000
+SEARCH_START = 0.9999 #0.9  # start at SEARCH_START*bifurcation_point
+SEARCH_END = 1.0001 #1.1  # end at SEARCH_END*bifurcation_point
+SEARCH_AMOUNT = 100000 #10000
 SPACING_BIFTEXT = int(SEARCH_AMOUNT/10)
 FLAG_BIFTEXT = 1
 FLAG_SHOWPLT = 1
@@ -51,12 +51,12 @@ X1_COL = "blue"  # blue stable (dashed unstable)
 X2_COL = "green"  # green stable (dashed unstable)
 
 # DYNAMICS PARAMETERS
-alpha_plus = 0.4
-alpha_minus = 0.5
-mu = 0.01
+alpha_plus = 0.05 #0.4
+alpha_minus = 4.95 #0.5
+mu = 0.77 #0.01
 a = 1.0
 b = None
-c = 1.2
+c = 2.6 #1.2
 N = 100
 if b is not None:
     delta = 1 - b
@@ -76,7 +76,7 @@ for idx in xrange(len(params)):
         bifurc_ids.append(bifurc_id)
         assert bifurc_id in VALID_BIFURCATION_PARAMS
         bifurc_loc = bifurc_value(params, bifurc_id)
-        print "Bifurcation in %s possibly at %.3f" % (bifurc_id, bifurc_loc)
+        print "Bifurcation in %s possibly at %.5f" % (bifurc_id, bifurc_loc)
         print "Searching in window: %.3f to %.3f with %d points" \
               % (SEARCH_START*bifurc_loc, SEARCH_END*bifurc_loc, SEARCH_AMOUNT)
         bifurcation_search = np.linspace(SEARCH_START*bifurc_loc, SEARCH_END*bifurc_loc, SEARCH_AMOUNT)
