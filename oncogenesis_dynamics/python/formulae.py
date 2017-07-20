@@ -30,7 +30,8 @@ def bifurc_value(params, bifurc_name):
         s = c - 1
     # assumes threshold_2 is stronger constraint, atm hardcode rearrange expression for bifruc param
     if bifurc_name == "bifurc_b":
-        bifurc_val = alpha_minus * alpha_plus / (s + alpha_plus) - (s + alpha_minus + mu)
+        delta_val = alpha_minus * alpha_plus / (s + alpha_plus) - (s + alpha_minus + mu)
+        bifurc_val = 1 - delta_val
         return bifurc_val
     else:
         raise ValueError(bifurc_name + ' not valid bifurc ID')
