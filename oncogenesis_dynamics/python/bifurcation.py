@@ -36,9 +36,9 @@ mpl_params = {'legend.fontsize': 'x-large', 'figure.figsize': (8, 5), 'axes.labe
 pylab.rcParams.update(mpl_params)
 
 # SCRIPT PARAMETERS
-SEARCH_START = 0.9999 #0.9  # start at SEARCH_START*bifurcation_point
-SEARCH_END = 1.0001 #1.1  # end at SEARCH_END*bifurcation_point
-SEARCH_AMOUNT = 100000 #10000
+SEARCH_START = 0.5 #0.9  # start at SEARCH_START*bifurcation_point
+SEARCH_END = 1.6 #1.1  # end at SEARCH_END*bifurcation_point
+SEARCH_AMOUNT = 10000
 SPACING_BIFTEXT = int(SEARCH_AMOUNT/10)
 FLAG_BIFTEXT = 1
 FLAG_SHOWPLT = 1
@@ -94,9 +94,9 @@ for idx in xrange(len(params)):
 # x2_stabilities = np.zeros((nn,1))  # not implemented
 
 # FIGURE SETUP
-fig = plot_simplex(N)
-ax = fig.gca()
-ax.set_title(HEADER_TITLE)
+fig_simplex = plot_simplex(N)
+ax_simplex = fig_simplex.gca()
+ax_simplex.set_title(HEADER_TITLE)
 
 # FIND FIXED POINTS
 for idx, bifurc_param_val in enumerate(bifurcation_search):
@@ -107,24 +107,44 @@ for idx, bifurc_param_val in enumerate(bifurcation_search):
     x2_array[idx, :] = fp_location(params_step, q2)
     if FLAG_BIFTEXT and idx % SPACING_BIFTEXT == 0:
         #print bifurc_param_val, x1_array[idx,0], x1_array[idx,1], x1_array[idx,2]
-        ax.text(x1_array[idx,0], x1_array[idx,1], x1_array[idx,2], '%.3f' % bifurc_param_val)
+        ax_simplex.text(x1_array[idx, 0], x1_array[idx, 1], x1_array[idx, 2], '%.3f' % bifurc_param_val)
 
-# PLOTTING
+# PLOTTING ON THE SIMPLEX FIGURE
 # plot fixed point curves
-ax.scatter(x1_array[:,0], x1_array[:,1], x1_array[:,2], label='q_plus', color=X1_COL)
-ax.scatter(x2_array[:,0], x2_array[:,1], x2_array[:,2], label='q_minus', color=X2_COL)
+ax_simplex.scatter(x1_array[:, 0], x1_array[:, 1], x1_array[:, 2], label='q_plus', color=X1_COL)
+ax_simplex.scatter(x2_array[:, 0], x2_array[:, 1], x2_array[:, 2], label='q_minus', color=X2_COL)
 # plot settings
-ax.view_init(5, 35)  #ax.view_init(-45, -15)
+ax_simplex.view_init(5, 35)  #ax.view_init(-45, -15)
 axis_scale = 1
-ax.set_xlim(-N*axis_scale, N*axis_scale)  # may need to flip order
-ax.set_ylim(-N*axis_scale, N*axis_scale)
-ax.set_zlim(-N*axis_scale, N*axis_scale)
-ax.legend()
+ax_simplex.set_xlim(-N * axis_scale, N * axis_scale)  # may need to flip order
+ax_simplex.set_ylim(-N * axis_scale, N * axis_scale)
+ax_simplex.set_zlim(-N * axis_scale, N * axis_scale)
+ax_simplex.legend()
 # plot io
 if FLAG_SHOWPLT:
     plt.show()
 if FLAG_SAVEPLT:
-    fig.savefig(OUTPUT_DIR + sep + HEADER_SAVE + '.png')
+    fig_simplex.savefig(OUTPUT_DIR + sep + HEADER_SAVE + '.png')
+
+# PLOTTING THE BIFURCATION DIAGRAM
+distances_to_x0 = np.zeros((nn,1))
+for idx in xrange(nn):
+    x1_fp = x1_array[idx, :]
+    distances_to_x0[idx] = np.linalg.norm(x1_fp - np.array([0, 0, N]))
+fig_dist = plt.figure()
+ax_dist = fig_dist.gca()
+plt.plot(bifurcation_search, distances_to_x0)
+plt.axhline(y=np.sqrt(2)*N, color='r', linestyle='--')
+ax_dist.grid(True)
+ax_dist.set_ylim(-0.1, N*3)
+ax_dist.set_title("Bifurcation Diagram")
+ax_dist.set_xlabel(bifurc_id)
+ax_dist.set_ylabel("x1 distance to x0")
+# plot io
+if FLAG_SHOWPLT:
+    plt.show()
+if FLAG_SAVEPLT:
+    fig_dist.savefig(OUTPUT_DIR + sep + "bifurcation_dist" + '.png')
 
 # DATA OUTPUT
 if FLAG_SAVEDATA:
