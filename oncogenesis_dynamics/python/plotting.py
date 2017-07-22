@@ -2,8 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import colors
 from mpl_toolkits.mplot3d import Axes3D
+from os import sep
 
-from constants import X1_COL, X2_COL
+from constants import X1_COL, X2_COL, OUTPUT_DIR
 
 
 def plot_simplex(N):
@@ -36,7 +37,7 @@ def plot_simplex(N):
     return fig
 
 
-def plot_fp_curves(x1_array, x2_array, N, plt_title):
+def plot_fp_curves(x1_array, x2_array, N, plt_title, flag_show, flag_save, plt_save="bifurcation_curves"):
     fig_simplex = plot_simplex(N)
     ax_simplex = fig_simplex.gca()
     ax_simplex.scatter(x1_array[:, 0], x1_array[:, 1], x1_array[:, 2], label='q_plus', color=X1_COL)
@@ -49,11 +50,14 @@ def plot_fp_curves(x1_array, x2_array, N, plt_title):
     ax_simplex.set_zlim(-N * axis_scale, N * axis_scale)
     ax_simplex.legend()
     ax_simplex.set_title(plt_title)
-    # plot io
+    if flag_show:
+        plt.show()
+    if flag_save:
+        fig_simplex.savefig(OUTPUT_DIR + sep + plt_save + '.png')
     return fig_simplex
 
 
-def plot_bifurc_dist(x1_array, bifurcation_search, bifurc_id, N, dist_type):
+def plot_bifurc_dist(x1_array, bifurcation_search, bifurc_id, N, dist_type, flag_show, flag_save, plt_save="bifurcation_dist_norm_"):
     assert dist_type in ["norm", "z_only"]
     distances_to_x0 = np.zeros((len(bifurcation_search), 1))
     for idx in xrange(len(bifurcation_search)):
@@ -76,4 +80,8 @@ def plot_bifurc_dist(x1_array, bifurcation_search, bifurc_id, N, dist_type):
     ax_dist.set_title("Bifurcation Distance (%s)" % dist_type)
     ax_dist.set_xlabel(bifurc_id)
     ax_dist.set_ylabel("x1 distance to x0 (%s)" % dist_type)
+    if flag_show:
+        plt.show()
+    if flag_save:
+        fig_dist.savefig(OUTPUT_DIR + sep + plt_save + dist_type + '.png')
     return fig_dist

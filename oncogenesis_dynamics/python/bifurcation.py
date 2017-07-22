@@ -25,7 +25,7 @@ import numpy as np
 import matplotlib.pylab as pylab
 from os import sep
 
-from constants import PARAMS_DICT, VALID_BIFURCATION_PARAMS
+from constants import PARAMS_DICT, VALID_BIFURCATION_PARAMS, OUTPUT_DIR
 from formulae import bifurc_value, q_get, fp_location
 from plotting import plot_fp_curves, plot_bifurc_dist
 
@@ -44,9 +44,7 @@ FLAG_BIFTEXT = 1
 FLAG_SHOWPLT = 1
 FLAG_SAVEPLT = 1
 FLAG_SAVEDATA = 1
-OUTPUT_DIR = "output"
 HEADER_TITLE = 'Fixed Points'
-HEADER_SAVE = 'model_b_fps'
 
 # DYNAMICS PARAMETERS
 alpha_plus = 0.05 #0.4
@@ -99,45 +97,18 @@ for idx, bifurc_param_val in enumerate(bifurcation_search):
     x2_array[idx, :] = fp_location(params_step, q2)
 
 # PLOTTING ON THE SIMPLEX FIGURE
-fig_fp_curves = plot_fp_curves(x1_array, x2_array, N, HEADER_TITLE)
+fig_fp_curves = plot_fp_curves(x1_array, x2_array, N, HEADER_TITLE, False, False)
 if FLAG_BIFTEXT:
-    for idx in xrange(0,nn, SPACING_BIFTEXT):
+    for idx in xrange(0, nn, SPACING_BIFTEXT):
         fig_fp_curves.gca().text(x1_array[idx, 0], x1_array[idx, 1], x1_array[idx, 2], '%.3f' % bifurcation_search[idx])
 if FLAG_SHOWPLT:
     plt.show()
 if FLAG_SAVEPLT:
-    fig_fp_curves.savefig(OUTPUT_DIR + sep + HEADER_SAVE + '.png')
-
-"""
-# plot fixed point curves
-ax_simplex.scatter(x1_array[:, 0], x1_array[:, 1], x1_array[:, 2], label='q_plus', color=X1_COL)
-ax_simplex.scatter(x2_array[:, 0], x2_array[:, 1], x2_array[:, 2], label='q_minus', color=X2_COL)
-# plot settings
-ax_simplex.view_init(5, 35)  #ax.view_init(-45, -15)
-axis_scale = 1
-ax_simplex.set_xlim(-N * axis_scale, N * axis_scale)  # may need to flip order
-ax_simplex.set_ylim(-N * axis_scale, N * axis_scale)
-ax_simplex.set_zlim(-N * axis_scale, N * axis_scale)
-ax_simplex.legend()
-# plot io
-if FLAG_SHOWPLT:
-    plt.show()
-if FLAG_SAVEPLT:
-    fig_simplex.savefig(OUTPUT_DIR + sep + HEADER_SAVE + '.png')
-"""
+    fig_fp_curves.savefig(OUTPUT_DIR + sep + 'bifurcation_curves.png')
 
 # PLOTTING THE BIFURCATION DIAGRAM
-fig_dist_norm = plot_bifurc_dist(x1_array, bifurcation_search, bifurc_id, N, "norm")
-if FLAG_SHOWPLT:
-    plt.show()
-if FLAG_SAVEPLT:
-    fig_dist_norm.savefig(OUTPUT_DIR + sep + "bifurcation_dist_norm" + '.png')
-
-fig_dist_z = plot_bifurc_dist(x1_array, bifurcation_search, bifurc_id, N, "z_only")
-if FLAG_SHOWPLT:
-    plt.show()
-if FLAG_SAVEPLT:
-    fig_dist_z.savefig(OUTPUT_DIR + sep + "bifurcation_dist_z" + '.png')
+fig_dist_norm = plot_bifurc_dist(x1_array, bifurcation_search, bifurc_id, N, "norm", FLAG_SHOWPLT, FLAG_SAVEPLT)
+fig_dist_z = plot_bifurc_dist(x1_array, bifurcation_search, bifurc_id, N, "z_only", FLAG_SHOWPLT, FLAG_SAVEPLT)
 
 # DATA OUTPUT
 if FLAG_SAVEDATA:
