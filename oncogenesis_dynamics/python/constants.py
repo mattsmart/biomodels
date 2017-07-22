@@ -22,3 +22,6 @@ PARAMS_DICT = {0: "bifurc_alpha_minus",
                5: "bifurc_c",
                6: "bifurc_N"}
 VALID_BIFURCATION_PARAMS = ["bifurc_b"]  # list of implemented bifurcation parameters
+
+X1_COL = "blue"  # blue stable (dashed unstable)
+X2_COL = "green"  # green stable (dashed unstable)
