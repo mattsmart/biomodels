@@ -19,14 +19,13 @@ TODO
 - implement other bifurcation parameters
 """
 
-import csv
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.pylab as pylab
 from os import sep
 
-from constants import PARAMS_DICT, VALID_BIFURCATION_PARAMS, OUTPUT_DIR
-from formulae import bifurc_value, q_get, fp_location
+from constants import BIFURC_DICT, VALID_BIFURC_PARAMS, OUTPUT_DIR
+from formulae import bifurc_value, q_get, fp_location, write_bifurc_data, write_params
 from plotting import plot_fp_curves, plot_bifurc_dist
 
 
@@ -36,12 +35,12 @@ mpl_params = {'legend.fontsize': 'x-large', 'figure.figsize': (8, 5), 'axes.labe
 pylab.rcParams.update(mpl_params)
 
 # SCRIPT PARAMETERS
-SEARCH_START = 0.5 #0.9  # start at SEARCH_START*bifurcation_point
-SEARCH_END = 1.6 #1.1  # end at SEARCH_END*bifurcation_point
+SEARCH_START = 0.1 #0.5 #0.9  # start at SEARCH_START*bifurcation_point
+SEARCH_END = 5.6 #1.1  # end at SEARCH_END*bifurcation_point
 SEARCH_AMOUNT = 10000
 SPACING_BIFTEXT = int(SEARCH_AMOUNT/10)
 FLAG_BIFTEXT = 1
-FLAG_SHOWPLT = 1
+FLAG_SHOWPLT = 0
 FLAG_SAVEPLT = 1
 FLAG_SAVEDATA = 1
 HEADER_TITLE = 'Fixed Points'
@@ -49,7 +48,7 @@ HEADER_TITLE = 'Fixed Points'
 # DYNAMICS PARAMETERS
 alpha_plus = 0.05 #0.4
 alpha_minus = 4.95 #0.5
-mu = 0.77 #0.01
+mu = 0.01 #0.77 #0.01
 a = 1.0
 b = None
 c = 2.6 #1.2
@@ -68,9 +67,9 @@ for idx in xrange(len(params)):
     if params[idx] is None:
         # identify bifurcation points
         bifurc_idx = idx
-        bifurc_id = PARAMS_DICT[idx]
+        bifurc_id = BIFURC_DICT[idx]
         bifurc_ids.append(bifurc_id)
-        assert bifurc_id in VALID_BIFURCATION_PARAMS
+        assert bifurc_id in VALID_BIFURC_PARAMS
         bifurc_loc = bifurc_value(params, bifurc_id)
         print "Bifurcation in %s possibly at %.5f" % (bifurc_id, bifurc_loc)
         print "Searching in window: %.3f to %.3f with %d points" \
@@ -112,10 +111,5 @@ fig_dist_z = plot_bifurc_dist(x1_array, bifurcation_search, bifurc_id, N, "z_onl
 
 # DATA OUTPUT
 if FLAG_SAVEDATA:
-    with open(OUTPUT_DIR + sep + 'pycsv.csv', "wb") as csv_file:
-        writer = csv.writer(csv_file, delimiter=',')
-        csv_header = [bifurc_id, 'x1_x', 'x1_y', 'x1_z', 'x2_x', 'x2_y', 'x2_z']
-        writer.writerow(csv_header)
-        for idx in xrange(nn):
-            line = [bifurcation_search[idx]] + list(x1_array[idx,:]) + list(x2_array[idx,:])
-            writer.writerow(line)
+    write_bifurc_data(bifurcation_search, x1_array, x2_array, bifurc_id, OUTPUT_DIR, 'bifurc_data.csv')
+    write_params(params, OUTPUT_DIR, 'params.csv')

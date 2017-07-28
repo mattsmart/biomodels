@@ -14,14 +14,15 @@ Conventions
 - if an element of params is specified as None then a bifurcation range will be be found and used
 """
 
-PARAMS_DICT = {0: "bifurc_alpha_minus",
-               1: "bifurc_alpha_plus",
-               2: "bifurc_mu",
-               3: "bifurc_a",
-               4: "bifurc_b",
-               5: "bifurc_c",
-               6: "bifurc_N"}
-VALID_BIFURCATION_PARAMS = ["bifurc_b"]  # list of implemented bifurcation parameters
+PARAMS_ID = {0: "alpha_minus",
+              1: "alpha_plus",
+              2: "mu",
+              3: "a",
+              4: "b",
+              5: "c",
+              6: "N"}
+BIFURC_DICT = {i: "bifurc_" + PARAMS_ID[i] for i in xrange(7)}
+VALID_BIFURC_PARAMS = ["bifurc_b"]  # list of implemented bifurcation parameters
 
 OUTPUT_DIR = "output"
 

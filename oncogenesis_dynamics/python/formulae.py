@@ -10,7 +10,11 @@ Conventions
 - if an element of params is specified as None then a bifurcation range will be be found and used
 """
 
+import csv
 import numpy as np
+from os import sep
+
+from constants import PARAMS_ID
 
 
 def bifurc_value(params, bifurc_name):
@@ -92,3 +96,26 @@ def fp_location(params, q):
     yi = q * xi
     zi = N - xi - yi
     return xi, yi, zi
+
+
+def write_bifurc_data(bifurcation_search, x1_array, x2_array, bifurc_id, filedir, filename):
+    filepath = filedir + sep + filename
+    with open(filepath, "wb") as csv_file:
+        writer = csv.writer(csv_file, delimiter=',')
+        csv_header = [bifurc_id, 'x1_x', 'x1_y', 'x1_z', 'x2_x', 'x2_y', 'x2_z']
+        writer.writerow(csv_header)
+        for idx in xrange(len(bifurcation_search)):
+            line = [bifurcation_search[idx]] + list(x1_array[idx,:]) + list(x2_array[idx,:])
+            writer.writerow(line)
+    return filepath
+
+
+def write_params(params, filedir, filename):
+    filepath = filedir + sep + filename
+    with open(filepath, "wb") as csv_file:
+        writer = csv.writer(csv_file, delimiter=',')
+        for idx in xrange(len(PARAMS_ID)):
+            if params[idx] is None:
+                params[idx] = 'None'
+            writer.writerow([PARAMS_ID[idx], params[idx]])
+    return filepath
