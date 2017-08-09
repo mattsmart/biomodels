@@ -11,7 +11,7 @@ Conventions
                                   params[3] -> a           (usually normalized to 1)
                                   params[4] -> b           (b = 1 - delta)
                                   params[5] -> c           (c = 1 + s)
-                                  params[6] -> N
+                                  params[6] -> N           (float not int)
 - if an element of params is specified as None then a bifurcation range will be be found and used
 
 TODO
@@ -50,12 +50,12 @@ alpha_plus = 0.05 #0.4
 alpha_minus = 4.95 #0.5
 mu = 0.77 #0.77 #0.01
 a = 1.0
-b = None
+b = None #1.1
 c = 2.6 #1.2
-N = 100 #100
-v_x = 0
-v_y = 0
-v_z = 0
+N = 100.0 #100
+v_x = 0.0
+v_y = 0.0
+v_z = 0.0
 if b is not None:
     delta = 1 - b
 if c is not None:

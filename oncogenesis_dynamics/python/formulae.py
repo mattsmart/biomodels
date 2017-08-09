@@ -6,7 +6,7 @@ Conventions
                                   params[3] -> a           (usually normalized to 1)
                                   params[4] -> b           (b = 1 - delta)
                                   params[5] -> c           (c = 1 + s)
-                                  params[6] -> N
+                                  params[6] -> N           (float not int)
                                   params[7] -> v_x
                                   params[8] -> v_y         (typically 0)
                                   params[9] -> v_z         (typically 0)

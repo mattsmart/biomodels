@@ -7,9 +7,9 @@ alpha_plus = 10.0
 alpha_minus = 11.0
 mu = 0.2
 N = 100.0
-v_x = 0
-v_y = 0
-v_z = 0
+v_x = 0.0
+v_y = 0.0
+v_z = 0.0
 
 scene.center = vector(33.3,33.3,33.3)
 scene.autoscale=0
