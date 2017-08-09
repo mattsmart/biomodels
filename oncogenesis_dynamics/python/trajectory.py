@@ -26,6 +26,9 @@ delta = 1-b
 c = 1.2
 s = c - 1
 N = 100
+v_x = 0
+v_y = 0
+v_z = 0
 
 # =====================
 # FIND POSSIBLE FP
@@ -98,10 +101,10 @@ r[0] = np.array(x0)
 
 for idx, t in enumerate(times[:-1]):
     x,y,z = r[idx]
-    fbar = (a*x + b*y + c*z) / N
-    v = np.array([-x*alpha_plus + y*alpha_minus        + (a - fbar)*x,
-                   x*alpha_plus - y*(alpha_minus + mu) + (b - fbar)*y,
-                                  y*mu                 + (c - fbar)*z])
+    fbar = (a*x + b*y + c*z + v_x + v_y + v_z) / N
+    v = np.array([v_x - x*alpha_plus + y*alpha_minus        + (a - fbar)*x,
+                  v_y + x*alpha_plus - y*(alpha_minus + mu) + (b - fbar)*y,
+                  v_z +                y*mu                 + (c - fbar)*z])
     r[idx+1] = r[idx] + v*dt
 
     # Draw lines colored by speed
@@ -129,20 +132,3 @@ ax.plot([x1[0]], [x1[1]], [x1[2]], label='x_weird')
 plt.show()
 
 fig.savefig(plt_save + '.pdf')
-
-    
-    
-"""
-X = np.linspace(0,2,1000)
-Y = X**2 + np.random.random(X.shape)
-
-plt.ion()
-graph = plt.plot(X,Y)[0]
-
-while True:
-    Y = X**2 + np.random.random(X.shape)
-    graph.set_ydata(Y)
-    plt.draw()
-    plt.pause(0.01)
-"""
- 

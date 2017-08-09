@@ -11,17 +11,23 @@ Conventions
                                   params[4] -> b           (b = 1 - delta)
                                   params[5] -> c           (c = 1 + s)
                                   params[6] -> N
+                                  params[7] -> v_x
+                                  params[8] -> v_y         (typically 0)
+                                  params[9] -> v_z         (typically 0)
 - if an element of params is specified as None then a bifurcation range will be be found and used
 """
 
 PARAMS_ID = {0: "alpha_minus",
-              1: "alpha_plus",
-              2: "mu",
-              3: "a",
-              4: "b",
-              5: "c",
-              6: "N"}
-BIFURC_DICT = {i: "bifurc_" + PARAMS_ID[i] for i in xrange(7)}
+             1: "alpha_plus",
+             2: "mu",
+             3: "a",
+             4: "b",
+             5: "c",
+             6: "N",
+             7: "v_x",
+             8: "v_y",
+             9: "v_z"}
+BIFURC_DICT = {i: "bifurc_" + PARAMS_ID[i] for i in xrange(len(PARAMS_ID))}
 VALID_BIFURC_PARAMS = ["bifurc_b"]  # list of implemented bifurcation parameters
 
 OUTPUT_DIR = "output"

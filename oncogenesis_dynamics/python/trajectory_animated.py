@@ -1,12 +1,15 @@
 from visual import *
 
-N = 100.0
 a=1.0
 b=-0.2
 c=0.5
 alpha_plus = 10.0
 alpha_minus = 11.0
 mu = 0.2
+N = 100.0
+v_x = 0
+v_y = 0
+v_z = 0
 
 scene.center = vector(33.3,33.3,33.3)
 scene.autoscale=0
@@ -33,10 +36,10 @@ r = vector(90.0, 10.0, 0.0)  #initial cond make sure sum to N=100
 #r = vector(30, 1, 7)
 
 for t in arange(0,100,dt):
-    fbar = (a*r.x + b*r.y + c*r.z) / N
-    v = vector(-r.x*alpha_plus + r.y*alpha_minus        + (a - fbar)*r.x,
-                r.x*alpha_plus - r.y*(alpha_minus + mu) + (b - fbar)*r.y,
-                                 r.y*mu                 + (c - fbar)*r.z)
+    fbar = (a*r.x + b*r.y + c*r.z + v_x + v_y + v_z) / N
+    v = vector(v_x - r.x*alpha_plus + r.y*alpha_minus        + (a - fbar)*r.x,
+               v_y + r.x*alpha_plus - r.y*(alpha_minus + mu) + (b - fbar)*r.y,
+               v_z +                  r.y*mu                 + (c - fbar)*r.z)
     r = r + v*dt
 ##  # Draw lines colored by speed
     cc = clip( [mag(v) * 0.005], 0, 1 )[0]

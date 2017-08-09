@@ -7,6 +7,9 @@ Conventions
                                   params[4] -> b           (b = 1 - delta)
                                   params[5] -> c           (c = 1 + s)
                                   params[6] -> N
+                                  params[7] -> v_x
+                                  params[8] -> v_y         (typically 0)
+                                  params[9] -> v_z         (typically 0)
 - if an element of params is specified as None then a bifurcation range will be be found and used
 """
 
@@ -21,13 +24,7 @@ def bifurc_value(params, bifurc_name):
     """
     Note: assumes params contains at most one None parameter
     """
-    alpha_plus = params[0]
-    alpha_minus = params[1]
-    mu = params[2]
-    a = params[3]
-    b = params[4]
-    c = params[5]
-    N = params[6]
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
     if b is not None:
         delta = 1 - b
     if c is not None:
@@ -42,39 +39,21 @@ def bifurc_value(params, bifurc_name):
 
 
 def threshold_1(params):
-    alpha_plus = params[0]
-    alpha_minus = params[1]
-    mu = params[2]
-    a = params[3]
-    b = params[4]
-    c = params[5]
-    N = params[6]
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
     delta = 1 - b
     s = c - 1
     return 2 * s + delta + alpha_plus + alpha_minus + mu
 
 
 def threshold_2(params):
-    alpha_plus = params[0]
-    alpha_minus = params[1]
-    mu = params[2]
-    a = params[3]
-    b = params[4]
-    c = params[5]
-    N = params[6]
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
     delta = 1 - b
     s = c - 1
     return (s + alpha_plus) * (s + delta + alpha_minus + mu) - alpha_minus * alpha_plus
 
 
 def q_get(params, sign):
-    alpha_plus = params[0]
-    alpha_minus = params[1]
-    mu = params[2]
-    a = params[3]
-    b = params[4]
-    c = params[5]
-    N = params[6]
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
     delta = 1 - b
     s = c - 1
     assert sign in [-1, +1]
@@ -83,13 +62,7 @@ def q_get(params, sign):
 
 
 def fp_location(params, q):
-    alpha_plus = params[0]
-    alpha_minus = params[1]
-    mu = params[2]
-    a = params[3]
-    b = params[4]
-    c = params[5]
-    N = params[6]
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
     delta = 1 - b
     s = c - 1
     xi = N * (s + alpha_plus - alpha_minus * q) / (s + (delta + s) * q)

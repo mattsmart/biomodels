@@ -20,8 +20,8 @@ TODO
 """
 
 import matplotlib.pyplot as plt
-import numpy as np
 import matplotlib.pylab as pylab
+import numpy as np
 from os import sep
 
 from constants import BIFURC_DICT, VALID_BIFURC_PARAMS, OUTPUT_DIR
@@ -48,18 +48,22 @@ HEADER_TITLE = 'Fixed Points'
 # DYNAMICS PARAMETERS
 alpha_plus = 0.05 #0.4
 alpha_minus = 4.95 #0.5
-mu = 0.01 #0.77 #0.01
+mu = 0.77 #0.77 #0.01
 a = 1.0
 b = None
 c = 2.6 #1.2
-N = 100
+N = 100 #100
+v_x = 0
+v_y = 0
+v_z = 0
 if b is not None:
     delta = 1 - b
 if c is not None:
     s = c - 1
-params = [alpha_plus, alpha_minus, mu, a, b, c, N]
+params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z]
 print "Specified parameters: \nalpha_plus = " + str(alpha_plus) + "\nalpha_minus = " + str(alpha_minus) + \
-      "\nmu = " + str(mu) + "\na = " + str(a) + "\nb = " + str(b) + "\nc = " + str(c) + "\nN = " + str(N)
+      "\nmu = " + str(mu) + "\na = " + str(a) + "\nb = " + str(b) + "\nc = " + str(c) + "\nN = " + str(N) + \
+      "\nv_x = " + str(v_x) + "\nv_y = " + str(v_y) + "\nv_z = " + str(v_z)
 
 # FP SEARCH SETUP
 bifurc_ids = []
