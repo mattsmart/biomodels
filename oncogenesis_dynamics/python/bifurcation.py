@@ -25,7 +25,7 @@ import numpy as np
 from os import sep
 
 from constants import BIFURC_DICT, VALID_BIFURC_PARAMS, OUTPUT_DIR
-from formulae import bifurc_value, q_get, fp_location, write_bifurc_data, write_params
+from formulae import bifurc_value, q_get, fp_location, is_stable, write_bifurc_data, write_params
 from plotting import plot_fp_curves, plot_bifurc_dist
 
 
@@ -88,16 +88,22 @@ for idx in xrange(len(params)):
         params_ensemble[:,idx] = params[idx]
     else:
         params_ensemble[:,idx] = bifurcation_search
-# x1_stabilities = np.zeros((nn,1))  # not implemented
-# x2_stabilities = np.zeros((nn,1))  # not implemented
+x0_stabilities = np.zeros((nn,1))  # not implemented
+x1_stabilities = np.zeros((nn,1))  # not implemented
+x2_stabilities = np.zeros((nn,1))  # not implemented
 
 # FIND FIXED POINTS
 for idx, bifurc_param_val in enumerate(bifurcation_search):
     params_step = params_ensemble[idx, :]
     q1 = q_get(params_step, +1)
     q2 = q_get(params_step, -1)
-    x1_array[idx, :] = fp_location(params_step, q1)
-    x2_array[idx, :] = fp_location(params_step, q2)
+    fp_x1 = fp_location(params_step, q1)
+    fp_x2 = fp_location(params_step, q2)
+    x1_array[idx, :] = fp_x1
+    x2_array[idx, :] = fp_x2
+    x0_stabilities[idx, :] = is_stable(params_step, [0,0,N])
+    x1_stabilities[idx, :] = is_stable(params_step, fp_x1)
+    x2_stabilities[idx, :] = is_stable(params_step, fp_x2)
 
 # PLOTTING ON THE SIMPLEX FIGURE
 fig_fp_curves = plot_fp_curves(x1_array, x2_array, N, HEADER_TITLE, False, False)

@@ -16,6 +16,7 @@ Conventions
 import csv
 import numpy as np
 from os import sep
+from sympy import Symbol, solve
 
 from constants import PARAMS_ID
 
@@ -69,6 +70,42 @@ def fp_location(params, q):
     yi = q * xi
     zi = N - xi - yi
     return xi, yi, zi
+
+
+def fp_location_symbolic(params):
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+    sym_x = Symbol("x")
+    sym_y = Symbol("y")
+    sym_z = Symbol("z")
+    xdot = (c-a)/N*sym_x**2 + (c-b)/N*sym_x*sym_y + (a-c-alpha_plus-(v_x+v_y+v_z)/N)*sym_x + alpha_minus*sym_y + v_x
+    ydot = (c-b)/N*sym_y**2 + (c-a)/N*sym_x*sym_y + (b-c-alpha_minus-mu-(v_x+v_y+v_z)/N)*sym_y + alpha_plus*sym_x + v_y
+    pop_constraint = N - sym_x - sym_y - sym_z
+    eqns = (xdot, ydot, pop_constraint)
+    solution = solve(eqns)
+    orderdict = {0: sym_x, 1: sym_y, 2: sym_z}
+    sol_a = [float(solution[0][orderdict[i]]) for i in xrange(3)]
+    sol_b = [float(solution[1][orderdict[i]]) for i in xrange(3)]
+    sol_c = [float(solution[2][orderdict[i]]) for i in xrange(3)]
+    return [sol_a, sol_b, sol_c]
+
+
+def jacobian3d(params, fp):
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+    M = np.array([[a - alpha_plus, alpha_minus, 0],
+                  [alpha_plus, b - alpha_minus - mu, 0],
+                  [0, mu, c]])
+    x, y, z = fp
+    diag = a*x + b*y + c*z + v_x + v_y + v_z
+    r1 = [diag + x*a, x*b, x*c]
+    r2 = [y*a, diag + y*b, y*c]
+    r3 = [z*a, z*b, diag + z*c]
+    return M - 1/N*np.array([r1,r2,r3])
+
+
+def is_stable(params, fp):
+    J = jacobian3d(params, fp)
+    eigenvalues, V = np.linalg.eig(J)
+    all(eig < 0 for eig in eigenvalues)
 
 
 def write_bifurc_data(bifurcation_search, x1_array, x2_array, bifurc_id, filedir, filename):
