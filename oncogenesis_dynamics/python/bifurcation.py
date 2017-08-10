@@ -53,17 +53,22 @@ a = 1.0
 b = None #1.1
 c = 2.6 #1.2
 N = 100.0 #100
-v_x = 0.0
+v_x = 0.001
 v_y = 0.0
 v_z = 0.0
 if b is not None:
     delta = 1 - b
 if c is not None:
     s = c - 1
+if v_x == 0 and v_y == 0 and v_z == 0:
+    solver_numeric = False
+else:
+    solver_numeric = True
 params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z]
 print "Specified parameters: \nalpha_plus = " + str(alpha_plus) + "\nalpha_minus = " + str(alpha_minus) + \
       "\nmu = " + str(mu) + "\na = " + str(a) + "\nb = " + str(b) + "\nc = " + str(c) + "\nN = " + str(N) + \
       "\nv_x = " + str(v_x) + "\nv_y = " + str(v_y) + "\nv_z = " + str(v_z)
+print "Use numeric solver: ", solver_numeric
 
 # FP SEARCH SETUP
 bifurc_ids = []
@@ -96,7 +101,7 @@ x2_stabilities = np.zeros((nn, 1))  # not implemented
 # FIND FIXED POINTS
 for idx, bifurc_param_val in enumerate(bifurcation_search):
     params_step = params_ensemble[idx, :]
-    fp_x0, fp_x1, fp_x2 = fp_location_general(params_step)
+    fp_x0, fp_x1, fp_x2 = fp_location_general(params_step, solver_numeric)
     x0_array[idx, :] = fp_x0
     x1_array[idx, :] = fp_x1
     x2_array[idx, :] = fp_x2

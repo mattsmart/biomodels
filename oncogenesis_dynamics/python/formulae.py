@@ -16,7 +16,7 @@ Conventions
 import csv
 import numpy as np
 from os import sep
-from sympy import Symbol, solve
+from sympy import Symbol, solve, re
 
 from constants import PARAMS_ID
 
@@ -88,18 +88,18 @@ def fp_location_numeric(params):
     eqns = (xdot, ydot, pop_constraint)
     solution = solve(eqns)
     orderdict = {0: sym_x, 1: sym_y, 2: sym_z}
-    sol_a = [float(solution[0][orderdict[i]]) for i in xrange(3)]
-    sol_b = [float(solution[1][orderdict[i]]) for i in xrange(3)]
-    sol_c = [float(solution[2][orderdict[i]]) for i in xrange(3)]
+    sol_a = [float(re(solution[0][orderdict[i]])) for i in xrange(3)]
+    sol_b = [float(re(solution[1][orderdict[i]])) for i in xrange(3)]
+    sol_c = [float(re(solution[2][orderdict[i]])) for i in xrange(3)]
     return [sol_a, sol_b, sol_c]
 
 
-def fp_location_general(params):
+def fp_location_general(params, solver_numeric=True):
     alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
-    if v_x == 0 and v_y == 0 and v_z == 0:
-        return fp_location_noflow(params)
-    else:
+    if solver_numeric:
         return fp_location_numeric(params)
+    else:
+        return fp_location_noflow(params)
 
 
 def jacobian3d(params, fp):
