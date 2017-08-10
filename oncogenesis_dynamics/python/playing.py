@@ -2,7 +2,7 @@ import numpy as np
 #from scipy.optimize import fsolve
 from sympy import Symbol, solve
 
-from formulae import fp_location, q_get
+from formulae import fp_location_noflow, q_get
 
 # DYNAMICS PARAMETERS
 alpha_plus = 0.05 #0.4
@@ -42,8 +42,8 @@ xC = [float(solution[2][orderdict[i]]) for i in xrange(3)]
 # test validity 1
 q1 = q_get(params, 1)
 q2 = q_get(params, -1)
-print fp_location(params, q1)
-print fp_location(params, q2)
+print fp_location_noflow(params, q1)
+print fp_location_noflow(params, q2)
 
 # test validity 2
 for fp in [xA, xB, xC]:

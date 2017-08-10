@@ -62,17 +62,22 @@ def q_get(params, sign):
     return 0.5 / alpha_minus * (bterm + sign * np.sqrt(bterm ** 2 + 4 * alpha_minus * alpha_plus))
 
 
-def fp_location(params, q):
+def fp_location_noflow(params):
+    q1 = q_get(params, +1)
+    q2 = q_get(params, -1)
     alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
     delta = 1 - b
     s = c - 1
-    xi = N * (s + alpha_plus - alpha_minus * q) / (s + (delta + s) * q)
-    yi = q * xi
-    zi = N - xi - yi
-    return xi, yi, zi
+    conjugate_fps = [[0,0,0], [0,0,0]]
+    for idx, q in enumerate([q1,q2]):
+        xi = N * (s + alpha_plus - alpha_minus * q) / (s + (delta + s) * q)
+        yi = q * xi
+        zi = N - xi - yi
+        conjugate_fps[idx] = [xi, yi, zi]
+    return [[0, 0, N], conjugate_fps[0], conjugate_fps[1]]
 
 
-def fp_location_symbolic(params):
+def fp_location_numeric(params):
     alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
     sym_x = Symbol("x")
     sym_y = Symbol("y")
@@ -87,6 +92,14 @@ def fp_location_symbolic(params):
     sol_b = [float(solution[1][orderdict[i]]) for i in xrange(3)]
     sol_c = [float(solution[2][orderdict[i]]) for i in xrange(3)]
     return [sol_a, sol_b, sol_c]
+
+
+def fp_location_general(params):
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+    if v_x == 0 and v_y == 0 and v_z == 0:
+        return fp_location_noflow(params)
+    else:
+        return fp_location_numeric(params)
 
 
 def jacobian3d(params, fp):
@@ -108,14 +121,14 @@ def is_stable(params, fp):
     all(eig < 0 for eig in eigenvalues)
 
 
-def write_bifurc_data(bifurcation_search, x1_array, x2_array, bifurc_id, filedir, filename):
+def write_bifurc_data(bifurcation_search, x0_array, x1_array, x2_array, bifurc_id, filedir, filename):
     filepath = filedir + sep + filename
     with open(filepath, "wb") as csv_file:
         writer = csv.writer(csv_file, delimiter=',')
-        csv_header = [bifurc_id, 'x1_x', 'x1_y', 'x1_z', 'x2_x', 'x2_y', 'x2_z']
+        csv_header = [bifurc_id, 'x0_x', 'x0_y', 'x0_z', 'x1_x', 'x1_y', 'x1_z', 'x2_x', 'x2_y', 'x2_z']
         writer.writerow(csv_header)
         for idx in xrange(len(bifurcation_search)):
-            line = [bifurcation_search[idx]] + list(x1_array[idx,:]) + list(x2_array[idx,:])
+            line = [bifurcation_search[idx]] + list(x0_array[idx,:]) + list(x1_array[idx,:]) + list(x2_array[idx,:])
             writer.writerow(line)
     return filepath
 

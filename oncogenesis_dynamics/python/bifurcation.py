@@ -25,7 +25,7 @@ import numpy as np
 from os import sep
 
 from constants import BIFURC_DICT, VALID_BIFURC_PARAMS, OUTPUT_DIR
-from formulae import bifurc_value, q_get, fp_location, is_stable, write_bifurc_data, write_params
+from formulae import bifurc_value, q_get, fp_location_general, is_stable, write_bifurc_data, write_params
 from plotting import plot_fp_curves, plot_bifurc_dist
 
 
@@ -80,28 +80,27 @@ for idx in xrange(len(params)):
               % (SEARCH_START*bifurc_loc, SEARCH_END*bifurc_loc, SEARCH_AMOUNT)
         bifurcation_search = np.linspace(SEARCH_START*bifurc_loc, SEARCH_END*bifurc_loc, SEARCH_AMOUNT)
 nn = len(bifurcation_search)
+x0_array = np.zeros((nn, 3))
 x1_array = np.zeros((nn, 3))
 x2_array = np.zeros((nn, 3))
 params_ensemble = np.zeros((nn, len(params)))
 for idx in xrange(len(params)):
     if params[idx] is not None:
-        params_ensemble[:,idx] = params[idx]
+        params_ensemble[:, idx] = params[idx]
     else:
-        params_ensemble[:,idx] = bifurcation_search
-x0_stabilities = np.zeros((nn,1))  # not implemented
-x1_stabilities = np.zeros((nn,1))  # not implemented
-x2_stabilities = np.zeros((nn,1))  # not implemented
+        params_ensemble[:, idx] = bifurcation_search
+x0_stabilities = np.zeros((nn, 1))  # not implemented
+x1_stabilities = np.zeros((nn, 1))  # not implemented
+x2_stabilities = np.zeros((nn, 1))  # not implemented
 
 # FIND FIXED POINTS
 for idx, bifurc_param_val in enumerate(bifurcation_search):
     params_step = params_ensemble[idx, :]
-    q1 = q_get(params_step, +1)
-    q2 = q_get(params_step, -1)
-    fp_x1 = fp_location(params_step, q1)
-    fp_x2 = fp_location(params_step, q2)
+    fp_x0, fp_x1, fp_x2 = fp_location_general(params_step)
+    x0_array[idx, :] = fp_x0
     x1_array[idx, :] = fp_x1
     x2_array[idx, :] = fp_x2
-    x0_stabilities[idx, :] = is_stable(params_step, [0,0,N])
+    x0_stabilities[idx, :] = is_stable(params_step, fp_x0)
     x1_stabilities[idx, :] = is_stable(params_step, fp_x1)
     x2_stabilities[idx, :] = is_stable(params_step, fp_x2)
 
@@ -121,5 +120,5 @@ fig_dist_z = plot_bifurc_dist(x1_array, bifurcation_search, bifurc_id, N, "z_onl
 
 # DATA OUTPUT
 if FLAG_SAVEDATA:
-    write_bifurc_data(bifurcation_search, x1_array, x2_array, bifurc_id, OUTPUT_DIR, 'bifurc_data.csv')
+    write_bifurc_data(bifurcation_search, x0_array, x1_array, x2_array, bifurc_id, OUTPUT_DIR, 'bifurc_data.csv')
     write_params(params, OUTPUT_DIR, 'params.csv')
