@@ -37,7 +37,7 @@ pylab.rcParams.update(mpl_params)
 # SCRIPT PARAMETERS
 SEARCH_START = 0.1 #0.5 #0.9  # start at SEARCH_START*bifurcation_point
 SEARCH_END = 5.6 #1.1  # end at SEARCH_END*bifurcation_point
-SEARCH_AMOUNT = 10000
+SEARCH_AMOUNT = 10 #10000
 SPACING_BIFTEXT = int(SEARCH_AMOUNT/10)
 FLAG_BIFTEXT = 1
 FLAG_SHOWPLT = 0
@@ -53,7 +53,7 @@ a = 1.0
 b = None #1.1
 c = 2.6 #1.2
 N = 100.0 #100
-v_x = 0.001
+v_x = 0.01
 v_y = 0.0
 v_z = 0.0
 if b is not None:
@@ -62,13 +62,18 @@ if c is not None:
     s = c - 1
 if v_x == 0 and v_y == 0 and v_z == 0:
     solver_numeric = False
+    solver_fast = False  # doesn't do anything, just want to pass variable
 else:
     solver_numeric = True
+    solver_fast = True
 params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z]
+
 print "Specified parameters: \nalpha_plus = " + str(alpha_plus) + "\nalpha_minus = " + str(alpha_minus) + \
       "\nmu = " + str(mu) + "\na = " + str(a) + "\nb = " + str(b) + "\nc = " + str(c) + "\nN = " + str(N) + \
       "\nv_x = " + str(v_x) + "\nv_y = " + str(v_y) + "\nv_z = " + str(v_z)
-print "Use numeric solver: ", solver_numeric
+print "Use numeric solver:", solver_numeric
+if solver_numeric:
+    print "Use fast solver:", solver_fast
 
 # FP SEARCH SETUP
 bifurc_ids = []
@@ -101,13 +106,14 @@ x2_stabilities = np.zeros((nn, 1))  # not implemented
 # FIND FIXED POINTS
 for idx, bifurc_param_val in enumerate(bifurcation_search):
     params_step = params_ensemble[idx, :]
-    fp_x0, fp_x1, fp_x2 = fp_location_general(params_step, solver_numeric)
+    fp_x0, fp_x1, fp_x2 = fp_location_general(params_step, solver_numeric, solver_fast)
     x0_array[idx, :] = fp_x0
     x1_array[idx, :] = fp_x1
     x2_array[idx, :] = fp_x2
     x0_stabilities[idx, :] = is_stable(params_step, fp_x0)
     x1_stabilities[idx, :] = is_stable(params_step, fp_x1)
     x2_stabilities[idx, :] = is_stable(params_step, fp_x2)
+    print idx, "of", nn
 
 # PLOTTING ON THE SIMPLEX FIGURE
 fig_fp_curves = plot_fp_curves(x1_array, x2_array, N, HEADER_TITLE, False, False)

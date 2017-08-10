@@ -77,27 +77,61 @@ def fp_location_noflow(params):
     return [[0, 0, N], conjugate_fps[0], conjugate_fps[1]]
 
 
-def fp_location_numeric(params):
+def fp_location_numeric_system(params):
     alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
     sym_x = Symbol("x")
     sym_y = Symbol("y")
-    sym_z = Symbol("z")
-    xdot = (c-a)/N*sym_x**2 + (c-b)/N*sym_x*sym_y + (a-c-alpha_plus-(v_x+v_y+v_z)/N)*sym_x + alpha_minus*sym_y + v_x
-    ydot = (c-b)/N*sym_y**2 + (c-a)/N*sym_x*sym_y + (b-c-alpha_minus-mu-(v_x+v_y+v_z)/N)*sym_y + alpha_plus*sym_x + v_y
-    pop_constraint = N - sym_x - sym_y - sym_z
-    eqns = (xdot, ydot, pop_constraint)
+
+    VV = (v_x+v_y+v_z)/N
+    xdot = (c-a)/N*sym_x**2 + (c-b)/N*sym_x*sym_y + (a-c-alpha_plus-VV)*sym_x + alpha_minus*sym_y + v_x
+    ydot = (c-b)/N*sym_y**2 + (c-a)/N*sym_x*sym_y + (b-c-alpha_minus-mu-VV)*sym_y + alpha_plus*sym_x + v_y
+    eqns = (xdot, ydot)
     solution = solve(eqns)
-    orderdict = {0: sym_x, 1: sym_y, 2: sym_z}
-    sol_a = [float(re(solution[0][orderdict[i]])) for i in xrange(3)]
-    sol_b = [float(re(solution[1][orderdict[i]])) for i in xrange(3)]
-    sol_c = [float(re(solution[2][orderdict[i]])) for i in xrange(3)]
-    return [sol_a, sol_b, sol_c]
+
+    solution_list = [[0,0,0], [0,0,0], [0,0,0]]
+    for i in xrange(3):
+        x_i = float(re(solution[i][sym_x]))
+        y_i = float(re(solution[i][sym_y]))
+        solution_list[i] = [x_i, y_i, N - x_i - y_i]
+    return solution_list
 
 
-def fp_location_general(params, solver_numeric=True):
+def fp_location_numeric_quartic(params):
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+    sym_x = Symbol("x")
+    sym_y = Symbol("y")
+
+    VV = (v_x+v_y+v_z)/N
+    a0 = (c-a)/N
+    a1 = 0.0
+    b0 = 0.0
+    b1 = (c-b)/N
+    c0 = (c-b)/N
+    c1 = (c-a)/N
+    d0 = (a-c-alpha_plus-VV)
+    d1 = alpha_plus
+    e0 = alpha_minus
+    e1 = (b-c-alpha_minus-mu-VV)
+    f0 = v_x
+    f1 = v_y
+    eqn = b1*(a0*sym_x**2 + d0*sym_x + f0)**2 - (c0*sym_x + e0)*(a0*sym_x**2 + d0*sym_x + f0)*(c1*sym_x + e1) + d1*sym_x + f1*(c0*sym_x + e0)**2
+    solution = solve(eqn)
+
+    solution_list = [[0,0,0], [0,0,0], [0,0,0]]
+    for i in xrange(3):
+        x_i = float(re(solution[i]))
+        y_i = -(a0*x_i**2 + d0*x_i + f0) / (c0*x_i + e0)  # WARNING TODO: ensure this denom is nonzero
+        solution_list[i] = [x_i, y_i, N - x_i - y_i]
+    return solution_list
+
+
+def fp_location_general(params, solver_numeric=True, solver_fast=True):
     alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
     if solver_numeric:
-        return fp_location_numeric(params)
+        if solver_fast:
+            return fp_location_numeric_quartic(params)
+        else:
+            return fp_location_numeric_system(params)
     else:
         return fp_location_noflow(params)
 
