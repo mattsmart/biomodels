@@ -99,9 +99,9 @@ for idx in xrange(len(params)):
         params_ensemble[:, idx] = params[idx]
     else:
         params_ensemble[:, idx] = bifurcation_search
-x0_stabilities = np.zeros((nn, 1))  # not implemented
-x1_stabilities = np.zeros((nn, 1))  # not implemented
-x2_stabilities = np.zeros((nn, 1))  # not implemented
+x0_stabilities = np.zeros((nn, 1), dtype=bool)  # not fully implemented
+x1_stabilities = np.zeros((nn, 1), dtype=bool)  # not fully implemented
+x2_stabilities = np.zeros((nn, 1), dtype=bool)  # not fully implemented
 
 # FIND FIXED POINTS
 for idx, bifurc_param_val in enumerate(bifurcation_search):
@@ -110,9 +110,9 @@ for idx, bifurc_param_val in enumerate(bifurcation_search):
     x0_array[idx, :] = fp_x0
     x1_array[idx, :] = fp_x1
     x2_array[idx, :] = fp_x2
-    x0_stabilities[idx, :] = is_stable(params_step, fp_x0)
-    x1_stabilities[idx, :] = is_stable(params_step, fp_x1)
-    x2_stabilities[idx, :] = is_stable(params_step, fp_x2)
+    x0_stabilities[idx][0] = is_stable(params_step, fp_x0)
+    x1_stabilities[idx][0] = is_stable(params_step, fp_x1)
+    x2_stabilities[idx][0] = is_stable(params_step, fp_x2)
     print idx, "of", nn
 
 # PLOTTING ON THE SIMPLEX FIGURE
@@ -131,5 +131,6 @@ fig_dist_z = plot_bifurc_dist(x1_array, bifurcation_search, bifurc_id, N, "z_onl
 
 # DATA OUTPUT
 if FLAG_SAVEDATA:
-    write_bifurc_data(bifurcation_search, x0_array, x1_array, x2_array, bifurc_id, OUTPUT_DIR, 'bifurc_data.csv')
+    write_bifurc_data(bifurcation_search, x0_array, x0_stabilities, x1_array, x1_stabilities, x2_array, x2_stabilities,
+                      bifurc_id, OUTPUT_DIR, 'bifurc_data.csv')
     write_params(params, OUTPUT_DIR, 'params.csv')

@@ -152,17 +152,19 @@ def jacobian3d(params, fp):
 def is_stable(params, fp):
     J = jacobian3d(params, fp)
     eigenvalues, V = np.linalg.eig(J)
-    all(eig < 0 for eig in eigenvalues)
+    return all(eig < 0 for eig in eigenvalues)
 
 
-def write_bifurc_data(bifurcation_search, x0_array, x1_array, x2_array, bifurc_id, filedir, filename):
+def write_bifurc_data(bifurcation_search, x0, x0_stab, x1, x1_stab, x2, x2_stab, bifurc_id, filedir, filename):
+    csv_header = [bifurc_id, 'x0_x', 'x0_y', 'x0_z', 'x0_stab', 'x1_x', 'x1_y', 'x1_z', 'x1_stab', 'x2_x', 'x2_y',
+                  'x2_z', 'x2_stab']
     filepath = filedir + sep + filename
     with open(filepath, "wb") as csv_file:
         writer = csv.writer(csv_file, delimiter=',')
-        csv_header = [bifurc_id, 'x0_x', 'x0_y', 'x0_z', 'x1_x', 'x1_y', 'x1_z', 'x2_x', 'x2_y', 'x2_z']
         writer.writerow(csv_header)
         for idx in xrange(len(bifurcation_search)):
-            line = [bifurcation_search[idx]] + list(x0_array[idx,:]) + list(x1_array[idx,:]) + list(x2_array[idx,:])
+            line = [bifurcation_search[idx]] + list(x0[idx,:]) + list(x0_stab[idx]) + list(x1[idx,:]) + \
+                   list(x1_stab[idx]) + list(x2[idx,:]) + list(x2_stab[idx])
             writer.writerow(line)
     return filepath
 
