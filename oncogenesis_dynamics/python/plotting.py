@@ -4,7 +4,7 @@ from matplotlib import colors
 from mpl_toolkits.mplot3d import Axes3D
 from os import sep
 
-from constants import X1_COL, X2_COL, OUTPUT_DIR
+from constants import X0_COL, X1_COL, X2_COL, OUTPUT_DIR
 
 
 def plot_simplex(N):
@@ -37,11 +37,12 @@ def plot_simplex(N):
     return fig
 
 
-def plot_fp_curves(x1_array, x2_array, N, plt_title, flag_show, flag_save, plt_save="bifurcation_curves"):
+def plot_fp_curves(x0_array, x1_array, x2_array, N, plt_title, flag_show, flag_save, plt_save="bifurcation_curves"):
     fig_simplex = plot_simplex(N)
     ax_simplex = fig_simplex.gca()
-    ax_simplex.scatter(x1_array[:, 0], x1_array[:, 1], x1_array[:, 2], label='q_plus', color=X1_COL)
-    ax_simplex.scatter(x2_array[:, 0], x2_array[:, 1], x2_array[:, 2], label='q_minus', color=X2_COL)
+    ax_simplex.scatter(x1_array[:, 0], x1_array[:, 1], x0_array[:, 2], label='x0', color=X0_COL)
+    ax_simplex.scatter(x1_array[:, 0], x1_array[:, 1], x1_array[:, 2], label='x1', color=X1_COL)
+    ax_simplex.scatter(x2_array[:, 0], x2_array[:, 1], x2_array[:, 2], label='x2', color=X2_COL)
     # plot settings
     ax_simplex.view_init(5, 35)  # ax.view_init(-45, -15)
     axis_scale = 1

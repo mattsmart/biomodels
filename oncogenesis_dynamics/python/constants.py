@@ -32,5 +32,6 @@ VALID_BIFURC_PARAMS = ["bifurc_b"]  # list of implemented bifurcation parameters
 
 OUTPUT_DIR = "output"
 
+X0_COL = "black"  # black stable (dashed unstable)
 X1_COL = "blue"  # blue stable (dashed unstable)
 X2_COL = "green"  # green stable (dashed unstable)
