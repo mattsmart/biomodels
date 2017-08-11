@@ -113,7 +113,7 @@ for idx, bifurc_param_val in enumerate(bifurcation_search):
     x0_stabilities[idx][0] = is_stable(params_step, fp_x0)
     x1_stabilities[idx][0] = is_stable(params_step, fp_x1)
     x2_stabilities[idx][0] = is_stable(params_step, fp_x2)
-    print idx, "of", nn
+    print "params:", idx, "of", nn
 
 # PLOTTING ON THE SIMPLEX FIGURE
 fig_fp_curves = plot_fp_curves(x1_array, x2_array, N, HEADER_TITLE, False, False)
