@@ -25,7 +25,7 @@ import numpy as np
 from os import sep
 
 from constants import BIFURC_DICT, VALID_BIFURC_PARAMS, OUTPUT_DIR
-from formulae import bifurc_value, q_get, fp_location_general, is_stable, write_bifurc_data, write_params
+from formulae import bifurc_value, fp_location_general, is_stable, write_bifurc_data, write_params
 from plotting import plot_fp_curves, plot_bifurc_dist
 
 

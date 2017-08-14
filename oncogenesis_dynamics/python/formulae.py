@@ -18,7 +18,7 @@ import numpy as np
 from os import sep
 from sympy import Symbol, solve, re
 
-from constants import PARAMS_ID
+from constants import PARAMS_ID, CSV_DATA_TYPES
 
 
 def bifurc_value(params, bifurc_name):
@@ -178,3 +178,32 @@ def write_params(params, filedir, filename):
                 params[idx] = 'None'
             writer.writerow([PARAMS_ID[idx], params[idx]])
     return filepath
+
+
+def read_bifurc_data(filedir, filename):
+    with open(filedir + sep + filename, 'rb') as csvfile:
+        datareader = csv.reader(csvfile, delimiter=',', quotechar='|')
+        nn = sum(1 for row in datareader) - 1
+        csvfile.seek(0)
+        header = datareader.next()
+        data_dict = {key: np.zeros((nn, 1), dtype=CSV_DATA_TYPES[key]) for key in header}
+        for idx_row, row in enumerate(datareader):
+            for idx_col, elem in enumerate(row):
+                data_dict[header[idx_col]][idx_row] = elem
+    return data_dict
+
+
+def read_params(filedir, filename):
+    with open(filedir + sep + filename, 'rb') as csvfile:
+        datareader = csv.reader(csvfile, delimiter=',', quotechar='|')
+        num_params = sum(1 for row in datareader)
+        csvfile.seek(0)
+        params = [0.0]*num_params
+        for idx, pair in enumerate(datareader):
+            assert pair[0] == PARAMS_ID[idx]
+            if pair[1] != 'None':
+                params[idx] = float(pair[1])
+            else:
+                params[idx] = None
+    return params
+

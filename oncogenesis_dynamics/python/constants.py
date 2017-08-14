@@ -27,6 +27,7 @@ PARAMS_ID = {0: "alpha_minus",
              7: "v_x",
              8: "v_y",
              9: "v_z"}
+PARAMS_ID_INV = {v: k for k, v in PARAMS_ID.iteritems()}
 BIFURC_DICT = {i: "bifurc_" + PARAMS_ID[i] for i in xrange(len(PARAMS_ID))}
 VALID_BIFURC_PARAMS = ["bifurc_b"]  # list of implemented bifurcation parameters
 
@@ -35,3 +36,10 @@ OUTPUT_DIR = "output"
 X0_COL = "black"  # black stable (dashed unstable)
 X1_COL = "blue"  # blue stable (dashed unstable)
 X2_COL = "green"  # green stable (dashed unstable)
+
+CSV_HEADINGS = ['bifurc_id', 'x0_x', 'x0_y', 'x0_z', 'x0_stab', 'x1_x', 'x1_y', 'x1_z', 'x1_stab', 'x2_x', 'x2_y',
+                  'x2_z', 'x2_stab']
+CSV_DATA_TYPES = {'bifurc_b': float,
+                  'x0_x': float, 'x0_y': float, 'x0_z': float, 'x0_stab': bool,
+                  'x1_x': float, 'x1_y': float, 'x1_z': float, 'x1_stab': bool,
+                  'x2_x': float, 'x2_y': float, 'x2_z': float, 'x2_stab': bool}
