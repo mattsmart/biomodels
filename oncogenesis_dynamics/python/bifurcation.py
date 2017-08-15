@@ -53,7 +53,7 @@ a = 1.0
 b = None #1.1
 c = 2.6 #1.2
 N = 100.0 #100
-v_x = 1.0
+v_x = 0.0
 v_y = 0.0
 v_z = 0.0
 if b is not None:
@@ -116,7 +116,8 @@ for idx, bifurc_param_val in enumerate(bifurcation_search):
     print "params:", idx, "of", nn
 
 # PLOTTING ON THE SIMPLEX FIGURE
-fig_fp_curves = plot_fp_curves(x0_array, x1_array, x2_array, N, HEADER_TITLE, False, False)
+fig_fp_curves = plot_fp_curves(x0_array, x0_stabilities, x1_array, x1_stabilities, x2_array, x2_stabilities, N,
+                               HEADER_TITLE, False, False)
 if FLAG_BIFTEXT:
     for idx in xrange(0, nn, SPACING_BIFTEXT):
         fig_fp_curves.gca().text(x1_array[idx, 0], x1_array[idx, 1], x1_array[idx, 2], '%.3f' % bifurcation_search[idx])

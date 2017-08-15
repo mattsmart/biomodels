@@ -181,6 +181,13 @@ def write_params(params, filedir, filename):
 
 
 def read_bifurc_data(filedir, filename):
+    def str_to_data(elem):
+        if elem == 'True':
+            return True
+        elif elem == 'False':
+            return False
+        else:
+            return elem
     with open(filedir + sep + filename, 'rb') as csvfile:
         datareader = csv.reader(csvfile, delimiter=',', quotechar='|')
         nn = sum(1 for row in datareader) - 1
@@ -189,7 +196,7 @@ def read_bifurc_data(filedir, filename):
         data_dict = {key: np.zeros((nn, 1), dtype=CSV_DATA_TYPES[key]) for key in header}
         for idx_row, row in enumerate(datareader):
             for idx_col, elem in enumerate(row):
-                data_dict[header[idx_col]][idx_row] = elem
+                data_dict[header[idx_col]][idx_row] = str_to_data(elem)
     return data_dict
 
 
