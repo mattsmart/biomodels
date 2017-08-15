@@ -1,4 +1,5 @@
 import numpy as np
+from os import sep
 
 from constants import OUTPUT_DIR, PARAMS_ID_INV
 from formulae import read_bifurc_data, read_params
@@ -22,4 +23,5 @@ x2_array = np.hstack((data_dict['x2_x'], data_dict['x2_y'], data_dict['x2_z']))
 N = params[PARAMS_ID_INV['N']]
 
 # plot it
-plot_fp_curves(x0_array, x1_array, x2_array, N, plt_title, flag_show, flag_save)
+plot_fp_curves(x0_array, data_dict['x0_stab'], x1_array, data_dict['x1_stab'], x2_array, data_dict['x2_stab'], N,
+               plt_title, flag_show, flag_save)

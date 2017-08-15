@@ -37,12 +37,15 @@ def plot_simplex(N):
     return fig
 
 
-def plot_fp_curves(x0_array, x1_array, x2_array, N, plt_title, flag_show, flag_save, plt_save="bifurcation_curves"):
+def plot_fp_curves(x0, x0_stab, x1, x1_stab, x2, x2_stab, N, plt_title, flag_show, flag_save, plt_save="bifurcation_curves"):
     fig_simplex = plot_simplex(N)
     ax_simplex = fig_simplex.gca()
-    ax_simplex.scatter(x1_array[:, 0], x1_array[:, 1], x0_array[:, 2], label='x0', color=X0_COL)
-    ax_simplex.scatter(x1_array[:, 0], x1_array[:, 1], x1_array[:, 2], label='x1', color=X1_COL)
-    ax_simplex.scatter(x2_array[:, 0], x2_array[:, 1], x2_array[:, 2], label='x2', color=X2_COL)
+    x0_col_array = [X0_COL[int(i)] for i in x0_stab]
+    x1_col_array = [X1_COL[int(i)] for i in x1_stab]
+    x2_col_array = [X2_COL[int(i)] for i in x2_stab]
+    ax_simplex.scatter(x0[:, 0], x0[:, 1], x0[:, 2], label='x0', color=x0_col_array)
+    ax_simplex.scatter(x1[:, 0], x1[:, 1], x1[:, 2], label='x1', color=x1_col_array)
+    ax_simplex.scatter(x2[:, 0], x2[:, 1], x2[:, 2], label='x2', color=x2_col_array)
     # plot settings
     ax_simplex.view_init(5, 35)  # ax.view_init(-45, -15)
     axis_scale = 1
