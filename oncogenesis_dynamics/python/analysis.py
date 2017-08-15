@@ -24,4 +24,4 @@ N = params[PARAMS_ID_INV['N']]
 
 # plot it
 plot_fp_curves(x0_array, data_dict['x0_stab'], x1_array, data_dict['x1_stab'], x2_array, data_dict['x2_stab'], N,
-               plt_title, flag_show, flag_save)
+               plt_title, flag_show, flag_save, colourbinary=True)

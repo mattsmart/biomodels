@@ -1,3 +1,4 @@
+import matplotlib.lines as mlines
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import colors
@@ -37,12 +38,18 @@ def plot_simplex(N):
     return fig
 
 
-def plot_fp_curves(x0, x0_stab, x1, x1_stab, x2, x2_stab, N, plt_title, flag_show, flag_save, plt_save="bifurcation_curves"):
+def plot_fp_curves(x0, x0_stab, x1, x1_stab, x2, x2_stab, N, plt_title, flag_show, flag_save, plt_save="bifurcation_curves", colourbinary=False):
     fig_simplex = plot_simplex(N)
     ax_simplex = fig_simplex.gca()
-    x0_col_array = [X0_COL[int(i)] for i in x0_stab]
-    x1_col_array = [X1_COL[int(i)] for i in x1_stab]
-    x2_col_array = [X2_COL[int(i)] for i in x2_stab]
+    if colourbinary:
+        x0_col_array = [X1_COL[int(i)] for i in x0_stab]
+        x1_col_array = [X1_COL[int(i)] for i in x1_stab]
+        x2_col_array = [X1_COL[int(i)] for i in x2_stab]
+    else:
+        x0_col_array = [X0_COL[int(i)] for i in x0_stab]
+        x1_col_array = [X1_COL[int(i)] for i in x1_stab]
+        x2_col_array = [X2_COL[int(i)] for i in x2_stab]
+
     ax_simplex.scatter(x0[:, 0], x0[:, 1], x0[:, 2], label='x0', color=x0_col_array)
     ax_simplex.scatter(x1[:, 0], x1[:, 1], x1[:, 2], label='x1', color=x1_col_array)
     ax_simplex.scatter(x2[:, 0], x2[:, 1], x2[:, 2], label='x2', color=x2_col_array)
@@ -52,7 +59,14 @@ def plot_fp_curves(x0, x0_stab, x1, x1_stab, x2, x2_stab, N, plt_title, flag_sho
     ax_simplex.set_xlim(-N * axis_scale, N * axis_scale)  # may need to flip order
     ax_simplex.set_ylim(-N * axis_scale, N * axis_scale)
     ax_simplex.set_zlim(-N * axis_scale, N * axis_scale)
-    ax_simplex.legend()
+    if not colourbinary:
+        ax_simplex.legend()
+    else:
+        stable_pt = mlines.Line2D([], [], color=X1_COL[1], marker='o',
+                                      markersize=15, label='Stable FP')
+        unstable_pt = mlines.Line2D([], [], color=X1_COL[0], marker='o',
+                                  markersize=15, label='Unstable FP')
+        plt.legend(handles=[stable_pt, unstable_pt])
     ax_simplex.set_title(plt_title)
     if flag_show:
         plt.show()
