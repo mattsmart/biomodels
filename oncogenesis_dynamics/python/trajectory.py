@@ -3,7 +3,7 @@ import numpy as np
 from os import sep
 
 from constants import OUTPUT_DIR
-from formulae import fp_location_general
+from formulae import fp_location_general, is_stable
 from plotting import plot_simplex
 
 import matplotlib.pylab as pylab
@@ -73,9 +73,8 @@ else:
     solver_numeric = True
 predicted_fps = fp_location_general(params, solver_numeric=solver_numeric, solver_fast=False)
 print "Predicted FPs:"
-print predicted_fps[0]
-print predicted_fps[1]
-print predicted_fps[2]
+for i in xrange(3):
+    print "FP", i, predicted_fps[i], "Stable:", is_stable(params, predicted_fps[i])
 
 # =====================
 # PLOT SHOW
