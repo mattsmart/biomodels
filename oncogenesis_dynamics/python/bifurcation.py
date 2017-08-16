@@ -62,10 +62,9 @@ if c is not None:
     s = c - 1
 if v_x == 0 and v_y == 0 and v_z == 0:
     solver_numeric = False
-    solver_fast = False  # doesn't do anything, just want to pass variable
 else:
     solver_numeric = True
-    solver_fast = True
+solver_fast = False
 params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z]
 
 print "Specified parameters: \nalpha_plus = " + str(alpha_plus) + "\nalpha_minus = " + str(alpha_minus) + \
