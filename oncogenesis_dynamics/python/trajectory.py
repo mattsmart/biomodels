@@ -23,7 +23,7 @@ a = 1.0
 b = 8.369856428  #1.376666
 c = 2.6
 N = 100.0
-v_x = 0.0
+v_x = 1.0
 v_y = 0.0
 v_z = 0.0
 delta = 1 - b
@@ -67,7 +67,11 @@ print 'Done trajectory'
 # =====================
 # FP COMPARISON
 # =====================
-predicted_fps = fp_location_general(params)
+if v_x == 0 and v_y == 0 and v_z == 0:
+    solver_numeric = False
+else:
+    solver_numeric = True
+predicted_fps = fp_location_general(params, solver_numeric=solver_numeric, solver_fast=False)
 print "Predicted FPs:"
 print predicted_fps[0]
 print predicted_fps[1]
@@ -82,5 +86,4 @@ ax.plot(r[:,0], r[:,1], r[:,2], label='trajectory')
 #ax.plot([x1[0]], [x1[1]], [x1[2]], label='x_weird')
 #ax.legend()
 plt.show()
-
 fig.savefig(OUTPUT_DIR + sep + plt_save + '.png')
