@@ -213,4 +213,3 @@ def read_params(filedir, filename):
             else:
                 params[idx] = None
     return params
-

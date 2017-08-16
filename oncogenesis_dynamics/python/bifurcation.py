@@ -12,7 +12,7 @@ Conventions
                                   params[4] -> b           (b = 1 - delta)
                                   params[5] -> c           (c = 1 + s)
                                   params[6] -> N           (float not int)
-- if an element of params is specified as None then a bifurcation range will be be found and used
+- if an element of params is specified as None then a bifurcation range will be found and used
 
 TODO
 - implement stability checks
