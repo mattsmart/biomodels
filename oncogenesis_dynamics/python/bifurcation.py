@@ -35,15 +35,16 @@ mpl_params = {'legend.fontsize': 'x-large', 'figure.figsize': (8, 5), 'axes.labe
 pylab.rcParams.update(mpl_params)
 
 # SCRIPT PARAMETERS
-SEARCH_START = 0.1 #0.5 #0.9  # start at SEARCH_START*bifurcation_point
-SEARCH_END = 5.6 #1.1  # end at SEARCH_END*bifurcation_point
-SEARCH_AMOUNT = 2000 #10000
+SEARCH_START = 0.95 #0.5 #0.9  # start at SEARCH_START*bifurcation_point
+SEARCH_END = 1.05 #1.1  # end at SEARCH_END*bifurcation_point
+SEARCH_AMOUNT = 40 #10000
 SPACING_BIFTEXT = int(SEARCH_AMOUNT/10)
 FLAG_BIFTEXT = 1
 FLAG_SHOWPLT = 1
 FLAG_SAVEPLT = 1
 FLAG_SAVEDATA = 1
 HEADER_TITLE = 'Fixed Points'
+solver_fast = False
 
 # DYNAMICS PARAMETERS
 alpha_plus = 0.05 #0.4
@@ -53,7 +54,7 @@ a = 1.0
 b = None #1.1
 c = 2.6 #1.2
 N = 100.0 #100
-v_x = 0.0
+v_x = 1.0
 v_y = 0.0
 v_z = 0.0
 if b is not None:
@@ -64,7 +65,6 @@ if v_x == 0 and v_y == 0 and v_z == 0:
     solver_numeric = False
 else:
     solver_numeric = True
-solver_fast = False
 params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z]
 
 print "Specified parameters: \nalpha_plus = " + str(alpha_plus) + "\nalpha_minus = " + str(alpha_minus) + \

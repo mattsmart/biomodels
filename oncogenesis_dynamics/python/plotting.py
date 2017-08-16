@@ -1,4 +1,5 @@
 import matplotlib.lines as mlines
+import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import colors
@@ -63,9 +64,9 @@ def plot_fp_curves(x0, x0_stab, x1, x1_stab, x2, x2_stab, N, plt_title, flag_sho
         ax_simplex.legend()
     else:
         stable_pt = mlines.Line2D([], [], color=X1_COL[1], marker='o',
-                                      markersize=15, label='Stable FP')
+                                      markersize=5, label='Stable FP')
         unstable_pt = mlines.Line2D([], [], color=X1_COL[0], marker='o',
-                                  markersize=15, label='Unstable FP')
+                                  markersize=5, label='Unstable FP')
         plt.legend(handles=[stable_pt, unstable_pt])
     ax_simplex.set_title(plt_title)
     if flag_show:
