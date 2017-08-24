@@ -16,9 +16,57 @@ Conventions
 import csv
 import numpy as np
 from os import sep
+from scipy.integrate import odeint
 from sympy import Symbol, solve, re
 
-from constants import PARAMS_ID, CSV_DATA_TYPES
+from constants import PARAMS_ID, CSV_DATA_TYPES, ODE_METHODS
+
+
+def ode_euler(init_cond, times, params):
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+    dt = times[1] - times[0]
+    r = np.zeros((len(times), 3))
+    r[0] = np.array(init_cond)
+    for idx, t in enumerate(times[:-1]):
+        x,y,z = r[idx]
+        fbar = (a*x + b*y + c*z + v_x + v_y + v_z) / N
+        v = np.array([v_x - x*alpha_plus + y*alpha_minus        + (a - fbar)*x,
+                      v_y + x*alpha_plus - y*(alpha_minus + mu) + (b - fbar)*y,
+                      v_z +                y*mu                 + (c - fbar)*z])
+        r[idx+1] = r[idx] + v*dt
+        #if idx % display_spacing == 0:
+        #    print r[idx+1], t
+    return r
+
+
+def ode_rk4(init_cond, times, params):
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+    print "rk4 not implemented"
+    return r
+
+
+def ode_libcall(init_cond, times, params):
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+    def system_vector(init_cond, times, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z):
+        x,y,z = init_cond
+        fbar = (a * x + b * y + c * z + v_x + v_y + v_z) / N
+        dxdt = v_x - x * alpha_plus + y * alpha_minus + (a - fbar) * x
+        dydt = v_y + x * alpha_plus - y * (alpha_minus + mu) + (b - fbar) * y
+        dzdt = v_z + y * mu + (c - fbar) * z
+        return [dxdt, dydt, dzdt]
+    r = odeint(system_vector, init_cond, times, args=tuple(params))
+    return r
+
+
+def ode_general(init_cond, times, params, method="libcall"):
+    if method == "libcall":
+        return ode_libcall(init_cond, times, params)
+    elif method == "rk4":
+        return ode_rk4(init_cond, times, params)
+    elif method == "euler":
+        return ode_euler(init_cond, times, params)
+    else:
+        raise ValueError("method arg invalid, must be one of", ODE_METHODS)
 
 
 def bifurc_value(params, bifurc_name):

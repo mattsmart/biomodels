@@ -28,8 +28,11 @@ PARAMS_ID = {0: "alpha_minus",
              8: "v_y",
              9: "v_z"}
 PARAMS_ID_INV = {v: k for k, v in PARAMS_ID.iteritems()}
+STATES_ID = {0: "x", 1: "y", 2: "z"}
+STATES_ID_INV = {v: k for k, v in STATES_ID.iteritems()}
 BIFURC_DICT = {i: "bifurc_" + PARAMS_ID[i] for i in xrange(len(PARAMS_ID))}
 VALID_BIFURC_PARAMS = ["bifurc_b"]  # list of implemented bifurcation parameters
+ODE_METHODS = ["euler", "rk4", "libcall"]
 
 OUTPUT_DIR = "output"
 

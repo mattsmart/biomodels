@@ -4,14 +4,21 @@ import numpy as np
 from os import sep
 
 from constants import OUTPUT_DIR
-from formulae import fp_location_general, is_stable
-from plotting import plot_simplex
+from formulae import ode_general, fp_location_general, is_stable
+from plotting import plot_simplex, plot_trajectory_mono, plot_trajectory
 
 
 # MATPLOTLIB GLOBAL SETTINGS
 mpl_params = {'legend.fontsize': 'x-large', 'figure.figsize': (8, 5), 'axes.labelsize': 'x-large',
          'axes.titlesize':'x-large', 'xtick.labelsize':'x-large', 'ytick.labelsize':'x-large'}
 pylab.rcParams.update(mpl_params)
+
+# SCRIPT PARAMS
+FLAG_SHOWPLT = False
+FLAG_SAVEPLT = True
+plt_title = 'Trajectory'
+plt_save = 'trajectory'
+ode_method = "libcall"  # see constants.py -- ODE_METHODS = ["euler", "rk4", "libcall"]
 
 # DYNAMICS PARAMETERS
 alpha_plus = 0.05
@@ -29,46 +36,26 @@ s = c - 1
 params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z]
 
 # =====================
-# FIGURE SETUP
-# =====================
-fig = plot_simplex(N)
-ax = fig.gca()
-plt_title = 'Trajectory'
-plt_save = 'trajectory'
-
-# =====================
 # SIMULATE SETUP
 # =====================
 init_cond = [95.0, 5.0, 0.0]
-#x0 = [0.2, 0.0, 99.8]
-#x0 = [0.2, 99.8, 0.0]
-
-#dt = 0.005  #dt = 0.0001
-#times = np.arange(0,100, dt)
-dt = 0.05  #dt = 0.0001
-times = np.arange(0, 8000, dt)
-r = np.zeros((len(times), 3))
-r[0] = np.array(init_cond)
-
-def ode_euler(r0, r, times):
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
-    print "Trajectory loop:"
-    for idx, t in enumerate(times[:-1]):
-        x,y,z = r[idx]
-        fbar = (a*x + b*y + c*z + v_x + v_y + v_z) / N
-        v = np.array([v_x - x*alpha_plus + y*alpha_minus        + (a - fbar)*x,
-                      v_y + x*alpha_plus - y*(alpha_minus + mu) + (b - fbar)*y,
-                      v_z +                y*mu                 + (c - fbar)*z])
-        r[idx+1] = r[idx] + v*dt
-        if idx % 1000 == 0:
-            print r[idx+1], t
-    print 'Done trajectory'
-    return r
+time_start = 0.0
+time_end = 20.0
+num_steps = 200  # number of timesteps in window
+display_spacing = int(num_steps/10)
+times = np.linspace(time_start, time_end, num_steps + 1)
+print "ODE Setup: \nt0, t1:", time_start, time_end, "\nnum_steps, dt:", num_steps, times[1] - times[0], "\n"
+print "Specified parameters: \nalpha_plus = " + str(alpha_plus) + "\nalpha_minus = " + str(alpha_minus) + \
+      "\nmu = " + str(mu) + "\na = " + str(a) + "\nb = " + str(b) + "\nc = " + str(c) + "\nN = " + str(N) + \
+      "\nv_x = " + str(v_x) + "\nv_y = " + str(v_y) + "\nv_z = " + str(v_z), "\n"
 
 # =====================
 # SIMULATE
 # =====================
-r = ode_euler(r[0], r, times)
+print "Trajectory loop..."
+#r = ode_euler(init_cond, times, params)
+r = ode_general(init_cond, times, params, method=ode_method)
+print 'Done trajectory\n'
 
 # =====================
 # FP COMPARISON
@@ -83,12 +70,8 @@ for i in xrange(3):
     print "FP", i, predicted_fps[i], "Stable:", is_stable(params, predicted_fps[i])
 
 # =====================
-# PLOT SHOW
+# PLOTTING
 # =====================
-#ax.view_init(-45, -15)
-ax.view_init(5, 35)
-ax.plot(r[:,0], r[:,1], r[:,2], label='trajectory')
-#ax.plot([x1[0]], [x1[1]], [x1[2]], label='x_weird')
-#ax.legend()
-plt.show()
-fig.savefig(OUTPUT_DIR + sep + plt_save + '.png')
+fig_traj = plot_simplex(N)
+fig_traj = plot_trajectory(fig_traj, r, times, FLAG_SHOWPLT, FLAG_SAVEPLT, plt_title=plt_title)
+fig_mono_z = plot_trajectory_mono(r, times, FLAG_SHOWPLT, FLAG_SAVEPLT)

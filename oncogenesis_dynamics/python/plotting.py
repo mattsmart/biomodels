@@ -6,7 +6,7 @@ from matplotlib import colors
 from mpl_toolkits.mplot3d import Axes3D
 from os import sep
 
-from constants import X0_COL, X1_COL, X2_COL, OUTPUT_DIR
+from constants import X0_COL, X1_COL, X2_COL, OUTPUT_DIR, STATES_ID_INV
 
 
 def plot_simplex(N):
@@ -104,3 +104,34 @@ def plot_bifurc_dist(x1_array, bifurcation_search, bifurc_id, N, dist_type, flag
     if flag_save:
         fig_dist.savefig(OUTPUT_DIR + sep + plt_save + dist_type + '.png')
     return fig_dist
+
+
+def plot_trajectory(fig_traj, r, times, flag_show, flag_save, plt_save="trajectory", plt_title="Trajectory"):
+    ax_traj = fig_traj.gca()
+    ax_traj.view_init(5, 35)  # ax.view_init(-45, -15)
+    ax_traj.plot(r[:, 0], r[:, 1], r[:, 2], label='trajectory')
+    #ax_traj.plot([x1[0]], [x1[1]], [x1[2]], label='x_weird')
+    ax_traj.legend()
+    ax_traj.set_title(plt_title)
+    if flag_show:
+        plt.show()
+    if flag_save:
+        fig_traj.savefig(OUTPUT_DIR + sep + plt_save + '.png')
+    return fig_traj
+
+
+def plot_trajectory_mono(r, times, flag_show, flag_save, mono="z", plt_save="trajectory_mono_"):
+    assert mono in STATES_ID_INV.keys()
+    fig_mono = plt.figure()
+    ax_mono = fig_mono.gca()
+    axis_idx = STATES_ID_INV[mono]
+    plt.plot(times, r[:, axis_idx], )
+    plt.title("Trajectory: " + mono + " only")
+    ax_mono.grid(True)
+    ax_mono.set_xlabel("time")
+    ax_mono.set_ylabel(mono)
+    if flag_show:
+        plt.show()
+    if flag_save:
+        fig_mono.savefig(OUTPUT_DIR + sep + plt_save + mono + '.png')
+    return fig_mono
