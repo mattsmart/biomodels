@@ -1,3 +1,4 @@
+import matplotlib.pylab as pylab
 import matplotlib.pyplot as plt
 import numpy as np
 from os import sep
@@ -6,16 +7,13 @@ from constants import OUTPUT_DIR
 from formulae import fp_location_general, is_stable
 from plotting import plot_simplex
 
-import matplotlib.pylab as pylab
-params = {'legend.fontsize': 'x-large',
-          'figure.figsize': (15, 5),
-         'axes.labelsize': 'x-large',
-         'axes.titlesize':'x-large',
-         'xtick.labelsize':'x-large',
-         'ytick.labelsize':'x-large'}
-pylab.rcParams.update(params)
 
-# params
+# MATPLOTLIB GLOBAL SETTINGS
+mpl_params = {'legend.fontsize': 'x-large', 'figure.figsize': (8, 5), 'axes.labelsize': 'x-large',
+         'axes.titlesize':'x-large', 'xtick.labelsize':'x-large', 'ytick.labelsize':'x-large'}
+pylab.rcParams.update(mpl_params)
+
+# DYNAMICS PARAMETERS
 alpha_plus = 0.05
 alpha_minus = 4.95
 mu = 0.77
@@ -39,7 +37,7 @@ plt_title = 'Trajectory'
 plt_save = 'trajectory'
 
 # =====================
-# SIMULATE
+# SIMULATE SETUP
 # =====================
 init_cond = [95.0, 5.0, 0.0]
 #x0 = [0.2, 0.0, 99.8]
@@ -48,21 +46,29 @@ init_cond = [95.0, 5.0, 0.0]
 #dt = 0.005  #dt = 0.0001
 #times = np.arange(0,100, dt)
 dt = 0.05  #dt = 0.0001
-times = np.arange(0,8000, dt)
+times = np.arange(0, 8000, dt)
 r = np.zeros((len(times), 3))
 r[0] = np.array(init_cond)
 
-print "Trajectory loop:"
-for idx, t in enumerate(times[:-1]):
-    x,y,z = r[idx]
-    fbar = (a*x + b*y + c*z + v_x + v_y + v_z) / N
-    v = np.array([v_x - x*alpha_plus + y*alpha_minus        + (a - fbar)*x,
-                  v_y + x*alpha_plus - y*(alpha_minus + mu) + (b - fbar)*y,
-                  v_z +                y*mu                 + (c - fbar)*z])
-    r[idx+1] = r[idx] + v*dt
-    if idx % 1000 == 0:
-        print r[idx+1], t
-print 'Done trajectory'
+def ode_euler(r0, r, times):
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+    print "Trajectory loop:"
+    for idx, t in enumerate(times[:-1]):
+        x,y,z = r[idx]
+        fbar = (a*x + b*y + c*z + v_x + v_y + v_z) / N
+        v = np.array([v_x - x*alpha_plus + y*alpha_minus        + (a - fbar)*x,
+                      v_y + x*alpha_plus - y*(alpha_minus + mu) + (b - fbar)*y,
+                      v_z +                y*mu                 + (c - fbar)*z])
+        r[idx+1] = r[idx] + v*dt
+        if idx % 1000 == 0:
+            print r[idx+1], t
+    print 'Done trajectory'
+    return r
+
+# =====================
+# SIMULATE
+# =====================
+r = ode_euler(r[0], r, times)
 
 # =====================
 # FP COMPARISON
