@@ -18,7 +18,7 @@ FLAG_SHOWPLT = False
 FLAG_SAVEPLT = True
 plt_title = 'Trajectory'
 plt_save = 'trajectory'
-ode_method = "libcall"  # see constants.py -- ODE_METHODS = ["euler", "rk4", "libcall"]
+ode_method = "libcall"  # see constants.py -- ODE_METHODS
 
 # DYNAMICS PARAMETERS
 alpha_plus = 0.05
