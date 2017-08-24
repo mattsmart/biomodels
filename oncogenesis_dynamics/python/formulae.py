@@ -16,44 +16,57 @@ Conventions
 import csv
 import numpy as np
 from os import sep
-from scipy.integrate import odeint
+from scipy.integrate import ode, odeint
 from sympy import Symbol, solve, re
 
 from constants import PARAMS_ID, CSV_DATA_TYPES, ODE_METHODS
 
 
+def system_vector(init_cond, times, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z):
+    x, y, z = init_cond
+    fbar = (a * x + b * y + c * z + v_x + v_y + v_z) / N
+    dxdt = v_x - x * alpha_plus + y * alpha_minus + (a - fbar) * x
+    dydt = v_y + x * alpha_plus - y * (alpha_minus + mu) + (b - fbar) * y
+    dzdt = v_z + y * mu + (c - fbar) * z
+    return [dxdt, dydt, dzdt]
+
+
 def ode_euler(init_cond, times, params):
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
     dt = times[1] - times[0]
     r = np.zeros((len(times), 3))
     r[0] = np.array(init_cond)
     for idx, t in enumerate(times[:-1]):
-        x,y,z = r[idx]
-        fbar = (a*x + b*y + c*z + v_x + v_y + v_z) / N
-        v = np.array([v_x - x*alpha_plus + y*alpha_minus        + (a - fbar)*x,
-                      v_y + x*alpha_plus - y*(alpha_minus + mu) + (b - fbar)*y,
-                      v_z +                y*mu                 + (c - fbar)*z])
-        r[idx+1] = r[idx] + v*dt
-        #if idx % display_spacing == 0:
-        #    print r[idx+1], t
+        v = system_vector(r[idx], None, *params)
+        r[idx+1] = r[idx] + np.array(v)*dt
     return r
 
 
 def ode_rk4(init_cond, times, params):
     alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
-    print "rk4 not implemented"
-    return r
-
-
-def ode_libcall(init_cond, times, params):
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
-    def system_vector(init_cond, times, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z):
-        x,y,z = init_cond
+    dt = times[1] - times[0]
+    r = np.zeros((len(times), 3))
+    r[0] = np.array(init_cond)
+    def system_vector_obj_ode(t_scalar, r_idx, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z):
+        x, y, z = r_idx
         fbar = (a * x + b * y + c * z + v_x + v_y + v_z) / N
         dxdt = v_x - x * alpha_plus + y * alpha_minus + (a - fbar) * x
         dydt = v_y + x * alpha_plus - y * (alpha_minus + mu) + (b - fbar) * y
         dzdt = v_z + y * mu + (c - fbar) * z
         return [dxdt, dydt, dzdt]
+    obj_ode = ode(system_vector_obj_ode, jac=None)
+    obj_ode.set_initial_value(init_cond, times[0])
+    obj_ode.set_f_params(*params)
+    obj_ode.set_integrator('dopri5')
+    idx = 1
+    while obj_ode.successful() and obj_ode.t < times[-1]:
+        obj_ode.integrate(obj_ode.t + dt)
+        r[idx] = np.array(obj_ode.y)
+        idx += 1
+    return r
+
+
+def ode_libcall(init_cond, times, params):
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
     r = odeint(system_vector, init_cond, times, args=tuple(params))
     return r
 

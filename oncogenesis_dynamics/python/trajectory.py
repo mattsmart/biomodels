@@ -55,6 +55,7 @@ print "Specified parameters: \nalpha_plus = " + str(alpha_plus) + "\nalpha_minus
 print "Trajectory loop..."
 #r = ode_euler(init_cond, times, params)
 r = ode_general(init_cond, times, params, method=ode_method)
+print r
 print 'Done trajectory\n'
 
 # =====================
