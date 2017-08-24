@@ -66,7 +66,7 @@ def ode_general(init_cond, times, params, method="libcall"):
     elif method == "euler":
         return ode_euler(init_cond, times, params)
     else:
-        raise ValueError("method arg invalid, must be one of", ODE_METHODS)
+        raise ValueError("method arg invalid, must be one of %s" % ODE_METHODS)
 
 
 def bifurc_value(params, bifurc_name):
