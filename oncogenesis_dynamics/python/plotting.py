@@ -117,9 +117,9 @@ def plot_trajectory(fig_traj, r, times, flag_show, flag_save, plt_save="trajecto
         plt.show()
     if flag_save:
         fig_traj.savefig(OUTPUT_DIR + sep + plt_save + '.png')
-    return fig_traj
+    return ax_traj
 
-
+"""
 def plot_trajectory_mono(r, times, flag_show, flag_save, mono="z", plt_save="trajectory_mono_"):
     assert mono in STATES_ID_INV.keys()
     fig_mono = plt.figure()
@@ -135,3 +135,26 @@ def plot_trajectory_mono(r, times, flag_show, flag_save, mono="z", plt_save="tra
     if flag_save:
         fig_mono.savefig(OUTPUT_DIR + sep + plt_save + mono + '.png')
     return fig_mono
+"""
+
+def plot_trajectory_mono(r, times, flag_show, flag_save, ax_mono=None, mono="z", plt_save="trajectory_mono_"):
+    assert mono in STATES_ID_INV.keys()
+    axis_idx = STATES_ID_INV[mono]
+    if ax_mono is None:
+        fig_mono = plt.figure()
+        ax_mono = fig_mono.gca()
+        plt.plot(times, r[:, axis_idx], )
+        plt.title("Trajectory: " + mono + " only")
+        ax_mono.grid(True)
+        ax_mono.set_xlabel("time")
+        ax_mono.set_ylabel(mono)
+        if flag_show:
+            plt.show()
+        if flag_save:
+            fig_mono.savefig(OUTPUT_DIR + sep + plt_save + mono + '.png')
+    else:
+        ax_mono.plot(times, r[:, axis_idx], )
+        if flag_show:
+            plt.show()
+    return ax_mono
+
