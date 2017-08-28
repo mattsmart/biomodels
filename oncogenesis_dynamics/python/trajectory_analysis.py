@@ -11,6 +11,7 @@ from trajectory import trajectory_simulate
 FLAG_SHOWPLT = False
 FLAG_SAVEPLT = False
 ODE_METHOD = "libcall"  # see constants.py -- ODE_METHODS
+ODE_SYSTEM = "feedback"  #"default"
 INIT_COND = [99.0, 1.0, 0.0]
 TIME_START = 0.0
 TIME_END = 20.0
@@ -56,8 +57,8 @@ for idx in xrange(num_param_sets):
 ax_comp = None
 for params in param_ensemble:
     r, times, ax_traj, ax_mono = trajectory_simulate(init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
-                                                params=params, ode_method=ODE_METHOD, flag_showplt=FLAG_SHOWPLT,
-                                                flag_saveplt=FLAG_SAVEPLT)
+                                                     params=params, ode_method=ODE_METHOD, ode_system=ODE_SYSTEM,
+                                                     flag_showplt=FLAG_SHOWPLT, flag_saveplt=FLAG_SAVEPLT)
     ax_mono = plot_trajectory_mono(r, times, FLAG_SHOWPLT, FLAG_SAVEPLT, ax_mono=ax_comp)
     ax_comp = ax_mono
 plt.show()

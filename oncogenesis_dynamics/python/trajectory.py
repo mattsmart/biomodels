@@ -15,6 +15,7 @@ pylab.rcParams.update(mpl_params)
 
 # SCRIPT PARAMS
 ODE_METHOD = "libcall"  # see constants.py -- ODE_METHODS
+ODE_SYSTEM = "feedback"  # see constants.py -- ODE_SYSTEMS
 INIT_COND = [95.0, 5.0, 0.0]
 TIME_START = 0.0
 TIME_END = 20.0
@@ -49,7 +50,7 @@ def trajectory_infoprint(init_cond, t0, t1, num_steps, params):
 
 
 def trajectory_simulate(init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS, params=PARAMS,
-                        ode_method=ODE_METHOD, flag_showplt=False, flag_saveplt=True):
+                        ode_method=ODE_METHOD, ode_system=ODE_SYSTEM, flag_showplt=False, flag_saveplt=True):
     # SIMULATE SETUP
     alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
     display_spacing = int(num_steps / 10)
@@ -57,7 +58,7 @@ def trajectory_simulate(init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_ste
     trajectory_infoprint(init_cond, t0, t1, num_steps, params)
 
     # SIMULATE
-    r = ode_general(init_cond, times, params, method=ode_method)
+    r = ode_general(init_cond, times, params, method=ode_method, system=ode_system)
     print 'Done trajectory\n'
 
     # FP COMPARISON

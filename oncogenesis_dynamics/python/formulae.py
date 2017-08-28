@@ -19,7 +19,7 @@ from os import sep
 from scipy.integrate import ode, odeint
 from sympy import Symbol, solve, re
 
-from constants import PARAMS_ID, CSV_DATA_TYPES, ODE_METHODS
+from constants import PARAMS_ID, CSV_DATA_TYPES, ODE_METHODS, PARAM_Z0_RATIO
 
 
 def system_vector(init_cond, times, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z):
@@ -31,21 +31,45 @@ def system_vector(init_cond, times, alpha_plus, alpha_minus, mu, a, b, c, N, v_x
     return [dxdt, dydt, dzdt]
 
 
-def ode_euler(init_cond, times, params):
+def system_vector_obj_ode(t_scalar, r_idx, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z):
+    return system_vector(r_idx, t_scalar, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z)
+
+
+def system_vector_feedback(init_cond, times, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z):
+    x, y, z = init_cond
+    alpha_plus = alpha_plus * z / (z + PARAM_Z0_RATIO*N)
+    alpha_minus = alpha_minus * 1 / (z + PARAM_Z0_RATIO*N)
+    fbar = (a * x + b * y + c * z + v_x + v_y + v_z) / N
+    dxdt = v_x - x * alpha_plus + y * alpha_minus + (a - fbar) * x
+    dydt = v_y + x * alpha_plus - y * (alpha_minus + mu) + (b - fbar) * y
+    dzdt = v_z + y * mu + (c - fbar) * z
+    return [dxdt, dydt, dzdt]
+
+
+def system_vector_obj_ode_feedback(t_scalar, r_idx, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z):
+    return system_vector_feedback(r_idx, t_scalar, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z)
+
+
+def ode_euler(init_cond, times, params, system):
+    if system == "default":
+        fn = system_vector
+    else:
+        fn = system_vector_feedback
     dt = times[1] - times[0]
     r = np.zeros((len(times), 3))
     r[0] = np.array(init_cond)
     for idx, t in enumerate(times[:-1]):
-        v = system_vector(r[idx], None, *params)
+        v = fn(r[idx], None, *params)
         r[idx+1] = r[idx] + np.array(v)*dt
     return r
 
 
-def ode_rk4(init_cond, times, params):
+def ode_rk4(init_cond, times, params, system):
     alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
     dt = times[1] - times[0]
     r = np.zeros((len(times), 3))
     r[0] = np.array(init_cond)
+    """
     def system_vector_obj_ode(t_scalar, r_idx, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z):
         x, y, z = r_idx
         fbar = (a * x + b * y + c * z + v_x + v_y + v_z) / N
@@ -53,7 +77,26 @@ def ode_rk4(init_cond, times, params):
         dydt = v_y + x * alpha_plus - y * (alpha_minus + mu) + (b - fbar) * y
         dzdt = v_z + y * mu + (c - fbar) * z
         return [dxdt, dydt, dzdt]
-    obj_ode = ode(system_vector_obj_ode, jac=None)
+    def system_vector_obj_ode_feedback(t_scalar, r_idx, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z):
+        x, y, z = r_idx
+        NEWPARAM_z0 = 1
+        alpha_plus = alpha_plus * z / (z + NEWPARAM_z0)
+        alpha_minus = alpha_minus * 1 / (z + NEWPARAM_z0)
+        fbar = (a * x + b * y + c * z + v_x + v_y + v_z) / N
+        dxdt = v_x - x * alpha_plus + y * alpha_minus + (a - fbar) * x
+        dydt = v_y + x * alpha_plus - y * (alpha_minus + mu) + (b - fbar) * y
+        dzdt = v_z + y * mu + (c - fbar) * z
+        return [dxdt, dydt, dzdt]
+    if system == "default":
+        fn = system_vector_obj_ode
+    else:
+        fn = system_vector_obj_ode_feedback
+    """
+    if system == "default":
+        fn = system_vector_obj_ode
+    else:
+        fn = system_vector_obj_ode_feedback
+    obj_ode = ode(fn, jac=None)
     obj_ode.set_initial_value(init_cond, times[0])
     obj_ode.set_f_params(*params)
     obj_ode.set_integrator('dopri5')
@@ -65,19 +108,23 @@ def ode_rk4(init_cond, times, params):
     return r
 
 
-def ode_libcall(init_cond, times, params):
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
-    r = odeint(system_vector, init_cond, times, args=tuple(params))
+def ode_libcall(init_cond, times, params, system):
+    if system == "default":
+        fn = system_vector
+    else:
+        fn = system_vector_feedback
+    r = odeint(fn, init_cond, times, args=tuple(params))
     return r
 
 
-def ode_general(init_cond, times, params, method="libcall"):
+def ode_general(init_cond, times, params, method="libcall", system="default"):
+    assert system in ["default", "feedback"]
     if method == "libcall":
-        return ode_libcall(init_cond, times, params)
+        return ode_libcall(init_cond, times, params, system)
     elif method == "rk4":
-        return ode_rk4(init_cond, times, params)
+        return ode_rk4(init_cond, times, params, system)
     elif method == "euler":
-        return ode_euler(init_cond, times, params)
+        return ode_euler(init_cond, times, params, system)
     else:
         raise ValueError("method arg invalid, must be one of %s" % ODE_METHODS)
 
