@@ -6,7 +6,7 @@ from matplotlib import colors
 from mpl_toolkits.mplot3d import Axes3D
 from os import sep
 
-from constants import X0_COL, X1_COL, X2_COL, OUTPUT_DIR, STATES_ID_INV
+from constants import X0_COL, X1_COL, X2_COL, OUTPUT_DIR, STATES_ID_INV, PARAMS_ID
 
 
 def plot_simplex(N):
@@ -159,10 +159,9 @@ def plot_trajectory_mono(r, times, flag_show, flag_save, ax_mono=None, mono="z",
     return ax_mono
 
 
-def plot_endpoint_mono(fp_list, param_list, param_varying_name, flag_show, flag_save, ax_mono=None, mono="z", plt_save="endpoint_mono_"):
+def plot_endpoint_mono(fp_list, param_list, param_varying_name, params, flag_show, flag_save, ax_mono=None, mono="z", plt_save="endpoint_mono_"):
     assert mono in STATES_ID_INV.keys()
     axis_idx = STATES_ID_INV[mono]
-    print axis_idx
     fig_mono = plt.figure()
     ax_mono = fig_mono.gca()
     ax_mono.plot(param_list, fp_list[:, axis_idx], '-o')
@@ -170,6 +169,18 @@ def plot_endpoint_mono(fp_list, param_list, param_varying_name, flag_show, flag_
     ax_mono.grid(True)
     ax_mono.set_xlabel(param_varying_name)
     ax_mono.set_ylabel(mono + "_inf")
+
+    row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
+    table_vals = [[params[i]] if PARAMS_ID[i] != param_varying_name else [None] for i in xrange(len(PARAMS_ID))]
+    print len(row_labels), len(table_vals)
+    # the rectangle is where I want to place the table
+    param_table = plt.table(cellText=table_vals,
+                            colWidths=[0.1]*3,
+                            rowLabels=row_labels,
+                            loc='center right')
+    #plt.text(12, 3.4, 'Params', size=8)
+
+
     if flag_show:
         plt.show()
     if flag_save:
