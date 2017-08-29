@@ -10,14 +10,15 @@ from trajectory import trajectory_simulate
 
 # SCRIPT PARAMS
 ODE_METHOD = "libcall"  # see constants.py -- ODE_METHODS
-ODE_SYSTEM = "feedback"  #"default"
+ODE_SYSTEM = "default"  #"default"
 INIT_COND = [99.9, 0.1, 0.0]
 TIME_START = 0.0
-TIME_END = 160.0  #20.0
+TIME_END = 1600.0  #20.0
 NUM_STEPS = 2000  # number of timesteps in each trajectory
 param_varying_name = "b"
-SEARCH_START = 0.6  #0.55
-SEARCH_END = 0.85  #1.45
+assert param_varying_name in PARAMS_ID_INV.keys()
+SEARCH_START = 0.1  #0.55
+SEARCH_END = 1.85  #1.45
 SEARCH_AMOUNT = 320  #20
 
 # DYNAMICS PARAMETERS
@@ -25,7 +26,7 @@ alpha_plus = 0.05
 alpha_minus = 4.95
 mu = 0.77
 a = 1.0
-b = 8.369856428  #1.376666
+b = 0.8 #8.369856428  #1.376666
 c = 2.6
 N = 100.0
 v_x = 0.0#1.0
@@ -37,13 +38,15 @@ params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z]
 
 # VARYING PARAM SPECIFICATION
 idx_varying = PARAMS_ID_INV[param_varying_name]
-param_varying_bifurcname = BIFURC_DICT[idx_varying]
-assert param_varying_bifurcname in VALID_BIFURC_PARAMS
-bifurc_loc = bifurc_value(params, param_varying_bifurcname)
-print "Bifurcation in %s possibly at %.5f" % (param_varying_bifurcname, bifurc_loc)
+if param_varying_name == "b":
+    param_varying_bifurcname = BIFURC_DICT[idx_varying]
+    param_center = bifurc_value(params, param_varying_bifurcname)
+    print "Bifurcation in %s possibly at %.5f" % (param_varying_bifurcname, param_center)
+else:
+    param_center = 1.0
 print "Searching in window: %.3f to %.3f with %d points" \
-      % (SEARCH_START * bifurc_loc, SEARCH_END * bifurc_loc, SEARCH_AMOUNT)
-param_varying_values = np.linspace(SEARCH_START * bifurc_loc, SEARCH_END * bifurc_loc, SEARCH_AMOUNT)
+      % (SEARCH_START * param_center, SEARCH_END * param_center, SEARCH_AMOUNT)
+param_varying_values = np.linspace(SEARCH_START * param_center, SEARCH_END * param_center, SEARCH_AMOUNT)
 
 # CONSTRUCT PARAM ENSEMBLE
 num_param_sets = len(param_varying_values)
@@ -64,4 +67,4 @@ for idx, params in enumerate(param_ensemble):
     r_inf_list[idx] = fp_from_timeseries(r)
 plt.savefig(OUTPUT_DIR + sep + "trajectory_mono_z_composite" + ".png")
 plt.show()
-ax_endpts = plot_endpoint_mono(r_inf_list, param_varying_values, param_varying_name, True, True)
+ax_endpts = plot_endpoint_mono(r_inf_list, param_varying_values, param_varying_name, params, True, True)
