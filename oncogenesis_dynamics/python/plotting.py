@@ -159,7 +159,7 @@ def plot_trajectory_mono(r, times, flag_show, flag_save, ax_mono=None, mono="z",
     return ax_mono
 
 
-def plot_endpoint_mono(fp_list, param_list, flag_show, flag_save, ax_mono=None, mono="z", plt_save="endpoint_mono_"):
+def plot_endpoint_mono(fp_list, param_list, param_varying_name, flag_show, flag_save, ax_mono=None, mono="z", plt_save="endpoint_mono_"):
     assert mono in STATES_ID_INV.keys()
     axis_idx = STATES_ID_INV[mono]
     print axis_idx
@@ -168,7 +168,7 @@ def plot_endpoint_mono(fp_list, param_list, flag_show, flag_save, ax_mono=None, 
     ax_mono.plot(param_list, fp_list[:, axis_idx], '-o')
     plt.title(mono + "_inf vs param_val")
     ax_mono.grid(True)
-    ax_mono.set_xlabel("param_val")
+    ax_mono.set_xlabel(param_varying_name)
     ax_mono.set_ylabel(mono + "_inf")
     if flag_show:
         plt.show()

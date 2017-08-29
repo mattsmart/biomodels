@@ -37,8 +37,10 @@ def system_vector_obj_ode(t_scalar, r_idx, alpha_plus, alpha_minus, mu, a, b, c,
 
 def system_vector_feedback(init_cond, times, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z):
     x, y, z = init_cond
-    alpha_plus = alpha_plus * z / (z + PARAM_Z0_RATIO*N)
-    alpha_minus = alpha_minus * 1 / (z + PARAM_Z0_RATIO*N)
+    #alpha_plus = alpha_plus * z / (z + PARAM_Z0_RATIO*N)
+    #alpha_minus = alpha_minus * 1 / (z + PARAM_Z0_RATIO*N)
+    alpha_plus = alpha_plus * 1 / (z + PARAM_Z0_RATIO * N)
+    alpha_minus = alpha_minus * z / (z + PARAM_Z0_RATIO * N)
     fbar = (a * x + b * y + c * z + v_x + v_y + v_z) / N
     dxdt = v_x - x * alpha_plus + y * alpha_minus + (a - fbar) * x
     dydt = v_y + x * alpha_plus - y * (alpha_minus + mu) + (b - fbar) * y
@@ -127,6 +129,15 @@ def ode_general(init_cond, times, params, method="libcall", system="default"):
         return ode_euler(init_cond, times, params, system)
     else:
         raise ValueError("method arg invalid, must be one of %s" % ODE_METHODS)
+
+
+def fp_from_timeseries(r, tol=0.001):
+    fp_test = r[-1,:]
+    fp_check = r[-2,:]
+    if np.linalg.norm(fp_test - fp_check) <= tol:
+        return fp_test
+    else:
+        raise ValueError("timeseries endpoint not a fixed point using dist tol: %.2f" % tol)
 
 
 def bifurc_value(params, bifurc_name):
