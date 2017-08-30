@@ -143,10 +143,24 @@ def bifurc_value(params, bifurc_name):
         delta = 1 - b
     if c is not None:
         s = c - 1
-    # assumes threshold_2 is stronger constraint, atm hardcode rearrange expression for bifruc param
+    # assumes threshold_2 is stronger constraint, atm hardcode rearrange expression for bifurc param
     if bifurc_name == "bifurc_b":
         delta_val = alpha_minus * alpha_plus / (s + alpha_plus) - (s + alpha_minus + mu)
         bifurc_val = 1 - delta_val
+        return bifurc_val
+    elif bifurc_name == "bifurc_c":
+        """
+        -bifurcation in s = c - 1 occurs at rightmost root of a1 quadratic criterion in general
+        -note a1 always has 2 roots for physical parameters
+        -note linear a0 criterion has positive slope in s and IS the derivative of a1 wrt s 
+         and so its root will always at the midpoint of the two a1 roots
+        -need a1 and a0 both positive, since a0 not positive left of its sol and a1 not positive 
+         between its roots this implies a1's rightmost root gives the bifurcation point
+        """
+        p = np.array([1, delta + alpha_plus + alpha_minus + mu, alpha_plus * (delta + mu)])
+        roots = np.roots(p)
+        s_val = np.max(roots)
+        bifurc_val = 1 + s_val
         return bifurc_val
     else:
         raise ValueError(bifurc_name + ' not valid bifurc ID')

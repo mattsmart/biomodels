@@ -40,7 +40,7 @@ params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z]
 
 # VARYING PARAM SPECIFICATION
 idx_varying = PARAMS_ID_INV[param_varying_name]
-if param_varying_name == "b":
+if param_varying_name in ["b","c"]:
     param_varying_bifurcname = BIFURC_DICT[idx_varying]
     param_center = bifurc_value(params, param_varying_bifurcname)
     print "Bifurcation in %s possibly at %.5f" % (param_varying_bifurcname, param_center)

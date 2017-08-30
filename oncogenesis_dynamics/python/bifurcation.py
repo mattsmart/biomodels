@@ -51,10 +51,10 @@ alpha_plus = 0.05 #0.4
 alpha_minus = 4.95 #0.5
 mu = 0.77 #0.77 #0.01
 a = 1.0
-b = None #1.1
-c = 2.6 #1.2
+b = 1.1
+c = None #2.6 #1.2
 N = 100.0 #100
-v_x = 1.0
+v_x = 0.0
 v_y = 0.0
 v_z = 0.0
 if b is not None:
