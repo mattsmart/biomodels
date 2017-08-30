@@ -173,13 +173,11 @@ def plot_endpoint_mono(fp_list, param_list, param_varying_name, params, flag_sho
     row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
     table_vals = [[params[i]] if PARAMS_ID[i] != param_varying_name else [None] for i in xrange(len(PARAMS_ID))]
     print len(row_labels), len(table_vals)
-    # the rectangle is where I want to place the table
     param_table = plt.table(cellText=table_vals,
                             colWidths=[0.1]*3,
                             rowLabels=row_labels,
                             loc='center right')
     #plt.text(12, 3.4, 'Params', size=8)
-
 
     if flag_show:
         plt.show()

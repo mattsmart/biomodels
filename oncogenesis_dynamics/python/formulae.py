@@ -19,7 +19,7 @@ from os import sep
 from scipy.integrate import ode, odeint
 from sympy import Symbol, solve, re
 
-from constants import PARAMS_ID, CSV_DATA_TYPES, ODE_METHODS, PARAM_Z0_RATIO
+from constants import PARAMS_ID, CSV_DATA_TYPES, ODE_METHODS, PARAM_Z0_RATIO, PARAM_HILL
 
 
 def system_vector(init_cond, times, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z):

@@ -10,7 +10,7 @@ from trajectory import trajectory_simulate
 
 # SCRIPT PARAMS
 ODE_METHOD = "libcall"  # see constants.py -- ODE_METHODS
-ODE_SYSTEM = "default"  #"default"
+ODE_SYSTEM = "feedback"  #"default"
 INIT_COND = [99.9, 0.1, 0.0]
 TIME_START = 0.0
 TIME_END = 1600.0  #20.0
@@ -22,14 +22,16 @@ SEARCH_END = 1.85  #1.45
 SEARCH_AMOUNT = 320  #20
 
 # DYNAMICS PARAMETERS
-alpha_plus = 0.05
-alpha_minus = 4.95
+alpha_plus = 1.2
+alpha_minus = 1.45
+#alpha_plus = 0.05
+#alpha_minus = 4.95
 mu = 0.77
 a = 1.0
 b = 0.8 #8.369856428  #1.376666
 c = 2.6
 N = 100.0
-v_x = 0.0#1.0
+v_x = 0.0 #1.0
 v_y = 0.0
 v_z = 0.0
 delta = 1 - b
