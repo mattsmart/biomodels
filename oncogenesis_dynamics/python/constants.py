@@ -17,8 +17,8 @@ Conventions
 - if an element of params is specified as None then a bifurcation range will be be found and used
 """
 
-PARAMS_ID = {0: "alpha_minus",
-             1: "alpha_plus",
+PARAMS_ID = {0: "alpha_plus",
+             1: "alpha_minus",
              2: "mu",
              3: "a",
              4: "b",
