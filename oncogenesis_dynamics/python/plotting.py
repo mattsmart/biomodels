@@ -159,17 +159,26 @@ def plot_trajectory_mono(r, times, flag_show, flag_save, ax_mono=None, mono="z",
     return ax_mono
 
 
-def plot_endpoint_mono(fp_list, param_list, param_varying_name, params, flag_show, flag_save, ax_mono=None, mono="z", plt_save="endpoint_mono_"):
+def plot_endpoint_mono(fp_list, param_list, param_varying_name, params, flag_show, flag_save, ax_mono=None, mono="z",
+                       plt_save="endpoint_mono_", all_axis=True):
     assert mono in STATES_ID_INV.keys()
     axis_idx = STATES_ID_INV[mono]
     fig_mono = plt.figure()
     ax_mono = fig_mono.gca()
-    ax_mono.plot(param_list, fp_list[:, axis_idx], '-o')
-    plt.title(mono + "_inf vs param_val")
+    if all_axis:
+        line_x, = ax_mono.plot(param_list, fp_list[:, 0], '-o', label="x")
+        line_y, = ax_mono.plot(param_list, fp_list[:, 1], '-o', label="y")
+        line_z, = ax_mono.plot(param_list, fp_list[:, 2], '-o', label="z")
+        ax_mono.set_ylabel("axis_i")
+        plt.legend(handles=[line_x, line_y, line_z], bbox_to_anchor=(1.05, 0.98))
+        plt.title("axis_inf vs param_val")
+    else:
+        ax_mono.plot(param_list, fp_list[:, axis_idx], '-o')
+        ax_mono.set_ylabel(mono + "_inf")
+        plt.title(mono + "_inf vs param_val")
     ax_mono.grid(True)
     ax_mono.set_xlabel(param_varying_name)
-    ax_mono.set_ylabel(mono + "_inf")
-
+    # CREATE TABLE OF PARAMS
     row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
     table_vals = [[params[i]] if PARAMS_ID[i] != param_varying_name else [None] for i in xrange(len(PARAMS_ID))]
     print len(row_labels), len(table_vals)
