@@ -27,6 +27,7 @@ from os import sep
 from constants import BIFURC_DICT, VALID_BIFURC_PARAMS, OUTPUT_DIR
 from formulae import bifurc_value, fp_location_general, is_stable, write_bifurc_data, write_params
 from plotting import plot_fp_curves, plot_bifurc_dist
+from trajectory import trajectory_simulate
 
 
 # MATPLOTLIB GLOBAL SETTINGS
@@ -35,9 +36,9 @@ mpl_params = {'legend.fontsize': 'x-large', 'figure.figsize': (8, 5), 'axes.labe
 pylab.rcParams.update(mpl_params)
 
 # SCRIPT PARAMETERS
-SEARCH_START = 0.95 #0.5 #0.9  # start at SEARCH_START*bifurcation_point
-SEARCH_END = 1.05 #1.1  # end at SEARCH_END*bifurcation_point
-SEARCH_AMOUNT = 40 #10000
+SEARCH_START = 0.01 #0.5 #0.9  # start at SEARCH_START*bifurcation_point
+SEARCH_END = 12.75 #1.1  # end at SEARCH_END*bifurcation_point
+SEARCH_AMOUNT = 4000 #10000
 SPACING_BIFTEXT = int(SEARCH_AMOUNT/10)
 FLAG_BIFTEXT = 1
 FLAG_SHOWPLT = 1
@@ -45,10 +46,11 @@ FLAG_SAVEPLT = 1
 FLAG_SAVEDATA = 1
 HEADER_TITLE = 'Fixed Points'
 solver_fast = False
+check_with_trajectory = False
 
 # DYNAMICS PARAMETERS
-alpha_plus = 0.05 #0.4
-alpha_minus = 4.95 #0.5
+alpha_plus = 0.4#0.05 #0.4
+alpha_minus = 0.5#4.95 #0.5
 mu = 0.77 #0.77 #0.01
 a = 1.0
 b = 1.1
@@ -113,6 +115,12 @@ for idx, bifurc_param_val in enumerate(bifurcation_search):
     x1_stabilities[idx][0] = is_stable(params_step, fp_x1)
     x2_stabilities[idx][0] = is_stable(params_step, fp_x2)
     print "params:", idx, "of", nn
+    if check_with_trajectory:
+        r, times, ax_traj, ax_mono = trajectory_simulate(init_cond=[99.9,0.1,0.0], t0=0, t1=20000.0,
+                                                        num_steps=2000,
+                                                        params=params_step, ode_method="libcall", ode_system="default",
+                                                        flag_showplt=False, flag_saveplt=False)
+        print bifurc_param_val, fp_x1, r[-1]
 
 # PLOTTING ON THE SIMPLEX FIGURE
 fig_fp_curves = plot_fp_curves(x0_array, x0_stabilities, x1_array, x1_stabilities, x2_array, x2_stabilities, N,
