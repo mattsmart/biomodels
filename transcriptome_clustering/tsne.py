@@ -99,8 +99,11 @@ print "Done t-SNE"
 print type(data_projected), np.shape(data_projected), len(data_projected)  #size is numrows x 2
 tsne_x = data_projected[:,0]
 tsne_y = data_projected[:,1]
-plt.plot(tsne_x,tsne_y)
+plt.plot(tsne_x, tsne_y, 'o')
 plt.show()
 
 # ANALYZE CLUSTERING
 #TODO
+
+#TODO: not sure on colouring clusters
+#TODO: should store proccessed data to file (more IO functions)
