@@ -22,3 +22,5 @@ biophysics_meanfield/data/
 population_genetics/simulate - time - testing.py
 population_genetics/simulate - time.py
 oncogenesis_dynamics/python/output/
+transcriptome_clustering/rawdata/
+transcriptome_clustering/documentation/
