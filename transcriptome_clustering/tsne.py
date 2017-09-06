@@ -24,7 +24,7 @@ Raw data files found at or around:
 https://www.ncbi.nlm.nih.gov/gds/?term=GSE94820[Accession]
 
 Goal:
-Recreate figures like S2
+Recreate figures like S2 in Villani et al. 2017
 """
 
 
@@ -85,9 +85,9 @@ data_pruned, labels_cells_pruned, labels_genes_pruned = data_random_prune(data_r
 print "Raw data pruned: new size %d by %d" % (len(labels_genes_pruned), len(labels_cells_pruned))
 
 # CLEAN THE RAW DATA AS PRESCRIBED IN (Villani 2017)
-#TODO
+# TODO
 # CREATE TEST DATA WITH FAKE ROWS
-#TODO
+# TODO
 
 # PERFORM CLUSTERING
 N_COMPONENTS = 2
@@ -103,7 +103,9 @@ plt.plot(tsne_x, tsne_y, 'o')
 plt.show()
 
 # ANALYZE CLUSTERING
-#TODO
+# TODO
 
-#TODO: not sure on colouring clusters
-#TODO: should store proccessed data to file (more IO functions)
+# TODO: cyclic test data function sample (row-wise) from sin or something
+# TODO: not sure on colouring clusters
+# TODO: not sure on cluster analysis... looks like blob / maybe just one cluster?
+# TODO: should store proccessed data to file (more IO functions)
