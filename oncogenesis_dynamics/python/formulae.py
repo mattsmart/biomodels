@@ -37,8 +37,10 @@ def system_vector_obj_ode(t_scalar, r_idx, alpha_plus, alpha_minus, mu, a, b, c,
 
 def system_vector_feedback(init_cond, times, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z):
     x, y, z = init_cond
-    alpha_plus = alpha_plus * z / (z + PARAM_Z0_RATIO*N)
-    alpha_minus = alpha_minus * 1 / (z + PARAM_Z0_RATIO*N)
+    #alpha_plus = alpha_plus * z / (z + PARAM_Z0_RATIO*N)
+    #alpha_minus = alpha_minus * 1 / (z + PARAM_Z0_RATIO*N)
+    alpha_plus = alpha_plus * (1 + z / (z + PARAM_Z0_RATIO*N))
+    alpha_minus = alpha_minus * PARAM_Z0_RATIO*N / (z + PARAM_Z0_RATIO*N)
     return system_vector(init_cond, times, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z)
 
 

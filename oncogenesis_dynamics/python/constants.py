@@ -48,5 +48,5 @@ CSV_DATA_TYPES = {'bifurc_b': float,
                   'x1_x': float, 'x1_y': float, 'x1_z': float, 'x1_stab': bool,
                   'x2_x': float, 'x2_y': float, 'x2_z': float, 'x2_stab': bool}
 
-PARAM_Z0_RATIO = 0.5  # size of z0 relative to N (in feedback function)
+PARAM_Z0_RATIO = 0.1  # size of z0 relative to N (in feedback function)
 PARAM_HILL = 2        # (unused currently) hill parameter 'n'
