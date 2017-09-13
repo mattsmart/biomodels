@@ -75,7 +75,7 @@ def data_random_prune(data, names_cols, names_rows, frac_col_remove, frac_row_re
 raw_folder = "rawdata"
 raw_file = "GSE94820_raw.expMatrix_DCnMono.discovery.set.submission.txt"
 frac_col_remove = 0.90
-frac_row_remove = 0.85
+frac_row_remove = 0.95
 print "Reading raw data..."
 data_raw, labels_cells, labels_genes = load_data_from_text(raw_folder, raw_file)
 print "Raw data successfully loaded: size %d by %d" % (len(labels_genes), len(labels_cells))
@@ -92,7 +92,8 @@ print "Raw data pruned: new size %d by %d" % (len(labels_genes_pruned), len(labe
 # PERFORM CLUSTERING
 N_COMPONENTS = 2
 VERBOSE = 2
-tsne_obj = TSNE(n_components=N_COMPONENTS, verbose=VERBOSE)
+PERPLEXITY = 100
+tsne_obj = TSNE(n_components=N_COMPONENTS, perplexity=PERPLEXITY, verbose=VERBOSE)
 print "Performing t-SNE on data..."
 data_projected = tsne_obj.fit_transform(data_pruned)  # TODO: does data need to be transposed first?
 print "Done t-SNE"
