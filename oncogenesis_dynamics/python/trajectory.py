@@ -4,7 +4,7 @@ import numpy as np
 from os import sep
 
 from constants import OUTPUT_DIR
-from formulae import ode_general, fp_location_general, is_stable
+from formulae import simulate_dynamics_general, fp_location_general, is_stable
 from plotting import plot_simplex, plot_trajectory_mono, plot_trajectory
 
 
@@ -14,7 +14,7 @@ mpl_params = {'legend.fontsize': 'x-large', 'figure.figsize': (8, 5), 'axes.labe
 pylab.rcParams.update(mpl_params)
 
 # SCRIPT PARAMS
-ODE_METHOD = "libcall"  # see constants.py -- ODE_METHODS
+SIM_METHOD = "libcall"  # see constants.py -- SIM_METHODS
 ODE_SYSTEM = "feedback"  # see constants.py -- ODE_SYSTEMS
 INIT_COND = [95.0, 5.0, 0.0]
 TIME_START = 0.0
@@ -50,7 +50,7 @@ def trajectory_infoprint(init_cond, t0, t1, num_steps, params):
 
 
 def trajectory_simulate(init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS, params=PARAMS,
-                        ode_method=ODE_METHOD, ode_system=ODE_SYSTEM, flag_showplt=False, flag_saveplt=True):
+                        sim_method=SIM_METHOD, ode_system=ODE_SYSTEM, flag_showplt=False, flag_saveplt=True):
     # SIMULATE SETUP
     alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
     display_spacing = int(num_steps / 10)
@@ -58,7 +58,7 @@ def trajectory_simulate(init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_ste
     trajectory_infoprint(init_cond, t0, t1, num_steps, params)
 
     # SIMULATE
-    r = ode_general(init_cond, times, params, method=ode_method, system=ode_system)
+    r, times = simulate_dynamics_general(init_cond, times, params, method=sim_method, system=ode_system)
     print 'Done trajectory\n'
 
     # FP COMPARISON
@@ -86,3 +86,6 @@ def trajectory_simulate(init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_ste
 
 if __name__ == "__main__":
     print "main functionality not implemented"
+    r, times, ax_traj, ax_mono_z = trajectory_simulate(init_cond=[20,40,40], sim_method="gillespie",num_steps=NUM_STEPS*10)
+    for i in xrange(len(r)):
+        print r[i,:]

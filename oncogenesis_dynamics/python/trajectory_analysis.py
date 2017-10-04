@@ -9,7 +9,7 @@ from trajectory import trajectory_simulate
 
 
 # SCRIPT PARAMS
-ODE_METHOD = "libcall"  # see constants.py -- ODE_METHODS
+SIM_METHOD = "libcall"  # see constants.py -- SIM_METHODS
 ODE_SYSTEM = "default"  # "default" or "feedback"
 INIT_COND = [99.9, 0.1, 0.0]
 TIME_START = 0.0
@@ -57,7 +57,7 @@ ax_comp = None
 r_inf_list = np.zeros((len(param_varying_values), 3))
 for idx, params in enumerate(param_ensemble):
     r, times, ax_traj, ax_mono = trajectory_simulate(init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
-                                                     params=params, ode_method=ODE_METHOD, ode_system=ODE_SYSTEM,
+                                                     params=params, sim_method=SIM_METHOD, ode_system=ODE_SYSTEM,
                                                      flag_showplt=False, flag_saveplt=False)
     ax_mono = plot_trajectory_mono(r, times, False, False, ax_mono=ax_comp)
     ax_comp = ax_mono

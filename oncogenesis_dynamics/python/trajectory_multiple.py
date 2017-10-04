@@ -9,13 +9,13 @@ from plotting import plot_trajectory_mono, plot_endpoint_mono, plot_simplex, plo
 from trajectory import trajectory_simulate
 
 # SCRIPT PARAMS
-ODE_METHOD = "libcall"  # see constants.py -- ODE_METHODS
+SIM_METHOD = "libcall"  # see constants.py -- SIM_METHODS
 ODE_SYSTEM = "feedback"  # "default" or "feedback"
 INIT_COND = [99.9, 0.1, 0.0]
 TIME_START = 0.0
 TIME_END = 16000.0  #20.0
 NUM_STEPS = 20000  # number of timesteps in each trajectory
-NUM_TRAJ = 100
+NUM_TRAJ = 4
 
 # DYNAMICS PARAMETERS
 alpha_plus = 0.2#0.05 #0.4
@@ -46,7 +46,7 @@ ax_traj = fig_traj.gca()
 ax_traj.view_init(5, 35)  # ax.view_init(-45, -15)
 for idx, init_cond in enumerate(init_conds):
     r, times, _, _ = trajectory_simulate(init_cond=init_cond, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
-                                         params=params, ode_method=ODE_METHOD, ode_system=ODE_SYSTEM,
+                                         params=params, sim_method=SIM_METHOD, ode_system=ODE_SYSTEM,
                                          flag_showplt=False, flag_saveplt=False)
     ax_traj.plot(r[:, 0], r[:, 1], r[:, 2], label='trajectory')
     #assert np.abs(np.sum(r[-1, :]) - N) <= 0.001

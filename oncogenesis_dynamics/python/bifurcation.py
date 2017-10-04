@@ -117,9 +117,9 @@ for idx, bifurc_param_val in enumerate(bifurcation_search):
     print "params:", idx, "of", nn
     if check_with_trajectory:
         r, times, ax_traj, ax_mono = trajectory_simulate(init_cond=[99.9,0.1,0.0], t0=0, t1=20000.0,
-                                                        num_steps=2000,
-                                                        params=params_step, ode_method="libcall", ode_system="default",
-                                                        flag_showplt=False, flag_saveplt=False)
+                                                         num_steps=2000,
+                                                         params=params_step, sim_method="libcall", ode_system="default",
+                                                         flag_showplt=False, flag_saveplt=False)
         print bifurc_param_val, fp_x1, r[-1]
 
 # PLOTTING ON THE SIMPLEX FIGURE

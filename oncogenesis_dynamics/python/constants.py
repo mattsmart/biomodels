@@ -32,7 +32,7 @@ STATES_ID = {0: "x", 1: "y", 2: "z"}
 STATES_ID_INV = {v: k for k, v in STATES_ID.iteritems()}
 BIFURC_DICT = {i: "bifurc_" + PARAMS_ID[i] for i in xrange(len(PARAMS_ID))}
 VALID_BIFURC_PARAMS = ["bifurc_b", "bifurc_c"]  # list of implemented bifurcation parameters
-ODE_METHODS = ["euler", "rk4", "libcall"]
+SIM_METHODS = ["euler", "rk4", "libcall", "gillespie"]
 ODE_SYSTEMS = ["default", "feedback"]
 
 OUTPUT_DIR = "output"

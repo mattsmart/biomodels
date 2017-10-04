@@ -16,10 +16,11 @@ Conventions
 import csv
 import numpy as np
 from os import sep
+from random import random
 from scipy.integrate import ode, odeint
 from sympy import Symbol, solve, re
 
-from constants import PARAMS_ID, CSV_DATA_TYPES, ODE_METHODS, PARAM_Z0_RATIO, PARAM_HILL
+from constants import PARAMS_ID, CSV_DATA_TYPES, SIM_METHODS, PARAM_Z0_RATIO, PARAM_HILL
 
 
 def system_vector(init_cond, times, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z):
@@ -59,7 +60,7 @@ def ode_euler(init_cond, times, params, system):
     for idx, t in enumerate(times[:-1]):
         v = fn(r[idx], None, *params)
         r[idx+1] = r[idx] + np.array(v)*dt
-    return r
+    return r, times
 
 
 def ode_rk4(init_cond, times, params, system):
@@ -103,7 +104,7 @@ def ode_rk4(init_cond, times, params, system):
         obj_ode.integrate(obj_ode.t + dt)
         r[idx] = np.array(obj_ode.y)
         idx += 1
-    return r
+    return r, times
 
 
 def ode_libcall(init_cond, times, params, system):
@@ -112,10 +113,62 @@ def ode_libcall(init_cond, times, params, system):
     else:
         fn = system_vector_feedback
     r = odeint(fn, init_cond, times, args=tuple(params))
-    return r
+    return r, times
 
 
-def ode_general(init_cond, times, params, method="libcall", system="default"):
+def stoch_gillespie(init_cond, times, params, system):
+    # There are 12 transitions to consider:
+    # - 6 birth/death of the form x_n -> x_n+1, (x birth, x death, ...), label these 0 to 5
+    # - 3 transitions of the form x_n -> x_n+1, (x->y, y->x, y->z), label these 6 to 8
+    # - 3 transitions associated with immigration (vx, vy, vz), label these 9 to 11
+    # Gillespie algorithm has indefinite timestep size so consider total step count as input (times input not used)
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+    total_steps = len(times)
+    #dt = times[1] - times[0]
+    r = np.zeros((total_steps, 3))
+    time = times[0]
+    times_stoch = np.zeros(total_steps)
+    r[0] = np.array(init_cond, dtype=int)  # note stochastic sim operates on integer population counts
+    update_dict = {0: [1, 0, 0], 1: [-1, 0, 0],                  # birth/death events for x
+                   2: [0, 1, 0], 3: [0, -1, 0],                  # birth/death events for y
+                   4: [0, 0, 1], 5: [0, 0, -1],                  # birth/death events for z
+                   6: [-1, 1, 0], 7: [1, -1, 0], 8: [0, -1, 1],  # transition events
+                   9: [1, 0, 0], 10: [0, 1, 0], 11: [0, 0, 1]}   # immigration events
+    def reaction_propensities(r, step):
+        x_n, y_n, z_n = r[step]
+        fbar = (a*x_n + b*y_n + c*z_n + v_x + v_y + v_z) / N  # TODO flag to switch N to x + y + z
+        return [a*x_n, fbar*(x_n - 1),                     # birth/death events for x
+                b*y_n, fbar*(y_n - 1),                     # birth/death events for y
+                c*z_n, fbar*(z_n - 1),                     # birth/death events for z
+                alpha_plus*x_n, alpha_minus*y_n, mu*y_n,    # transition events
+                v_x, v_y, v_z]                              # immigration events  #TODO maybe wrong
+    for step in xrange(total_steps-1):
+        r1 = random()  # used to determine time of next reaction
+        r2 = random()  # used to partition the probabilities of each reaction
+        # compute propensity functions (alpha) and the partitions for all 12 transitions
+        alpha = reaction_propensities(r, step)
+        alpha_partitions = np.zeros(len(alpha)+1)
+        alpha_sum = 0.0
+        for i in xrange(len(alpha)):
+            alpha_sum += alpha[i]
+            alpha_partitions[i + 1] = alpha_sum
+        alpha_partitions = alpha_partitions / alpha_sum
+        # find time to first reaction
+        tau = np.log(1 / r1) / alpha_sum
+        # compute number of molecules at time t + tau
+        for species in xrange(3):
+            for rxn_idx in xrange(len(alpha)):
+                if alpha_partitions[rxn_idx] <= r2 < alpha_partitions[rxn_idx + 1]:  # i.e. rxn idx has occurred
+                    pop_updates = update_dict[rxn_idx]
+                    r[step+1] = r[step] + pop_updates
+        time += tau
+        times_stoch[step + 1] = time
+        #if i % 10 == 0:
+        #    print step
+    return r, times_stoch
+
+
+def simulate_dynamics_general(init_cond, times, params, method="libcall", system="default"):
     assert system in ["default", "feedback"]
     if method == "libcall":
         return ode_libcall(init_cond, times, params, system)
@@ -123,8 +176,10 @@ def ode_general(init_cond, times, params, method="libcall", system="default"):
         return ode_rk4(init_cond, times, params, system)
     elif method == "euler":
         return ode_euler(init_cond, times, params, system)
+    elif method == "gillespie":
+        return stoch_gillespie(init_cond, times, params, system)
     else:
-        raise ValueError("method arg invalid, must be one of %s" % ODE_METHODS)
+        raise ValueError("method arg invalid, must be one of %s" % SIM_METHODS)
 
 
 def fp_from_timeseries(r, tol=0.001):
