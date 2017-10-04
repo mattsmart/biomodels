@@ -116,13 +116,27 @@ def ode_libcall(init_cond, times, params, system):
     return r, times
 
 
+def reaction_propensities(r, step, params, system):
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+    x_n, y_n, z_n = r[step]
+    if system == "feedback":
+        alpha_plus = alpha_plus * (1 + z_n / (z_n + PARAM_Z0_RATIO * N))
+        alpha_minus = alpha_minus * PARAM_Z0_RATIO * N / (z_n + PARAM_Z0_RATIO * N)
+    fbar = (a*x_n + b*y_n + c*z_n + v_x + v_y + v_z) / N  # TODO flag to switch N to x + y + z
+    return [a*x_n, fbar*(x_n - 1),                      # birth/death events for x
+            b*y_n, fbar*(y_n - 1),                      # birth/death events for y
+            c*z_n, fbar*(z_n - 1),                      # birth/death events for z
+            alpha_plus*x_n, alpha_minus*y_n, mu*y_n,    # transition events
+            v_x, v_y, v_z]                              # immigration events  #TODO maybe wrong
+
+
 def stoch_gillespie(init_cond, times, params, system):
     # There are 12 transitions to consider:
     # - 6 birth/death of the form x_n -> x_n+1, (x birth, x death, ...), label these 0 to 5
     # - 3 transitions of the form x_n -> x_n+1, (x->y, y->x, y->z), label these 6 to 8
     # - 3 transitions associated with immigration (vx, vy, vz), label these 9 to 11
     # Gillespie algorithm has indefinite timestep size so consider total step count as input (times input not used)
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+
     total_steps = len(times)
     #dt = times[1] - times[0]
     r = np.zeros((total_steps, 3))
@@ -134,19 +148,11 @@ def stoch_gillespie(init_cond, times, params, system):
                    4: [0, 0, 1], 5: [0, 0, -1],                  # birth/death events for z
                    6: [-1, 1, 0], 7: [1, -1, 0], 8: [0, -1, 1],  # transition events
                    9: [1, 0, 0], 10: [0, 1, 0], 11: [0, 0, 1]}   # immigration events
-    def reaction_propensities(r, step):
-        x_n, y_n, z_n = r[step]
-        fbar = (a*x_n + b*y_n + c*z_n + v_x + v_y + v_z) / N  # TODO flag to switch N to x + y + z
-        return [a*x_n, fbar*(x_n - 1),                     # birth/death events for x
-                b*y_n, fbar*(y_n - 1),                     # birth/death events for y
-                c*z_n, fbar*(z_n - 1),                     # birth/death events for z
-                alpha_plus*x_n, alpha_minus*y_n, mu*y_n,    # transition events
-                v_x, v_y, v_z]                              # immigration events  #TODO maybe wrong
     for step in xrange(total_steps-1):
         r1 = random()  # used to determine time of next reaction
         r2 = random()  # used to partition the probabilities of each reaction
         # compute propensity functions (alpha) and the partitions for all 12 transitions
-        alpha = reaction_propensities(r, step)
+        alpha = reaction_propensities(r, step, params, system)
         alpha_partitions = np.zeros(len(alpha)+1)
         alpha_sum = 0.0
         for i in xrange(len(alpha)):
