@@ -28,7 +28,7 @@ mu = 0.1 #0.01
 a = 1.0
 b = 0.8
 c = 1.2 #2.6 #1.2
-N = 100.0 #100
+N = 1000.0 #100
 v_x = 0.0
 v_y = 0.0
 v_z = 0.0
@@ -64,7 +64,7 @@ for idx, params in enumerate(param_ensemble):
     #assert np.abs(np.sum(r[-1, :]) - N) <= 0.001
     if idx % 10 == 0:
         ax_comp.text(times[-1], r[-1, 2], '%.3f' % param_varying_values[idx])
-    r_inf_list[idx] = fp_from_timeseries(r)
+    r_inf_list[idx] = fp_from_timeseries(r, SIM_METHOD)
 plt.savefig(OUTPUT_DIR + sep + "trajectory_mono_z_composite" + ".png")
 plt.show()
 ax_endpts = plot_endpoint_mono(r_inf_list, param_varying_values, param_varying_name, params, True, True, all_axis=True)

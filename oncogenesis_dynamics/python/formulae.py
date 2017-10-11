@@ -188,10 +188,12 @@ def simulate_dynamics_general(init_cond, times, params, method="libcall", system
         raise ValueError("method arg invalid, must be one of %s" % SIM_METHODS)
 
 
-def fp_from_timeseries(r, tol=0.001):
+def fp_from_timeseries(r, sim_method, tol=0.001):
     fp_test = r[-1,:]
     fp_check = r[-2,:]
     if np.linalg.norm(fp_test - fp_check) <= tol:
+        return fp_test
+    elif sim_method == "gillespie" and np.linalg.norm(fp_test - r[-5,:]) <= 5:  # TODO exit condition for gillespie SS
         return fp_test
     else:
         raise ValueError("timeseries endpoint not a fixed point using dist tol: %.2f" % tol)
