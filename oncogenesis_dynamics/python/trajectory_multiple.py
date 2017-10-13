@@ -10,7 +10,7 @@ from trajectory import trajectory_simulate
 
 # SCRIPT PARAMS
 SIM_METHOD = "libcall"  # see constants.py -- SIM_METHODS
-ODE_SYSTEM = "default"  # "default" or "feedback"
+ODE_SYSTEM = "default"  # "default" or "feedback_z" etc
 INIT_COND = [99.9, 0.1, 0.0]
 TIME_START = 0.0
 TIME_END = 16000.0  #20.0

@@ -10,16 +10,16 @@ from trajectory import trajectory_simulate
 
 # SCRIPT PARAMS
 SIM_METHOD = "libcall"  # see constants.py -- SIM_METHODS
-ODE_SYSTEM = "feedback_z"  # "default" or "feedback_z" or "feedback_yz"
+ODE_SYSTEM = "default"  # "default" or "feedback_z" or "feedback_yz"
 INIT_COND = [99.9, 0.1, 0.0]
 TIME_START = 0.0
 TIME_END = 160000.0  #20.0
 NUM_STEPS = 2000  # number of timesteps in each trajectory
 param_varying_name = "mu"
 assert param_varying_name in PARAMS_ID_INV.keys()
-SEARCH_START = 0.01  #0.55
-SEARCH_END = 2  #1.45
-SEARCH_AMOUNT = 3200  #20
+SEARCH_START = 0.0  #0.55
+SEARCH_END = 20.0 #1.45
+SEARCH_AMOUNT = 100  #20
 
 # DYNAMICS PARAMETERS
 alpha_plus = 0.2#0.05 #0.4
@@ -27,7 +27,7 @@ alpha_minus = 0.5#4.95 #0.5
 mu = 0.1 #0.01
 a = 1.0
 b = 0.9
-c = 0.95 #2.6 #1.2
+c = 0.85 #0.95 #2.6 #1.2
 N = 1000.0 #100
 v_x = 0.0
 v_y = 0.0
@@ -41,8 +41,8 @@ if param_varying_name in ["b", "c"]:
     param_center = bifurc_value(params, param_varying_bifurcname)
     print "Bifurcation in %s possibly at %.5f" % (param_varying_bifurcname, param_center)
 else:
-    param_center = 0.001 #1.0
-print "Searching in window: %.3f to %.3f with %d points" \
+    param_center = params[idx_varying]
+print "Searching in window: %.8f to %.8f with %d points" \
       % (SEARCH_START * param_center, SEARCH_END * param_center, SEARCH_AMOUNT)
 param_varying_values = np.linspace(SEARCH_START * param_center, SEARCH_END * param_center, SEARCH_AMOUNT)
 

@@ -196,6 +196,14 @@ def bifurc_value(params, bifurc_name):
         s_val = np.max(roots)
         bifurc_val = 1 + s_val
         return bifurc_val
+    elif bifurc_name == "bifurc_mu":
+        """
+        -expect bifurcation in mu to behave similarly to bifurcation in delta (b)
+        -this is due to similar functional location in a0, a1 expressions
+        """
+        mu_option0 = alpha_minus * alpha_plus / (s + alpha_plus) - (s + alpha_minus + delta)
+        mu_option1 = -(2*s + alpha_minus + delta + alpha_plus)
+        return np.max([mu_option0, mu_option1])
     else:
         raise ValueError(bifurc_name + ' not valid bifurc ID')
 

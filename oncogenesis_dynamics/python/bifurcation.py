@@ -51,10 +51,10 @@ check_with_trajectory = False
 # DYNAMICS PARAMETERS
 alpha_plus = 0.4#0.05 #0.4
 alpha_minus = 0.5#4.95 #0.5
-mu = 0.77 #0.77 #0.01
+mu = None #0.77 #0.01
 a = 1.0
-b = 1.1
-c = None #2.6 #1.2
+b = 0.8
+c = 1.2 #2.6 #1.2
 N = 100.0 #100
 v_x = 0.0
 v_y = 0.0
