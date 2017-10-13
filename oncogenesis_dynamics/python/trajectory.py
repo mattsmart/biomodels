@@ -15,7 +15,7 @@ pylab.rcParams.update(mpl_params)
 
 # SCRIPT PARAMS
 SIM_METHOD = "libcall"  # see constants.py -- SIM_METHODS
-ODE_SYSTEM = "feedback"  # see constants.py -- ODE_SYSTEMS
+ODE_SYSTEM = "feedback_z"  # see constants.py -- ODE_SYSTEMS
 INIT_COND = [95.0, 5.0, 0.0]
 TIME_START = 0.0
 TIME_END = 20.0

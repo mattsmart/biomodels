@@ -20,84 +20,51 @@ from random import random
 from scipy.integrate import ode, odeint
 from sympy import Symbol, solve, re
 
-from constants import PARAMS_ID, CSV_DATA_TYPES, SIM_METHODS, PARAM_Z0_RATIO, PARAM_HILL
+from constants import PARAMS_ID, CSV_DATA_TYPES, SIM_METHODS, PARAM_Z0_RATIO, PARAM_Y0_PLUS_Z0_RATIO, PARAM_HILL, \
+                      ODE_SYSTEMS
 
 
-def system_vector(init_cond, times, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z):
+def system_vector(init_cond, times, system, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z):
     x, y, z = init_cond
     fbar = (a * x + b * y + c * z + v_x + v_y + v_z) / N
+    if system == "feedback_z":
+        alpha_plus = alpha_plus * (1 + z / (z + PARAM_Z0_RATIO*N))
+        alpha_minus = alpha_minus * PARAM_Z0_RATIO*N / (z + PARAM_Z0_RATIO*N)
+    elif system == "feedback_yz":
+        yz = y + z
+        alpha_plus = alpha_plus * (1 + yz / (yz + PARAM_Y0_PLUS_Z0_RATIO * N))
+        alpha_minus = alpha_minus * PARAM_Y0_PLUS_Z0_RATIO * N / (yz + PARAM_Y0_PLUS_Z0_RATIO * N)
     dxdt = v_x - x * alpha_plus + y * alpha_minus + (a - fbar) * x
     dydt = v_y + x * alpha_plus - y * (alpha_minus + mu) + (b - fbar) * y
     dzdt = v_z + y * mu + (c - fbar) * z
     return [dxdt, dydt, dzdt]
 
 
-def system_vector_obj_ode(t_scalar, r_idx, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z):
-    return system_vector(r_idx, t_scalar, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z)
+def system_vector_obj_ode(t_scalar, r_idx, system, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z):
+    return system_vector(r_idx, t_scalar, system, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z)
 
 
-def system_vector_feedback(init_cond, times, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z):
-    x, y, z = init_cond
-    #alpha_plus = alpha_plus * z / (z + PARAM_Z0_RATIO*N)
-    #alpha_minus = alpha_minus * 1 / (z + PARAM_Z0_RATIO*N)
-    alpha_plus = alpha_plus * (1 + z / (z + PARAM_Z0_RATIO*N))
-    alpha_minus = alpha_minus * PARAM_Z0_RATIO*N / (z + PARAM_Z0_RATIO*N)
-    return system_vector(init_cond, times, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z)
-
-
-def system_vector_obj_ode_feedback(t_scalar, r_idx, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z):
-    return system_vector_feedback(r_idx, t_scalar, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z)
-
-
-def ode_euler(init_cond, times, params, system):
-    if system == "default":
-        fn = system_vector
-    else:
-        fn = system_vector_feedback
+def ode_euler(init_cond, times, system, params):
+    fn = system_vector
+    odeparams = [system] + params
     dt = times[1] - times[0]
     r = np.zeros((len(times), 3))
     r[0] = np.array(init_cond)
     for idx, t in enumerate(times[:-1]):
-        v = fn(r[idx], None, *params)
+        v = fn(r[idx], None, *odeparams)
         r[idx+1] = r[idx] + np.array(v)*dt
     return r, times
 
 
-def ode_rk4(init_cond, times, params, system):
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+def ode_rk4(init_cond, times, system, params):
     dt = times[1] - times[0]
     r = np.zeros((len(times), 3))
     r[0] = np.array(init_cond)
-    """
-    def system_vector_obj_ode(t_scalar, r_idx, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z):
-        x, y, z = r_idx
-        fbar = (a * x + b * y + c * z + v_x + v_y + v_z) / N
-        dxdt = v_x - x * alpha_plus + y * alpha_minus + (a - fbar) * x
-        dydt = v_y + x * alpha_plus - y * (alpha_minus + mu) + (b - fbar) * y
-        dzdt = v_z + y * mu + (c - fbar) * z
-        return [dxdt, dydt, dzdt]
-    def system_vector_obj_ode_feedback(t_scalar, r_idx, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z):
-        x, y, z = r_idx
-        NEWPARAM_z0 = 1
-        alpha_plus = alpha_plus * z / (z + NEWPARAM_z0)
-        alpha_minus = alpha_minus * 1 / (z + NEWPARAM_z0)
-        fbar = (a * x + b * y + c * z + v_x + v_y + v_z) / N
-        dxdt = v_x - x * alpha_plus + y * alpha_minus + (a - fbar) * x
-        dydt = v_y + x * alpha_plus - y * (alpha_minus + mu) + (b - fbar) * y
-        dzdt = v_z + y * mu + (c - fbar) * z
-        return [dxdt, dydt, dzdt]
-    if system == "default":
-        fn = system_vector_obj_ode
-    else:
-        fn = system_vector_obj_ode_feedback
-    """
-    if system == "default":
-        fn = system_vector_obj_ode
-    else:
-        fn = system_vector_obj_ode_feedback
+    odeparams = [system] + params
+    fn = system_vector_obj_ode
     obj_ode = ode(fn, jac=None)
     obj_ode.set_initial_value(init_cond, times[0])
-    obj_ode.set_f_params(*params)
+    obj_ode.set_f_params(*odeparams)
     obj_ode.set_integrator('dopri5')
     idx = 1
     while obj_ode.successful() and obj_ode.t < times[-1]:
@@ -107,21 +74,23 @@ def ode_rk4(init_cond, times, params, system):
     return r, times
 
 
-def ode_libcall(init_cond, times, params, system):
-    if system == "default":
-        fn = system_vector
-    else:
-        fn = system_vector_feedback
-    r = odeint(fn, init_cond, times, args=tuple(params))
+def ode_libcall(init_cond, times, system, params):
+    fn = system_vector
+    odeparams = [system] + params
+    r = odeint(fn, init_cond, times, args=tuple(odeparams))
     return r, times
 
 
-def reaction_propensities(r, step, params, system):
+def reaction_propensities(r, step, system, params):
     alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
     x_n, y_n, z_n = r[step]
-    if system == "feedback":
+    if system == "feedback_z":
         alpha_plus = alpha_plus * (1 + z_n / (z_n + PARAM_Z0_RATIO * N))
         alpha_minus = alpha_minus * PARAM_Z0_RATIO * N / (z_n + PARAM_Z0_RATIO * N)
+    elif system == "feedback_yz":
+        yz = y_n + z_n
+        alpha_plus = alpha_plus * (1 + yz / (yz + PARAM_Y0_PLUS_Z0_RATIO * N))
+        alpha_minus = alpha_minus * PARAM_Y0_PLUS_Z0_RATIO * N / (yz + PARAM_Y0_PLUS_Z0_RATIO * N)
     fbar = (a*x_n + b*y_n + c*z_n + v_x + v_y + v_z) / N  # TODO flag to switch N to x + y + z
     return [a*x_n, fbar*(x_n - 1),                      # birth/death events for x
             b*y_n, fbar*(y_n - 1),                      # birth/death events for y
@@ -130,7 +99,7 @@ def reaction_propensities(r, step, params, system):
             v_x, v_y, v_z]                              # immigration events  #TODO maybe wrong
 
 
-def stoch_gillespie(init_cond, times, params, system):
+def stoch_gillespie(init_cond, times, system, params):
     # There are 12 transitions to consider:
     # - 6 birth/death of the form x_n -> x_n+1, (x birth, x death, ...), label these 0 to 5
     # - 3 transitions of the form x_n -> x_n+1, (x->y, y->x, y->z), label these 6 to 8
@@ -152,7 +121,7 @@ def stoch_gillespie(init_cond, times, params, system):
         r1 = random()  # used to determine time of next reaction
         r2 = random()  # used to partition the probabilities of each reaction
         # compute propensity functions (alpha) and the partitions for all 12 transitions
-        alpha = reaction_propensities(r, step, params, system)
+        alpha = reaction_propensities(r, step, system, params)
         alpha_partitions = np.zeros(len(alpha)+1)
         alpha_sum = 0.0
         for i in xrange(len(alpha)):
@@ -175,15 +144,15 @@ def stoch_gillespie(init_cond, times, params, system):
 
 
 def simulate_dynamics_general(init_cond, times, params, method="libcall", system="default"):
-    assert system in ["default", "feedback"]
+    assert system in ODE_SYSTEMS
     if method == "libcall":
-        return ode_libcall(init_cond, times, params, system)
+        return ode_libcall(init_cond, times, system, params)
     elif method == "rk4":
-        return ode_rk4(init_cond, times, params, system)
+        return ode_rk4(init_cond, times, system, params)
     elif method == "euler":
-        return ode_euler(init_cond, times, params, system)
+        return ode_euler(init_cond, times, system, params)
     elif method == "gillespie":
-        return stoch_gillespie(init_cond, times, params, system)
+        return stoch_gillespie(init_cond, times, system, params)
     else:
         raise ValueError("method arg invalid, must be one of %s" % SIM_METHODS)
 

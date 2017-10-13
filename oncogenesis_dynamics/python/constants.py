@@ -33,7 +33,7 @@ STATES_ID_INV = {v: k for k, v in STATES_ID.iteritems()}
 BIFURC_DICT = {i: "bifurc_" + PARAMS_ID[i] for i in xrange(len(PARAMS_ID))}
 VALID_BIFURC_PARAMS = ["bifurc_b", "bifurc_c"]  # list of implemented bifurcation parameters
 SIM_METHODS = ["euler", "rk4", "libcall", "gillespie"]
-ODE_SYSTEMS = ["default", "feedback"]
+ODE_SYSTEMS = ["default", "feedback_z", "feedback_yz"]
 
 OUTPUT_DIR = "output"
 
@@ -48,5 +48,6 @@ CSV_DATA_TYPES = {'bifurc_b': float,
                   'x1_x': float, 'x1_y': float, 'x1_z': float, 'x1_stab': bool,
                   'x2_x': float, 'x2_y': float, 'x2_z': float, 'x2_stab': bool}
 
-PARAM_Z0_RATIO = 0.1  # size of z0 relative to N (in feedback function)
-PARAM_HILL = 2        # (unused currently) hill parameter 'n'
+PARAM_Z0_RATIO = 0.1           # size of z0 relative to N (in feedback function)
+PARAM_Y0_PLUS_Z0_RATIO = 0.1   # size of y0 + z0 relative to N (in feedback function)
+PARAM_HILL = 2                 # (unused currently) hill parameter 'n'
