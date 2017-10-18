@@ -67,7 +67,7 @@ def trajectory_simulate(init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_ste
         solver_numeric = False
     else:
         solver_numeric = True
-    predicted_fps = fp_location_general(params, solver_numeric=solver_numeric, solver_fast=False)
+    predicted_fps = fp_location_general(params, ODE_SYSTEM, solver_numeric=solver_numeric, solver_fast=False)
     print "Predicted FPs:"
     for i in xrange(3):
         print "FP", i, predicted_fps[i], "Stable:", is_stable(params, predicted_fps[i])
@@ -86,6 +86,6 @@ def trajectory_simulate(init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_ste
 
 if __name__ == "__main__":
     print "main functionality not implemented"
-    r, times, ax_traj, ax_mono_z = trajectory_simulate(init_cond=[20,40,40], sim_method="gillespie",num_steps=NUM_STEPS*10)
+    r, times, ax_traj, ax_mono_z = trajectory_simulate(init_cond=[20,40,40], sim_method="gillespie", num_steps=NUM_STEPS*10)
     for i in xrange(len(r)):
         print r[i,:]
