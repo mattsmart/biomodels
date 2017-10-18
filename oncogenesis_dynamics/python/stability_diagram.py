@@ -3,7 +3,7 @@ import numpy as np
 from os import sep
 
 from constants import PARAMS_ID, PARAMS_ID_INV, OUTPUT_DIR
-from formulae import is_stable
+from formulae import is_stable, fp_location_general
 
 
 def get_stability_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range):
@@ -73,6 +73,7 @@ if __name__ == "__main__":
     param_2_start = 0.8
     param_2_stop = 0.95
     param_2_steps = 200
+    param_2_range = np.linspace(param_2_start, param_2_stop, param_2_steps)
     """
     param_1_name = "b"
     param_1_start = 0.0
