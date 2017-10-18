@@ -10,25 +10,25 @@ from trajectory import trajectory_simulate
 
 # SCRIPT PARAMS
 SIM_METHOD = "libcall"  # see constants.py -- SIM_METHODS
-ODE_SYSTEM = "default"  # "default" or "feedback_z" or "feedback_yz"
+ODE_SYSTEM = "feedback_z"  # "default" or "feedback_z" or "feedback_yz"
 INIT_COND = [99.9, 0.1, 0.0]
 TIME_START = 0.0
-TIME_END = 160000.0  #20.0
+TIME_END = 16000.0  #20.0
 NUM_STEPS = 2000  # number of timesteps in each trajectory
 param_varying_name = "mu"
 assert param_varying_name in PARAMS_ID_INV.keys()
-SEARCH_START = 0.0  #0.55
-SEARCH_END = 20.0 #1.45
+SEARCH_START = 0.1  #0.55
+SEARCH_END = 1.0 #1.45
 SEARCH_AMOUNT = 100  #20
 
 # DYNAMICS PARAMETERS
 alpha_plus = 0.2#0.05 #0.4
 alpha_minus = 0.5#4.95 #0.5
-mu = 0.1 #0.01
+mu = 0.0135 #0.01
 a = 1.0
 b = 0.9
-c = 0.85 #0.95 #2.6 #1.2
-N = 1000.0 #100
+c = 0.901 #0.95 #2.6 #1.2
+N = 100.0
 v_x = 0.0
 v_y = 0.0
 v_z = 0.0
@@ -59,7 +59,7 @@ for idx, params in enumerate(param_ensemble):
     r, times, ax_traj, ax_mono = trajectory_simulate(init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
                                                      params=params, sim_method=SIM_METHOD, ode_system=ODE_SYSTEM,
                                                      flag_showplt=False, flag_saveplt=False)
-    ax_mono = plot_trajectory_mono(r, times, False, False, ax_mono=ax_comp)
+    ax_mono = plot_trajectory_mono(r, times, False, False, ax_mono=ax_comp, mono="z")
     ax_comp = ax_mono
     #assert np.abs(np.sum(r[-1, :]) - N) <= 0.001
     if idx % 10 == 0:

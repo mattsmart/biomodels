@@ -10,7 +10,7 @@ from trajectory import trajectory_simulate
 
 # SCRIPT PARAMS
 SIM_METHOD = "libcall"  # see constants.py -- SIM_METHODS
-ODE_SYSTEM = "default"  # "default" or "feedback_z" etc
+ODE_SYSTEM = "feedback_z"  # "default" or "feedback_z" etc
 INIT_COND = [99.9, 0.1, 0.0]
 TIME_START = 0.0
 TIME_END = 160000.0  #20.0
@@ -20,7 +20,7 @@ NUM_TRAJ = 20
 # DYNAMICS PARAMETERS
 alpha_plus = 0.2#0.05 #0.4
 alpha_minus = 0.5#4.95 #0.5
-mu = 0.0013 #0.01
+mu = 0.0135 #0.01
 a = 1.0
 b = 0.9
 c = 0.901 #2.6 #1.2
