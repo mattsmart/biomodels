@@ -38,7 +38,8 @@ def plot_stability_data_2d(params_general, param_1_name, param_1_range, param_2_
     # CREATE TABLE OF PARAMS
     # bbox is x0, y0, height, width
     row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
-    table_vals = [[params[i]] if PARAMS_ID[i] not in [param_1_name, param_2_name] else ["None"] for i in xrange(len(PARAMS_ID))]
+    table_vals = [[params_general[i]] if PARAMS_ID[i] not in [param_1_name, param_2_name] else ["None"]
+                  for i in xrange(len(PARAMS_ID))]
     param_table = plt.table(cellText=table_vals, colWidths=[0.1]*3, rowLabels=row_labels, loc='best',
                             bbox=(1.2, 0.2, 0.1, 0.75))
     #plt.subplots_adjust(left=0.2, bottom=0.2)
@@ -82,7 +83,7 @@ if __name__ == "__main__":
     param_2_start = 0.0
     param_2_stop = 2.0
     param_2_steps = 200
-    """
     param_2_range = np.linspace(param_2_start, param_2_stop, param_2_steps)
+    """
     print get_stability_data_2d(params, param_1_name, param_1_range, param_2_name, param_2_range)
     plot_stability_data_2d(params, param_1_name, param_1_range, param_2_name, param_2_range)
