@@ -7,7 +7,9 @@ from formulae import is_stable
 
 
 def get_stability_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range):
-    # if flow=0 and no feedback, can use is_stable with fp=[0,0,N]
+    # assumes flow=0 and no feedback; uses is_stable with fp=[0,0,N]
+    #TODO: maybe solve a1 and a0, or just compute and show signs, instead
+    #TODO: also show a1 and a0 solutions never intercept (guess/check)
     #TODO: if flow!=0, need to characterize the shifted "[0,0,N]" fp
     #TODO: how to check stability in feedback case
     #TODO: true/false on stability of fp is one visualization but maybe det J(fp) = order parameter?
