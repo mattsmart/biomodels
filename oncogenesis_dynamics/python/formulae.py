@@ -420,6 +420,18 @@ def is_stable(params, fp, system, method="numeric_2d"):
     return all(eig < 0 for eig in eigenvalues)
 
 
+def get_physical_and_stable_fp(params, ode_system):
+    fp_locs = fp_location_general(params, ode_system, solver_fsolve=True)
+    fp_locs_physical_and_stable = []
+    for fp in fp_locs:
+        if all([val > -0.1 for val in fp]):
+            if is_stable(params, fp[0:2], ode_system, method="numeric_2d"):
+                fp_locs_physical_and_stable.append(fp)
+                #eigs,V = np.linalg.eig(jacobian_numerical_2d(params, fp[0:2], ode_system))
+                #print fp, eigs
+    return fp_locs_physical_and_stable
+
+
 def write_bifurc_data(bifurcation_search, x0, x0_stab, x1, x1_stab, x2, x2_stab, bifurc_id, filedir, filename):
     csv_header = [bifurc_id, 'x0_x', 'x0_y', 'x0_z', 'x0_stab', 'x1_x', 'x1_y', 'x1_z', 'x1_stab', 'x2_x', 'x2_y',
                   'x2_z', 'x2_stab']

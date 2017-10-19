@@ -18,8 +18,8 @@ SIM_METHOD = "libcall"  # see constants.py -- SIM_METHODS
 ODE_SYSTEM = "feedback_z"  # see constants.py -- ODE_SYSTEMS
 INIT_COND = [95.0, 5.0, 0.0]
 TIME_START = 0.0
-TIME_END = 20.0
-NUM_STEPS = 200  # number of timesteps in window
+TIME_END = 2000.0
+NUM_STEPS = 2000  # number of timesteps in window
 plt_title = 'Trajectory'
 plt_save = 'trajectory'
 
