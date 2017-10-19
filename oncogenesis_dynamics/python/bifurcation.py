@@ -45,7 +45,9 @@ FLAG_SHOWPLT = 1
 FLAG_SAVEPLT = 1
 FLAG_SAVEDATA = 1
 HEADER_TITLE = 'Fixed Points'
-solver_fast = False
+ODE_SYSTEM = "default"
+assert ODE_SYSTEM in ["default"]  # TODO: feedback not working in this script bc of unknown number of fp
+solver_fsolve = False             # TODO: fsolve solver doesn't find exactly 3 fp.. usually less
 check_with_trajectory = False
 
 # DYNAMICS PARAMETERS
@@ -64,17 +66,17 @@ if b is not None:
 if c is not None:
     s = c - 1
 if v_x == 0 and v_y == 0 and v_z == 0:
-    solver_numeric = False
+    solver_explicit = True
 else:
-    solver_numeric = True
+    solver_explicit = False
 params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z]
 
 print "Specified parameters: \nalpha_plus = " + str(alpha_plus) + "\nalpha_minus = " + str(alpha_minus) + \
       "\nmu = " + str(mu) + "\na = " + str(a) + "\nb = " + str(b) + "\nc = " + str(c) + "\nN = " + str(N) + \
       "\nv_x = " + str(v_x) + "\nv_y = " + str(v_y) + "\nv_z = " + str(v_z)
-print "Use numeric solver:", solver_numeric
-if solver_numeric:
-    print "Use fast solver:", solver_fast
+print "Use fsolve solver:", solver_fsolve
+if solver_explicit:
+    print "Use explicit solver:", solver_explicit
 
 # FP SEARCH SETUP
 bifurc_ids = []
@@ -107,18 +109,19 @@ x2_stabilities = np.zeros((nn, 1), dtype=bool)  # not fully implemented
 # FIND FIXED POINTS
 for idx, bifurc_param_val in enumerate(bifurcation_search):
     params_step = params_ensemble[idx, :]
-    fp_x0, fp_x1, fp_x2 = fp_location_general(params_step, solver_numeric, solver_fast)
+    fp_x0, fp_x1, fp_x2 = fp_location_general(params_step, ODE_SYSTEM, solver_fsolve=solver_fsolve,
+                                              solver_explicit=solver_explicit)
     x0_array[idx, :] = fp_x0
     x1_array[idx, :] = fp_x1
     x2_array[idx, :] = fp_x2
-    x0_stabilities[idx][0] = is_stable(params_step, fp_x0)
-    x1_stabilities[idx][0] = is_stable(params_step, fp_x1)
-    x2_stabilities[idx][0] = is_stable(params_step, fp_x2)
+    x0_stabilities[idx][0] = is_stable(params_step, fp_x0[0:2], ODE_SYSTEM, method="numeric_2d")
+    x1_stabilities[idx][0] = is_stable(params_step, fp_x1[0:2], ODE_SYSTEM, method="numeric_2d")
+    x2_stabilities[idx][0] = is_stable(params_step, fp_x2[0:2], ODE_SYSTEM, method="numeric_2d")
     print "params:", idx, "of", nn
     if check_with_trajectory:
         r, times, ax_traj, ax_mono = trajectory_simulate(init_cond=[99.9,0.1,0.0], t0=0, t1=20000.0,
                                                          num_steps=2000,
-                                                         params=params_step, sim_method="libcall", ode_system="default",
+                                                         params=params_step, sim_method="libcall", ode_system=ODE_SYSTEM,
                                                          flag_showplt=False, flag_saveplt=False)
         print bifurc_param_val, fp_x1, r[-1]
 

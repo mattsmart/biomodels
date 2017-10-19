@@ -339,15 +339,13 @@ def fp_location_fsolve(params, system, tol=10e-0):
                     append_flag = False
                     break
             if append_flag:
-                print "f at sol", infodict["fvec"]
-                print "fjac", infodict["fjac"]
-                print "r", infodict["r"]
                 unique_solutions.append([solution[0], solution[1], N - solution[0] - solution[1]])
     return unique_solutions
 
 
 def fp_location_general(params, system, solver_fsolve=True, solver_fast=False, solver_explicit=False):
     # TODO: sympy solver often fails when feedback added in
+    # TODO: cleanup the flags here
     assert system in ODE_SYSTEMS
     if solver_fsolve:
         return fp_location_fsolve(params, system)
