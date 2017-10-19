@@ -79,7 +79,7 @@ def get_jump_data_2d(params_general, param_1_name, param_1_range, param_2_name, 
 def plot_jump_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, axis_jump):
     #jump_data_2d = get_jump_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system,
     #                                axis_jump)
-    jump_data_2d = get_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system)
+    jump_data_2d = get_jump_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, axis_jump)
     plt.imshow(jump_data_2d, cmap='seismic', interpolation="none", origin='lower', aspect='auto',
                extent=[param_2_range[0], param_2_range[-1], param_1_range[0], param_1_range[-1]])
     ax = plt.gca()
