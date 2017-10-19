@@ -18,10 +18,11 @@ import numpy as np
 from os import sep
 from random import random
 from scipy.integrate import ode, odeint
+from scipy.optimize import approx_fprime, fsolve
 from sympy import Symbol, solve, re
 
 from constants import PARAMS_ID, CSV_DATA_TYPES, SIM_METHODS, PARAM_Z0_RATIO, PARAM_Y0_PLUS_Z0_RATIO, PARAM_HILL, \
-                      ODE_SYSTEMS
+                      ODE_SYSTEMS, PARAMS_ID_INV
 
 
 def system_vector(init_cond, times, system, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z):
@@ -246,17 +247,23 @@ def fp_location_noflow(params):
     return [[0, 0, N], conjugate_fps[0], conjugate_fps[1]]
 
 
-def fp_location_numeric_system(params):
+def fp_location_sympy_system(params, system):
     alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
     sym_x = Symbol("x")
     sym_y = Symbol("y")
-
-    VV = (v_x+v_y+v_z)/N
+    VV = (v_x + v_y + v_z) / N
+    if system == "feedback_z":
+        z = N - sym_x - sym_y
+        alpha_plus = alpha_plus * (1 + z / (z + PARAM_Z0_RATIO*N))
+        alpha_minus = alpha_minus * PARAM_Z0_RATIO*N / (z + PARAM_Z0_RATIO*N)
+    elif system == "feedback_yz":
+        yz = N - sym_x
+        alpha_plus = alpha_plus * (1 + yz / (yz + PARAM_Y0_PLUS_Z0_RATIO * N))
+        alpha_minus = alpha_minus * PARAM_Y0_PLUS_Z0_RATIO * N / (yz + PARAM_Y0_PLUS_Z0_RATIO * N)
     xdot = (c-a)/N*sym_x**2 + (c-b)/N*sym_x*sym_y + (a-c-alpha_plus-VV)*sym_x + alpha_minus*sym_y + v_x
     ydot = (c-b)/N*sym_y**2 + (c-a)/N*sym_x*sym_y + (b-c-alpha_minus-mu-VV)*sym_y + alpha_plus*sym_x + v_y
     eqns = (xdot, ydot)
     solution = solve(eqns)
-
     solution_list = [[0,0,0], [0,0,0], [0,0,0]]
     for i in xrange(3):
         x_i = float(re(solution[i][sym_x]))
@@ -265,11 +272,18 @@ def fp_location_numeric_system(params):
     return solution_list
 
 
-def fp_location_numeric_quartic(params):
+def fp_location_sympy_quartic(params, system):
     alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
     sym_x = Symbol("x")
     sym_y = Symbol("y")
-
+    if system == "feedback_z":
+        z = N - sym_x - sym_y
+        alpha_plus = alpha_plus * (1 + z / (z + PARAM_Z0_RATIO*N))
+        alpha_minus = alpha_minus * PARAM_Z0_RATIO*N / (z + PARAM_Z0_RATIO*N)
+    elif system == "feedback_yz":
+        yz = N - sym_x
+        alpha_plus = alpha_plus * (1 + yz / (yz + PARAM_Y0_PLUS_Z0_RATIO * N))
+        alpha_minus = alpha_minus * PARAM_Y0_PLUS_Z0_RATIO * N / (yz + PARAM_Y0_PLUS_Z0_RATIO * N)
     VV = (v_x+v_y+v_z)/N
     a0 = (c-a)/N
     a1 = 0.0
@@ -285,7 +299,6 @@ def fp_location_numeric_quartic(params):
     f1 = v_y
     eqn = b1*(a0*sym_x**2 + d0*sym_x + f0)**2 - (c0*sym_x + e0)*(a0*sym_x**2 + d0*sym_x + f0)*(c1*sym_x + e1) + d1*sym_x + f1*(c0*sym_x + e0)**2
     solution = solve(eqn)
-
     solution_list = [[0,0,0], [0,0,0], [0,0,0]]
     for i in xrange(3):
         x_i = float(re(solution[i]))
@@ -294,18 +307,61 @@ def fp_location_numeric_quartic(params):
     return solution_list
 
 
-def fp_location_general(params, solver_numeric=True, solver_fast=True):
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
-    if solver_numeric:
-        if solver_fast:
-            return fp_location_numeric_quartic(params)
-        else:
-            return fp_location_numeric_system(params)
-    else:
+def fp_location_fsolve(params, system, tol=10e-0):
+    def fsolve_func(xvec_guess, system, params):  # TODO: faster if split into 3 fns w.o if else for feedback cases
+        alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+        VV = (v_x + v_y + v_z) / N
+        x0, y0 = xvec_guess
+        if system == "feedback_z":
+            z = N - x0 - y0
+            alpha_plus = alpha_plus * (1 + z / (z + PARAM_Z0_RATIO * N))
+            alpha_minus = alpha_minus * PARAM_Z0_RATIO * N / (z + PARAM_Z0_RATIO * N)
+        elif system == "feedback_yz":
+            yz = N - x0
+            alpha_plus = alpha_plus * (1 + yz / (yz + PARAM_Y0_PLUS_Z0_RATIO * N))
+            alpha_minus = alpha_minus * PARAM_Y0_PLUS_Z0_RATIO * N / (yz + PARAM_Y0_PLUS_Z0_RATIO * N)
+        xdot = (c-a)/N*x0**2 + (c-b)/N*x0*y0 + (a-c-alpha_plus-VV)*x0 + alpha_minus*y0 + v_x
+        ydot = (c-b)/N*y0**2 + (c-a)/N*x0*y0 + (b-c-alpha_minus-mu-VV)*y0 + alpha_plus*x0 + v_y
+        return [xdot, ydot]
+    N = params[PARAMS_ID_INV["N"]]
+    # Grid search of solution space (positive simplex):
+    unique_solutions = []
+    gridsteps = 100
+    for i in xrange(gridsteps):
+        x_guess = N*i/float(gridsteps)
+        for j in xrange(gridsteps-i):
+            y_guess = N * i / float(gridsteps)
+            # TODO: this returns jacobian estimate.. use it
+            solution, infodict, _, _ = fsolve(fsolve_func, [x_guess, y_guess], (system, params), full_output=True)
+            append_flag = True
+            for k, usol in enumerate(unique_solutions):
+                if np.abs(solution[0] - usol[0]) <= tol:
+                    append_flag = False
+                    break
+            if append_flag:
+                print "f at sol", infodict["fvec"]
+                print "fjac", infodict["fjac"]
+                print "r", infodict["r"]
+                unique_solutions.append([solution[0], solution[1], N - solution[0] - solution[1]])
+    return unique_solutions
+
+
+def fp_location_general(params, system, solver_fsolve=True, solver_fast=False, solver_explicit=False):
+    # TODO: sympy solver often fails when feedback added in
+    assert system in ODE_SYSTEMS
+    if solver_fsolve:
+        return fp_location_fsolve(params, system)
+    elif solver_explicit:
+        assert system == "default"
         return fp_location_noflow(params)
+    else:
+        if solver_fast:
+            return fp_location_sympy_quartic(params, system)
+        else:
+            return fp_location_sympy_system(params, system)
 
 
-def jacobian3d(params, fp):
+def jacobian_3d(params, fp):
     alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
     M = np.array([[a - alpha_plus, alpha_minus, 0],
                   [alpha_plus, b - alpha_minus - mu, 0],
@@ -318,9 +374,51 @@ def jacobian3d(params, fp):
     return M - 1/N*np.array([r1,r2,r3])
 
 
-def is_stable(params, fp):
-    J = jacobian3d(params, fp)
-    eigenvalues, V = np.linalg.eig(J)
+def jacobian_numerical_2d(params, fp, system):
+    # TODO: can use numdifftools jacobian function instead
+    def func_xdot(fp):
+        x, y = fp[0], fp[1]
+        alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+        VV = (v_x + v_y + v_z) / N
+        if system == "feedback_z":
+            z = N - x - y
+            alpha_plus = alpha_plus * (1 + z / (z + PARAM_Z0_RATIO * N))
+            alpha_minus = alpha_minus * PARAM_Z0_RATIO * N / (z + PARAM_Z0_RATIO * N)
+        elif system == "feedback_yz":
+            yz = N - x
+            alpha_plus = alpha_plus * (1 + yz / (yz + PARAM_Y0_PLUS_Z0_RATIO * N))
+            alpha_minus = alpha_minus * PARAM_Y0_PLUS_Z0_RATIO * N / (yz + PARAM_Y0_PLUS_Z0_RATIO * N)
+        return (c - a) / N * x ** 2 + (c - b) / N * x * y + (a - c - alpha_plus - VV) * x + alpha_minus * y + v_x
+    def func_ydot(fp):
+        x, y = fp[0], fp[1]
+        x, y = fp[0], fp[1]
+        alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+        VV = (v_x + v_y + v_z) / N
+        if system == "feedback_z":
+            z = N - x - y
+            alpha_plus = alpha_plus * (1 + z / (z + PARAM_Z0_RATIO * N))
+            alpha_minus = alpha_minus * PARAM_Z0_RATIO * N / (z + PARAM_Z0_RATIO * N)
+        elif system == "feedback_yz":
+            yz = N - x
+            alpha_plus = alpha_plus * (1 + yz / (yz + PARAM_Y0_PLUS_Z0_RATIO * N))
+            alpha_minus = alpha_minus * PARAM_Y0_PLUS_Z0_RATIO * N / (yz + PARAM_Y0_PLUS_Z0_RATIO * N)
+        return (c-b)/N*y**2 + (c-a)/N*x*y + (b-c-alpha_minus-mu-VV)*y + alpha_plus*x + v_y
+    epsilon = 10e-4
+    row_x = approx_fprime(fp, func_xdot, epsilon)
+    row_y = approx_fprime(fp, func_ydot, epsilon)
+    return np.array([row_x, row_y])
+
+
+def is_stable(params, fp, system, method="numeric_2d"):
+    if method == "numeric_2d":
+        assert len(fp) == 2
+        J = jacobian_numerical_2d(params, fp, system)
+        eigenvalues, V = np.linalg.eig(J)
+    elif method == "algebraic_3d":
+        J = jacobian_3d(params, fp)
+        eigenvalues, V = np.linalg.eig(J)
+    else:
+        raise ValueError("method must be 'numeric_2d' or 'algebraic_3d'")
     return all(eig < 0 for eig in eigenvalues)
 
 
