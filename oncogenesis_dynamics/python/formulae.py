@@ -326,7 +326,7 @@ def fp_location_fsolve(params, system, tol=10e-0):
     N = params[PARAMS_ID_INV["N"]]
     # Grid search of solution space (positive simplex):
     unique_solutions = []
-    gridsteps = 100
+    gridsteps = 20
     for i in xrange(gridsteps):
         x_guess = N*i/float(gridsteps)
         for j in xrange(gridsteps-i):

@@ -157,12 +157,12 @@ if __name__ == "__main__":
 
     param_1_name = "mu"
     param_1_start = 0.0
-    param_1_stop = 0.02
-    param_1_steps = 4
+    param_1_stop = 0.08
+    param_1_steps = 200
     param_1_range = np.linspace(param_1_start, param_1_stop, param_1_steps)
     param_2_name = "c"
-    param_2_start = 0.8
+    param_2_start = 0.7
     param_2_stop = 0.95
-    param_2_steps = 4
+    param_2_steps = 100
     param_2_range = np.linspace(param_2_start, param_2_stop, param_2_steps)
     plot_stable_fp_count_2d(params, param_1_name, param_1_range, param_2_name, param_2_range, ode_system)
