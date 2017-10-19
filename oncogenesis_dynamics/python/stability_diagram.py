@@ -6,7 +6,7 @@ from constants import PARAMS_ID, PARAMS_ID_INV, OUTPUT_DIR
 from formulae import is_stable, fp_location_general
 
 
-def get_stability_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range):
+def get_stability_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system):
     # assumes flow=0 and no feedback; uses is_stable with fp=[0,0,N]
     #TODO: maybe solve a1 and a0, or just compute and show signs, instead
     #TODO: also show a1 and a0 solutions never intercept (guess/check)
@@ -22,12 +22,13 @@ def get_stability_data_2d(params_general, param_1_name, param_1_range, param_2_n
             params_step = params_general
             params_step[PARAMS_ID_INV[param_1_name]] = p1
             params_step[PARAMS_ID_INV[param_2_name]] = p2
-            stab_array[i,j] = is_stable(params_step, fp_stationary)
+            #stab_array[i,j] = is_stable(params_step, fp_stationary, system, method="algebraic_3d")
+            stab_array[i, j] = is_stable(params_step, fp_stationary[0:2], system, method="numeric_2d")
     return stab_array
 
 
-def plot_stability_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range):
-    stability_data_2d = get_stability_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range)
+def plot_stability_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system):
+    stability_data_2d = get_stability_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system)
     plt.imshow(stability_data_2d, cmap='Greys', interpolation="none", origin='lower', aspect='auto',
                extent=[param_2_range[0], param_2_range[-1], param_1_range[0], param_1_range[-1]])
     ax = plt.gca()
@@ -86,5 +87,6 @@ if __name__ == "__main__":
     param_2_steps = 200
     param_2_range = np.linspace(param_2_start, param_2_stop, param_2_steps)
     """
-    print get_stability_data_2d(params, param_1_name, param_1_range, param_2_name, param_2_range)
-    plot_stability_data_2d(params, param_1_name, param_1_range, param_2_name, param_2_range)
+    system = "default"
+    print get_stability_data_2d(params, param_1_name, param_1_range, param_2_name, param_2_range, system)
+    plot_stability_data_2d(params, param_1_name, param_1_range, param_2_name, param_2_range, system)
