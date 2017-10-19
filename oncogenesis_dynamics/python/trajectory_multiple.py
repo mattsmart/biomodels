@@ -15,15 +15,15 @@ INIT_COND = [99.9, 0.1, 0.0]
 TIME_START = 0.0
 TIME_END = 160000.0  #20.0
 NUM_STEPS = 20000  # number of timesteps in each trajectory
-NUM_TRAJ = 20
+NUM_TRAJ = 2
 
 # DYNAMICS PARAMETERS
 alpha_plus = 0.2#0.05 #0.4
 alpha_minus = 0.5#4.95 #0.5
-mu = 0.0135 #0.01
+mu = 0.01 #0.01
 a = 1.0
-b = 0.9
-c = 0.901 #2.6 #1.2
+b = 0.8
+c = 0.84 #2.6 #1.2
 N = 100.0 #100
 v_x = 0.0
 v_y = 0.0

@@ -21,6 +21,7 @@ from scipy.integrate import ode, odeint
 from scipy.optimize import approx_fprime, fsolve
 from sympy import Symbol, solve, re
 
+import trajectory
 from constants import PARAMS_ID, CSV_DATA_TYPES, SIM_METHODS, PARAM_Z0_RATIO, PARAM_Y0_PLUS_Z0_RATIO, PARAM_HILL, \
                       ODE_SYSTEMS, PARAMS_ID_INV
 
@@ -307,26 +308,35 @@ def fp_location_sympy_quartic(params, system):
     return solution_list
 
 
-def fp_location_fsolve(params, system, tol=10e-0):
-    def fsolve_func(xvec_guess, system, params):  # TODO: faster if split into 3 fns w.o if else for feedback cases
-        alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
-        VV = (v_x + v_y + v_z) / N
-        x0, y0 = xvec_guess
-        if system == "feedback_z":
-            z = N - x0 - y0
-            alpha_plus = alpha_plus * (1 + z / (z + PARAM_Z0_RATIO * N))
-            alpha_minus = alpha_minus * PARAM_Z0_RATIO * N / (z + PARAM_Z0_RATIO * N)
-        elif system == "feedback_yz":
-            yz = N - x0
-            alpha_plus = alpha_plus * (1 + yz / (yz + PARAM_Y0_PLUS_Z0_RATIO * N))
-            alpha_minus = alpha_minus * PARAM_Y0_PLUS_Z0_RATIO * N / (yz + PARAM_Y0_PLUS_Z0_RATIO * N)
-        xdot = (c-a)/N*x0**2 + (c-b)/N*x0*y0 + (a-c-alpha_plus-VV)*x0 + alpha_minus*y0 + v_x
-        ydot = (c-b)/N*y0**2 + (c-a)/N*x0*y0 + (b-c-alpha_minus-mu-VV)*y0 + alpha_plus*x0 + v_y
-        return [xdot, ydot]
+def fsolve_func(xvec_guess, system, params):  # TODO: faster if split into 3 fns w.o if else for feedback cases
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+    VV = (v_x + v_y + v_z) / N
+    x0, y0 = xvec_guess
+    if system == "feedback_z":
+        z = N - x0 - y0
+        alpha_plus = alpha_plus * (1 + z / (z + PARAM_Z0_RATIO * N))
+        alpha_minus = alpha_minus * PARAM_Z0_RATIO * N / (z + PARAM_Z0_RATIO * N)
+    elif system == "feedback_yz":
+        yz = N - x0
+        alpha_plus = alpha_plus * (1 + yz / (yz + PARAM_Y0_PLUS_Z0_RATIO * N))
+        alpha_minus = alpha_minus * PARAM_Y0_PLUS_Z0_RATIO * N / (yz + PARAM_Y0_PLUS_Z0_RATIO * N)
+    xdot = (c-a)/N*x0**2 + (c-b)/N*x0*y0 + (a-c-alpha_plus-VV)*x0 + alpha_minus*y0 + v_x
+    ydot = (c-b)/N*y0**2 + (c-a)/N*x0*y0 + (b-c-alpha_minus-mu-VV)*y0 + alpha_plus*x0 + v_y
+    return [xdot, ydot]
+
+
+def fp_location_fsolve(params, system, check_near_traj_endpt=False, gridsteps=20, tol=10e-1):
     N = params[PARAMS_ID_INV["N"]]
-    # Grid search of solution space (positive simplex):
     unique_solutions = []
-    gridsteps = 20
+    # first check for roots near trajectory endpoints (possible stable roots)
+    if check_near_traj_endpt:
+        traj, _, _, _ = trajectory.trajectory_simulate(t0=0.0, t1=16000.0, num_steps=2000, params=params, ode_system=system,
+                                                       flag_showplt=False, flag_saveplt=False)
+        fp_guess = traj[-1][0:2]
+        solution, infodict, _, _ = fsolve(fsolve_func, fp_guess, (system, params), full_output=True)
+        if np.linalg.norm(infodict["fvec"]) <= 10e-3:  # only append actual roots (i.e. f(x)=0)
+            unique_solutions.append([solution[0], solution[1], N - solution[0] - solution[1]])
+    # grid search of solution space (positive simplex):
     for i in xrange(gridsteps):
         x_guess = N*i/float(gridsteps)
         for j in xrange(gridsteps-i):
@@ -335,11 +345,12 @@ def fp_location_fsolve(params, system, tol=10e-0):
             solution, infodict, _, _ = fsolve(fsolve_func, [x_guess, y_guess], (system, params), full_output=True)
             append_flag = True
             for k, usol in enumerate(unique_solutions):
-                if np.abs(solution[0] - usol[0]) <= tol:
+                if np.abs(solution[0] - usol[0]) <= tol:   # only store unique roots from list of all roots
                     append_flag = False
                     break
             if append_flag:
-                unique_solutions.append([solution[0], solution[1], N - solution[0] - solution[1]])
+                if np.linalg.norm(infodict["fvec"]) <= 10e-3:    # only append actual roots (i.e. f(x)=0)
+                    unique_solutions.append([solution[0], solution[1], N - solution[0] - solution[1]])
     return unique_solutions
 
 
@@ -374,6 +385,7 @@ def jacobian_3d(params, fp):
 
 def jacobian_numerical_2d(params, fp, system):
     # TODO: can use numdifftools jacobian function instead
+    # TODO: move scope of func xdot etc up and use them both in func fsolve
     def func_xdot(fp):
         x, y = fp[0], fp[1]
         alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
@@ -388,7 +400,6 @@ def jacobian_numerical_2d(params, fp, system):
             alpha_minus = alpha_minus * PARAM_Y0_PLUS_Z0_RATIO * N / (yz + PARAM_Y0_PLUS_Z0_RATIO * N)
         return (c - a) / N * x ** 2 + (c - b) / N * x * y + (a - c - alpha_plus - VV) * x + alpha_minus * y + v_x
     def func_ydot(fp):
-        x, y = fp[0], fp[1]
         x, y = fp[0], fp[1]
         alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
         VV = (v_x + v_y + v_z) / N

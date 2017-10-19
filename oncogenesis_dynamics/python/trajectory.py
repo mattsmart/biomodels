@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from os import sep
 
+import formulae
 from constants import OUTPUT_DIR
-from formulae import simulate_dynamics_general, fp_location_general, is_stable
 from plotting import plot_simplex, plot_trajectory_mono, plot_trajectory
 
 
@@ -50,16 +50,18 @@ def trajectory_infoprint(init_cond, t0, t1, num_steps, params):
 
 
 def trajectory_simulate(init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS, params=PARAMS,
-                        sim_method=SIM_METHOD, ode_system=ODE_SYSTEM, flag_showplt=False, flag_saveplt=True):
+                        sim_method=SIM_METHOD, ode_system=ODE_SYSTEM, flag_showplt=False, flag_saveplt=True, flag_info=False):
     # SIMULATE SETUP
     alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
     display_spacing = int(num_steps / 10)
     times = np.linspace(t0, t1, num_steps + 1)
-    trajectory_infoprint(init_cond, t0, t1, num_steps, params)
+    if flag_info:
+        trajectory_infoprint(init_cond, t0, t1, num_steps, params)
 
     # SIMULATE
-    r, times = simulate_dynamics_general(init_cond, times, params, method=sim_method, system=ode_system)
-    print 'Done trajectory\n'
+    r, times = formulae.simulate_dynamics_general(init_cond, times, params, method=sim_method, system=ode_system)
+    if flag_info:
+        print 'Done trajectory\n'
 
     # FP COMPARISON
     """
