@@ -44,8 +44,6 @@ def plot_stability_data_2d(params_general, param_1_name, param_1_range, param_2_
     param_table = plt.table(cellText=table_vals, colWidths=[0.1]*3, rowLabels=row_labels, loc='best',
                             bbox=(1.2, 0.2, 0.1, 0.75))
     #plt.subplots_adjust(left=0.2, bottom=0.2)
-    print plt.axis()
-    print ax.get_window_extent()
     plt.savefig(OUTPUT_DIR + sep + 'stability_data_2d_%s_%s.png' % (param_1_name, param_2_name), bbox_inches='tight')
     plt.show()
     return plt.gca()
