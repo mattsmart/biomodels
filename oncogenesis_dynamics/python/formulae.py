@@ -325,7 +325,7 @@ def fsolve_func(xvec_guess, system, params):  # TODO: faster if split into 3 fns
     return [xdot, ydot]
 
 
-def fp_location_fsolve(params, system, check_near_traj_endpt=False, gridsteps=10, tol=10e-1):
+def fp_location_fsolve(params, system, check_near_traj_endpt=True, gridsteps=10, tol=10e-1):
     N = params[PARAMS_ID_INV["N"]]
     unique_solutions = []
     # first check for roots near trajectory endpoints (possible stable roots)
