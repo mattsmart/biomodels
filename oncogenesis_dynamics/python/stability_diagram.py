@@ -77,8 +77,6 @@ def get_jump_data_2d(params_general, param_1_name, param_1_range, param_2_name, 
 
 
 def plot_jump_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, axis_jump):
-    #jump_data_2d = get_jump_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system,
-    #                                axis_jump)
     jump_data_2d = get_jump_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, axis_jump)
     plt.imshow(jump_data_2d, cmap='seismic', interpolation="none", origin='lower', aspect='auto',
                extent=[param_2_range[0], param_2_range[-1], param_1_range[0], param_1_range[-1]])
@@ -108,16 +106,17 @@ def get_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2_
     fp_count_array = np.zeros((len(param_1_range), len(param_2_range)))
     for i, p1 in enumerate(param_1_range):
         for j, p2 in enumerate(param_2_range):
-            print i, j, p1, p2
             params_step = params_general
             params_step[PARAMS_ID_INV[param_1_name]] = p1
             params_step[PARAMS_ID_INV[param_2_name]] = p2
-            fp_list = get_physical_and_stable_fp(params_step, ode_system)
+            fp_list = get_physical_and_stable_fp(params_step, system)
             fp_count_array[i, j] = len(fp_list)
+        print i, j, p1, p2
     return fp_count_array
 
 
-def plot_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system):
+def plot_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system,
+                            figname_mod=""):
     stable_fp_count_2d = get_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system)
     plt.imshow(stable_fp_count_2d, cmap='seismic', interpolation="none", origin='lower', aspect='auto',
                extent=[param_2_range[0], param_2_range[-1], param_1_range[0], param_1_range[-1]])
@@ -136,7 +135,7 @@ def plot_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2
     #plt.subplots_adjust(left=0.2, bottom=0.2)
     # Now adding the colorbar
     plt.colorbar(orientation='horizontal')
-    plt.savefig(OUTPUT_DIR + sep + 'fp_count_2d_%s_%s.png' % (param_1_name, param_2_name), bbox_inches='tight')
+    plt.savefig(OUTPUT_DIR + sep + 'fp_count_2d_%s_%s_%s.png' % (param_1_name, param_2_name, figname_mod), bbox_inches='tight')
     plt.show()
     return plt.gca()
 
@@ -155,14 +154,14 @@ if __name__ == "__main__":
     params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z]
     ode_system = "feedback_z"
 
-    param_1_name = "mu"
-    param_1_start = 0.0
-    param_1_stop = 0.02
-    param_1_steps = 100
+    param_1_name = "b"
+    param_1_start = 0.6
+    param_1_stop = 1.1
+    param_1_steps = 200
     param_1_range = np.linspace(param_1_start, param_1_stop, param_1_steps)
     param_2_name = "c"
-    param_2_start = 0.8#1.1 #0.7
-    param_2_stop = 0.9#1.3 #0.95
-    param_2_steps = 100
+    param_2_start = 0.7 #1.1 #0.7
+    param_2_stop = 1.0 #1.3 #0.95
+    param_2_steps = 200
     param_2_range = np.linspace(param_2_start, param_2_stop, param_2_steps)
-    plot_stable_fp_count_2d(params, param_1_name, param_1_range, param_2_name, param_2_range, ode_system)
+    plot_stable_fp_count_2d(params, param_1_name, param_1_range, param_2_name, param_2_range, ode_system, figname_mod="mu01_wide")
