@@ -24,14 +24,14 @@ ode_system = "feedback_z"
 
 # ARGS TO PASS
 param_1_name = "b"
-param_1_start = 0.7
-param_1_stop = 1.0
+param_1_start = 0.5
+param_1_stop = 1.2
 param_1_steps = 700
 param_1_range = np.linspace(param_1_start, param_1_stop, param_1_steps)
 param_2_name = "c"
 param_2_start = 0.8  # 1.1 #0.7
-param_2_stop = 0.9  # 1.3 #0.95
-param_2_steps = 100
+param_2_stop = 1.2  # 1.3 #0.95
+param_2_steps = 400
 param_2_range = np.linspace(param_2_start, param_2_stop, param_2_steps)
 
 pool_fn = get_stable_fp_count_2d  #plot_stable_fp_count_2d
