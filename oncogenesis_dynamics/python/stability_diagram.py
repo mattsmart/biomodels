@@ -5,6 +5,7 @@ from os import sep
 from constants import PARAMS_ID, PARAMS_ID_INV, STATES_ID_INV, OUTPUT_DIR
 from formulae import is_stable, fp_location_general, get_physical_and_stable_fp
 
+# TODO: have ONLY 1 plotting script with datatype flags (e.g. fp count flag, stability data flag, other...)
 
 def get_stability_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system):
     # assumes flow=0 and no feedback; uses is_stable with fp=[0,0,N]
@@ -100,7 +101,7 @@ def plot_jump_data_2d(params_general, param_1_name, param_1_range, param_2_name,
     return plt.gca()
 
 
-def get_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system):
+def get_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, plot_flag=False):
     assert param_1_name, param_2_name in PARAMS_ID_INV.keys()
     assert params_general[-3:] == [0.0, 0.0, 0.0]  # currently hard-code non-flow trivial FP location of [0,0,N]
     fp_count_array = np.zeros((len(param_1_range), len(param_2_range)))
@@ -111,20 +112,22 @@ def get_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2_
             params_step[PARAMS_ID_INV[param_2_name]] = p2
             fp_list = get_physical_and_stable_fp(params_step, system)
             fp_count_array[i, j] = len(fp_list)
-        print i, j, p1, p2
+        #print i, j, p1, p2
+    if plot_flag:
+        plot_stable_fp_count_2d(fp_count_array, params_general, param_1_name, param_1_range, param_2_name,
+                                param_2_range, system, figname_mod="")
     return fp_count_array
 
 
-def plot_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system,
-                            figname_mod=""):
-    stable_fp_count_2d = get_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system)
-    plt.imshow(stable_fp_count_2d, cmap='seismic', interpolation="none", origin='lower', aspect='auto',
+def plot_stable_fp_count_2d(fp_count_array, params_general, param_1_name, param_1_range, param_2_name,
+                            param_2_range, system, figname_mod=""):
+    plt.imshow(fp_count_array, cmap='seismic', interpolation="none", origin='lower', aspect='auto',
                extent=[param_2_range[0], param_2_range[-1], param_1_range[0], param_1_range[-1]])
     ax = plt.gca()
     ax.grid(which='major', axis='both', linestyle='-')
     ax.set_xlabel(param_2_name)
     ax.set_ylabel(param_1_name)
-    plt.title("Physical and Stable FP count (vary %s, %s)" % (param_1_name, param_2_name))
+    plt.title("Physical and Stable FP count (vary %s, %s) %dx%d" % (param_1_name, param_2_name, len(fp_count_array), len(fp_count_array[0]) ))
     # CREATE TABLE OF PARAMS
     # bbox is x0, y0, height, width
     row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
@@ -136,14 +139,15 @@ def plot_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2
     # Now adding the colorbar
     plt.colorbar(orientation='horizontal')
     plt.savefig(OUTPUT_DIR + sep + 'fp_count_2d_%s_%s_%s.png' % (param_1_name, param_2_name, figname_mod), bbox_inches='tight')
-    plt.show()
+    plt.close('all')
+    #plt.show()
     return plt.gca()
 
 
 if __name__ == "__main__":
     alpha_plus = 0.2  # 0.05 #0.4
     alpha_minus = 0.5  # 4.95 #0.5
-    mu = 0.0001  # 0.01
+    mu = 0.01  # 0.01
     a = 1.0
     b = 0.8
     c = 0.6  # 2.6 #1.2
@@ -157,11 +161,13 @@ if __name__ == "__main__":
     param_1_name = "b"
     param_1_start = 0.6
     param_1_stop = 1.1
-    param_1_steps = 200
+    param_1_steps = 4
     param_1_range = np.linspace(param_1_start, param_1_stop, param_1_steps)
     param_2_name = "c"
     param_2_start = 0.7 #1.1 #0.7
     param_2_stop = 1.0 #1.3 #0.95
-    param_2_steps = 200
+    param_2_steps = 2
     param_2_range = np.linspace(param_2_start, param_2_stop, param_2_steps)
-    plot_stable_fp_count_2d(params, param_1_name, param_1_range, param_2_name, param_2_range, ode_system, figname_mod="mu01_wide")
+
+    fp_data = get_stable_fp_count_2d(params, param_1_name, param_1_range, param_2_name, param_2_range, ode_system)
+    plot_stable_fp_count_2d(fp_data, params, param_1_name, param_1_range, param_2_name, param_2_range, ode_system, figname_mod="mu01_wide")
