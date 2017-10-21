@@ -50,4 +50,11 @@ for idx, init_cond in enumerate(init_conds):
                                          flag_showplt=False, flag_saveplt=False)
     ax_traj.plot(r[:, 0], r[:, 1], r[:, 2], label='trajectory')
     #assert np.abs(np.sum(r[-1, :]) - N) <= 0.001
-plt.savefig(OUTPUT_DIR + sep + "trajectory_simplex_multi" + ".png")
+plt.title('Phase portrait (%d traj) System: %s' % (NUM_TRAJ, ODE_SYSTEM))
+# CREATE TABLE OF PARAMS
+# bbox is x0, y0, height, width
+row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
+table_vals = [[params[i]] for i in xrange(len(PARAMS_ID))]
+param_table = plt.table(cellText=table_vals, colWidths=[0.1]*3, rowLabels=row_labels, loc='best',
+                        bbox=(1.1, 0.2, 0.1, 0.75))
+plt.savefig(OUTPUT_DIR + sep + "trajectory_simplex_multi" + ".png", bbox_inches='tight')
