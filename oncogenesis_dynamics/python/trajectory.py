@@ -52,8 +52,7 @@ def trajectory_simulate(params, system, init_cond=INIT_COND, t0=TIME_START, t1=T
 
     # PLOTTING
     if flag_showplt or flag_saveplt:
-        fig_traj = plot_simplex(N)
-        ax_traj = plot_trajectory(fig_traj, r, times, flag_showplt, flag_saveplt)
+        ax_traj = plot_trajectory(r, times, N, flag_show=flag_showplt, flag_save=flag_saveplt)
         ax_mono_z = plot_trajectory_mono(r, times, flag_showplt, flag_saveplt)
     else:
         ax_traj = None
@@ -66,8 +65,6 @@ if __name__ == "__main__":
 
     # SCRIPT PARAMS
     system = "feedback_z"  # see constants.py -- ODE_SYSTEMS
-    plt_title = 'Trajectory'
-    plt_save = 'trajectory'
 
     # DYNAMICS PARAMETERS
     alpha_plus = 0.05

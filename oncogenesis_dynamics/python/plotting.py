@@ -106,13 +106,15 @@ def plot_bifurc_dist(x1_array, bifurcation_search, bifurc_id, N, dist_type, flag
     return fig_dist
 
 
-def plot_trajectory(fig_traj, r, times, flag_show, flag_save, plt_save="trajectory", plt_title="Trajectory"):
+def plot_trajectory(r, times, N, fig_traj=None, flag_show=False, flag_save=True, plt_save="trajectory"):
+    if fig_traj is None:
+        fig_traj = plot_simplex(N)
     ax_traj = fig_traj.gca()
     ax_traj.view_init(5, 35)  # ax.view_init(-45, -15)
     ax_traj.plot(r[:, 0], r[:, 1], r[:, 2], label='trajectory')
     #ax_traj.plot([x1[0]], [x1[1]], [x1[2]], label='x_weird')
     ax_traj.legend()
-    ax_traj.set_title(plt_title)
+    ax_traj.set_title("Trajectory")
     if flag_show:
         plt.show()
     if flag_save:
