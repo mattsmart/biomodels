@@ -101,9 +101,8 @@ def plot_jump_data_2d(params_general, param_1_name, param_1_range, param_2_name,
     return plt.gca()
 
 
-def get_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, plot_flag=False):
+def get_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, figname_mod=None):
     assert param_1_name, param_2_name in PARAMS_ID_INV.keys()
-    assert params_general[-3:] == [0.0, 0.0, 0.0]  # currently hard-code non-flow trivial FP location of [0,0,N]
     fp_count_array = np.zeros((len(param_1_range), len(param_2_range)))
     for i, p1 in enumerate(param_1_range):
         for j, p2 in enumerate(param_2_range):
@@ -113,9 +112,9 @@ def get_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2_
             fp_list = get_physical_and_stable_fp(params_step, system)
             fp_count_array[i, j] = len(fp_list)
         #print i, j, p1, p2
-    if plot_flag:
+    if figname_mod is not None:
         plot_stable_fp_count_2d(fp_count_array, params_general, param_1_name, param_1_range, param_2_name,
-                                param_2_range, system, figname_mod="")
+                                param_2_range, system, figname_mod=figname_mod)
     return fp_count_array
 
 

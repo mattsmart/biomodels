@@ -35,22 +35,22 @@ param_2_steps = 400
 param_2_range = np.linspace(param_2_start, param_2_stop, param_2_steps)
 
 pool_fn = get_stable_fp_count_2d  #plot_stable_fp_count_2d
-def pool_fn_wrapper(arglist):
-    return pool_fn(*arglist)
+def pool_fn_wrapper(fn_args_dict):
+    return pool_fn(*fn_args_dict['args'], **fn_args_dict['kwargs'])
 
 if __name__ == "__main__":
-    fn_args_list = [0]*NUM_PROCESSES
+    fn_args_dict = [0]*NUM_PROCESSES
     print "NUM_PROCESSES:", NUM_PROCESSES
     assert param_1_steps % NUM_PROCESSES == 0  # gonna make a picture don't want gaps
     for i in xrange(NUM_PROCESSES):
         range_step = param_1_steps / NUM_PROCESSES
         param_1_reduced_range = param_1_range[i*range_step : (1 + i)*range_step]
         print "process:", i, "job size:", len(param_1_reduced_range), "x", len(param_2_range)
-        fn_args_list[i] = (params, param_1_name, param_1_reduced_range, param_2_name,
-                           param_2_range, ode_system, "proc_%d" % i)
+        fn_args_dict[i] = {'args': (params, param_1_name, param_1_reduced_range, param_2_name, param_2_range, ode_system),
+                           'kwargs': {'figname_mod': None}}
     t0 = time.time()
     pool = Pool(NUM_PROCESSES)
-    results = pool.map(pool_fn_wrapper, fn_args_list) #pool.map(pool_fn, fn_args_list)
+    results = pool.map(pool_fn_wrapper, fn_args_dict)
     pool.close()
     pool.join()
     print "TIMER:", time.time() - t0
