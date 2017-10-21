@@ -4,7 +4,7 @@ import numpy as np
 from os import sep
 
 import formulae
-from constants import OUTPUT_DIR
+from constants import OUTPUT_DIR, INIT_COND, TIME_START, TIME_END, NUM_STEPS, SIM_METHOD
 from plotting import plot_simplex, plot_trajectory_mono, plot_trajectory
 
 
@@ -12,31 +12,6 @@ from plotting import plot_simplex, plot_trajectory_mono, plot_trajectory
 mpl_params = {'legend.fontsize': 'x-large', 'figure.figsize': (8, 5), 'axes.labelsize': 'x-large',
          'axes.titlesize':'x-large', 'xtick.labelsize':'x-large', 'ytick.labelsize':'x-large'}
 pylab.rcParams.update(mpl_params)
-
-# SCRIPT PARAMS
-SIM_METHOD = "libcall"  # see constants.py -- SIM_METHODS
-ODE_SYSTEM = "feedback_z"  # see constants.py -- ODE_SYSTEMS
-INIT_COND = [95.0, 5.0, 0.0]
-TIME_START = 0.0
-TIME_END = 2000.0
-NUM_STEPS = 2000  # number of timesteps in window
-plt_title = 'Trajectory'
-plt_save = 'trajectory'
-
-# DYNAMICS PARAMETERS
-alpha_plus = 0.05
-alpha_minus = 4.95
-mu = 0.77
-a = 1.0
-b = 8.369856428  #1.376666
-c = 2.6
-N = 100.0
-v_x = 1.0
-v_y = 0.0
-v_z = 0.0
-delta = 1 - b
-s = c - 1
-PARAMS = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z]
 
 
 def trajectory_infoprint(init_cond, t0, t1, num_steps, params):
@@ -49,8 +24,8 @@ def trajectory_infoprint(init_cond, t0, t1, num_steps, params):
           " | v_x = " + str(v_x) + " | v_y = " + str(v_y) + " | v_z = " + str(v_z)
 
 
-def trajectory_simulate(init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS, params=PARAMS,
-                        sim_method=SIM_METHOD, ode_system=ODE_SYSTEM, flag_showplt=False, flag_saveplt=True, flag_info=False):
+def trajectory_simulate(params, system, init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
+                        sim_method=SIM_METHOD, flag_showplt=False, flag_saveplt=True, flag_info=False):
     # SIMULATE SETUP
     alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
     display_spacing = int(num_steps / 10)
@@ -59,7 +34,7 @@ def trajectory_simulate(init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_ste
         trajectory_infoprint(init_cond, t0, t1, num_steps, params)
 
     # SIMULATE
-    r, times = formulae.simulate_dynamics_general(init_cond, times, params, method=sim_method, system=ode_system)
+    r, times = formulae.simulate_dynamics_general(init_cond, times, params, method=sim_method, system=system)
     if flag_info:
         print 'Done trajectory\n'
 
@@ -88,6 +63,25 @@ def trajectory_simulate(init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_ste
 
 if __name__ == "__main__":
     print "main functionality not implemented"
-    r, times, ax_traj, ax_mono_z = trajectory_simulate(init_cond=[20,40,40], sim_method="gillespie", num_steps=NUM_STEPS*10)
+
+    # SCRIPT PARAMS
+    system = "feedback_z"  # see constants.py -- ODE_SYSTEMS
+    plt_title = 'Trajectory'
+    plt_save = 'trajectory'
+
+    # DYNAMICS PARAMETERS
+    alpha_plus = 0.05
+    alpha_minus = 4.95
+    mu = 0.77
+    a = 1.0
+    b = 8.369856428  # 1.376666
+    c = 2.6
+    N = 100.0
+    v_x = 1.0
+    v_y = 0.0
+    v_z = 0.0
+    params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z]
+
+    r, times, ax_traj, ax_mono_z = trajectory_simulate(params, system, init_cond=[20,40,40], sim_method="gillespie", num_steps=NUM_STEPS*2)
     for i in xrange(len(r)):
         print r[i,:]

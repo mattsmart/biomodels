@@ -48,6 +48,13 @@ CSV_DATA_TYPES = {'bifurc_b': float,
                   'x1_x': float, 'x1_y': float, 'x1_z': float, 'x1_stab': bool,
                   'x2_x': float, 'x2_y': float, 'x2_z': float, 'x2_stab': bool}
 
+SIM_METHOD = "libcall"  # standard ODE integration method
+INIT_COND = [99.9, 0.1, 0.0]  # default initial cond for trajectory
+NUM_TRAJ = 200  # number of trajectories for trajectory_multiple
+TIME_START = 0.0  # standard trajectory start time
+TIME_END = 160000.0  # standard trajectory end time
+NUM_STEPS = 20000  # number of time steps in each trajectory (non-gillespie)
+
 PARAM_Z0_RATIO = 0.1           # size of z0 relative to N (in feedback function)
 PARAM_Y0_PLUS_Z0_RATIO = 0.1   # size of y0 + z0 relative to N (in feedback function)
 PARAM_HILL = 2                 # (unused currently) hill parameter 'n'

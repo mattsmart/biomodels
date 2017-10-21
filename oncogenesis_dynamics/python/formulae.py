@@ -330,8 +330,7 @@ def fp_location_fsolve(params, system, check_near_traj_endpt=True, gridsteps=5, 
     unique_solutions = []
     # first check for roots near trajectory endpoints (possible stable roots)
     if check_near_traj_endpt:
-        traj, _, _, _ = trajectory.trajectory_simulate(t0=0.0, t1=16000.0, num_steps=2000, params=params, ode_system=system,
-                                                       flag_showplt=False, flag_saveplt=False)
+        traj, _, _, _ = trajectory.trajectory_simulate(params, system, flag_showplt=False, flag_saveplt=False)
         fp_guess = traj[-1][0:2]
         solution, infodict, _, _ = fsolve(fsolve_func, fp_guess, (system, params), full_output=True)
         if np.linalg.norm(infodict["fvec"]) <= 10e-3:  # only append actual roots (i.e. f(x)=0)

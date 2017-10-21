@@ -56,9 +56,8 @@ for idx in xrange(num_param_sets):
 ax_comp = None
 r_inf_list = np.zeros((len(param_varying_values), 3))
 for idx, params in enumerate(param_ensemble):
-    r, times, ax_traj, ax_mono = trajectory_simulate(init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
-                                                     params=params, sim_method=SIM_METHOD, ode_system=ODE_SYSTEM,
-                                                     flag_showplt=False, flag_saveplt=False)
+    r, times, ax_traj, ax_mono = trajectory_simulate(params, ODE_SYSTEM, init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
+                                                     sim_method=SIM_METHOD, flag_showplt=False, flag_saveplt=False)
     ax_mono = plot_trajectory_mono(r, times, False, False, ax_mono=ax_comp, mono="z")
     ax_comp = ax_mono
     #assert np.abs(np.sum(r[-1, :]) - N) <= 0.001
