@@ -3,7 +3,7 @@ import numpy as np
 import random
 from os import sep
 
-from constants import OUTPUT_DIR, PARAMS_ID, NUM_TRAJ, TIME_START, TIME_END, NUM_STEPS, SIM_METHOD
+from constants import OUTPUT_DIR, PARAMS_ID, PARAMS_ID_INV, NUM_TRAJ, TIME_START, TIME_END, NUM_STEPS, SIM_METHOD
 from formulae import bifurc_value, fp_from_timeseries
 from plotting import plot_trajectory_mono, plot_endpoint_mono, plot_simplex, plot_trajectory
 from trajectory import trajectory_simulate
@@ -55,4 +55,13 @@ if __name__ == "__main__":
     v_z = 0.0
     params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z]
 
+    """
     phase_portrait(params, system, figname_mod="_main")
+    """
+
+    param_vary = "c"
+    for pv in [0.81, 0.83, 0.85, 0.87, 0.89, 0.91, 0.93, 0.95, 0.97, 0.99, 1.01, 1.03]:
+        params_step = params
+        params_step[PARAMS_ID_INV[param_vary]] = pv
+        fmname = "_main_%s=%.3f" % (param_vary, pv)
+        phase_portrait(params, system, figname_mod=fmname)
