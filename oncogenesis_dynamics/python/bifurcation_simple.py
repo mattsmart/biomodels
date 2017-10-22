@@ -1,4 +1,4 @@
-"""
+""" TODO: update this
 Comments
 - current implementation for bifurcation along VALID_BIFURCATION_PARAMS only
 - currently supports one bifurcation direction at a time
@@ -25,7 +25,8 @@ import numpy as np
 from os import sep
 
 from constants import BIFURC_DICT, VALID_BIFURC_PARAMS, OUTPUT_DIR
-from formulae import bifurc_value, fp_location_general, is_stable, write_bifurc_data, write_params
+from data_io import write_bifurc_data, write_params
+from formulae import bifurc_value, fp_location_general, is_stable
 from plotting import plot_fp_curves, plot_bifurc_dist
 from trajectory import trajectory_simulate
 
@@ -142,4 +143,4 @@ fig_dist_z = plot_bifurc_dist(x1_array, bifurcation_search, bifurc_id, N, "z_onl
 if FLAG_SAVEDATA:
     write_bifurc_data(bifurcation_search, x0_array, x0_stabilities, x1_array, x1_stabilities, x2_array, x2_stabilities,
                       bifurc_id, OUTPUT_DIR, 'bifurc_data.csv')
-    write_params(params, OUTPUT_DIR, 'params.csv')
+    write_params(params, ODE_SYSTEM, OUTPUT_DIR, 'params.csv')

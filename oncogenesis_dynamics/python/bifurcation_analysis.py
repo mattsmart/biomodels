@@ -2,7 +2,7 @@ import numpy as np
 from os import sep
 
 from constants import OUTPUT_DIR, PARAMS_ID_INV
-from formulae import read_bifurc_data, read_params
+from data_io import read_bifurc_data, read_params
 from plotting import plot_fp_curves
 
 
