@@ -39,7 +39,8 @@ def plot_simplex(N):
     return fig
 
 
-def plot_fp_curves(x0, x0_stab, x1, x1_stab, x2, x2_stab, N, plt_title, flag_show, flag_save, plt_save="bifurcation_curves", colourbinary=False):
+def plot_fp_curves_simple(x0, x0_stab, x1, x1_stab, x2, x2_stab, N, plt_title, flag_show, flag_save, plt_save="bifurcation_curves", colourbinary=False):
+    # this is for data from 'default' ode system which guarantees 3 fixed point arrays
     fig_simplex = plot_simplex(N)
     ax_simplex = fig_simplex.gca()
     if colourbinary:
@@ -72,6 +73,43 @@ def plot_fp_curves(x0, x0_stab, x1, x1_stab, x2, x2_stab, N, plt_title, flag_sho
     if flag_show:
         plt.show()
     if flag_save:
+        fig_simplex.savefig(OUTPUT_DIR + sep + plt_save + '.png')
+    return fig_simplex
+
+
+def plot_fp_curves_general(fp_info_dict, N, flag_show=False, plt_save="bifurcation_curves"):
+    fig_simplex = plot_simplex(N)
+    ax_simplex = fig_simplex.gca()
+
+    fp_info_list = [triple for value in fp_info_dict.values() for triple in value]
+    fp_array = np.array([triple[0] for triple in fp_info_list])
+    fp_color_array = np.array([X1_COL[int(triple[2])] for triple in fp_info_list])
+    ax_simplex.scatter(fp_array[:,0], fp_array[:,1], fp_array[:,2], color=fp_color_array)
+
+    # PRINTING
+    """
+    print "len", len(fp_info_list)
+    print "first elem", fp_info_list[0]
+    for i in xrange(len(fp_info_list)):
+        if fp_info_list[i][2]:
+            print "fp_info_list[i]", fp_info_list[i][2], fp_info_list[i][1], fp_info_list[i][0]
+    """
+
+    # plot settings
+    ax_simplex.view_init(5, 35)  # ax.view_init(-45, -15)
+    axis_scale = 1
+    ax_simplex.set_xlim(-N * axis_scale, N * axis_scale)  # may need to flip order
+    ax_simplex.set_ylim(-N * axis_scale, N * axis_scale)
+    ax_simplex.set_zlim(-N * axis_scale, N * axis_scale)
+    stable_pt = mlines.Line2D([], [], color=X1_COL[1], marker='o',
+                              markersize=5, label='Stable FP')
+    unstable_pt = mlines.Line2D([], [], color=X1_COL[0], marker='o',
+                                markersize=5, label='Unstable FP')
+    plt.legend(handles=[stable_pt, unstable_pt])
+    ax_simplex.set_title("Bifurcation curves")
+    if flag_show:
+        plt.show()
+    if plt_save is not None:
         fig_simplex.savefig(OUTPUT_DIR + sep + plt_save + '.png')
     return fig_simplex
 

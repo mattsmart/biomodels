@@ -27,7 +27,7 @@ from os import sep
 from constants import BIFURC_DICT, VALID_BIFURC_PARAMS, OUTPUT_DIR
 from data_io import write_bifurc_data, write_params
 from formulae import bifurc_value, fp_location_general, is_stable
-from plotting import plot_fp_curves, plot_bifurc_dist
+from plotting import plot_fp_curves_simple, plot_bifurc_dist
 from trajectory import trajectory_simulate
 
 
@@ -125,8 +125,8 @@ for idx, bifurc_param_val in enumerate(bifurcation_search):
         print bifurc_param_val, fp_x1, r[-1]
 
 # PLOTTING ON THE SIMPLEX FIGURE
-fig_fp_curves = plot_fp_curves(x0_array, x0_stabilities, x1_array, x1_stabilities, x2_array, x2_stabilities, N,
-                               HEADER_TITLE, False, False)
+fig_fp_curves = plot_fp_curves_simple(x0_array, x0_stabilities, x1_array, x1_stabilities, x2_array, x2_stabilities, N,
+                                      HEADER_TITLE, False, False)
 if FLAG_BIFTEXT:
     for idx in xrange(0, nn, SPACING_BIFTEXT):
         fig_fp_curves.gca().text(x1_array[idx, 0], x1_array[idx, 1], x1_array[idx, 2], '%.3f' % bifurcation_search[idx])

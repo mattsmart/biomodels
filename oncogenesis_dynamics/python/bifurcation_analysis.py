@@ -3,7 +3,7 @@ from os import sep
 
 from constants import OUTPUT_DIR, PARAMS_ID_INV
 from data_io import read_bifurc_data, read_params
-from plotting import plot_fp_curves
+from plotting import plot_fp_curves_simple
 
 
 # parameters
@@ -23,5 +23,5 @@ x2_array = np.hstack((data_dict['x2_x'], data_dict['x2_y'], data_dict['x2_z']))
 N = params[PARAMS_ID_INV['N']]
 
 # plot it
-plot_fp_curves(x0_array, data_dict['x0_stab'], x1_array, data_dict['x1_stab'], x2_array, data_dict['x2_stab'], N,
-               plt_title, flag_show, flag_save, colourbinary=True)
+plot_fp_curves_simple(x0_array, data_dict['x0_stab'], x1_array, data_dict['x1_stab'], x2_array, data_dict['x2_stab'], N,
+                      plt_title, flag_show, flag_save, colourbinary=True)
