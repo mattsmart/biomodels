@@ -7,6 +7,7 @@ from formulae import is_stable, fp_location_general, get_physical_and_stable_fp
 
 # TODO: have ONLY 1 plotting script with datatype flags (e.g. fp count flag, stability data flag, other...)
 
+
 def get_stability_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system):
     # assumes flow=0 and no feedback; uses is_stable with fp=[0,0,N]
     #TODO: maybe solve a1 and a0, or just compute and show signs, instead
@@ -151,22 +152,22 @@ if __name__ == "__main__":
     b = 0.8
     c = 0.6  # 2.6 #1.2
     N = 100.0  # 100
-    v_x = 0.0
+    v_x = 0.1
     v_y = 0.0
     v_z = 0.0
     params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z]
     ode_system = "feedback_z"
 
-    param_1_name = "b"
-    param_1_start = 0.6
-    param_1_stop = 1.1
-    param_1_steps = 4
+    param_1_name = "mu"
+    param_1_start = 0.0
+    param_1_stop = 0.01
+    param_1_steps = 40
     param_1_range = np.linspace(param_1_start, param_1_stop, param_1_steps)
     param_2_name = "c"
-    param_2_start = 0.7 #1.1 #0.7
-    param_2_stop = 1.0 #1.3 #0.95
-    param_2_steps = 2
+    param_2_start = 0.8  # 1.1 #0.7
+    param_2_stop = 0.9  # 1.3 #0.95
+    param_2_steps = 100
     param_2_range = np.linspace(param_2_start, param_2_stop, param_2_steps)
 
     fp_data = get_stable_fp_count_2d(params, param_1_name, param_1_range, param_2_name, param_2_range, ode_system)
-    plot_stable_fp_count_2d(fp_data, params, param_1_name, param_1_range, param_2_name, param_2_range, ode_system, figname_mod="mu01_wide")
+    plot_stable_fp_count_2d(fp_data, params, param_1_name, param_1_range, param_2_name, param_2_range, ode_system, figname_mod="default")

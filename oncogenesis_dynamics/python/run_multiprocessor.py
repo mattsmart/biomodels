@@ -11,10 +11,10 @@ NUM_PROCESSES = -1 + cpu_count()
 # PARAMS
 alpha_plus = 0.2  # 0.05 #0.4
 alpha_minus = 0.5  # 4.95 #0.5
-mu = 0.001  # 0.01
+mu = 0.0001  # 0.01
 a = 1.0
 b = 0.8
-c = 0.6  # 2.6 #1.2
+c = 0.86  # 2.6 #1.2
 N = 100.0  # 100
 v_x = 0.0
 v_y = 0.0
@@ -23,16 +23,19 @@ params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z]
 ode_system = "feedback_z"
 
 # ARGS TO PASS
-param_1_name = "b"
-param_1_start = 0.5
-param_1_stop = 1.2
-param_1_steps = 700
+param_1_name = "v_z"
+param_1_start = 0.0
+param_1_stop = 2.0
+param_1_steps = 203
 param_1_range = np.linspace(param_1_start, param_1_stop, param_1_steps)
 param_2_name = "c"
 param_2_start = 0.8  # 1.1 #0.7
-param_2_stop = 1.2  # 1.3 #0.95
-param_2_steps = 400
+param_2_stop = 0.9  # 1.3 #0.95
+param_2_steps = 200
 param_2_range = np.linspace(param_2_start, param_2_stop, param_2_steps)
+
+#param_name_to_split = 2
+#assert param_name_to_split in [1,2]
 
 pool_fn = get_stable_fp_count_2d  #plot_stable_fp_count_2d
 def pool_fn_wrapper(fn_args_dict):
