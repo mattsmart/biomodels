@@ -411,7 +411,7 @@ def jacobian_numerical_2d(params, fp, system):
         return (c - a) / N * x ** 2 + (c - b) / N * x * y + (a - c - alpha_plus - mu_base - VV) * x + alpha_minus * y + v_x
     def func_ydot(fp):
         x, y = fp[0], fp[1]
-        alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+        alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
         VV = (v_x + v_y + v_z) / N
         if system == "feedback_z":
             z = N - x - y
