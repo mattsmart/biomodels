@@ -15,19 +15,19 @@ pylab.rcParams.update(mpl_params)
 
 
 def trajectory_infoprint(init_cond, t0, t1, num_steps, params):
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
     times = np.linspace(t0, t1, num_steps + 1)
     print "ODE Setup: t0, t1:", t0, t1, "| num_steps, dt:", num_steps, times[1] - times[0]
     print "Init Cond:", init_cond
     print "Specified parameters: \nalpha_plus = " + str(alpha_plus) + " | alpha_minus = " + str(alpha_minus) + \
           " | mu = " + str(mu) + " | a = " + str(a) + " | b = " + str(b) + " | c = " + str(c) + " | N = " + str(N) + \
-          " | v_x = " + str(v_x) + " | v_y = " + str(v_y) + " | v_z = " + str(v_z)
+          " | v_x = " + str(v_x) + " | v_y = " + str(v_y) + " | v_z = " + str(v_z) + " | mu_base = " + str(mu_base)
 
 
 def trajectory_simulate(params, system, init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
                         sim_method=SIM_METHOD, flag_showplt=False, flag_saveplt=True, flag_info=False, plt_save="trajectory"):
     # SIMULATE SETUP
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
     display_spacing = int(num_steps / 10)
     times = np.linspace(t0, t1, num_steps + 1)
     if flag_info:
@@ -75,7 +75,8 @@ if __name__ == "__main__":
     v_x = 0.0
     v_y = 0.0
     v_z = 0.0
-    params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z]
+    mu_base = 0.0
+    params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
 
     """
     trajectory_simulate(params, system)

@@ -52,7 +52,6 @@ solver_fsolve = False             # TODO: fsolve solver doesn't find exactly 3 f
 check_with_trajectory = False
 
 
-
 def get_fp_data_1d(params, param_1_name, param_1_range, system):
     # return dict of {param vary value: list of [[fixed point i], [eigenvalues i], stability_i]}
     # [fixed point i], [eigenvalues i] are 3-list and 2-list and stability_i is a bool
@@ -88,11 +87,12 @@ if __name__ == '__main__':
     v_x = 0.0
     v_y = 0.0
     v_z = 0.0
-    params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z]
+    mu_base = 0.0
+    params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
 
     print "Specified parameters: \nalpha_plus = " + str(alpha_plus) + "\nalpha_minus = " + str(alpha_minus) + \
           "\nmu = " + str(mu) + "\na = " + str(a) + "\nb = " + str(b) + "\nc = " + str(c) + "\nN = " + str(N) + \
-          "\nv_x = " + str(v_x) + "\nv_y = " + str(v_y) + "\nv_z = " + str(v_z)
+          "\nv_x = " + str(v_x) + "\nv_y = " + str(v_y) + "\nv_z = " + str(v_z) + "\nmu_base = " + str(mu_base)
     #print "Use fsolve solver:", solver_fsolve
 
     param_vary = 'c'

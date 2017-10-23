@@ -10,6 +10,7 @@ Conventions
                                   params[7] -> v_x
                                   params[8] -> v_y         (typically 0)
                                   params[9] -> v_z         (typically 0)
+                                  params[10] -> mu_base    (typically 0)
 - if an element of params is specified as None then a bifurcation range will be be found and used
 """
 
@@ -26,7 +27,7 @@ from constants import PARAMS_ID, CSV_DATA_TYPES, SIM_METHODS, PARAM_Z0_RATIO, PA
                       ODE_SYSTEMS, PARAMS_ID_INV
 
 
-def system_vector(init_cond, times, system, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z):
+def system_vector(init_cond, times, system, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base):
     x, y, z = init_cond
     fbar = (a * x + b * y + c * z + v_x + v_y + v_z) / N
     if system == "feedback_z":
@@ -36,14 +37,14 @@ def system_vector(init_cond, times, system, alpha_plus, alpha_minus, mu, a, b, c
         yz = y + z
         alpha_plus = alpha_plus * (1 + yz / (yz + PARAM_Y0_PLUS_Z0_RATIO * N))
         alpha_minus = alpha_minus * PARAM_Y0_PLUS_Z0_RATIO * N / (yz + PARAM_Y0_PLUS_Z0_RATIO * N)
-    dxdt = v_x - x * alpha_plus + y * alpha_minus + (a - fbar) * x
+    dxdt = v_x - x * (alpha_plus + mu_base) + y * alpha_minus + (a - fbar) * x
     dydt = v_y + x * alpha_plus - y * (alpha_minus + mu) + (b - fbar) * y
-    dzdt = v_z + y * mu + (c - fbar) * z
+    dzdt = v_z + y * mu + z*mu_base + (c - fbar) * z
     return [dxdt, dydt, dzdt]
 
 
-def system_vector_obj_ode(t_scalar, r_idx, system, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z):
-    return system_vector(r_idx, t_scalar, system, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z)
+def system_vector_obj_ode(t_scalar, r_idx, system, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base):
+    return system_vector(r_idx, t_scalar, system, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base)
 
 
 def ode_euler(init_cond, times, system, params):
@@ -84,7 +85,7 @@ def ode_libcall(init_cond, times, system, params):
 
 
 def reaction_propensities(r, step, system, params):
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
     x_n, y_n, z_n = r[step]
     if system == "feedback_z":
         alpha_plus = alpha_plus * (1 + z_n / (z_n + PARAM_Z0_RATIO * N))
@@ -98,14 +99,16 @@ def reaction_propensities(r, step, system, params):
             b*y_n, fbar*(y_n - 1),                      # birth/death events for y
             c*z_n, fbar*(z_n - 1),                      # birth/death events for z
             alpha_plus*x_n, alpha_minus*y_n, mu*y_n,    # transition events
-            v_x, v_y, v_z]                              # immigration events  #TODO maybe wrong
+            v_x, v_y, v_z,                              # immigration events  #TODO maybe wrong
+            mu_base*x_n]                                # special transition events
 
 
 def stoch_gillespie(init_cond, times, system, params):
     # There are 12 transitions to consider:
     # - 6 birth/death of the form x_n -> x_n+1, (x birth, x death, ...), label these 0 to 5
-    # - 3 transitions of the form x_n -> x_n+1, (x->y, y->x, y->z), label these 6 to 8
+    # - 3 transitions of the form x_n -> x_n-1, (x->y, y->x, y->z), label these 6 to 8
     # - 3 transitions associated with immigration (vx, vy, vz), label these 9 to 11
+    # - 1 transitions for x->z (rare), label this 12
     # Gillespie algorithm has indefinite timestep size so consider total step count as input (times input not used)
 
     total_steps = len(times)
@@ -118,7 +121,8 @@ def stoch_gillespie(init_cond, times, system, params):
                    2: [0, 1, 0], 3: [0, -1, 0],                  # birth/death events for y
                    4: [0, 0, 1], 5: [0, 0, -1],                  # birth/death events for z
                    6: [-1, 1, 0], 7: [1, -1, 0], 8: [0, -1, 1],  # transition events
-                   9: [1, 0, 0], 10: [0, 1, 0], 11: [0, 0, 1]}   # immigration events
+                   9: [1, 0, 0], 10: [0, 1, 0], 11: [0, 0, 1],   # immigration events
+                   12: [-1, 0, 1]}                               # x->z transition events
     for step in xrange(total_steps-1):
         r1 = random()  # used to determine time of next reaction
         r2 = random()  # used to partition the probabilities of each reaction
@@ -173,8 +177,10 @@ def fp_from_timeseries(r, sim_method, tol=0.001):
 def bifurc_value(params, bifurc_name):
     """
     Note: assumes params contains at most one None parameter
+    # TODO: implement mu_base (analysis)
     """
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
+    assert mu_base <= 10e-10
     if b is not None:
         delta = 1 - b
     if c is not None:
@@ -211,24 +217,27 @@ def bifurc_value(params, bifurc_name):
 
 
 def threshold_1(params):
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
+    assert mu_base <= 10e-10
     delta = 1 - b
     s = c - 1
     return 2 * s + delta + alpha_plus + alpha_minus + mu
 
 
 def threshold_2(params):
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
+    assert mu_base <= 10e-10
     delta = 1 - b
     s = c - 1
     return (s + alpha_plus) * (s + delta + alpha_minus + mu) - alpha_minus * alpha_plus
 
 
 def q_get(params, sign):
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
+    assert mu_base <= 10e-10
+    assert sign in [-1, +1]
     delta = 1 - b
     s = c - 1
-    assert sign in [-1, +1]
     bterm = alpha_plus - alpha_minus - mu - delta
     return 0.5 / alpha_minus * (bterm + sign * np.sqrt(bterm ** 2 + 4 * alpha_minus * alpha_plus))
 
@@ -236,7 +245,8 @@ def q_get(params, sign):
 def fp_location_noflow(params):
     q1 = q_get(params, +1)
     q2 = q_get(params, -1)
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
+    assert mu_base <= 10e-10
     delta = 1 - b
     s = c - 1
     conjugate_fps = [[0,0,0], [0,0,0]]
@@ -249,7 +259,7 @@ def fp_location_noflow(params):
 
 
 def fp_location_sympy_system(params, system):
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
     sym_x = Symbol("x")
     sym_y = Symbol("y")
     VV = (v_x + v_y + v_z) / N
@@ -261,7 +271,7 @@ def fp_location_sympy_system(params, system):
         yz = N - sym_x
         alpha_plus = alpha_plus * (1 + yz / (yz + PARAM_Y0_PLUS_Z0_RATIO * N))
         alpha_minus = alpha_minus * PARAM_Y0_PLUS_Z0_RATIO * N / (yz + PARAM_Y0_PLUS_Z0_RATIO * N)
-    xdot = (c-a)/N*sym_x**2 + (c-b)/N*sym_x*sym_y + (a-c-alpha_plus-VV)*sym_x + alpha_minus*sym_y + v_x
+    xdot = (c-a)/N*sym_x**2 + (c-b)/N*sym_x*sym_y + (a-c-alpha_plus-mu_base-VV)*sym_x + alpha_minus*sym_y + v_x
     ydot = (c-b)/N*sym_y**2 + (c-a)/N*sym_x*sym_y + (b-c-alpha_minus-mu-VV)*sym_y + alpha_plus*sym_x + v_y
     eqns = (xdot, ydot)
     solution = solve(eqns)
@@ -274,7 +284,7 @@ def fp_location_sympy_system(params, system):
 
 
 def fp_location_sympy_quartic(params, system):
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
     sym_x = Symbol("x")
     sym_y = Symbol("y")
     if system == "feedback_z":
@@ -292,7 +302,7 @@ def fp_location_sympy_quartic(params, system):
     b1 = (c-b)/N
     c0 = (c-b)/N
     c1 = (c-a)/N
-    d0 = (a-c-alpha_plus-VV)
+    d0 = (a-c-alpha_plus-mu_base-VV)
     d1 = alpha_plus
     e0 = alpha_minus
     e1 = (b-c-alpha_minus-mu-VV)
@@ -309,7 +319,7 @@ def fp_location_sympy_quartic(params, system):
 
 
 def fsolve_func(xvec_guess, system, params):  # TODO: faster if split into 3 fns w.o if else for feedback cases
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
     VV = (v_x + v_y + v_z) / N
     x0, y0 = xvec_guess
     if system == "feedback_z":
@@ -320,7 +330,7 @@ def fsolve_func(xvec_guess, system, params):  # TODO: faster if split into 3 fns
         yz = N - x0
         alpha_plus = alpha_plus * (1 + yz / (yz + PARAM_Y0_PLUS_Z0_RATIO * N))
         alpha_minus = alpha_minus * PARAM_Y0_PLUS_Z0_RATIO * N / (yz + PARAM_Y0_PLUS_Z0_RATIO * N)
-    xdot = (c-a)/N*x0**2 + (c-b)/N*x0*y0 + (a-c-alpha_plus-VV)*x0 + alpha_minus*y0 + v_x
+    xdot = (c-a)/N*x0**2 + (c-b)/N*x0*y0 + (a-c-alpha_plus-mu_base-VV)*x0 + alpha_minus*y0 + v_x
     ydot = (c-b)/N*y0**2 + (c-a)/N*x0*y0 + (b-c-alpha_minus-mu-VV)*y0 + alpha_plus*x0 + v_y
     return [xdot, ydot]
 
@@ -370,10 +380,11 @@ def fp_location_general(params, system, solver_fsolve=True, solver_fast=False, s
 
 
 def jacobian_3d(params, fp):
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
-    M = np.array([[a - alpha_plus, alpha_minus, 0],
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
+    assert mu_base <= 10e-10
+    M = np.array([[a - alpha_plus - mu_base, alpha_minus, 0],
                   [alpha_plus, b - alpha_minus - mu, 0],
-                  [0, mu, c]])
+                  [mu_base, mu, c]])
     x, y, z = fp
     diag = a*x + b*y + c*z + v_x + v_y + v_z
     r1 = [diag + x*a, x*b, x*c]
@@ -387,7 +398,7 @@ def jacobian_numerical_2d(params, fp, system):
     # TODO: move scope of func xdot etc up and use them both in func fsolve
     def func_xdot(fp):
         x, y = fp[0], fp[1]
-        alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params
+        alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
         VV = (v_x + v_y + v_z) / N
         if system == "feedback_z":
             z = N - x - y
@@ -397,7 +408,7 @@ def jacobian_numerical_2d(params, fp, system):
             yz = N - x
             alpha_plus = alpha_plus * (1 + yz / (yz + PARAM_Y0_PLUS_Z0_RATIO * N))
             alpha_minus = alpha_minus * PARAM_Y0_PLUS_Z0_RATIO * N / (yz + PARAM_Y0_PLUS_Z0_RATIO * N)
-        return (c - a) / N * x ** 2 + (c - b) / N * x * y + (a - c - alpha_plus - VV) * x + alpha_minus * y + v_x
+        return (c - a) / N * x ** 2 + (c - b) / N * x * y + (a - c - alpha_plus - mu_base - VV) * x + alpha_minus * y + v_x
     def func_ydot(fp):
         x, y = fp[0], fp[1]
         alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z = params

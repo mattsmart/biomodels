@@ -155,7 +155,8 @@ if __name__ == "__main__":
     v_x = 0.1
     v_y = 0.0
     v_z = 0.0
-    params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z]
+    mu_base = 0.0
+    params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
     ode_system = "feedback_z"
 
     param_1_name = "mu"

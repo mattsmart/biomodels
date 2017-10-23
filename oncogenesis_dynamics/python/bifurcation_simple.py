@@ -62,6 +62,7 @@ N = 100.0 #100
 v_x = 0.0
 v_y = 0.0
 v_z = 0.0
+mu_base = 0.0
 if b is not None:
     delta = 1 - b
 if c is not None:
@@ -70,11 +71,11 @@ if v_x == 0 and v_y == 0 and v_z == 0:
     solver_explicit = True
 else:
     solver_explicit = False
-params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z]
+params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
 
 print "Specified parameters: \nalpha_plus = " + str(alpha_plus) + "\nalpha_minus = " + str(alpha_minus) + \
       "\nmu = " + str(mu) + "\na = " + str(a) + "\nb = " + str(b) + "\nc = " + str(c) + "\nN = " + str(N) + \
-      "\nv_x = " + str(v_x) + "\nv_y = " + str(v_y) + "\nv_z = " + str(v_z)
+      "\nv_x = " + str(v_x) + "\nv_y = " + str(v_y) + "\nv_z = " + str(v_z) + "\nmu_base = " + str(mu_base)
 print "Use fsolve solver:", solver_fsolve
 if solver_explicit:
     print "Use explicit solver:", solver_explicit

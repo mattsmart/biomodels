@@ -14,6 +14,7 @@ Conventions
                                   params[7] -> v_x
                                   params[8] -> v_y         (typically 0)
                                   params[9] -> v_z         (typically 0)
+                                  params[10] -> mu_base    (typically 0)
 - if an element of params is specified as None then a bifurcation range will be be found and used
 """
 
@@ -26,7 +27,8 @@ PARAMS_ID = {0: "alpha_plus",
              6: "N",
              7: "v_x",
              8: "v_y",
-             9: "v_z"}
+             9: "v_z",
+             10: "mu_base"}
 PARAMS_ID_INV = {v: k for k, v in PARAMS_ID.iteritems()}
 STATES_ID = {0: "x", 1: "y", 2: "z"}
 STATES_ID_INV = {v: k for k, v in STATES_ID.iteritems()}
