@@ -6,7 +6,7 @@ from constants import OUTPUT_DIR, PARAMS_ID
 from formulae import stoch_gillespie
 
 
-def get_fpt(ensemble, init_cond, num_steps, system, params):
+def get_fpt(ensemble, init_cond, num_steps, params, system):
     fp_times = np.zeros(ensemble)
     for i in xrange(ensemble):
         species, times = stoch_gillespie(init_cond, num_steps, system, params, fpt_flag=True)
@@ -15,10 +15,10 @@ def get_fpt(ensemble, init_cond, num_steps, system, params):
     return fp_times
 
 
-def fpt_histogram(fpt_list, params, show_flag=False, figname_mod=""):
+def fpt_histogram(fpt_list, params, system, show_flag=False, figname_mod=""):
     ensemble_size = len(fpt_list)
     plt.hist(fpt_list, bins='auto')
-    plt.title('First passage time histogram (%d runs)' % ensemble_size)
+    plt.title('First passage time histogram (%d runs) - %s' % ensemble_size, system)
     ax = plt.gca()
     ax.set_xlabel('frequency')
     ax.set_ylabel('fpt')
@@ -59,5 +59,5 @@ if __name__ == "__main__":
     # OTHER PARAMETERS
     init_cond = [int(N), 0, 0]
 
-    fp_times = get_fpt(ensemble, init_cond, num_steps, system, params)
-    fpt_histogram(fp_times, params, show_flag=True, figname_mod="XZ_model_withFeedback_mu1e-1")
+    fp_times = get_fpt(ensemble, init_cond, num_steps, params, system)
+    fpt_histogram(fp_times, params, system, show_flag=True, figname_mod="XZ_model_withFeedback_mu1e-1")

@@ -22,7 +22,7 @@ if __name__ == "__main__":
     # SCRIPT PARAMETERS
     system = "feedback_mu_XZ_model"  # "feedback_mu_XZ_model" or "feedback_z"
     num_steps = 100000
-    ensemble = 7
+    ensemble = 98
 
     # DYNAMICS PARAMETERS
     alpha_plus = 0.0 #0.2  # 0.05 #0.4
@@ -46,7 +46,7 @@ if __name__ == "__main__":
     for i in xrange(NUM_PROCESSES):
         subensemble = ensemble / NUM_PROCESSES
         print "process:", i, "job size:", subensemble, "runs"
-        fn_args_dict[i] = {'args': (subensemble, init_cond, num_steps, system, params),
+        fn_args_dict[i] = {'args': (subensemble, init_cond, num_steps, params, system),
                            'kwargs': None}
     t0 = time.time()
     pool = Pool(NUM_PROCESSES)
@@ -58,5 +58,5 @@ if __name__ == "__main__":
     fp_times = np.zeros(ensemble)
     for i, result in enumerate(results):
         fp_times[i*subensemble:(i+1)*subensemble] = result
+    print "mean", np.mean(fp_times)
     fpt_histogram(fp_times, params, show_flag=True, figname_mod="XZ_model_withFeedback_mu1e-1")
-    print fp_times
