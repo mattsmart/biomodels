@@ -30,8 +30,8 @@ def fpt_histogram(fpt_list, params, show_flag=False, figname_mod=""):
 
 if __name__ == "__main__":
     # SCRIPT PARAMETERS
-    system = "feedback_z"  # "default" or "feedback_z" etc
-    num_steps = 10000
+    system = "feedback_mu_XZ_model"  # "feedback_mu_XZ_model" or "feedback_z
+    num_steps = 100000
     ensemble = 100
 
     # DYNAMICS PARAMETERS
@@ -45,7 +45,7 @@ if __name__ == "__main__":
     v_x = 0.0
     v_y = 0.0
     v_z = 0.0
-    mu_base = mu*1e-3
+    mu_base = mu*1e-1
     params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
 
     init_cond = [int(N), 0, 0]
@@ -55,4 +55,4 @@ if __name__ == "__main__":
         species, times = stoch_gillespie(init_cond, num_steps, system, params, fpt_flag=True)
         fp_times[i] = times[-1]
         print i, times[-1]
-    fpt_histogram(fp_times, params, show_flag=True, figname_mod="XZ_model")
+    fpt_histogram(fp_times, params, show_flag=True, figname_mod="XZ_model_withFeedback_mu1e-1")

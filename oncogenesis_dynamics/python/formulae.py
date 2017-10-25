@@ -24,7 +24,7 @@ from sympy import Symbol, solve, re
 
 import trajectory
 from constants import PARAMS_ID, CSV_DATA_TYPES, SIM_METHODS, PARAM_Z0_RATIO, PARAM_Y0_PLUS_Z0_RATIO, PARAM_HILL, \
-                      ODE_SYSTEMS, PARAMS_ID_INV
+                      ODE_SYSTEMS, PARAMS_ID_INV, PARAM_K
 
 
 def system_vector(init_cond, times, system, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base):
@@ -94,10 +94,12 @@ def reaction_propensities(r, step, system, params, fpt_flag=False):
         yz = y_n + z_n
         alpha_plus = alpha_plus * (1 + yz / (yz + PARAM_Y0_PLUS_Z0_RATIO * N))
         alpha_minus = alpha_minus * PARAM_Y0_PLUS_Z0_RATIO * N / (yz + PARAM_Y0_PLUS_Z0_RATIO * N)
+    elif system == "feedback_mu_XZ_model":
+        mu_base = mu_base * (PARAM_K + z_n / (z_n + PARAM_Z0_RATIO * N))
     fbar = (a*x_n + b*y_n + c*z_n + v_x + v_y + v_z) / N    # TODO flag to switch N to x + y + z
-    rxn_prop = [a*x_n, fbar*(x_n - 1),                      # birth/death events for x
-                b*y_n, fbar*(y_n - 1),                      # birth/death events for y
-                c*z_n, fbar*(z_n - 1),                      # birth/death events for z
+    rxn_prop = [a*x_n, fbar*(x_n),                      # birth/death events for x  TODO: is it fbar*(x_n - 1)
+                b*y_n, fbar*(y_n),                      # birth/death events for y  TODO: is it fbar*(y_n - 1)
+                c*z_n, fbar*(z_n),                      # birth/death events for z  TODO: is it fbar*(z_n - 1)
                 alpha_plus*x_n, alpha_minus*y_n, mu*y_n,    # transition events
                 v_x, v_y, v_z,                              # immigration events  #TODO maybe wrong
                 mu_base*x_n]                                # special transition events
@@ -140,6 +142,7 @@ def stoch_gillespie(init_cond, num_steps, system, params, fpt_flag=False):
             alpha_sum += alpha[i]
             alpha_partitions[i + 1] = alpha_sum
         alpha_partitions = alpha_partitions / alpha_sum
+
         # find time to first reaction
         tau = np.log(1 / r1) / alpha_sum
         # compute number of molecules at time t + tau
