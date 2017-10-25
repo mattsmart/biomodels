@@ -59,4 +59,4 @@ if __name__ == "__main__":
     for i, result in enumerate(results):
         fp_times[i*subensemble:(i+1)*subensemble] = result
     print "mean", np.mean(fp_times)
-    fpt_histogram(fp_times, params, show_flag=True, figname_mod="XZ_model_withFeedback_mu1e-1")
+    fpt_histogram(fp_times, params, system, show_flag=True, figname_mod="XZ_model_withFeedback_mu1e-1")
