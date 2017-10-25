@@ -6,6 +6,15 @@ from constants import OUTPUT_DIR, PARAMS_ID
 from formulae import stoch_gillespie
 
 
+def get_fpt(ensemble, init_cond, num_steps, system, params):
+    fp_times = np.zeros(ensemble)
+    for i in xrange(ensemble):
+        species, times = stoch_gillespie(init_cond, num_steps, system, params, fpt_flag=True)
+        fp_times[i] = times[-1]
+        print i, times[-1]
+    return fp_times
+
+
 def fpt_histogram(fpt_list, params, show_flag=False, figname_mod=""):
     ensemble_size = len(fpt_list)
     plt.hist(fpt_list, bins='auto')
@@ -25,7 +34,6 @@ def fpt_histogram(fpt_list, params, show_flag=False, figname_mod=""):
     plt.savefig(OUTPUT_DIR + sep + plt_save + '.png', bbox_inches='tight')
     if show_flag:
         plt.show()
-
 
 
 if __name__ == "__main__":
@@ -48,11 +56,8 @@ if __name__ == "__main__":
     mu_base = mu*1e-1
     params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
 
+    # OTHER PARAMETERS
     init_cond = [int(N), 0, 0]
 
-    fp_times = np.zeros(ensemble)
-    for i in xrange(ensemble):
-        species, times = stoch_gillespie(init_cond, num_steps, system, params, fpt_flag=True)
-        fp_times[i] = times[-1]
-        print i, times[-1]
+    fp_times = get_fpt(ensemble, init_cond, num_steps, system, params)
     fpt_histogram(fp_times, params, show_flag=True, figname_mod="XZ_model_withFeedback_mu1e-1")
