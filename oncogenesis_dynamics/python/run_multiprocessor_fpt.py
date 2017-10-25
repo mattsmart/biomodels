@@ -20,22 +20,22 @@ def pool_fn_wrapper(fn_args_dict):
 if __name__ == "__main__":
 
     # SCRIPT PARAMETERS
-    system = "feedback_mu_XZ_model"  # "feedback_mu_XZ_model" or "feedback_z"
+    system = "feedback_z"  # "feedback_mu_XZ_model" or "feedback_z"
     num_steps = 100000
     ensemble = 1001
 
     # DYNAMICS PARAMETERS
-    alpha_plus = 0.0  #0.2  # 0.05 #0.4
-    alpha_minus = 0.0 # 0.5  # 4.95 #0.5
+    alpha_plus = 0.2  # 0.2
+    alpha_minus = 0.5  # 0.5
     mu = 0.001  # 0.01
     a = 1.0
     b = 0.8
-    c = 0.81  # 2.6 #1.2
-    N = 100.0  # 100
+    c = 0.81  # 1.2
+    N = 100.0  # 100.0
     v_x = 0.0
     v_y = 0.0
     v_z = 0.0
-    mu_base = mu*1e-1 #mu*1e-1
+    mu_base = 0.0  #mu*1e-1
     params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
 
     init_cond = [int(N), 0, 0]
@@ -59,5 +59,5 @@ if __name__ == "__main__":
     for i, result in enumerate(results):
         fp_times[i*subensemble:(i+1)*subensemble] = result
     print "mean", np.mean(fp_times)
-    write_fpt_and_params(fp_times, params, system, filename="fpt_xz_1000")
-    fpt_histogram(fp_times, params, system, show_flag=True, figname_mod="XZ_model")
+    write_fpt_and_params(fp_times, params, system, filename="fpt_xyz_feedbackz_1000")
+    fpt_histogram(fp_times, params, system, show_flag=True, figname_mod="_xyz_feedbackz")
