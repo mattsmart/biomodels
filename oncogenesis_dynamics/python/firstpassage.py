@@ -3,8 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from os import sep
 
-from constants import OUTPUT_DIR, PARAMS_ID
-from data_io import write_params
+from constants import OUTPUT_DIR, PARAMS_ID, ODE_SYSTEMS
+from data_io import write_params, read_params
 from formulae import stoch_gillespie
 
 
@@ -32,13 +32,44 @@ def write_fpt_and_params(fpt, params, system, filename="fpt", filename_mod=""):
     return OUTPUT_DIR + sep + filename_fpt
 
 
-def fpt_histogram(fpt_list, params, system, show_flag=False, figname_mod=""):
+def read_fpt_and_params(filedir, filename_data, filename_params):
+    params_with_system = read_params(filedir, filename_params)
+    assert params_with_system[-1] in ODE_SYSTEMS
+    params = params_with_system[:-1]
+    system = params_with_system[-1]
+    with open(filedir + sep + filename_data, 'rb') as csvfile:
+        datareader = csv.reader(csvfile, delimiter=',', quotechar='|')
+        nn = sum(1 for row in datareader)
+        csvfile.seek(0)
+        fp_times = [0.0]*nn
+        for idx, fpt in enumerate(datareader):
+            fp_times[idx] = float(fpt[0])
+    return fp_times, params, system
+
+
+def fpt_histogram(fpt_list, params, system, show_flag=False, figname_mod="", x_log10_flag=False, y_log10_flag=False):
     ensemble_size = len(fpt_list)
-    plt.hist(fpt_list, bins='auto')
+    if x_log10_flag:
+        max_log = np.ceil(np.max(np.log10(fpt_list)))
+        plt.hist(fpt_list, bins=np.logspace(0.1, max_log, 50))
+        ax = plt.gca()
+        ax.set_xlabel('log10(fpt)')
+        ax.set_ylabel('frequency')
+        ax.set_xscale("log", nonposx='clip')
+    elif y_log10_flag:
+        plt.hist(fpt_list, bins='auto')
+        ax = plt.gca()
+        ax.set_xlabel('fpt')
+        ax.set_ylabel('log10(frequency)')
+        ax.set_yscale("log", nonposx='clip')
+    else:
+        plt.hist(fpt_list, bins='auto')
+        ax = plt.gca()
+        ax.set_xlabel('fpt')
+        ax.set_ylabel('frequency')
     plt.title('First passage time histogram (%d runs) - %s' % (ensemble_size, system))
-    ax = plt.gca()
-    ax.set_xlabel('fpt')
-    ax.set_ylabel('frequency')
+    # DRAW MEAN LINE
+    plt.axvline(np.mean(fpt_list), color='k', linestyle='dashed', linewidth=2)
     # CREATE TABLE OF PARAMS
     row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
     table_vals = [[params[i]] for i in xrange(len(PARAMS_ID))]
@@ -53,6 +84,50 @@ def fpt_histogram(fpt_list, params, system, show_flag=False, figname_mod=""):
         plt.show()
 
 
+def fpt_histogram_multi(multi_fpt_list, labels, show_flag=False, figname_mod="", x_log10_flag=False, y_log10_flag=False):
+    ensemble_size = len(multi_fpt_list[0])
+    bins = np.linspace(np.min(multi_fpt_list), np.max(multi_fpt_list), 50)
+    if x_log10_flag:
+        max_log = np.ceil(np.max(np.log10(multi_fpt_list)))
+        for idx, fpt_list in enumerate(multi_fpt_list):
+            plt.hist(fpt_list, bins=np.logspace(0.1, max_log, 50), alpha=0.5, label=labels[idx])
+        ax = plt.gca()
+        ax.set_xlabel('log10(fpt)')
+        ax.set_ylabel('frequency')
+        ax.set_xscale("log", nonposx='clip')
+    elif y_log10_flag:
+        for idx, fpt_list in enumerate(multi_fpt_list):
+            plt.hist(fpt_list, bins=bins, alpha=0.5, label=labels[idx])
+        ax = plt.gca()
+        ax.set_xlabel('fpt')
+        ax.set_ylabel('log10(frequency)')
+        ax.set_yscale("log", nonposx='clip')
+    else:
+        for idx, fpt_list in enumerate(multi_fpt_list):
+            plt.hist(fpt_list, bins=bins, alpha=0.5, label=labels[idx])
+        ax = plt.gca()
+        ax.set_xlabel('fpt')
+        ax.set_ylabel('frequency')
+    plt.title('First passage time histogram (%d runs)' % (ensemble_size))
+    plt.legend(loc='upper right')
+    # DRAW MEAN LINE
+    #plt.axvline(np.mean(fpt_list), color='k', linestyle='dashed', linewidth=2)
+    # CREATE TABLE OF PARAMS
+    """
+    row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
+    table_vals = [[params[i]] for i in xrange(len(PARAMS_ID))]
+    print len(row_labels), len(table_vals)
+    param_table = plt.table(cellText=table_vals,
+                            colWidths=[0.1]*3,
+                            rowLabels=row_labels,
+                            loc='center right')
+    """
+    plt_save = "fpt_multihistogram" + figname_mod
+    plt.savefig(OUTPUT_DIR + sep + plt_save + '.png', bbox_inches='tight')
+    if show_flag:
+        plt.show()
+
+
 if __name__ == "__main__":
     # SCRIPT PARAMETERS
     system = "feedback_mu_XZ_model"  # "feedback_mu_XZ_model" or "feedback_z
@@ -62,7 +137,7 @@ if __name__ == "__main__":
     # DYNAMICS PARAMETERS
     alpha_plus = 0.0 #0.2  # 0.05 #0.4
     alpha_minus = 0.0 #0.5  # 4.95 #0.5
-    mu = 0.1  # 0.001
+    mu = 0.001  # 0.001
     a = 1.0
     b = 0.8
     c = 0.81  # 2.6 #1.2
