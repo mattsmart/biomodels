@@ -84,7 +84,7 @@ def ode_libcall(init_cond, times, system, params):
     return r, times
 
 
-def reaction_propensities(r, step, system, params):
+def reaction_propensities(r, step, system, params, fpt_flag=False):
     alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
     x_n, y_n, z_n = r[step]
     if system == "feedback_z":
@@ -94,40 +94,46 @@ def reaction_propensities(r, step, system, params):
         yz = y_n + z_n
         alpha_plus = alpha_plus * (1 + yz / (yz + PARAM_Y0_PLUS_Z0_RATIO * N))
         alpha_minus = alpha_minus * PARAM_Y0_PLUS_Z0_RATIO * N / (yz + PARAM_Y0_PLUS_Z0_RATIO * N)
-    fbar = (a*x_n + b*y_n + c*z_n + v_x + v_y + v_z) / N  # TODO flag to switch N to x + y + z
-    return [a*x_n, fbar*(x_n - 1),                      # birth/death events for x
-            b*y_n, fbar*(y_n - 1),                      # birth/death events for y
-            c*z_n, fbar*(z_n - 1),                      # birth/death events for z
-            alpha_plus*x_n, alpha_minus*y_n, mu*y_n,    # transition events
-            v_x, v_y, v_z,                              # immigration events  #TODO maybe wrong
-            mu_base*x_n]                                # special transition events
+    fbar = (a*x_n + b*y_n + c*z_n + v_x + v_y + v_z) / N    # TODO flag to switch N to x + y + z
+    rxn_prop = [a*x_n, fbar*(x_n - 1),                      # birth/death events for x
+                b*y_n, fbar*(y_n - 1),                      # birth/death events for y
+                c*z_n, fbar*(z_n - 1),                      # birth/death events for z
+                alpha_plus*x_n, alpha_minus*y_n, mu*y_n,    # transition events
+                v_x, v_y, v_z,                              # immigration events  #TODO maybe wrong
+                mu_base*x_n]                                # special transition events
+    if fpt_flag:
+        rxn_prop.append(mu*z_n)                             # special transition events for z1->z2 (extra mutation)
+    return rxn_prop
 
 
-def stoch_gillespie(init_cond, times, system, params):
+def stoch_gillespie(init_cond, num_steps, system, params, fpt_flag=False):
     # There are 12 transitions to consider:
     # - 6 birth/death of the form x_n -> x_n+1, (x birth, x death, ...), label these 0 to 5
     # - 3 transitions of the form x_n -> x_n-1, (x->y, y->x, y->z), label these 6 to 8
     # - 3 transitions associated with immigration (vx, vy, vz), label these 9 to 11
     # - 1 transitions for x->z (rare), label this 12
     # Gillespie algorithm has indefinite timestep size so consider total step count as input (times input not used)
+    # Notes on fpt_flag:
+    # - if fpt_flag (first passage time) adds extra rxn propensity for transition from z1->z2
+    # - return r[until fpt], times[until fpt]
 
-    total_steps = len(times)
-    #dt = times[1] - times[0]
-    r = np.zeros((total_steps, 3))
-    time = times[0]
-    times_stoch = np.zeros(total_steps)
-    r[0] = np.array(init_cond, dtype=int)  # note stochastic sim operates on integer population counts
+    time = 0.0
+    r = np.zeros((num_steps, 3))
+    times_stoch = np.zeros(num_steps)
+    r[0, :] = np.array(init_cond, dtype=int)  # note stochastic sim operates on integer population counts
     update_dict = {0: [1, 0, 0], 1: [-1, 0, 0],                  # birth/death events for x
                    2: [0, 1, 0], 3: [0, -1, 0],                  # birth/death events for y
                    4: [0, 0, 1], 5: [0, 0, -1],                  # birth/death events for z
                    6: [-1, 1, 0], 7: [1, -1, 0], 8: [0, -1, 1],  # transition events
                    9: [1, 0, 0], 10: [0, 1, 0], 11: [0, 0, 1],   # immigration events
-                   12: [-1, 0, 1]}                               # x->z transition events
-    for step in xrange(total_steps-1):
+                   12: [-1, 0, 1], 13: [0, 0, -1]}               # special x->z, fpt z1->z2 (z2 untracked) transitions
+    fpt_rxn_idx = 13
+    fpt_event = False
+    for step in xrange(num_steps-1):
         r1 = random()  # used to determine time of next reaction
         r2 = random()  # used to partition the probabilities of each reaction
         # compute propensity functions (alpha) and the partitions for all 12 transitions
-        alpha = reaction_propensities(r, step, system, params)
+        alpha = reaction_propensities(r, step, system, params, fpt_flag=fpt_flag)
         alpha_partitions = np.zeros(len(alpha)+1)
         alpha_sum = 0.0
         for i in xrange(len(alpha)):
@@ -137,15 +143,28 @@ def stoch_gillespie(init_cond, times, system, params):
         # find time to first reaction
         tau = np.log(1 / r1) / alpha_sum
         # compute number of molecules at time t + tau
+        """
         for species in xrange(3):
             for rxn_idx in xrange(len(alpha)):
-                if alpha_partitions[rxn_idx] <= r2 < alpha_partitions[rxn_idx + 1]:  # i.e. rxn idx has occurred
+                if alpha_partitions[rxn_idx] <= r2 < alpha_partitions[rxn_idx + 1]:  # i.e. rxn_idx has occurred
                     pop_updates = update_dict[rxn_idx]
                     r[step+1] = r[step] + pop_updates
+        """
+        for rxn_idx in xrange(len(alpha)):
+            if alpha_partitions[rxn_idx] <= r2 < alpha_partitions[rxn_idx + 1]:  # i.e. rxn_idx has occurred
+                pop_updates = update_dict[rxn_idx]
+                r[step+1] = r[step] + pop_updates
+                break
         time += tau
         times_stoch[step + 1] = time
-        #if i % 10 == 0:
-        #    print step
+        if rxn_idx == fpt_rxn_idx:
+            assert fpt_flag                          # just in case, not much cost
+            return r[:step+2, :], times_stoch[:step+2]  # end sim because fpt achieved
+    if fpt_flag:  # if code gets here should recursively continue the simulation
+        init_cond = r[-1]
+        r_redo, times_stoch_redo = stoch_gillespie(init_cond, num_steps, system, params, fpt_flag=fpt_flag)
+        times_stoch_redo_shifted = times_stoch_redo + times_stoch[-1]  # shift start time of new sim by last time
+        return np.concatenate((r, r_redo)), np.concatenate((times_stoch, times_stoch_redo_shifted))
     return r, times_stoch
 
 
@@ -158,7 +177,7 @@ def simulate_dynamics_general(init_cond, times, params, method="libcall", system
     elif method == "euler":
         return ode_euler(init_cond, times, system, params)
     elif method == "gillespie":
-        return stoch_gillespie(init_cond, times, system, params)
+        return stoch_gillespie(init_cond, len(times), system, params)
     else:
         raise ValueError("method arg invalid, must be one of %s" % SIM_METHODS)
 
