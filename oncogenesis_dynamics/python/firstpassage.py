@@ -1,8 +1,10 @@
+import csv
 import matplotlib.pyplot as plt
 import numpy as np
 from os import sep
 
 from constants import OUTPUT_DIR, PARAMS_ID
+from data_io import write_params
 from formulae import stoch_gillespie
 
 
@@ -15,13 +17,28 @@ def get_fpt(ensemble, init_cond, num_steps, params, system):
     return fp_times
 
 
+def write_fpt_and_params(fpt, params, system, filename="fpt", filename_mod=""):
+    if filename_mod != "":
+        filename_params = filename + "_" + filename_mod + "_params.csv"
+        filename_fpt = filename + "_" + filename_mod + "_data.txt"
+    else:
+        filename_params = filename + "_params.csv"
+        filename_fpt = filename + "_data.txt"
+    write_params(params, system, OUTPUT_DIR, filename_params)
+    with open(OUTPUT_DIR + sep + filename_fpt, "wb") as csv_file:
+        writer = csv.writer(csv_file, delimiter=',')
+        for idx in xrange(len(fpt)):
+            writer.writerow([str(fpt[idx])])
+    return OUTPUT_DIR + sep + filename_fpt
+
+
 def fpt_histogram(fpt_list, params, system, show_flag=False, figname_mod=""):
     ensemble_size = len(fpt_list)
     plt.hist(fpt_list, bins='auto')
-    plt.title('First passage time histogram (%d runs) - %s' % ensemble_size, system)
+    plt.title('First passage time histogram (%d runs) - %s' % (ensemble_size, system))
     ax = plt.gca()
-    ax.set_xlabel('frequency')
-    ax.set_ylabel('fpt')
+    ax.set_xlabel('fpt')
+    ax.set_ylabel('frequency')
     # CREATE TABLE OF PARAMS
     row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
     table_vals = [[params[i]] for i in xrange(len(PARAMS_ID))]
@@ -45,7 +62,7 @@ if __name__ == "__main__":
     # DYNAMICS PARAMETERS
     alpha_plus = 0.0 #0.2  # 0.05 #0.4
     alpha_minus = 0.0 #0.5  # 4.95 #0.5
-    mu = 0.001  # 0.01
+    mu = 0.1  # 0.001
     a = 1.0
     b = 0.8
     c = 0.81  # 2.6 #1.2
@@ -60,4 +77,5 @@ if __name__ == "__main__":
     init_cond = [int(N), 0, 0]
 
     fp_times = get_fpt(ensemble, init_cond, num_steps, params, system)
+    write_fpt_and_params(fp_times, params, system)
     fpt_histogram(fp_times, params, system, show_flag=True, figname_mod="XZ_model_withFeedback_mu1e-1")

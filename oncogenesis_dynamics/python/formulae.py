@@ -95,6 +95,8 @@ def reaction_propensities(r, step, system, params, fpt_flag=False):
         alpha_plus = alpha_plus * (1 + yz / (yz + PARAM_Y0_PLUS_Z0_RATIO * N))
         alpha_minus = alpha_minus * PARAM_Y0_PLUS_Z0_RATIO * N / (yz + PARAM_Y0_PLUS_Z0_RATIO * N)
     elif system == "feedback_mu_XZ_model":
+        alpha_plus = 0.0
+        alpha_minus = 0.0
         mu_base = mu_base * (1 + PARAM_K * z_n / (z_n + PARAM_Z0_RATIO * N))
     fbar = (a*x_n + b*y_n + c*z_n + v_x + v_y + v_z) / N    # TODO flag to switch N to x + y + z
     rxn_prop = [a*x_n, fbar*(x_n),                      # birth/death events for x  TODO: is it fbar*(x_n - 1)
