@@ -48,7 +48,7 @@ if __name__ == "__main__":
     mu = 0.001  # 0.01
     a = 1.0
     b = 0.8
-    c = 0.81  # 2.6 #1.2
+    c = 0.93  # 2.6 #1.2
     N = 100.0  # 100
     v_x = 0.0
     v_y = 0.0
@@ -56,13 +56,14 @@ if __name__ == "__main__":
     mu_base = 0.0
     params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
 
-    """
-    phase_portrait(params, system, figname_mod="_main")
-    """
 
+    phase_portrait(params, system, num_traj=20, figname_mod="_main")
+
+    """
     param_vary = "c"
     for pv in [0.81, 0.83, 0.85, 0.87, 0.89, 0.91, 0.93, 0.95, 0.97, 0.99, 1.01, 1.03]:
         params_step = params
         params_step[PARAMS_ID_INV[param_vary]] = pv
         fmname = "_main_%s=%.3f" % (param_vary, pv)
         phase_portrait(params, system, figname_mod=fmname)
+    """
