@@ -58,9 +58,13 @@ def read_params(filedir, filename):
         csvfile.seek(0)
         params = [0.0]*num_params
         for idx, pair in enumerate(datareader):
-            assert pair[0] == PARAMS_ID[idx]
-            if pair[1] != 'None':
-                params[idx] = float(pair[1])
+            if idx < num_params - 1:
+                assert pair[0] == PARAMS_ID[idx]
+                if pair[1] != 'None':
+                    params[idx] = float(pair[1])
+                else:
+                    params[idx] = None
             else:
-                params[idx] = None
+                assert pair[0] == 'system'
+                params[idx] = pair[1]
     return params
