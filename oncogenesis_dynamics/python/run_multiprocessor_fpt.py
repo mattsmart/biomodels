@@ -35,7 +35,6 @@ if __name__ == "__main__":
     # SCRIPT PARAMETERS
     system = "feedback_z"  # "feedback_mu_XZ_model" or "feedback_z"
     num_steps = 100000
-    init_cond = [int(N), 0, 0]
 
     # DYNAMICS PARAMETERS
     alpha_plus = 0.2  # 0.2
@@ -50,6 +49,8 @@ if __name__ == "__main__":
     v_z = 0.0
     mu_base = 0.0  #mu*1e-1
     params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
+
+    init_cond = [int(N), 0, 0]
 
     fn_args_dict = [0]*NUM_PROCESSES
     print "NUM_PROCESSES:", NUM_PROCESSES
