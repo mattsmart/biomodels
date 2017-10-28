@@ -1,15 +1,20 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import random
+from operator import itemgetter
 from os import sep
 
+
 from constants import OUTPUT_DIR, PARAMS_ID, PARAMS_ID_INV, NUM_TRAJ, TIME_START, TIME_END, NUM_STEPS, SIM_METHOD
-from formulae import bifurc_value, fp_from_timeseries
+from formulae import bifurc_value, fp_from_timeseries, get_physical_and_stable_fp
 from plotting import plot_trajectory_mono, plot_endpoint_mono, plot_simplex, plot_trajectory
 from trajectory import trajectory_simulate
 
 
-def phase_portrait(params, system, num_traj=NUM_TRAJ, sim_method=SIM_METHOD, figname_mod=""):
+BASIN_COLOUR_DICT = {0: 'blue', 1: 'red', 2:'green'}
+
+
+def phase_portrait(params, system, num_traj=NUM_TRAJ, sim_method=SIM_METHOD, figname_mod="", basins_flag=False):
     # GET TRAJECTORIES
     init_conds = np.zeros((num_traj, 3))
     for k in xrange(num_traj):
@@ -19,22 +24,35 @@ def phase_portrait(params, system, num_traj=NUM_TRAJ, sim_method=SIM_METHOD, fig
         init_cond = [ak, bk, ck]
         init_conds[k,:] = np.array(init_cond)
 
+    plt_title = "Phase portrait (%d traj) System: %s" % (num_traj, system)
+    plt_save = OUTPUT_DIR + sep + "trajectory_simplex_multi%s.png" % figname_mod
+    if basins_flag:
+        sorted_fps = sorted(get_physical_and_stable_fp(params, system), key=itemgetter(2))
+        plt_title = "Basins of attraction (%d traj) System: %s" % (num_traj, system)
+        plt_save = OUTPUT_DIR + sep + "trajectory_simplex_basins%s.png" % figname_mod
+
     fig_traj = plot_simplex(N)
     ax_traj = fig_traj.gca()
     ax_traj.view_init(5, 35)  # ax.view_init(-45, -15)
     for idx, init_cond in enumerate(init_conds):
         r, times, _, _ = trajectory_simulate(params, system, init_cond=init_cond, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
                                              sim_method=sim_method, flag_showplt=False, flag_saveplt=False)
-        ax_traj.plot(r[:, 0], r[:, 1], r[:, 2], label='trajectory')
+        if basins_flag:
+            endpt = r[-1,:]
+            for idx, fp in enumerate(sorted_fps):
+                if np.linalg.norm(endpt - fp) <= 10-2:  # check if trajectory went to that fp
+                    ax_traj.plot(r[:, 0], r[:, 1], r[:, 2], label='trajectory', color=BASIN_COLOUR_DICT[idx])
+        else:
+            ax_traj.plot(r[:, 0], r[:, 1], r[:, 2], label='trajectory')
         #assert np.abs(np.sum(r[-1, :]) - N) <= 0.001
-    plt.title('Phase portrait (%d traj) System: %s' % (num_traj, system))
+    plt.title(plt_title)
     # CREATE TABLE OF PARAMS
     # bbox is x0, y0, height, width
     row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
     table_vals = [[params[i]] for i in xrange(len(PARAMS_ID))]
     param_table = plt.table(cellText=table_vals, colWidths=[0.1]*3, rowLabels=row_labels, loc='best',
                             bbox=(1.1, 0.2, 0.1, 0.75))
-    plt.savefig(OUTPUT_DIR + sep + "trajectory_simplex_multi%s.png" % figname_mod, bbox_inches='tight')
+    plt.savefig(plt_save, bbox_inches='tight')
     return plt.gca()
 
 
@@ -48,7 +66,7 @@ if __name__ == "__main__":
     mu = 0.001  # 0.01
     a = 1.0
     b = 0.8
-    c = 0.93  # 2.6 #1.2
+    c = 0.86  # 2.6 #1.2
     N = 100.0  # 100
     v_x = 0.0
     v_y = 0.0
@@ -56,8 +74,8 @@ if __name__ == "__main__":
     mu_base = 0.0
     params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
 
-
-    phase_portrait(params, system, num_traj=20, figname_mod="_main")
+    phase_portrait(params, system, num_traj=800, figname_mod="_main", basins_flag=True)
+    phase_portrait(params, system, num_traj=8, figname_mod="_main", basins_flag=False)
 
     """
     param_vary = "c"
