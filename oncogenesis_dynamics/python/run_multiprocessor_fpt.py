@@ -1,15 +1,16 @@
+import argparse
 import numpy as np
 import time
-from multiprocessing import Pool
-from multiprocessing import cpu_count
+from multiprocessing import Pool, cpu_count
 
 from firstpassage import get_fpt, fpt_histogram, write_fpt_and_params
 
+
 # CONSTANTS
 NUM_PROCESSES = -1 + cpu_count()
-
-
 pool_fn = get_fpt
+
+
 def pool_fn_wrapper(fn_args_dict):
     if fn_args_dict['kwargs'] is not None:
         return pool_fn(*fn_args_dict['args'], **fn_args_dict['kwargs'])
@@ -17,12 +18,24 @@ def pool_fn_wrapper(fn_args_dict):
         return pool_fn(*fn_args_dict['args'])
 
 
+def fpt_argparser():
+    parser = argparse.ArgumentParser(description='FPT data multiprocessing script')
+    parser.add_argument('-n', '--ensemble', metavar='N', type=str,
+                        help='ensemble size (to divide amongst cores)', default=1008)
+    parser.add_argument('-s', '--suffix', metavar='S', type=str,
+                        help='output filename modifier', default="main")
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
+    args = fpt_argparser()
+    ensemble = int(args.ensemble)
+    suffix = args.suffix
 
     # SCRIPT PARAMETERS
     system = "feedback_z"  # "feedback_mu_XZ_model" or "feedback_z"
     num_steps = 100000
-    ensemble = 1001
+    init_cond = [int(N), 0, 0]
 
     # DYNAMICS PARAMETERS
     alpha_plus = 0.2  # 0.2
@@ -30,15 +43,13 @@ if __name__ == "__main__":
     mu = 0.001  # 0.01
     a = 1.0
     b = 0.8
-    c = 0.81  # 1.2
-    N = 100.0  # 100.0
+    c = 0.95  # 1.2
+    N = 10000.0  # 100.0
     v_x = 0.0
     v_y = 0.0
     v_z = 0.0
     mu_base = 0.0  #mu*1e-1
     params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
-
-    init_cond = [int(N), 0, 0]
 
     fn_args_dict = [0]*NUM_PROCESSES
     print "NUM_PROCESSES:", NUM_PROCESSES
@@ -58,6 +69,6 @@ if __name__ == "__main__":
     fp_times = np.zeros(ensemble)
     for i, result in enumerate(results):
         fp_times[i*subensemble:(i+1)*subensemble] = result
-    print "mean", np.mean(fp_times)
-    write_fpt_and_params(fp_times, params, system, filename="fpt_xyz_feedbackz_1000")
-    fpt_histogram(fp_times, params, system, show_flag=True, figname_mod="_xyz_feedbackz")
+    print "FPT mean", np.mean(fp_times)
+    write_fpt_and_params(fp_times, params, system, filename="fpt_%s_ens%d" % (system, ensemble), filename_mod=suffix)
+    fpt_histogram(fp_times, params, system, show_flag=False, figname_mod="_%s_ens%d_%s" % (system, ensemble, suffix))
