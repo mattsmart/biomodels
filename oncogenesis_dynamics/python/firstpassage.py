@@ -1,7 +1,9 @@
 import csv
 import matplotlib.pyplot as plt
 import numpy as np
-from os import sep
+from os import sep, listdir, mkdir
+from os.path import join, isfile, basename
+
 
 from constants import OUTPUT_DIR, PARAMS_ID, ODE_SYSTEMS
 from data_io import write_params, read_params
@@ -17,19 +19,19 @@ def get_fpt(ensemble, init_cond, num_steps, params, system):
     return fp_times
 
 
-def write_fpt_and_params(fpt, params, system, filename="fpt", filename_mod=""):
+def write_fpt_and_params(fpt, params, system, filedir=OUTPUT_DIR, filename="fpt", filename_mod=""):
     if filename_mod != "":
         filename_params = filename + "_" + filename_mod + "_params.csv"
         filename_fpt = filename + "_" + filename_mod + "_data.txt"
     else:
         filename_params = filename + "_params.csv"
         filename_fpt = filename + "_data.txt"
-    write_params(params, system, OUTPUT_DIR, filename_params)
-    with open(OUTPUT_DIR + sep + filename_fpt, "wb") as csv_file:
+    write_params(params, system, filedir, filename_params)
+    with open(filedir + sep + filename_fpt, "wb") as csv_file:
         writer = csv.writer(csv_file, delimiter=',')
         for idx in xrange(len(fpt)):
             writer.writerow([str(fpt[idx])])
-    return OUTPUT_DIR + sep + filename_fpt
+    return filedir + sep + filename_fpt
 
 
 def read_fpt_and_params(filedir, filename_data, filename_params):
@@ -45,6 +47,30 @@ def read_fpt_and_params(filedir, filename_data, filename_params):
         for idx, fpt in enumerate(datareader):
             fp_times[idx] = float(fpt[0])
     return fp_times, params, system
+
+
+def collect_fpt_and_params(filedir):
+    # NOTE: assumes folder structure 8s N files of ..._data and N files of ..._params which ALL correspond
+    onlyfiles = [f for f in listdir(filedir) if isfile(join(filedir, f))]
+    datafiles = [f for f in onlyfiles if "data" == f[-8:-4]]
+    paramfiles = [f for f in onlyfiles if "params" == f[-10:-4]]
+    assert len(datafiles) == len(paramfiles)
+
+    params_0 = read_params(filedir, basename(paramfiles[0]))
+    for pf in paramfiles:
+        params = read_params(filedir, basename(pf))
+        assert params == params_0
+
+    fpt_collected = []
+    for idx, df in enumerate(datafiles):
+        fp_times, params, system = read_fpt_and_params(filedir, df, basename(paramfiles[0]))
+        fpt_collected += fp_times
+
+    dirname = "collected_%d" % len(fpt_collected)
+    collected_dir = filedir + sep + dirname
+    mkdir(collected_dir)
+    write_fpt_and_params(fpt_collected, params_0[:-1], params_0[-1], filedir=collected_dir, filename="fpt", filename_mod=dirname)
+    return collected_dir
 
 
 def fpt_histogram(fpt_list, params, system, show_flag=False, figname_mod="", x_log10_flag=False, y_log10_flag=False):
@@ -191,3 +217,6 @@ if __name__ == "__main__":
     fpt_histogram_multi(multi_fpt, labels, show_flag=True, y_log10_flag=True)
 
     # print "XZ mean and log10", np.mean(fp_times_xz), np.log10(np.mean(fp_times_xz))
+
+    #dbdir = OUTPUT_DIR + sep + "tocollect"
+    #collect_fpt_and_params(dbdir)
