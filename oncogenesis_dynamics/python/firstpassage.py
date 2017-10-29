@@ -166,23 +166,28 @@ if __name__ == "__main__":
     """
 
     dbdir = OUTPUT_DIR
-    dbdir_c81 = dbdir + "1000_xyz_feedbackZ_c81"
-    dbdir_c86 = dbdir + "1000_xyz_feedbackZ_c86"
-    dbdir_c95 = dbdir + "1000_xyz_feedbackZ_c95"
-    dbdir_c81_xz = dbdir + "1000_xz_feedbackMUBASE_c81"
-    fp_times_xyz_c081, params_a, system_a = read_fpt_and_params(dbdir_c81, "fpt_xyz_feedbackz_1000_c81_data.txt",
-                                                                "fpt_xyz_feedbackz_1000_c81_params.csv")
-    fp_times_xyz_c086, params_b, system_b = read_fpt_and_params(dbdir_c86, "fpt_xyz_feedbackz_1000_c86_data.txt",
-                                                                "fpt_xyz_feedbackz_1000_c86_params.csv")
-    fp_times_xyz_c095, params_c, system_c = read_fpt_and_params(dbdir_c95, "fpt_xyz_feedbackz_1000_c95_data.txt",
-                                                                "fpt_xyz_feedbackz_1000_c95_params.csv")
-    fp_times_xz_c081, params_d, system_d = read_fpt_and_params(dbdir_c81_xz, "fpt_xz_1000_c81_data.txt",
-                                                                "fpt_xz_1000_c81_params.csv")
+    dbdir_c86 = dbdir + sep + "feedbackz_c86"
+    dbdir_c95 = dbdir + sep + "feedbackz_c95"
+    #dbdir_c95 = dbdir + "1000_xyz_feedbackZ_c95"
+    #dbdir_c81_xz = dbdir + "1000_xz_feedbackMUBASE_c81"
+    fp_times_xyz_c086, params_a, system_a = read_fpt_and_params(dbdir_c86, "fpt_feedback_z_ens256_N10k_c086_full_data.txt",
+                                                                "fpt_feedback_z_ens256_N10k_c086_full_params.csv")
+    fp_times_xyz_c095, params_b, system_b = read_fpt_and_params(dbdir_c95, "fpt_xyz_feedbackz_run1000_c95_N10k_data.txt",
+                                                                "fpt_xyz_feedbackz_run1000_c95_N10k_params.csv")
+    #fp_times_xyz_c095, params_c, system_c = read_fpt_and_params(dbdir_c95, "fpt_xyz_feedbackz_1000_c95_data.txt",
+    #                                                            "fpt_xyz_feedbackz_1000_c95_params.csv")
+    #fp_times_xz_c081, params_d, system_d = read_fpt_and_params(dbdir_c81_xz, "fpt_xz_1000_c81_data.txt",
+    #                                                            "fpt_xz_1000_c81_params.csv")
 
-    fpt_histogram(fp_times_xyz_c086, params_b, system_b, y_log10_flag=True, figname_mod="_xyz_feedbackz_c86_logy")
+    fpt_histogram(fp_times_xyz_c095, params_b, system_b, y_log10_flag=False, figname_mod="_xyz_feedbackz_N10k_c95")
+    plt.close('all')
+    fpt_histogram(fp_times_xyz_c095, params_b, system_b, y_log10_flag=True, figname_mod="_xyz_feedbackz_N10k_c95_logy")
+    plt.close('all')
 
-    multi_fpt = (fp_times_xz_c081, fp_times_xyz_c081, fp_times_xyz_c086, fp_times_xyz_c095)
-    labels = ("XZ_c0.81", "XYZ_c0.81", "XYZ_c0.86", "XYZ_c0.95")
+    multi_fpt = [fp_times_xyz_c086, fp_times_xyz_c095]
+    labels = ("XYZ_c0.86_N10k", "XYZ_c0.95_N10k")
+    fpt_histogram_multi(multi_fpt, labels, show_flag=True, y_log10_flag=False)
+    plt.close('all')
     fpt_histogram_multi(multi_fpt, labels, show_flag=True, y_log10_flag=True)
 
     # print "XZ mean and log10", np.mean(fp_times_xz), np.log10(np.mean(fp_times_xz))
