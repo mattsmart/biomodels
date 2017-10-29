@@ -49,6 +49,8 @@ def read_fpt_and_params(filedir, filename_data, filename_params):
 
 def fpt_histogram(fpt_list, params, system, show_flag=False, figname_mod="", x_log10_flag=False, y_log10_flag=False):
     ensemble_size = len(fpt_list)
+
+    bins = np.linspace(np.min(fpt_list), np.max(fpt_list), 50)
     if x_log10_flag:
         max_log = np.ceil(np.max(np.log10(fpt_list)))
         plt.hist(fpt_list, bins=np.logspace(0.1, max_log, 50))
@@ -57,13 +59,13 @@ def fpt_histogram(fpt_list, params, system, show_flag=False, figname_mod="", x_l
         ax.set_ylabel('frequency')
         ax.set_xscale("log", nonposx='clip')
     elif y_log10_flag:
-        plt.hist(fpt_list, bins='auto')
+        plt.hist(fpt_list, bins=bins)
         ax = plt.gca()
         ax.set_xlabel('fpt')
         ax.set_ylabel('log10(frequency)')
         ax.set_yscale("log", nonposx='clip')
     else:
-        plt.hist(fpt_list, bins='auto')
+        plt.hist(fpt_list, bins=bins)
         ax = plt.gca()
         ax.set_xlabel('fpt')
         ax.set_ylabel('frequency')
@@ -73,7 +75,6 @@ def fpt_histogram(fpt_list, params, system, show_flag=False, figname_mod="", x_l
     # CREATE TABLE OF PARAMS
     row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
     table_vals = [[params[i]] for i in xrange(len(PARAMS_ID))]
-    print len(row_labels), len(table_vals)
     param_table = plt.table(cellText=table_vals,
                             colWidths=[0.1]*3,
                             rowLabels=row_labels,
@@ -85,12 +86,20 @@ def fpt_histogram(fpt_list, params, system, show_flag=False, figname_mod="", x_l
 
 
 def fpt_histogram_multi(multi_fpt_list, labels, show_flag=False, figname_mod="", x_log10_flag=False, y_log10_flag=False):
-    ensemble_size = len(multi_fpt_list[0])
-    bins = np.linspace(np.min(multi_fpt_list), np.max(multi_fpt_list), 50)
+
+    # resize fpt lists if not all same size (to the min size)
+    fpt_lengths = [len(fpt) for fpt in multi_fpt_list]
+    ensemble_size = np.min(fpt_lengths)
+    if sum(fpt_lengths - ensemble_size) > 0:
+        print "Resizing multi_fpt_list elements:", fpt_lengths, "to the min size of:", ensemble_size
+        for idx in xrange(len(fpt_lengths)):
+            multi_fpt_list[idx] = multi_fpt_list[idx][:ensemble_size]
+
+    bins = np.linspace(np.min(multi_fpt_list), np.max(multi_fpt_list), 100)
     if x_log10_flag:
         max_log = np.ceil(np.max(np.log10(multi_fpt_list)))
         for idx, fpt_list in enumerate(multi_fpt_list):
-            plt.hist(fpt_list, bins=np.logspace(0.1, max_log, 50), alpha=0.5, label=labels[idx])
+            plt.hist(fpt_list, bins=np.logspace(0.1, max_log, 100), alpha=0.5, label=labels[idx])
         ax = plt.gca()
         ax.set_xlabel('log10(fpt)')
         ax.set_ylabel('frequency')
@@ -116,7 +125,6 @@ def fpt_histogram_multi(multi_fpt_list, labels, show_flag=False, figname_mod="",
     """
     row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
     table_vals = [[params[i]] for i in xrange(len(PARAMS_ID))]
-    print len(row_labels), len(table_vals)
     param_table = plt.table(cellText=table_vals,
                             colWidths=[0.1]*3,
                             rowLabels=row_labels,
