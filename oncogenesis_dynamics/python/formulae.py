@@ -163,7 +163,7 @@ def stoch_gillespie(init_cond, num_steps, system, params, fpt_flag=False):
         for i in xrange(len(alpha)):
             alpha_sum += alpha[i]
             alpha_partitions[i + 1] = alpha_sum
-        alpha_partitions = alpha_partitions #/ alpha_sum
+        #alpha_partitions = alpha_partitions / alpha_sum  #rescale r2 instead to save cycles
 
         # find time to first reaction
         tau = np.log(1 / r1) / alpha_sum

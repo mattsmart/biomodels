@@ -1,8 +1,10 @@
 import argparse
 import numpy as np
+import time
 from multiprocessing import cpu_count
 
-from firstpassage import write_fpt_and_params, fast_fp_times
+from constants import PARAMS_ID_INV
+from firstpassage import fast_mean_fpt_varying, plot_mean_fpt_varying
 
 
 def fpt_argparser():
@@ -39,8 +41,15 @@ if __name__ == "__main__":
     mu_base = 0.0  #mu*1e-1
     params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
 
-    init_cond = [int(N), 0, 0]
+    param_to_vary = 'N'
+    #param_set = [10,20,30,40,50,60,70,80,90,100,200,300,400,500,1000,2000,3000,4000,5000,10000]
+    param_set = np.logspace(1.0, 6.0, num=40)
+    print param_set
+    mean_fpt_varying = fast_mean_fpt_varying(param_to_vary, param_set, params, system, num_processes, samplesize=ensemble)
+    for idx, elem in enumerate(mean_fpt_varying):
+        print param_set[idx], elem
+    plot_mean_fpt_varying(mean_fpt_varying, param_to_vary, param_set, params, system, ensemble, show_flag=True)
 
-    fp_times = fast_fp_times(ensemble, init_cond, params, system, num_processes)
-    write_fpt_and_params(fp_times, params, system, filename="fpt_%s_ens%d" % (system, ensemble), filename_mod=suffix)
+    #print "FPT mean", np.mean(fp_times)
+    #write_fpt_and_params(fp_times, params, system, filename="fpt_%s_ens%d" % (system, ensemble), filename_mod=suffix)
     #fpt_histogram(fp_times, params, system, show_flag=False, figname_mod="_%s_ens%d_%s" % (system, ensemble, suffix))
