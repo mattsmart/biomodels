@@ -34,7 +34,17 @@ def write_fpt_and_params(fpt, params, system, filedir=OUTPUT_DIR, filename="fpt"
     return filedir + sep + filename_fpt
 
 
-def read_fpt_and_params(filedir, filename_data, filename_params):
+def read_fpt_and_params(filedir, filename_data=None, filename_params=None):
+    onlyfiles = [f for f in listdir(filedir) if isfile(join(filedir, f))]
+    datafiles = [f for f in onlyfiles if "data" == f[-8:-4]]
+    paramfiles = [f for f in onlyfiles if "params" == f[-10:-4]]
+    if filename_data is None:
+        assert len(datafiles) == 1
+        filename_data = basename(datafiles[0])
+    if filename_params is None:
+        assert len(paramfiles) == 1
+        filename_params = basename(paramfiles[0])
+
     params_with_system = read_params(filedir, filename_params)
     assert params_with_system[-1] in ODE_SYSTEMS
     params = params_with_system[:-1]
@@ -196,27 +206,27 @@ if __name__ == "__main__":
     dbdir_c95 = dbdir + sep + "feedbackz_c95"
     #dbdir_c95 = dbdir + "1000_xyz_feedbackZ_c95"
     #dbdir_c81_xz = dbdir + "1000_xz_feedbackMUBASE_c81"
-    fp_times_xyz_c086, params_a, system_a = read_fpt_and_params(dbdir_c86, "fpt_feedback_z_ens256_N10k_c086_full_data.txt",
-                                                                "fpt_feedback_z_ens256_N10k_c086_full_params.csv")
-    fp_times_xyz_c095, params_b, system_b = read_fpt_and_params(dbdir_c95, "fpt_xyz_feedbackz_run1000_c95_N10k_data.txt",
-                                                                "fpt_xyz_feedbackz_run1000_c95_N10k_params.csv")
+    #fp_times_xyz_c086, params_a, system_a = read_fpt_and_params(dbdir_c86, "fpt_feedback_z_ens256_N10k_c086_full_data.txt",
+    #                                                            "fpt_feedback_z_ens256_N10k_c086_full_params.csv")
+    fp_times_xyz_c095, params_b, system_b = read_fpt_and_params(dbdir_c95)
     #fp_times_xyz_c095, params_c, system_c = read_fpt_and_params(dbdir_c95, "fpt_xyz_feedbackz_1000_c95_data.txt",
     #                                                            "fpt_xyz_feedbackz_1000_c95_params.csv")
     #fp_times_xz_c081, params_d, system_d = read_fpt_and_params(dbdir_c81_xz, "fpt_xz_1000_c81_data.txt",
     #                                                            "fpt_xz_1000_c81_params.csv")
 
-    fpt_histogram(fp_times_xyz_c095, params_b, system_b, y_log10_flag=False, figname_mod="_xyz_feedbackz_N10k_c95")
+    fpt_histogram(fp_times_xyz_c095, params_b, system_b, y_log10_flag=False, figname_mod="_xyz_feedbackz_N10k_c95_ap18")
     plt.close('all')
-    fpt_histogram(fp_times_xyz_c095, params_b, system_b, y_log10_flag=True, figname_mod="_xyz_feedbackz_N10k_c95_logy")
+    fpt_histogram(fp_times_xyz_c095, params_b, system_b, y_log10_flag=True, figname_mod="_xyz_feedbackz_N10k_c95_ap18_logy")
     plt.close('all')
 
+    """
     multi_fpt = [fp_times_xyz_c086, fp_times_xyz_c095]
     labels = ("XYZ_c0.86_N10k", "XYZ_c0.95_N10k")
     fpt_histogram_multi(multi_fpt, labels, show_flag=True, y_log10_flag=False)
     plt.close('all')
     fpt_histogram_multi(multi_fpt, labels, show_flag=True, y_log10_flag=True)
+    """
 
     # print "XZ mean and log10", np.mean(fp_times_xz), np.log10(np.mean(fp_times_xz))
-
-    #dbdir = OUTPUT_DIR + sep + "tocollect"
-    #collect_fpt_and_params(dbdir)
+    dbdir = OUTPUT_DIR + sep + "tocollect"
+    collect_fpt_and_params(dbdir)
