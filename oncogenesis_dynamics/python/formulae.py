@@ -110,6 +110,26 @@ def reaction_propensities(r, step, system, params, fpt_flag=False):
     return rxn_prop
 
 
+def bisecting_rxn_search_iter(propensities, L, R, T, m=0):
+    while L<=R:
+        m = int(np.floor((L + R) / 2))
+        if propensities[m] <= T:
+            L=m+1
+        else:
+            R=m-1
+    return m
+
+
+def bisecting_rxn_search_recurse(propensities, L, R, T, m=0):
+    if L > R:
+        return m
+    m = int(np.floor((L + R) / 2))
+    if propensities[m] <= T:
+        return bisecting_rxn_search_recurse(propensities, m+1, R, T, m=m)
+    else:
+        return bisecting_rxn_search_recurse(propensities, L, m-1, T, m=m)
+
+
 def stoch_gillespie(init_cond, num_steps, system, params, fpt_flag=False):
     # There are 12 transitions to consider:
     # - 6 birth/death of the form x_n -> x_n+1, (x birth, x death, ...), label these 0 to 5
@@ -143,23 +163,25 @@ def stoch_gillespie(init_cond, num_steps, system, params, fpt_flag=False):
         for i in xrange(len(alpha)):
             alpha_sum += alpha[i]
             alpha_partitions[i + 1] = alpha_sum
-        alpha_partitions = alpha_partitions / alpha_sum
+        alpha_partitions = alpha_partitions #/ alpha_sum
 
         # find time to first reaction
         tau = np.log(1 / r1) / alpha_sum
-        # compute number of molecules at time t + tau
-        """
-        for species in xrange(3):
-            for rxn_idx in xrange(len(alpha)):
-                if alpha_partitions[rxn_idx] <= r2 < alpha_partitions[rxn_idx + 1]:  # i.e. rxn_idx has occurred
-                    pop_updates = update_dict[rxn_idx]
-                    r[step+1] = r[step] + pop_updates
-        """
+
+        # BISECTING SEARCH METHOD (slower for small number of reactions)
+        #r2_scaled = alpha_sum * r2
+        #rxn_idx = bisecting_rxn_search(alpha_partitions, 0, len(alpha_partitions), r2_scaled)
+        #pop_updates = update_dict[rxn_idx]
+        #r[step + 1] = r[step] + pop_updates
+
+        #DIRECT SEARCH METHOD (faster for 14 or fewer rxns so far)
+        r2_scaled = alpha_sum*r2
         for rxn_idx in xrange(len(alpha)):
-            if alpha_partitions[rxn_idx] <= r2 < alpha_partitions[rxn_idx + 1]:  # i.e. rxn_idx has occurred
+            if alpha_partitions[rxn_idx] <= r2_scaled < alpha_partitions[rxn_idx + 1]:  # i.e. rxn_idx has occurred
                 pop_updates = update_dict[rxn_idx]
                 r[step+1] = r[step] + pop_updates
                 break
+
         time += tau
         times_stoch[step + 1] = time
         if rxn_idx == fpt_rxn_idx:
