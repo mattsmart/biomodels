@@ -85,11 +85,11 @@ def write_fpt_and_params(fpt, params, system, filedir=OUTPUT_DIR, filename="fpt"
 
 def write_varying_mean_sd_fpt_and_params(fpt_mean, fpt_sd, param_vary_name, param_vary_set, params, system, filedir=OUTPUT_DIR, filename="fpt_stats", filename_mod=""):
     if filename_mod != "":
-        filename_params = filename + "_" + filename_mod + "_params.csv"
+        filename_params = filename + "_" + filename_mod + "_mean_sd_varying_%s_params.csv" % param_vary_name
         filename_fpt = filename + "_" + filename_mod + "_mean_sd_varying_%s.txt" % param_vary_name
     else:
-        filename_params = filename + "_params.csv"
-        filename_fpt = filename + "_data.txt"
+        filename_params = filename + "_mean_sd_varying_%s_params.csv" % param_vary_name
+        filename_fpt = filename + "_mean_sd_varying_%s.txt" % param_vary_name
     params[PARAMS_ID_INV[param_vary_name]] = None
     write_params(params, system, filedir, filename_params)
     with open(filedir + sep + filename_fpt, "wb") as csv_file:
@@ -335,12 +335,13 @@ if __name__ == "__main__":
         print len(fp_times_xyz_10k), "is, ", true_mean10k, "| ", k, "is", np.mean(subsample)
     """
 
-    datafile = OUTPUT_DIR + sep + "fpt_stats_4hr_mean_sd_varying_c.txt"
-    paramfile = OUTPUT_DIR + sep + "fpt_stats_4hr_params.csv"
+    datafile = OUTPUT_DIR + sep + "fpt_stats_N100_c85_n64_4hr_mean_sd_varying_b.txt"
+    paramfile = OUTPUT_DIR + sep + "fpt_stats_N100_c85_n64_4hr_params.csv"
+    samplesize=64
     mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system = \
         read_varying_mean_sd_fpt_and_params(datafile, paramfile)
-    plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system, 32,
-                          SEM_flag=True, show_flag=True, figname_mod="_%s_n%d" % (param_to_vary, ensemble))
+    plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system, samplesize,
+                          SEM_flag=True, show_flag=True, figname_mod="_%s_n%d" % (param_to_vary, samplesize))
 
     #dbdir_c95 = dbdir + "1000_xyz_feedbackZ_c95"
     #dbdir_c81_xz = dbdir + "1000_xz_feedbackMUBASE_c81"
