@@ -260,7 +260,9 @@ def fpt_histogram_multi(multi_fpt_list, labels, show_flag=False, figname_mod="",
         plt.show()
 
 
-def plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_vary_name, param_set, params, system, samplesize, show_flag=False, figname_mod=""):
+def plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_vary_name, param_set, params, system, samplesize, SEM_flag=True, show_flag=False, figname_mod=""):
+    if SEM_flag:
+        sd_fpt_varying = sd_fpt_varying / np.sqrt(samplesize)  # s.d. from CLT since sample mean is approx N(mu, sd**2/n)
     plt.errorbar(param_set, mean_fpt_varying, yerr=sd_fpt_varying)
     plt.title("Mean FP Time, %s varying (sample=%d)" % (param_vary_name, samplesize))
     ax = plt.gca()
@@ -309,12 +311,15 @@ if __name__ == "__main__":
     fpt_histogram(fp_times, params, system, show_flag=True, figname_mod="XZ_model_withFeedback_mu1e-1")
     """
 
+    """
     dbdir = OUTPUT_DIR
     dbdir_100 = dbdir + sep + "fpt_mean" + sep + "100_c95"
     fp_times_xyz_100, params_a, system_a = read_fpt_and_params(dbdir_100)
     dbdir_10k = dbdir + sep + "fpt_mean" + sep + "10k_c95"
     fp_times_xyz_10k, params_b, system_b = read_fpt_and_params(dbdir_10k)
+    """
 
+    """
     print "DO N100 FIRST"
     import random
     true_mean100 = np.mean(fp_times_xyz_100)
@@ -328,7 +333,14 @@ if __name__ == "__main__":
     for k in [1,5,10,15,20,25,30,40,50,75,100,200,500]:
         subsample = random.sample(fp_times_xyz_10k, k)
         print len(fp_times_xyz_10k), "is, ", true_mean10k, "| ", k, "is", np.mean(subsample)
+    """
 
+    datafile = OUTPUT_DIR + sep + "fpt_stats_4hr_mean_sd_varying_c.txt"
+    paramfile = OUTPUT_DIR + sep + "fpt_stats_4hr_params.csv"
+    mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system = \
+        read_varying_mean_sd_fpt_and_params(datafile, paramfile)
+    plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system, 32,
+                          SEM_flag=True, show_flag=True, figname_mod="_%s_n%d" % (param_to_vary, ensemble))
 
     #dbdir_c95 = dbdir + "1000_xyz_feedbackZ_c95"
     #dbdir_c81_xz = dbdir + "1000_xz_feedbackMUBASE_c81"

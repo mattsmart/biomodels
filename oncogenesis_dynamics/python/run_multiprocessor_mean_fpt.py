@@ -41,11 +41,13 @@ if __name__ == "__main__":
     mu_base = 0.0  #mu*1e-1
     params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
 
-    param_to_vary = 'c'
+    param_to_vary = 'N'
     #param_set = [10,20,30,40,50,60,70,80,90,100,200,300,400,500,1000,2000,3000,4000,5000,10000]
-    #param_set = np.logspace(1.0, 3.0, num=30)
-    param_set = np.linspace(0.75, 0.95, num=30)
+    param_set = np.logspace(1.5, 3.6, num=6)
+    param_set = [np.round(a) for a in param_set]
+    #param_set = np.linspace(0.75, 0.95, num=30)
 
+    print param_set
     t0 = time.time()
     mean_fpt_varying, sd_fpt_varying = fast_mean_fpt_varying(param_to_vary, param_set, params, system,
                                                              num_processes, samplesize=ensemble)
