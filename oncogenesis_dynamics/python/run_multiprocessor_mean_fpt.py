@@ -49,7 +49,7 @@ if __name__ == "__main__":
     t0 = time.time()
     mean_fpt_varying, sd_fpt_varying = fast_mean_fpt_varying(param_to_vary, param_set, params, system,
                                                              num_processes, samplesize=ensemble)
-    print "Elapsed time:", t0 - time.time()
+    print "Elapsed time:", time.time() - t0
 
     datafile, paramfile = \
         write_varying_mean_sd_fpt_and_params(mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system)
