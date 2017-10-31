@@ -11,7 +11,7 @@ def fpt_argparser():
     parser.add_argument('-n', '--ensemble', metavar='N', type=str,
                         help='ensemble size (to divide amongst cores)', default=32)
     parser.add_argument('-s', '--suffix', metavar='S', type=str,
-                        help='output filename modifier', default="main")
+                        help='output filename modifier', default="")
     parser.add_argument('-p', '--proc', metavar='P', type=str,
                         help='number of processes to distrbute job over', default=cpu_count())
     return parser.parse_args()
@@ -52,7 +52,8 @@ if __name__ == "__main__":
     print "Elapsed time:", time.time() - t0
 
     datafile, paramfile = \
-        write_varying_mean_sd_fpt_and_params(mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system)
+        write_varying_mean_sd_fpt_and_params(mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system,
+                                             filename_mod=suffix)
     mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system = \
         read_varying_mean_sd_fpt_and_params(datafile, paramfile)
     if plot_flag:
