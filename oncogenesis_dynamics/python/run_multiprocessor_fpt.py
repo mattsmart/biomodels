@@ -2,13 +2,13 @@ import argparse
 import numpy as np
 from multiprocessing import cpu_count
 
-from firstpassage import write_fpt_and_params, fast_fp_times
+from firstpassage import write_fpt_and_params, fast_fp_times, fpt_histogram
 
 
 def fpt_argparser():
     parser = argparse.ArgumentParser(description='FPT data multiprocessing script')
     parser.add_argument('-n', '--ensemble', metavar='N', type=str,
-                        help='ensemble size (to divide amongst cores)', default=1008)
+                        help='ensemble size (to divide amongst cores)', default=1024)
     parser.add_argument('-s', '--suffix', metavar='S', type=str,
                         help='output filename modifier', default="main")
     parser.add_argument('-p', '--proc', metavar='P', type=str,
@@ -18,12 +18,13 @@ def fpt_argparser():
 
 if __name__ == "__main__":
     args = fpt_argparser()
-    ensemble = 4 # int(args.ensemble)
+    ensemble = int(args.ensemble)
     num_processes = int(args.proc)
     suffix = args.suffix
 
     # SCRIPT PARAMETERS
     system = "feedback_z"  # "feedback_mu_XZ_model" or "feedback_z"
+    plot_flag = False
 
     # DYNAMICS PARAMETERS
     alpha_plus = 0.2  # 0.2
@@ -43,4 +44,5 @@ if __name__ == "__main__":
 
     fp_times = fast_fp_times(ensemble, init_cond, params, system, num_processes)
     write_fpt_and_params(fp_times, params, system, filename="fpt_%s_ens%d" % (system, ensemble), filename_mod=suffix)
-    #fpt_histogram(fp_times, params, system, show_flag=False, figname_mod="_%s_ens%d_%s" % (system, ensemble, suffix))
+    if plot_flag:
+        fpt_histogram(fp_times, params, system, show_flag=False, figname_mod="_%s_ens%d_%s" % (system, ensemble, suffix))

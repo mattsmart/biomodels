@@ -45,14 +45,16 @@ if __name__ == "__main__":
     #param_set = [10,20,30,40,50,60,70,80,90,100,200,300,400,500,1000,2000,3000,4000,5000,10000]
     #param_set = np.logspace(1.0, 3.0, num=30)
     param_set = np.linspace(0.75, 0.95, num=30)
-    print param_set
 
     t0 = time.time()
-    mean_fpt_varying, sd_fpt_varying = fast_mean_fpt_varying(param_to_vary, param_set, params, system, num_processes, samplesize=ensemble)
-    for idx, elem in enumerate(mean_fpt_varying):
-        print param_set[idx], elem
+    mean_fpt_varying, sd_fpt_varying = fast_mean_fpt_varying(param_to_vary, param_set, params, system,
+                                                             num_processes, samplesize=ensemble)
     print "Elapsed time:", t0 - time.time()
-    datafile, paramfile = write_varying_mean_sd_fpt_and_params(mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system)
-    mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system = read_varying_mean_sd_fpt_and_params(datafile, paramfile)
+
+    datafile, paramfile = \
+        write_varying_mean_sd_fpt_and_params(mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system)
+    mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system = \
+        read_varying_mean_sd_fpt_and_params(datafile, paramfile)
     if plot_flag:
-        plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system, ensemble, show_flag=True, figname_mod="_%s_n%d" % (param_to_vary, ensemble))
+        plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system, ensemble,
+                              show_flag=True, figname_mod="_%s_n%d" % (param_to_vary, ensemble))
