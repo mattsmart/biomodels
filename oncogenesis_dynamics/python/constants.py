@@ -54,7 +54,7 @@ SIM_METHOD = "libcall"  # standard ODE integration method
 INIT_COND = [99.9, 0.1, 0.0]  # default initial cond for trajectory
 NUM_TRAJ = 200  # number of trajectories for trajectory_multiple
 TIME_START = 0.0  # standard trajectory start time
-TIME_END = 160000.0  # standard trajectory end time
+TIME_END = 16000.0  # standard trajectory end time
 NUM_STEPS = 20000  # number of time steps in each trajectory (non-gillespie)
 
 PARAM_Z0_RATIO = 0.1           # size of z0 relative to N (in feedback_z function)
