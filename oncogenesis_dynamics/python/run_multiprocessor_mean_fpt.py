@@ -3,7 +3,8 @@ import numpy as np
 import time
 from multiprocessing import cpu_count
 
-from firstpassage import fast_mean_fpt_varying, plot_mean_fpt_varying, write_varying_mean_sd_fpt_and_params, read_varying_mean_sd_fpt_and_params
+from data_io import write_varying_mean_sd_fpt_and_params, read_varying_mean_sd_fpt_and_params
+from firstpassage import fast_mean_fpt_varying, plot_mean_fpt_varying
 
 
 def fpt_argparser():

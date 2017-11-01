@@ -2,7 +2,8 @@ import argparse
 import numpy as np
 from multiprocessing import cpu_count
 
-from firstpassage import write_fpt_and_params, fast_fp_times, fpt_histogram
+from data_io import write_fpt_and_params
+from firstpassage import fast_fp_times, fpt_histogram
 
 
 def fpt_argparser():

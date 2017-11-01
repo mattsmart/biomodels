@@ -1,13 +1,11 @@
-import csv
 import matplotlib.pyplot as plt
 import numpy as np
 import time
-from os import sep, listdir, mkdir
-from os.path import join, isfile, basename, dirname
-from multiprocessing import Pool, cpu_count
+from os import sep
+from multiprocessing import Pool
 
-from constants import OUTPUT_DIR, PARAMS_ID, PARAMS_ID_INV, ODE_SYSTEMS
-from data_io import write_params, read_params
+from constants import OUTPUT_DIR, PARAMS_ID, PARAMS_ID_INV
+from data_io import read_varying_mean_sd_fpt_and_params
 from formulae import stoch_gillespie
 
 
@@ -66,111 +64,6 @@ def fast_mean_fpt_varying(param_vary_name, param_vary_values, params, system, nu
         mean_fpt_varying[idx] = np.mean(fp_times)
         sd_fpt_varying[idx] = np.std(fp_times)
     return mean_fpt_varying, sd_fpt_varying
-
-
-def write_fpt_and_params(fpt, params, system, filedir=OUTPUT_DIR, filename="fpt", filename_mod=""):
-    if filename_mod != "":
-        filename_params = filename + "_" + filename_mod + "_params.csv"
-        filename_fpt = filename + "_" + filename_mod + "_data.txt"
-    else:
-        filename_params = filename + "_params.csv"
-        filename_fpt = filename + "_data.txt"
-    write_params(params, system, filedir, filename_params)
-    with open(filedir + sep + filename_fpt, "wb") as csv_file:
-        writer = csv.writer(csv_file, delimiter=',')
-        for idx in xrange(len(fpt)):
-            writer.writerow([str(fpt[idx])])
-    return filedir + sep + filename_fpt
-
-
-def write_varying_mean_sd_fpt_and_params(fpt_mean, fpt_sd, param_vary_name, param_vary_set, params, system, filedir=OUTPUT_DIR, filename="fpt_stats", filename_mod=""):
-    if filename_mod != "":
-        filename_params = filename + "_" + filename_mod + "_mean_sd_varying_%s_params.csv" % param_vary_name
-        filename_fpt = filename + "_" + filename_mod + "_mean_sd_varying_%s.txt" % param_vary_name
-    else:
-        filename_params = filename + "_mean_sd_varying_%s_params.csv" % param_vary_name
-        filename_fpt = filename + "_mean_sd_varying_%s.txt" % param_vary_name
-    params[PARAMS_ID_INV[param_vary_name]] = None
-    write_params(params, system, filedir, filename_params)
-    with open(filedir + sep + filename_fpt, "wb") as csv_file:
-        writer = csv.writer(csv_file, delimiter=',')
-        writer.writerow([param_vary_name, "fpt_mean", "fpt_sd"])
-        for idx in xrange(len(fpt_mean)):
-            datarow = [str(param_vary_set[idx]), str(fpt_mean[idx]), str(fpt_sd[idx])]
-            writer.writerow(datarow)
-    return filedir + sep + filename_fpt, filedir + sep + filename_params
-
-
-def read_fpt_and_params(filedir, filename_data=None, filename_params=None):
-    onlyfiles = [f for f in listdir(filedir) if isfile(join(filedir, f))]
-    datafiles = [f for f in onlyfiles if "data" == f[-8:-4]]
-    paramfiles = [f for f in onlyfiles if "params" == f[-10:-4]]
-    if filename_data is None:
-        assert len(datafiles) == 1
-        filename_data = basename(datafiles[0])
-    if filename_params is None:
-        assert len(paramfiles) == 1
-        filename_params = basename(paramfiles[0])
-
-    params_with_system = read_params(filedir, filename_params)
-    assert params_with_system[-1] in ODE_SYSTEMS
-    params = params_with_system[:-1]
-    system = params_with_system[-1]
-    with open(filedir + sep + filename_data, 'rb') as csvfile:
-        datareader = csv.reader(csvfile, delimiter=',', quotechar='|')
-        nn = sum(1 for row in datareader)
-        csvfile.seek(0)
-        fp_times = [0.0]*nn
-        for idx, fpt in enumerate(datareader):
-            fp_times[idx] = float(fpt[0])
-    return fp_times, params, system
-
-
-def read_varying_mean_sd_fpt(datafile):
-    with open(datafile, 'rb') as csvfile:
-        datareader = csv.reader(csvfile, delimiter=',', quotechar='|')
-        param_vary_name = next(datareader)[0]
-        nn = sum(1 for row in datareader)
-        csvfile.seek(0)
-        next(datareader)  # skip header line
-        param_vary_list = [0.0] * nn
-        fpt_means = [0.0] * nn
-        fpt_sd = [0.0] * nn
-        for idx, fpt in enumerate(datareader):
-            param_vary_list[idx] = float(fpt[0])
-            fpt_means[idx] = float(fpt[1])
-            fpt_sd[idx] = float(fpt[2])
-    return fpt_means, fpt_sd, param_vary_name, param_vary_list
-
-
-def read_varying_mean_sd_fpt_and_params(datafile, paramfile):
-    params = read_params(dirname(paramfile), basename(paramfile))
-    mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set = read_varying_mean_sd_fpt(datafile)
-    return mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params[:-1], params[-1]
-
-
-def collect_fpt_and_params(filedir):
-    # NOTE: assumes folder structure 8s N files of ..._data and N files of ..._params which ALL correspond
-    onlyfiles = [f for f in listdir(filedir) if isfile(join(filedir, f))]
-    datafiles = [f for f in onlyfiles if "data" == f[-8:-4]]
-    paramfiles = [f for f in onlyfiles if "params" == f[-10:-4]]
-    assert len(datafiles) == len(paramfiles)
-
-    params_0 = read_params(filedir, basename(paramfiles[0]))
-    for pf in paramfiles:
-        params = read_params(filedir, basename(pf))
-        assert params == params_0
-
-    fpt_collected = []
-    for idx, df in enumerate(datafiles):
-        fp_times, params, system = read_fpt_and_params(filedir, df, basename(paramfiles[0]))
-        fpt_collected += fp_times
-
-    dirname = "collected_%d" % len(fpt_collected)
-    collected_dir = filedir + sep + dirname
-    mkdir(collected_dir)
-    write_fpt_and_params(fpt_collected, params_0[:-1], params_0[-1], filedir=collected_dir, filename="fpt", filename_mod=dirname)
-    return collected_dir
 
 
 def fpt_histogram(fpt_list, params, system, show_flag=False, figname_mod="", x_log10_flag=False, y_log10_flag=False):
@@ -245,15 +138,6 @@ def fpt_histogram_multi(multi_fpt_list, labels, show_flag=False, figname_mod="",
     plt.legend(loc='upper right')
     # DRAW MEAN LINE
     #plt.axvline(np.mean(fpt_list), color='k', linestyle='dashed', linewidth=2)
-    # CREATE TABLE OF PARAMS
-    """
-    row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
-    table_vals = [[params[i]] for i in xrange(len(PARAMS_ID))]
-    param_table = plt.table(cellText=table_vals,
-                            colWidths=[0.1]*3,
-                            rowLabels=row_labels,
-                            loc='center right')
-    """
     plt_save = "fpt_multihistogram" + figname_mod
     plt.savefig(OUTPUT_DIR + sep + plt_save + '.png', bbox_inches='tight')
     if show_flag:
