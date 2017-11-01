@@ -1,6 +1,6 @@
 import csv
 from os import sep, listdir, mkdir
-from os.path import join, isfile, basename, dirname
+from os.path import join, isfile, isdir, basename, dirname
 
 from constants import PARAMS_ID, OUTPUT_DIR, CSV_DATA_TYPES, PARAMS_ID_INV, ODE_SYSTEMS
 
@@ -154,7 +154,7 @@ def read_varying_mean_sd_fpt_and_params(datafile, paramfile):
 
 def collect_fpt_and_params(filedir):
     # NOTE: assumes folder structure 8s N files of ..._data and N files of ..._params which ALL correspond
-    onlyfiles = [f for f in listdir(filedir) if isfile(join(filedir, f))]
+    onlydirs = [f for f in listdir(filedir) if isfile(join(filedir, f))]
     datafiles = [f for f in onlyfiles if "data" == f[-8:-4]]
     paramfiles = [f for f in onlyfiles if "params" == f[-10:-4]]
     assert len(datafiles) == len(paramfiles)
@@ -169,37 +169,53 @@ def collect_fpt_and_params(filedir):
         fp_times, params, system = read_fpt_and_params(filedir, df, basename(paramfiles[0]))
         fpt_collected += fp_times
 
-    dirname = "collected_%d" % len(fpt_collected)
-    collected_dir = filedir + sep + dirname
+    collected_dirname = "collected_%d" % len(fpt_collected)
+    collected_dir = filedir + sep + collected_dirname
     mkdir(collected_dir)
-    write_fpt_and_params(fpt_collected, params_0[:-1], params_0[-1], filedir=collected_dir, filename="fpt", filename_mod=dirname)
+    write_fpt_and_params(fpt_collected, params_0[:-1], params_0[-1], filedir=collected_dir, filename="fpt", filename_mod=collected_dirname)
     return collected_dir
 
 
-def collect_fpt_mean_stats_and_params(filedir):
-    # NOTE: assumes folder structure 8s N files of ..._data and N files of ..._params which ALL correspond
-    onlyfiles = [f for f in listdir(filedir) if isfile(join(filedir, f))]
-    datafiles = [f for f in onlyfiles if "data" == f[-8:-4]]
-    paramfiles = [f for f in onlyfiles if "params" == f[-10:-4]]
-    assert len(datafiles) == len(paramfiles)
+def collect_fpt_mean_stats_and_params(filedir, dirbase="means"):
+    # NOTE: assumes folder structure is filedir -> means1, means2, means3 ... collection of dirs
+    #       each of these dirs contains an output folder with a params file and a data file
 
-    params_0 = read_params(filedir, basename(paramfiles[0]))
-    for pf in paramfiles:
-        params = read_params(filedir, basename(pf))
-        assert params == params_0
+    def data_and_param_files_from_fptdir(fptdir):
+        # input: location of filedir/means1 for example
+        outputdir = fptdir + sep + "output"
+        outputdirfiles = listdir(outputdir)
+        assert len(outputdirfiles) == 2
+        for f in outputdirfiles:
+            if f[-10:-4] == "params":
+                paramfile = f
+            else:
+                datafile = f
+        return outputdir + sep + datafile, outputdir + sep + paramfile
+
+    onlydirs = [f for f in listdir(filedir) if isdir(join(filedir, f))]
+    dirstocheck = [filedir + sep + fptdir for fptdir in onlydirs if basename(fptdir)[:len(dirbase)] == dirbase]
+    dirstocheck.sort(key=lambda f: int(filter(str.isdigit, f)))  # assumes dirbase+suffix (e.g.'means7') has only 1 int
+
+    _, pf = data_and_param_files_from_fptdir(dirstocheck[0])
+    print pf
+    print dirname(pf), basename(pf)
+    params_0 = read_params(dirname(pf), basename(pf))
 
     fpt_means_collected = []
     fpt_sd_collected = []
     param_vary_collected = []
-    for idx, df in enumerate(datafiles):
-        fpt_means, fpt_sd, param_vary_name, param_vary_list = read_varying_mean_sd_fpt(filedir + sep + df)
+    for idx, fptdir in enumerate(dirstocheck):
+        df, pf = data_and_param_files_from_fptdir(fptdir)
+        params = read_params(dirname(pf), basename(pf))
+        assert params == params_0
+        fpt_means, fpt_sd, param_vary_name, param_vary_list = read_varying_mean_sd_fpt(df)
         fpt_means_collected += fpt_means
         fpt_sd_collected += fpt_sd
         param_vary_collected += param_vary_list
 
-    dirname = "collected_stats_%d" % len(fpt_means_collected)
-    collected_dir = filedir + sep + dirname
+    coll_dirname = "collected_stats_%d" % len(fpt_means_collected)
+    collected_dir = filedir + sep + coll_dirname
     mkdir(collected_dir)
-    write_varying_mean_sd_fpt_and_params(fpt_means_collected, fpt_sd_collected, param_vary_name, param_vary_collected,
-                                         params_0[:-1], params_0[-1], filedir=collected_dir, filename_mod="collected")
-    return collected_dir
+    coll_df, coll_pf = write_varying_mean_sd_fpt_and_params(fpt_means_collected, fpt_sd_collected, param_vary_name, param_vary_collected,
+                                                            params_0[:-1], params_0[-1], filedir=collected_dir, filename_mod="collected")
+    return coll_df, coll_pf

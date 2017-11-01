@@ -5,7 +5,8 @@ from os import sep
 from multiprocessing import Pool
 
 from constants import OUTPUT_DIR, PARAMS_ID, PARAMS_ID_INV
-from data_io import read_varying_mean_sd_fpt_and_params
+from data_io import read_varying_mean_sd_fpt_and_params, collect_fpt_mean_stats_and_params, read_fpt_and_params,\
+                    write_fpt_and_params
 from formulae import stoch_gillespie
 
 
@@ -167,6 +168,14 @@ def plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_vary_name, par
 
 
 if __name__ == "__main__":
+    # SCRIPT FLAGS
+    flag_compute_fpt = False
+    flag_read_fpt = False
+    flag_hist_multi = False
+    flag_collect = False
+    flag_means_read_and_plot = False
+    flag_means_collect_and_plot = False
+
     # SCRIPT PARAMETERS
     system = "feedback_mu_XZ_model"  # "feedback_mu_XZ_model" or "feedback_z"
     num_steps = 100000
@@ -189,67 +198,50 @@ if __name__ == "__main__":
     # OTHER PARAMETERS
     init_cond = [int(N), 0, 0]
 
-    """
-    fp_times = get_fpt(ensemble, init_cond, num_steps, params, system)
-    write_fpt_and_params(fp_times, params, system)
-    fpt_histogram(fp_times, params, system, show_flag=True, figname_mod="XZ_model_withFeedback_mu1e-1")
-    """
+    if flag_compute_fpt:
+        fp_times = get_fpt(ensemble, init_cond, num_steps, params, system)
+        write_fpt_and_params(fp_times, params, system)
+        fpt_histogram(fp_times, params, system, show_flag=True, figname_mod="XZ_model_withFeedback_mu1e-1")
 
-    """
-    dbdir = OUTPUT_DIR
-    dbdir_100 = dbdir + sep + "fpt_mean" + sep + "100_c95"
-    fp_times_xyz_100, params_a, system_a = read_fpt_and_params(dbdir_100)
-    dbdir_10k = dbdir + sep + "fpt_mean" + sep + "10k_c95"
-    fp_times_xyz_10k, params_b, system_b = read_fpt_and_params(dbdir_10k)
-    """
+    if flag_read_fpt:
+        dbdir = OUTPUT_DIR
+        dbdir_100 = dbdir + sep + "fpt_mean" + sep + "100_c95"
+        fp_times_xyz_100, params_a, system_a = read_fpt_and_params(dbdir_100)
+        dbdir_10k = dbdir + sep + "fpt_mean" + sep + "10k_c95"
+        fp_times_xyz_10k, params_b, system_b = read_fpt_and_params(dbdir_10k)
 
-    """
-    print "DO N100 FIRST"
-    import random
-    true_mean100 = np.mean(fp_times_xyz_100)
-    for k in [1,5,10,15,20,25,30,40,50,75,100,200,500]:
-        subsample = random.sample(fp_times_xyz_100, k)
-        print len(fp_times_xyz_100), "is, ", true_mean100, "| ", k, "is", np.mean(subsample)
+    if flag_hist_multi:
+        dbdir = OUTPUT_DIR + sep + "hist_multi"
+        dbdir_c95 = dbdir + "1000_xyz_feedbackZ_c95"
+        dbdir_c86 = dbdir + "1000_xyz_feedbackZ_c86"
+        fp_times_xyz_c086, params_a, system_a = read_fpt_and_params(dbdir_c86, "fpt_feedback_z_ens256_N10k_c086_full_data.txt",
+                                                                   "fpt_feedback_z_ens256_N10k_c086_full_params.csv")
+        fp_times_xyz_c095, params_b, system_b = read_fpt_and_params(dbdir_c95, "fpt_xyz_feedbackz_1000_c95_data.txt",
+                                                                   "fpt_xyz_feedbackz_1000_c95_params.csv")
+        fpt_histogram(fp_times_xyz_c095, params_b, system_b, y_log10_flag=False, figname_mod="_xyz_feedbackz_N10k_c95_ap18")
+        plt.close('all')
+        fpt_histogram(fp_times_xyz_c095, params_b, system_b, y_log10_flag=True, figname_mod="_xyz_feedbackz_N10k_c95_ap18_logy")
+        plt.close('all')
+        multi_fpt = [fp_times_xyz_c086, fp_times_xyz_c095]
+        labels = ("XYZ_c0.86_N10k", "XYZ_c0.95_N10k")
+        fpt_histogram_multi(multi_fpt, labels, show_flag=True, y_log10_flag=False)
+        plt.close('all')
+        fpt_histogram_multi(multi_fpt, labels, show_flag=True, y_log10_flag=True)
 
-    print "DO N10k now"
-    import random
-    true_mean10k = np.mean(fp_times_xyz_10k)
-    for k in [1,5,10,15,20,25,30,40,50,75,100,200,500]:
-        subsample = random.sample(fp_times_xyz_10k, k)
-        print len(fp_times_xyz_10k), "is, ", true_mean10k, "| ", k, "is", np.mean(subsample)
-    """
+    if flag_means_read_and_plot:
+        datafile = OUTPUT_DIR + sep + "fpt_stats_N100_c85_n64_4hr_mean_sd_varying_b.txt"
+        paramfile = OUTPUT_DIR + sep + "fpt_stats_N100_c85_n64_4hr_params.csv"
+        samplesize=64
+        mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system = \
+            read_varying_mean_sd_fpt_and_params(datafile, paramfile)
+        plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system, samplesize,
+                              SEM_flag=True, show_flag=True, figname_mod="_%s_n%d" % (param_to_vary, samplesize))
 
-    datafile = OUTPUT_DIR + sep + "fpt_stats_N100_c85_n64_4hr_mean_sd_varying_b.txt"
-    paramfile = OUTPUT_DIR + sep + "fpt_stats_N100_c85_n64_4hr_params.csv"
-    samplesize=64
-    mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system = \
-        read_varying_mean_sd_fpt_and_params(datafile, paramfile)
-    plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system, samplesize,
-                          SEM_flag=True, show_flag=True, figname_mod="_%s_n%d" % (param_to_vary, samplesize))
-
-    #dbdir_c95 = dbdir + "1000_xyz_feedbackZ_c95"
-    #dbdir_c81_xz = dbdir + "1000_xz_feedbackMUBASE_c81"
-    #fp_times_xyz_c086, params_a, system_a = read_fpt_and_params(dbdir_c86, "fpt_feedback_z_ens256_N10k_c086_full_data.txt",
-    #                                                            "fpt_feedback_z_ens256_N10k_c086_full_params.csv")
-
-    #fp_times_xyz_c095, params_c, system_c = read_fpt_and_params(dbdir_c95, "fpt_xyz_feedbackz_1000_c95_data.txt",
-    #                                                            "fpt_xyz_feedbackz_1000_c95_params.csv")
-    #fp_times_xz_c081, params_d, system_d = read_fpt_and_params(dbdir_c81_xz, "fpt_xz_1000_c81_data.txt",
-    #                                                            "fpt_xz_1000_c81_params.csv")
-
-    #fpt_histogram(fp_times_xyz_c095, params_b, system_b, y_log10_flag=False, figname_mod="_xyz_feedbackz_N10k_c95_ap18")
-    #plt.close('all')
-    #fpt_histogram(fp_times_xyz_c095, params_b, system_b, y_log10_flag=True, figname_mod="_xyz_feedbackz_N10k_c95_ap18_logy")
-    #plt.close('all')
-
-    """
-    multi_fpt = [fp_times_xyz_c086, fp_times_xyz_c095]
-    labels = ("XYZ_c0.86_N10k", "XYZ_c0.95_N10k")
-    fpt_histogram_multi(multi_fpt, labels, show_flag=True, y_log10_flag=False)
-    plt.close('all')
-    fpt_histogram_multi(multi_fpt, labels, show_flag=True, y_log10_flag=True)
-    """
-
-    # print "XZ mean and log10", np.mean(fp_times_xz), np.log10(np.mean(fp_times_xz))
-    #dbdir = OUTPUT_DIR + sep + "tocollect"
-    #collect_fpt_and_params(dbdir)
+    if flag_means_collect_and_plot:
+        dbdir = OUTPUT_DIR + sep + "tocollect"
+        datafile, paramfile = collect_fpt_mean_stats_and_params(dbdir)
+        samplesize=96
+        mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system = \
+            read_varying_mean_sd_fpt_and_params(datafile, paramfile)
+        plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system, samplesize,
+                              SEM_flag=True, show_flag=True, figname_mod="_%s_n%d" % (param_to_vary, samplesize))
