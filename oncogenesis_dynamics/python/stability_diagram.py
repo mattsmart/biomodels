@@ -3,6 +3,7 @@ import numpy as np
 from os import sep
 
 from constants import PARAMS_ID, PARAMS_ID_INV, STATES_ID_INV, OUTPUT_DIR
+from data_io import write_params
 from formulae import is_stable, fp_location_general, get_physical_and_stable_fp
 
 # TODO: have ONLY 1 plotting script with datatype flags (e.g. fp count flag, stability data flag, other...)
@@ -51,6 +52,64 @@ def plot_stability_data_2d(params_general, param_1_name, param_1_range, param_2_
     return plt.gca()
 
 
+def get_gap_dist(params, system, axis="z"):
+    N = params[PARAMS_ID_INV['N']]
+    fp_list = get_physical_and_stable_fp(params, system)
+    if len(fp_list) == 1:
+        #return fp_list[0][STATES_ID_INV[axis]]
+        return N - fp_list[0][STATES_ID_INV[axis]]
+        #return N
+    else:
+        if len(fp_list) > 2:
+            print "WARNING: %d phys/stable fixed points at these params:" % len(fp_list)
+            print params, system
+            print "FPs:", fp_list
+            write_params(params, system, OUTPUT_DIR, "broken_params.csv")
+        return np.abs(fp_list[0][STATES_ID_INV[axis]] - fp_list[1][STATES_ID_INV[axis]])  # gap in z-coordinate
+
+
+def get_gap_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, axis_gap="z", figname_mod=""):
+    # gap between low-z and high-z FPs
+    assert param_1_name, param_2_name in PARAMS_ID_INV.keys()
+    assert [params_general[PARAMS_ID_INV[x]] for x in ['v_x', 'v_y', 'v_z']] == [0.0, 0.0, 0.0]  # currently hard-code non-flow trivial FP location of [0,0,N]
+    gap_array = np.zeros((len(param_1_range), len(param_2_range)))
+    for i, p1 in enumerate(param_1_range):
+        for j, p2 in enumerate(param_2_range):
+            params_step = params_general
+            params_step[PARAMS_ID_INV[param_1_name]] = p1
+            params_step[PARAMS_ID_INV[param_2_name]] = p2
+            gap_array[i, j] = get_gap_dist(params_step, system, axis=axis_gap)
+        print i, j, p1, p2
+
+    if figname_mod is not None:
+        plot_gap_data_2d(gap_array, params_general, param_1_name, param_1_range, param_2_name,
+                         param_2_range, system, axis_gap=axis_gap, figname_mod=figname_mod)
+    return gap_array
+
+
+def plot_gap_data_2d(gap_data_2d, params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, axis_gap="z", figname_mod=""):
+    plt.imshow(gap_data_2d, cmap='seismic', interpolation="none", origin='lower', aspect='auto',
+               extent=[param_2_range[0], param_2_range[-1], param_1_range[0], param_1_range[-1]])
+    ax = plt.gca()
+    ax.grid(which='major', axis='both', linestyle='-')
+    ax.set_xlabel(param_2_name)
+    ax.set_ylabel(param_1_name)
+    plt.title("Gap in %s between FPs, vary %s, %s" % (axis_gap, param_1_name, param_2_name))
+    # CREATE TABLE OF PARAMS
+    # bbox is x0, y0, height, width
+    row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
+    table_vals = [[params_general[i]] if PARAMS_ID[i] not in [param_1_name, param_2_name] else ["None"]
+                  for i in xrange(len(PARAMS_ID))]
+    param_table = plt.table(cellText=table_vals, colWidths=[0.1]*3, rowLabels=row_labels, loc='best',
+                            bbox=(1.2, 0.2, 0.1, 0.75))
+    #plt.subplots_adjust(left=0.2, bottom=0.2)
+    # Now adding the colorbar
+    plt.colorbar(orientation='horizontal')
+    plt.savefig(OUTPUT_DIR + sep + 'gap_data_2d_%s_%s_%s.png' % (param_1_name, param_2_name, figname_mod), bbox_inches='tight')
+    plt.show()
+    return plt.gca()
+
+
 def get_jump_dist(params_orig, param_1_name, param_2_name, ode_system, param_1_delta=0.01, param_2_delta=0.01, axis="z"):
     params_shift = params_orig
     params_shift[PARAMS_ID_INV[param_1_name]] += param_1_delta
@@ -61,12 +120,11 @@ def get_jump_dist(params_orig, param_1_name, param_2_name, ode_system, param_1_d
     assert len(fp_shift_list) == 1
     axis_idx = STATES_ID_INV[axis]
     return fp_shift_list[0][axis_idx] - fp_orig_list[0][axis_idx]
-    #return 10*np.random.rand()
 
 
-def get_jump_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, axis_jump):
+def get_jump_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, axis_jump, figname_mod=None):
     assert param_1_name, param_2_name in PARAMS_ID_INV.keys()
-    assert params_general[-3:] == [0.0, 0.0, 0.0]  # currently hard-code non-flow trivial FP location of [0,0,N]
+    assert [params_general[PARAMS_ID_INV[x]] for x in ['v_x', 'v_y', 'v_z']] == [0.0, 0.0, 0.0]  # currently hard-code non-flow trivial FP location of [0,0,N]
     jump_array = np.zeros((len(param_1_range), len(param_2_range)))
     for i, p1 in enumerate(param_1_range):
         for j, p2 in enumerate(param_2_range):
