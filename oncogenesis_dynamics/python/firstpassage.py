@@ -58,7 +58,9 @@ def fast_mean_fpt_varying(param_vary_name, param_vary_values, params, system, nu
     mean_fpt_varying = [0]*len(param_vary_values)
     sd_fpt_varying = [0]*len(param_vary_values)
     for idx, pv in enumerate(param_vary_values):
-        init_cond = [int(PARAMS_ID_INV['N']), 0, 0]
+        N = params[PARAMS_ID_INV['N']]
+        init_cond = [int(N), 0, 0]
+        #init_cond = [0,0,int(N)]
         params_step = params
         params_step[PARAMS_ID_INV[param_vary_name]] = pv
         fp_times = fast_fp_times(samplesize, init_cond, params_step, system, num_processes)
