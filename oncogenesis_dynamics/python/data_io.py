@@ -1,4 +1,5 @@
 import csv
+import numpy as np
 from os import sep, listdir, mkdir
 from os.path import join, isfile, isdir, basename, dirname
 
@@ -219,3 +220,20 @@ def collect_fpt_mean_stats_and_params(filedir, dirbase="means"):
     coll_df, coll_pf = write_varying_mean_sd_fpt_and_params(fpt_means_collected, fpt_sd_collected, param_vary_name, param_vary_collected,
                                                             params_0[:-1], params_0[-1], filedir=collected_dir, filename_mod="collected")
     return coll_df, coll_pf
+
+
+def write_matrix_data_and_idx_vals(arr, row_vals, col_vals, dataname, rowname, colname, output_dir=OUTPUT_DIR):
+    datapath = output_dir + sep + dataname + ".txt"
+    rowpath = output_dir + sep + dataname + '_' + rowname + ".txt"
+    colpath = output_dir + sep + dataname + '_' + colname + ".txt"
+    np.savetxt(datapath, np.array(arr), delimiter=",")
+    np.savetxt(rowpath, np.array(row_vals), delimiter=",")
+    np.savetxt(colpath, np.array(col_vals), delimiter=",")
+    return datapath, rowpath, colpath
+
+
+def read_matrix_data_and_idx_vals(datapath, rowpath, colpath):
+    arr = np.loadtxt(datapath, delimiter=",", dtype=float)
+    row = np.loadtxt(rowpath, delimiter=",", dtype=float)
+    col = np.loadtxt(datapath, delimiter=",", dtype=float)
+    return arr, row, col

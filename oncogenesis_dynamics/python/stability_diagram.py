@@ -3,7 +3,7 @@ import numpy as np
 from os import sep
 
 from constants import PARAMS_ID, PARAMS_ID_INV, STATES_ID_INV, OUTPUT_DIR
-from data_io import write_params
+from data_io import write_params, write_matrix_data_and_idx_vals
 from formulae import is_stable, fp_location_general, get_physical_and_stable_fp
 
 # TODO: have ONLY 1 plotting script with datatype flags (e.g. fp count flag, stability data flag, other...)
@@ -57,8 +57,9 @@ def get_gap_dist(params, system, axis="z"):
     fp_list = get_physical_and_stable_fp(params, system)
     if len(fp_list) == 1:
         #return fp_list[0][STATES_ID_INV[axis]]
-        return N - fp_list[0][STATES_ID_INV[axis]]
+        #return N - fp_list[0][STATES_ID_INV[axis]]
         #return N
+        return (2*N - fp_list[0][STATES_ID_INV[axis]] + fp_list[0][STATES_ID_INV[axis]]) / (2*N)
     else:
         if len(fp_list) > 2:
             print "WARNING: %d phys/stable fixed points at these params:" % len(fp_list)
@@ -68,7 +69,7 @@ def get_gap_dist(params, system, axis="z"):
         return np.abs(fp_list[0][STATES_ID_INV[axis]] - fp_list[1][STATES_ID_INV[axis]])  # gap in z-coordinate
 
 
-def get_gap_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, axis_gap="z", figname_mod=""):
+def get_gap_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, axis_gap="z", figname_mod="", flag_write=False):
     # gap between low-z and high-z FPs
     assert param_1_name, param_2_name in PARAMS_ID_INV.keys()
     assert [params_general[PARAMS_ID_INV[x]] for x in ['v_x', 'v_y', 'v_z']] == [0.0, 0.0, 0.0]  # currently hard-code non-flow trivial FP location of [0,0,N]
@@ -80,7 +81,8 @@ def get_gap_data_2d(params_general, param_1_name, param_1_range, param_2_name, p
             params_step[PARAMS_ID_INV[param_2_name]] = p2
             gap_array[i, j] = get_gap_dist(params_step, system, axis=axis_gap)
         print i, j, p1, p2
-
+    if flag_write:
+        write_matrix_data_and_idx_vals(gap_array, param_1_range, param_2_range, "gap2d", param_1_name, param_2_name, output_dir=OUTPUT_DIR)
     if figname_mod is not None:
         plot_gap_data_2d(gap_array, params_general, param_1_name, param_1_range, param_2_name,
                          param_2_range, system, axis_gap=axis_gap, figname_mod=figname_mod)

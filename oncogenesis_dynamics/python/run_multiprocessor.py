@@ -3,6 +3,8 @@ import time
 from multiprocessing import Pool
 from multiprocessing import cpu_count
 
+from constants import OUTPUT_DIR
+from data_io import write_matrix_data_and_idx_vals
 from stability_diagram import plot_stable_fp_count_2d, get_stable_fp_count_2d
 
 # CONSTANTS
@@ -63,5 +65,7 @@ if __name__ == "__main__":
     results_collected = np.zeros((results_dim[0]*NUM_PROCESSES, results_dim[1]))
     for i, result in enumerate(results):
         results_collected[i*results_dim[0]:(i+1)*results_dim[0], :] = result
+    write_matrix_data_and_idx_vals(results_collected, param_1_range, param_2_range, "fpcount2d_full",
+                                   param_1_name, param_2_name, output_dir=OUTPUT_DIR)
     plot_stable_fp_count_2d(results_collected, params, param_1_name, param_1_range, param_2_name,
                            param_2_range, ode_system, figname_mod="sum")
