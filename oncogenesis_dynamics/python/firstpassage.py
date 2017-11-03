@@ -7,7 +7,7 @@ from multiprocessing import Pool
 from constants import OUTPUT_DIR, PARAMS_ID, PARAMS_ID_INV
 from data_io import read_varying_mean_sd_fpt_and_params, collect_fpt_mean_stats_and_params, read_fpt_and_params,\
                     write_fpt_and_params
-from formulae import stoch_gillespie
+from formulae import stoch_gillespie, get_physical_and_stable_fp
 
 
 def get_fpt(ensemble, init_cond, params, system, num_steps=100000):
@@ -150,7 +150,7 @@ def fpt_histogram_multi(multi_fpt_list, labels, show_flag=False, figname_mod="",
 def plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_vary_name, param_set, params, system, samplesize, SEM_flag=True, show_flag=False, figname_mod=""):
     if SEM_flag:
         sd_fpt_varying = sd_fpt_varying / np.sqrt(samplesize)  # s.d. from CLT since sample mean is approx N(mu, sd**2/n)
-    plt.errorbar(param_set, mean_fpt_varying, yerr=sd_fpt_varying)
+    plt.errorbar(param_set, mean_fpt_varying, yerr=sd_fpt_varying, label="sim")
     plt.title("Mean FP Time, %s varying (sample=%d)" % (param_vary_name, samplesize))
     ax = plt.gca()
     ax.set_xlabel(param_vary_name)
@@ -167,6 +167,7 @@ def plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_vary_name, par
     plt.savefig(OUTPUT_DIR + sep + plt_save + '.png', bbox_inches='tight')
     if show_flag:
         plt.show()
+    return ax
 
 
 if __name__ == "__main__":
@@ -231,13 +232,30 @@ if __name__ == "__main__":
         fpt_histogram_multi(multi_fpt, labels, show_flag=True, y_log10_flag=True)
 
     if flag_means_read_and_plot:
-        datafile = OUTPUT_DIR + sep + "fpt_stats_N100_c85_n64_4hr_mean_sd_varying_b.txt"
-        paramfile = OUTPUT_DIR + sep + "fpt_stats_N100_c85_n64_4hr_params.csv"
-        samplesize=64
+        datafile = OUTPUT_DIR + sep + "fpt_stats_allz0_b06_mean_sd_varying_N.txt"
+        paramfile = OUTPUT_DIR + sep + "fpt_stats_allz0_b06_mean_sd_varying_N_params.csv"
+        samplesize=48
         mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system = \
             read_varying_mean_sd_fpt_and_params(datafile, paramfile)
-        plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system, samplesize,
-                              SEM_flag=True, show_flag=True, figname_mod="_%s_n%d" % (param_to_vary, samplesize))
+        plt_axis = plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system, samplesize,
+                                         SEM_flag=True, show_flag=True, figname_mod="_%s_n%d" % (param_to_vary, samplesize))
+        """
+        mu = params[PARAMS_ID_INV['mu']]
+        mixed_fp_zinf_at_N = [0.0]*len(param_set)
+        for idx, N in enumerate(param_set):
+            params_at_N = params
+            params_at_N[PARAMS_ID_INV['N']] = N
+            fps = get_physical_and_stable_fp(params_at_N, system)
+            assert len(fps) == 1
+            mixed_fp_zinf_at_N[idx] = fps[0][2]
+        plt_axis.plot(param_set, [1/(mu*n) for n in param_set], '-o', label="(mu*N)^-1")
+        plt_axis.plot(param_set, [1/(mu*zinf) for zinf in mixed_fp_zinf_at_N], '-o', label="(mu*z_inf)^-1")
+        plt_axis.set_yscale("log", nonposx='clip')
+        plt_axis.set_xscale("log", nonposx='clip')
+        plt_axis.legend()
+        plt.savefig(OUTPUT_DIR + sep + "TESTING" + '.png', bbox_inches='tight')
+        plt.show()
+        """
 
     if flag_means_collect_and_plot:
         dbdir = OUTPUT_DIR + sep + "tocollect"
