@@ -76,7 +76,9 @@ if __name__ == "__main__":
         assert param_to_vary in PARAMS_ID_INV.keys()
         print "ERROR:", param_to_vary, "not yet implemented in main"
 
+    param_set = param_set[pv1_idx:pv2_idx]
     print param_set
+
     t0 = time.time()
     mean_fpt_varying, sd_fpt_varying = fast_mean_fpt_varying(param_to_vary, param_set, params, system,
                                                              num_processes, init_name=init_name, samplesize=ensemble)
