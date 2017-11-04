@@ -59,14 +59,15 @@ def get_gap_dist(params, system, axis="z"):
         #return fp_list[0][STATES_ID_INV[axis]]
         #return N - fp_list[0][STATES_ID_INV[axis]]
         #return N
-        return (2*N - fp_list[0][STATES_ID_INV[axis]] + fp_list[0][STATES_ID_INV[axis]]) / (2*N)
+        return (2*N - fp_list[0][STATES_ID_INV[axis]]) / (2*N)
     else:
         if len(fp_list) > 2:
             print "WARNING: %d phys/stable fixed points at these params:" % len(fp_list)
             print params, system
             print "FPs:", fp_list
             write_params(params, system, OUTPUT_DIR, "broken_params.csv")
-        return np.abs(fp_list[0][STATES_ID_INV[axis]] - fp_list[1][STATES_ID_INV[axis]])  # gap in z-coordinate
+        return (2*N - (fp_list[0][STATES_ID_INV[axis]] + fp_list[1][STATES_ID_INV[axis]])) / (2*N)
+        #return np.abs(fp_list[0][STATES_ID_INV[axis]] - fp_list[1][STATES_ID_INV[axis]])  # gap in z-coordinate
 
 
 def get_gap_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, axis_gap="z", figname_mod="", flag_write=False):
