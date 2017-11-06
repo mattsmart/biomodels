@@ -240,8 +240,8 @@ if __name__ == "__main__":
         fpt_histogram_multi(multi_fpt, labels, show_flag=True, y_log10_flag=True)
 
     if flag_means_read_and_plot:
-        datafile = OUTPUT_DIR + sep + "fpt_stats_allz0_b06_mean_sd_varying_N.txt"
-        paramfile = OUTPUT_DIR + sep + "fpt_stats_allz0_b06_mean_sd_varying_N_params.csv"
+        datafile = OUTPUT_DIR + sep + "fpt_stats_collected_mean_sd_varying_N.txt"
+        paramfile = OUTPUT_DIR + sep + "fpt_stats_collected_mean_sd_varying_N_params.csv"
         samplesize=48
         mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system = \
             read_varying_mean_sd_fpt_and_params(datafile, paramfile)
@@ -261,14 +261,14 @@ if __name__ == "__main__":
         plt_axis.set_yscale("log", nonposx='clip')
         plt_axis.set_xscale("log", nonposx='clip')
         plt_axis.legend()
-        plt.savefig(OUTPUT_DIR + sep + "TESTING" + '.png', bbox_inches='tight')
+        plt.savefig(OUTPUT_DIR + sep + "theorycompare_loglog" + '.png', bbox_inches='tight')
         plt.show()
         """
 
     if flag_means_collect_and_plot:
-        dbdir = OUTPUT_DIR + sep + "tocollect"
+        dbdir = OUTPUT_DIR + sep + "tocollect" + sep + "runset_nov4_2pm_c6_Nzclose"
         datafile, paramfile = collect_fpt_mean_stats_and_params(dbdir)
-        samplesize=96
+        samplesize=48
         mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system = \
             read_varying_mean_sd_fpt_and_params(datafile, paramfile)
         plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system, samplesize,

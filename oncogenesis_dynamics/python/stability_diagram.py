@@ -9,7 +9,7 @@ from formulae import is_stable, fp_location_general, get_physical_and_stable_fp
 # TODO: have ONLY 1 plotting script with datatype flags (e.g. fp count flag, stability data flag, other...)
 
 
-def get_stability_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system):
+def get_stability_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, flag_write=True):
     # assumes flow=0 and no feedback; uses is_stable with fp=[0,0,N]
     #TODO: maybe solve a1 and a0, or just compute and show signs, instead
     #TODO: also show a1 and a0 solutions never intercept (guess/check)
@@ -27,6 +27,8 @@ def get_stability_data_2d(params_general, param_1_name, param_1_range, param_2_n
             params_step[PARAMS_ID_INV[param_2_name]] = p2
             #stab_array[i,j] = is_stable(params_step, fp_stationary, system, method="algebraic_3d")
             stab_array[i, j] = is_stable(params_step, fp_stationary[0:2], system, method="numeric_2d")
+    if flag_write:
+        write_matrix_data_and_idx_vals(stab_array, param_1_range, param_2_range, "fpcount2d", param_1_name, param_2_name, output_dir=OUTPUT_DIR)
     return stab_array
 
 
@@ -59,18 +61,18 @@ def get_gap_dist(params, system, axis="z"):
         #return fp_list[0][STATES_ID_INV[axis]]
         #return N - fp_list[0][STATES_ID_INV[axis]]
         #return N
-        return (2*N - fp_list[0][STATES_ID_INV[axis]]) / (2*N)
+        return (N - fp_list[0][STATES_ID_INV[axis]]) / (N)
     else:
         if len(fp_list) > 2:
             print "WARNING: %d phys/stable fixed points at these params:" % len(fp_list)
             print params, system
             print "FPs:", fp_list
             write_params(params, system, OUTPUT_DIR, "broken_params.csv")
-        return (2*N - (fp_list[0][STATES_ID_INV[axis]] + fp_list[1][STATES_ID_INV[axis]])) / (2*N)
+        return (N - (fp_list[0][STATES_ID_INV[axis]] + fp_list[1][STATES_ID_INV[axis]])) / (N)
         #return np.abs(fp_list[0][STATES_ID_INV[axis]] - fp_list[1][STATES_ID_INV[axis]])  # gap in z-coordinate
 
 
-def get_gap_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, axis_gap="z", figname_mod="", flag_write=False):
+def get_gap_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, axis_gap="z", figname_mod="", flag_write=True):
     # gap between low-z and high-z FPs
     assert param_1_name, param_2_name in PARAMS_ID_INV.keys()
     assert [params_general[PARAMS_ID_INV[x]] for x in ['v_x', 'v_y', 'v_z']] == [0.0, 0.0, 0.0]  # currently hard-code non-flow trivial FP location of [0,0,N]
@@ -131,11 +133,11 @@ def get_jump_data_2d(params_general, param_1_name, param_1_range, param_2_name, 
     jump_array = np.zeros((len(param_1_range), len(param_2_range)))
     for i, p1 in enumerate(param_1_range):
         for j, p2 in enumerate(param_2_range):
-            print i, j, p1, p2
             params_step = params_general
             params_step[PARAMS_ID_INV[param_1_name]] = p1
             params_step[PARAMS_ID_INV[param_2_name]] = p2
             jump_array[i, j] = get_jump_dist(params_step, param_1_name, param_2_name, system, axis=axis_jump)
+        print i, j, p1, p2
     return jump_array
 
 
@@ -163,7 +165,7 @@ def plot_jump_data_2d(params_general, param_1_name, param_1_range, param_2_name,
     return plt.gca()
 
 
-def get_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, figname_mod=None):
+def get_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, flag_write=True, figname_mod=None):
     assert param_1_name, param_2_name in PARAMS_ID_INV.keys()
     fp_count_array = np.zeros((len(param_1_range), len(param_2_range)))
     for i, p1 in enumerate(param_1_range):
@@ -173,7 +175,9 @@ def get_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2_
             params_step[PARAMS_ID_INV[param_2_name]] = p2
             fp_list = get_physical_and_stable_fp(params_step, system)
             fp_count_array[i, j] = len(fp_list)
-        #print i, j, p1, p2
+        print i, j, p1, p2
+    if flag_write:
+        write_matrix_data_and_idx_vals(fp_count_array, param_1_range, param_2_range, "physfpcount2d", param_1_name, param_2_name, output_dir=OUTPUT_DIR)
     if figname_mod is not None:
         plot_stable_fp_count_2d(fp_count_array, params_general, param_1_name, param_1_range, param_2_name,
                                 param_2_range, system, figname_mod=figname_mod)
@@ -199,7 +203,7 @@ def plot_stable_fp_count_2d(fp_count_array, params_general, param_1_name, param_
     #plt.subplots_adjust(left=0.2, bottom=0.2)
     # Now adding the colorbar
     plt.colorbar(orientation='horizontal')
-    plt.savefig(OUTPUT_DIR + sep + 'fp_count_2d_%s_%s_%s.png' % (param_1_name, param_2_name, figname_mod), bbox_inches='tight')
+    plt.savefig(OUTPUT_DIR + sep + 'physfp_count_2d_%s_%s_%s.png' % (param_1_name, param_2_name, figname_mod), bbox_inches='tight')
     plt.close('all')
     #plt.show()
     return plt.gca()
