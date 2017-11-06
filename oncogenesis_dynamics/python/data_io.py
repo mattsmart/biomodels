@@ -235,5 +235,5 @@ def write_matrix_data_and_idx_vals(arr, row_vals, col_vals, dataname, rowname, c
 def read_matrix_data_and_idx_vals(datapath, rowpath, colpath):
     arr = np.loadtxt(datapath, delimiter=",", dtype=float)
     row = np.loadtxt(rowpath, delimiter=",", dtype=float)
-    col = np.loadtxt(datapath, delimiter=",", dtype=float)
+    col = np.loadtxt(colpath, delimiter=",", dtype=float)
     return arr, row, col
