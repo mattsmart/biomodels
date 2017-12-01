@@ -60,4 +60,4 @@ NUM_STEPS = 20000  # number of time steps in each trajectory (non-gillespie)
 PARAM_Z0_RATIO = 0.1           # size of z0 relative to N (in feedback_z function)
 PARAM_Y0_PLUS_Z0_RATIO = 0.1   # size of y0 + z0 relative to N (in feedback_yz function)
 PARAM_GAMMA = 9.0              # when z->N, mu_base-> approx (K + 1)*mu_base
-PARAM_HILL = 2                 # (unused currently) hill parameter 'n'
+PARAM_HILL = 1                 # (unused currently) hill parameter 'n'
