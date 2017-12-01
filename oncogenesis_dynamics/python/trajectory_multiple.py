@@ -24,7 +24,15 @@ def phase_portrait(params, system, num_traj=NUM_TRAJ, sim_method=SIM_METHOD, out
         init_cond = [ak, bk, ck]
         init_conds[k,:] = np.array(init_cond)
 
+    from formulae import fp_location_fsolve, jacobian_numerical_2d
+    all_fps = fp_location_fsolve(params, system, check_near_traj_endpt=True, gridsteps=35, tol=10e-1)
     sorted_fps = sorted(get_physical_and_stable_fp(params, system), key=itemgetter(2))
+    print "STABLE", sorted_fps
+    for fp in all_fps:
+        J = jacobian_numerical_2d(params, fp[0:2], system)
+        eigenvalues, V = np.linalg.eig(J)
+        print fp, eigenvalues
+
 
     plt_title = "Phase portrait (%d traj) System: %s" % (num_traj, system)
     plt_save = output_dir + sep + "trajectory_simplex_multi%s.png" % figname_mod

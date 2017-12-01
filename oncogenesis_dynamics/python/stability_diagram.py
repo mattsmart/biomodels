@@ -4,7 +4,7 @@ from os import sep
 
 from constants import PARAMS_ID, PARAMS_ID_INV, STATES_ID_INV, OUTPUT_DIR
 from data_io import write_params, write_matrix_data_and_idx_vals
-from formulae import is_stable, fp_location_general, get_physical_and_stable_fp
+from formulae import is_stable, fp_location_general, get_physical_and_stable_fp, get_stable_fp
 
 # TODO: have ONLY 1 plotting script with datatype flags (e.g. fp count flag, stability data flag, other...)
 
@@ -32,7 +32,7 @@ def get_stability_data_2d(params_general, param_1_name, param_1_range, param_2_n
     return stab_array
 
 
-def plot_stability_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system):
+def plot_stability_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, flag_show=False):
     stability_data_2d = get_stability_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system)
     plt.imshow(stability_data_2d, cmap='Greys', interpolation="none", origin='lower', aspect='auto',
                extent=[param_2_range[0], param_2_range[-1], param_1_range[0], param_1_range[-1]])
@@ -50,7 +50,8 @@ def plot_stability_data_2d(params_general, param_1_name, param_1_range, param_2_
                             bbox=(1.2, 0.2, 0.1, 0.75))
     #plt.subplots_adjust(left=0.2, bottom=0.2)
     plt.savefig(OUTPUT_DIR + sep + 'stability_data_2d_%s_%s.png' % (param_1_name, param_2_name), bbox_inches='tight')
-    plt.show()
+    if flag_show:
+        plt.show()
     return plt.gca()
 
 
@@ -165,7 +166,14 @@ def plot_jump_data_2d(params_general, param_1_name, param_1_range, param_2_name,
     return plt.gca()
 
 
-def get_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, flag_write=True, figname_mod=None):
+def get_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, flag_phys=True, flag_write=True, figname_mod=None):
+    if flag_phys:
+        fpcollector = get_physical_and_stable_fp
+        filestr = "physfpcount2d"
+    else:
+        fpcollector = get_stable_fp
+        filestr = "fpcount2d"
+
     assert param_1_name, param_2_name in PARAMS_ID_INV.keys()
     fp_count_array = np.zeros((len(param_1_range), len(param_2_range)))
     for i, p1 in enumerate(param_1_range):
@@ -173,26 +181,33 @@ def get_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2_
             params_step = params_general
             params_step[PARAMS_ID_INV[param_1_name]] = p1
             params_step[PARAMS_ID_INV[param_2_name]] = p2
-            fp_list = get_physical_and_stable_fp(params_step, system)
+            fp_list = fpcollector(params_step, system)
             fp_count_array[i, j] = len(fp_list)
         print i, j, p1, p2
     if flag_write:
-        write_matrix_data_and_idx_vals(fp_count_array, param_1_range, param_2_range, "physfpcount2d", param_1_name, param_2_name, output_dir=OUTPUT_DIR)
+        write_matrix_data_and_idx_vals(fp_count_array, param_1_range, param_2_range, filestr, param_1_name, param_2_name, output_dir=OUTPUT_DIR)
     if figname_mod is not None:
         plot_stable_fp_count_2d(fp_count_array, params_general, param_1_name, param_1_range, param_2_name,
-                                param_2_range, system, figname_mod=figname_mod)
+                                param_2_range, system, figname_mod=figname_mod, flag_phys=flag_phys)
     return fp_count_array
 
 
 def plot_stable_fp_count_2d(fp_count_array, params_general, param_1_name, param_1_range, param_2_name,
-                            param_2_range, system, figname_mod=""):
+                            param_2_range, system, figname_mod="", flag_phys=True, flag_show=False):
+    if flag_phys:
+        plt_title = "Stable FP count (vary %s, %s) %dx%d" % (param_1_name, param_2_name, len(fp_count_array), len(fp_count_array[0]))
+        filestr = 'physfp_count_2d_%s_%s_%s.png' % (param_1_name, param_2_name, figname_mod)
+    else:
+        plt_title = "Physical and Stable FP count (vary %s, %s) %dx%d" % (param_1_name, param_2_name, len(fp_count_array), len(fp_count_array[0]))
+        filestr = 'fp_count_2d_%s_%s_%s.png' % (param_1_name, param_2_name, figname_mod)
+
     plt.imshow(fp_count_array, cmap='seismic', interpolation="none", origin='lower', aspect='auto',
                extent=[param_2_range[0], param_2_range[-1], param_1_range[0], param_1_range[-1]])
     ax = plt.gca()
     ax.grid(which='major', axis='both', linestyle='-')
     ax.set_xlabel(param_2_name)
     ax.set_ylabel(param_1_name)
-    plt.title("Physical and Stable FP count (vary %s, %s) %dx%d" % (param_1_name, param_2_name, len(fp_count_array), len(fp_count_array[0]) ))
+    plt.title(plt_title)
     # CREATE TABLE OF PARAMS
     # bbox is x0, y0, height, width
     row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
@@ -203,9 +218,10 @@ def plot_stable_fp_count_2d(fp_count_array, params_general, param_1_name, param_
     #plt.subplots_adjust(left=0.2, bottom=0.2)
     # Now adding the colorbar
     plt.colorbar(orientation='horizontal')
-    plt.savefig(OUTPUT_DIR + sep + 'physfp_count_2d_%s_%s_%s.png' % (param_1_name, param_2_name, figname_mod), bbox_inches='tight')
+    plt.savefig(OUTPUT_DIR + sep + filestr, bbox_inches='tight')
+    if flag_show:
+        plt.show()
     plt.close('all')
-    #plt.show()
     return plt.gca()
 
 

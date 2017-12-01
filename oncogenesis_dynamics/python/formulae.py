@@ -487,6 +487,17 @@ def is_stable(params, fp, system, method="numeric_2d"):
     return all(eig < 0 for eig in eigenvalues)
 
 
+def get_stable_fp(params, ode_system):
+    fp_locs = fp_location_general(params, ode_system, solver_fsolve=True)
+    fp_locs_stable = []
+    for fp in fp_locs:
+        if is_stable(params, fp[0:2], ode_system, method="numeric_2d"):
+            fp_locs_stable.append(fp)
+            # eigs,V = np.linalg.eig(jacobian_numerical_2d(params, fp[0:2], ode_system))
+            # print fp, eigs
+    return fp_locs_stable
+
+
 def get_physical_and_stable_fp(params, ode_system):
     fp_locs = fp_location_general(params, ode_system, solver_fsolve=True)
     fp_locs_physical_and_stable = []
