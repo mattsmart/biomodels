@@ -93,7 +93,7 @@ def get_gap_data_2d(params_general, param_1_name, param_1_range, param_2_name, p
     return gap_array
 
 
-def plot_gap_data_2d(gap_data_2d, params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, axis_gap="z", figname_mod=""):
+def plot_gap_data_2d(gap_data_2d, params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, axis_gap="z", figname_mod="", flag_show=True):
     plt.imshow(gap_data_2d, cmap='seismic', interpolation="none", origin='lower', aspect='auto',
                extent=[param_2_range[0], param_2_range[-1], param_1_range[0], param_1_range[-1]])
     ax = plt.gca()
@@ -112,7 +112,8 @@ def plot_gap_data_2d(gap_data_2d, params_general, param_1_name, param_1_range, p
     # Now adding the colorbar
     plt.colorbar(orientation='horizontal')
     plt.savefig(OUTPUT_DIR + sep + 'gap_data_2d_%s_%s_%s.png' % (param_1_name, param_2_name, figname_mod), bbox_inches='tight')
-    plt.show()
+    if flag_show:
+        plt.show()
     return plt.gca()
 
 
@@ -195,10 +196,10 @@ def get_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2_
 def plot_stable_fp_count_2d(fp_count_array, params_general, param_1_name, param_1_range, param_2_name,
                             param_2_range, system, figname_mod="", flag_phys=True, flag_show=False):
     if flag_phys:
-        plt_title = "Stable FP count (vary %s, %s) %dx%d" % (param_1_name, param_2_name, len(fp_count_array), len(fp_count_array[0]))
+        plt_title = "Physical and Stable FP count (vary %s, %s) %dx%d" % (param_1_name, param_2_name, len(fp_count_array), len(fp_count_array[0]))
         filestr = 'physfp_count_2d_%s_%s_%s.png' % (param_1_name, param_2_name, figname_mod)
     else:
-        plt_title = "Physical and Stable FP count (vary %s, %s) %dx%d" % (param_1_name, param_2_name, len(fp_count_array), len(fp_count_array[0]))
+        plt_title = "Stable FP count (vary %s, %s) %dx%d" % (param_1_name, param_2_name, len(fp_count_array), len(fp_count_array[0]))
         filestr = 'fp_count_2d_%s_%s_%s.png' % (param_1_name, param_2_name, figname_mod)
 
     plt.imshow(fp_count_array, cmap='seismic', interpolation="none", origin='lower', aspect='auto',

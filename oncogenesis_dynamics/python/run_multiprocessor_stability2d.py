@@ -27,29 +27,34 @@ ode_system = "feedback_z"
 
 # ARGS TO PASS
 param_1_name = "b"
-param_1_start = 0.980 #0.975 #0.5
-param_1_stop = 0.990 #1.005 #1.1
+param_1_start = 0.5 #0.975 #0.5
+param_1_stop = 1.1 #1.005 #1.1
 param_1_steps = 210 #350 #700
 param_1_range = np.linspace(param_1_start, param_1_stop, param_1_steps)
 param_2_name = "c"
-param_2_start = 0.98 #0.6  # 1.1 #0.7
-param_2_stop = 0.99 #1.005 #1.1  # 1.3 #0.95
-param_2_steps = 200 #250 #500
+param_2_start = 0.6 #0.6  # 1.1 #0.7
+param_2_stop = 1.1 #1.005 #1.1  # 1.3 #0.95
+param_2_steps = 100 #250 #500
 param_2_range = np.linspace(param_2_start, param_2_stop, param_2_steps)
 
 #param_name_to_split = 2
 #assert param_name_to_split in [1,2]
 
-data_id = "gapdist"  # gapdist or physfpcount
-plot_flag = False
-if data_id == "physfpcount":
-    data_fnstr = "physfpcount2d_full"
+data_id = "fpcount"  # gapdist or fpcount
+flag_physicalfp = True
+flag_plot = True
+if data_id == "fpcount":
+    data_fnstr = "phys"*flag_physicalfp + "fpcount2d_full"
     data_fn = get_stable_fp_count_2d
     plot_fn = plot_stable_fp_count_2d
+    kwargs_dict = {'figname_mod': None, 'flag_phys': flag_physicalfp}
+    kwargs_plot_dict = {'figname_mod': "sum", 'flag_show': True, 'flag_phys': flag_physicalfp}
 elif data_id == "gapdist":
     data_fnstr = "gapdist2d_full"
     data_fn = get_gap_data_2d
     plot_fn = plot_gap_data_2d
+    kwargs_dict = {'figname_mod': None}
+    kwargs_plot_dict = {'figname_mod': "sum", 'flag_show': True}
 else:
    print "ERROR: %s invalid" % data_id
 
@@ -66,7 +71,7 @@ if __name__ == "__main__":
         param_1_reduced_range = param_1_range[i*range_step : (1 + i)*range_step]
         print "process:", i, "job size:", len(param_1_reduced_range), "x", len(param_2_range)
         fn_args_dict[i] = {'args': (params, param_1_name, param_1_reduced_range, param_2_name, param_2_range, ode_system),
-                           'kwargs': {'figname_mod': None}}
+                           'kwargs': kwargs_dict}
     t0 = time.time()
     pool = Pool(NUM_PROCESSES)
     results = pool.map(pool_fn_wrapper, fn_args_dict)
@@ -80,6 +85,6 @@ if __name__ == "__main__":
         results_collected[i*results_dim[0]:(i+1)*results_dim[0], :] = result
     write_matrix_data_and_idx_vals(results_collected, param_1_range, param_2_range, data_fnstr,
                                    param_1_name, param_2_name, output_dir=OUTPUT_DIR)
-    if plot_flag:
+    if flag_plot:
         plot_fn(results_collected, params, param_1_name, param_1_range, param_2_name,
-                param_2_range, ode_system, figname_mod="sum")
+                param_2_range, ode_system, **kwargs_plot_dict)
