@@ -13,6 +13,7 @@ Conventions
                                   params[10] -> mu_base    (typically 0)
 - if an element of params is specified as None then a bifurcation range will be be found and used
 """
+# TODO: make a feedback function which takes in the feedback flag, info on x, y, z, and returns alpha+, alpha-, save ~ 70 lines
 
 import csv
 import numpy as np
@@ -24,19 +25,19 @@ from sympy import Symbol, solve, re
 
 import trajectory
 from constants import PARAMS_ID, CSV_DATA_TYPES, SIM_METHODS, PARAM_Z0_RATIO, PARAM_Y0_PLUS_Z0_RATIO, PARAM_HILL, \
-                      ODE_SYSTEMS, PARAMS_ID_INV, PARAM_K
+                      ODE_SYSTEMS, PARAMS_ID_INV, PARAM_GAMMA
 
 
 def system_vector(init_cond, times, system, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base):
     x, y, z = init_cond
     fbar = (a * x + b * y + c * z + v_x + v_y + v_z) / N
     if system == "feedback_z":
-        alpha_plus = alpha_plus * (1 + z / (z + PARAM_Z0_RATIO*N))
-        alpha_minus = alpha_minus * PARAM_Z0_RATIO*N / (z + PARAM_Z0_RATIO*N)
+        alpha_plus = alpha_plus * (1 + z**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL))
+        alpha_minus = alpha_minus * (PARAM_Z0_RATIO*N)**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL)
     elif system == "feedback_yz":
         yz = y + z
-        alpha_plus = alpha_plus * (1 + yz / (yz + PARAM_Y0_PLUS_Z0_RATIO * N))
-        alpha_minus = alpha_minus * PARAM_Y0_PLUS_Z0_RATIO * N / (yz + PARAM_Y0_PLUS_Z0_RATIO * N)
+        alpha_plus = alpha_plus * (1 + yz**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL))
+        alpha_minus = alpha_minus * (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL)
     dxdt = v_x - x * (alpha_plus + mu_base) + y * alpha_minus + (a - fbar) * x
     dydt = v_y + x * alpha_plus - y * (alpha_minus + mu) + (b - fbar) * y
     dzdt = v_z + y * mu + z*mu_base + (c - fbar) * z
@@ -88,16 +89,16 @@ def reaction_propensities(r, step, system, params, fpt_flag=False):
     alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
     x_n, y_n, z_n = r[step]
     if system == "feedback_z":
-        alpha_plus = alpha_plus * (1 + z_n / (z_n + PARAM_Z0_RATIO * N))
-        alpha_minus = alpha_minus * PARAM_Z0_RATIO * N / (z_n + PARAM_Z0_RATIO * N)
+        alpha_plus = alpha_plus * (1 + z_n**PARAM_HILL / (z_n**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL))
+        alpha_minus = alpha_minus * (PARAM_Z0_RATIO*N)**PARAM_HILL / (z_n**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL)
     elif system == "feedback_yz":
         yz = y_n + z_n
-        alpha_plus = alpha_plus * (1 + yz / (yz + PARAM_Y0_PLUS_Z0_RATIO * N))
-        alpha_minus = alpha_minus * PARAM_Y0_PLUS_Z0_RATIO * N / (yz + PARAM_Y0_PLUS_Z0_RATIO * N)
+        alpha_plus = alpha_plus * (1 + yz**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL))
+        alpha_minus = alpha_minus * (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL)
     elif system == "feedback_mu_XZ_model":
         alpha_plus = 0.0
         alpha_minus = 0.0
-        mu_base = mu_base * (1 + PARAM_K * z_n / (z_n + PARAM_Z0_RATIO * N))
+        mu_base = mu_base * (1 + PARAM_GAMMA * z_n**PARAM_HILL / (z_n**PARAM_HILL + (PARAM_Z0_RATIO * N)**PARAM_HILL))
     fbar = (a*x_n + b*y_n + c*z_n + v_x + v_y + v_z) / N    # TODO flag to switch N to x + y + z
     rxn_prop = [a*x_n, fbar*(x_n),                      # birth/death events for x  TODO: is it fbar*(x_n - 1)
                 b*y_n, fbar*(y_n),                      # birth/death events for y  TODO: is it fbar*(y_n - 1)
@@ -311,12 +312,13 @@ def fp_location_sympy_system(params, system):
     VV = (v_x + v_y + v_z) / N
     if system == "feedback_z":
         z = N - sym_x - sym_y
-        alpha_plus = alpha_plus * (1 + z / (z + PARAM_Z0_RATIO*N))
-        alpha_minus = alpha_minus * PARAM_Z0_RATIO*N / (z + PARAM_Z0_RATIO*N)
+        alpha_plus = alpha_plus * (1 + z**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL))
+        alpha_minus = alpha_minus * (PARAM_Z0_RATIO*N)**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL)
     elif system == "feedback_yz":
         yz = N - sym_x
-        alpha_plus = alpha_plus * (1 + yz / (yz + PARAM_Y0_PLUS_Z0_RATIO * N))
-        alpha_minus = alpha_minus * PARAM_Y0_PLUS_Z0_RATIO * N / (yz + PARAM_Y0_PLUS_Z0_RATIO * N)
+        alpha_plus = alpha_plus * (1 + yz**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL))
+        alpha_minus = alpha_minus * (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL)
+
     xdot = (c-a)/N*sym_x**2 + (c-b)/N*sym_x*sym_y + (a-c-alpha_plus-mu_base-VV)*sym_x + alpha_minus*sym_y + v_x
     ydot = (c-b)/N*sym_y**2 + (c-a)/N*sym_x*sym_y + (b-c-alpha_minus-mu-VV)*sym_y + alpha_plus*sym_x + v_y
     eqns = (xdot, ydot)
@@ -335,12 +337,12 @@ def fp_location_sympy_quartic(params, system):
     sym_y = Symbol("y")
     if system == "feedback_z":
         z = N - sym_x - sym_y
-        alpha_plus = alpha_plus * (1 + z / (z + PARAM_Z0_RATIO*N))
-        alpha_minus = alpha_minus * PARAM_Z0_RATIO*N / (z + PARAM_Z0_RATIO*N)
+        alpha_plus = alpha_plus * (1 + z**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL))
+        alpha_minus = alpha_minus * (PARAM_Z0_RATIO*N)**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL)
     elif system == "feedback_yz":
         yz = N - sym_x
-        alpha_plus = alpha_plus * (1 + yz / (yz + PARAM_Y0_PLUS_Z0_RATIO * N))
-        alpha_minus = alpha_minus * PARAM_Y0_PLUS_Z0_RATIO * N / (yz + PARAM_Y0_PLUS_Z0_RATIO * N)
+        alpha_plus = alpha_plus * (1 + yz**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL))
+        alpha_minus = alpha_minus * (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL)
     VV = (v_x+v_y+v_z)/N
     a0 = (c-a)/N
     a1 = 0.0
@@ -370,12 +372,13 @@ def fsolve_func(xvec_guess, system, params):  # TODO: faster if split into 3 fns
     x0, y0 = xvec_guess
     if system == "feedback_z":
         z = N - x0 - y0
-        alpha_plus = alpha_plus * (1 + z / (z + PARAM_Z0_RATIO * N))
-        alpha_minus = alpha_minus * PARAM_Z0_RATIO * N / (z + PARAM_Z0_RATIO * N)
+        alpha_plus = alpha_plus * (1 + z**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL))
+        alpha_minus = alpha_minus * (PARAM_Z0_RATIO*N)**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL)
     elif system == "feedback_yz":
         yz = N - x0
-        alpha_plus = alpha_plus * (1 + yz / (yz + PARAM_Y0_PLUS_Z0_RATIO * N))
-        alpha_minus = alpha_minus * PARAM_Y0_PLUS_Z0_RATIO * N / (yz + PARAM_Y0_PLUS_Z0_RATIO * N)
+        alpha_plus = alpha_plus * (1 + yz**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL))
+        alpha_minus = alpha_minus * (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL)
+
     xdot = (c-a)/N*x0**2 + (c-b)/N*x0*y0 + (a-c-alpha_plus-mu_base-VV)*x0 + alpha_minus*y0 + v_x
     ydot = (c-b)/N*y0**2 + (c-a)/N*x0*y0 + (b-c-alpha_minus-mu-VV)*y0 + alpha_plus*x0 + v_y
     return [xdot, ydot]
@@ -448,12 +451,12 @@ def jacobian_numerical_2d(params, fp, system):
         VV = (v_x + v_y + v_z) / N
         if system == "feedback_z":
             z = N - x - y
-            alpha_plus = alpha_plus * (1 + z / (z + PARAM_Z0_RATIO * N))
-            alpha_minus = alpha_minus * PARAM_Z0_RATIO * N / (z + PARAM_Z0_RATIO * N)
+            alpha_plus = alpha_plus * (1 + z ** PARAM_HILL / (z ** PARAM_HILL + (PARAM_Z0_RATIO * N) ** PARAM_HILL))
+            alpha_minus = alpha_minus * (PARAM_Z0_RATIO * N) ** PARAM_HILL / (z ** PARAM_HILL + (PARAM_Z0_RATIO * N) ** PARAM_HILL)
         elif system == "feedback_yz":
             yz = N - x
-            alpha_plus = alpha_plus * (1 + yz / (yz + PARAM_Y0_PLUS_Z0_RATIO * N))
-            alpha_minus = alpha_minus * PARAM_Y0_PLUS_Z0_RATIO * N / (yz + PARAM_Y0_PLUS_Z0_RATIO * N)
+            alpha_plus = alpha_plus * (1 + yz ** PARAM_HILL / (yz ** PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO * N) ** PARAM_HILL))
+            alpha_minus = alpha_minus * (PARAM_Y0_PLUS_Z0_RATIO * N) ** PARAM_HILL / (yz ** PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO * N) ** PARAM_HILL)
         return (c - a) / N * x ** 2 + (c - b) / N * x * y + (a - c - alpha_plus - mu_base - VV) * x + alpha_minus * y + v_x
     def func_ydot(fp):
         x, y = fp[0], fp[1]
@@ -461,12 +464,12 @@ def jacobian_numerical_2d(params, fp, system):
         VV = (v_x + v_y + v_z) / N
         if system == "feedback_z":
             z = N - x - y
-            alpha_plus = alpha_plus * (1 + z / (z + PARAM_Z0_RATIO * N))
-            alpha_minus = alpha_minus * PARAM_Z0_RATIO * N / (z + PARAM_Z0_RATIO * N)
+            alpha_plus = alpha_plus * (1 + z ** PARAM_HILL / (z ** PARAM_HILL + (PARAM_Z0_RATIO * N) ** PARAM_HILL))
+            alpha_minus = alpha_minus * (PARAM_Z0_RATIO * N) ** PARAM_HILL / (z ** PARAM_HILL + (PARAM_Z0_RATIO * N) ** PARAM_HILL)
         elif system == "feedback_yz":
             yz = N - x
-            alpha_plus = alpha_plus * (1 + yz / (yz + PARAM_Y0_PLUS_Z0_RATIO * N))
-            alpha_minus = alpha_minus * PARAM_Y0_PLUS_Z0_RATIO * N / (yz + PARAM_Y0_PLUS_Z0_RATIO * N)
+            alpha_plus = alpha_plus * (1 + yz ** PARAM_HILL / (yz ** PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO * N) ** PARAM_HILL))
+            alpha_minus = alpha_minus * (PARAM_Y0_PLUS_Z0_RATIO * N) ** PARAM_HILL / (yz ** PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO * N) ** PARAM_HILL)
         return (c-b)/N*y**2 + (c-a)/N*x*y + (b-c-alpha_minus-mu-VV)*y + alpha_plus*x + v_y
     epsilon = 10e-4
     row_x = approx_fprime(fp, func_xdot, epsilon)
