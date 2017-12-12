@@ -37,6 +37,14 @@ def binarize_data(xi):
     return np.where(xi > 0, 1, -1)
 
 
+def state_write(state, filepath):
+    return 0
+
+
+def state_read(state, filepath):
+    return 0
+
+
 if __name__ == '__main__':
     xi, celltype_labels, gene_labels = load_singlecell_data(zscore_datafile)
     xi_bool = binarize_data(xi)

@@ -1,7 +1,7 @@
 import numpy as np
 from random import random, shuffle
 
-from load_data import load_singlecell_data, binarize_data
+from singlecell_data_io import load_singlecell_data, binarize_data
 
 
 def interaction_matrix(xi, method="projection"):  # note may be off by scaling factor of 1/N
@@ -58,7 +58,7 @@ state[:,0] = init_state[:,0]
 # Simulate
 for t in xrange(TIMESTEPS-1):
     shuffle(randomized_sites)  # randomize site ordering each timestep updates
-    for idx, site in enumerate(randomized_sites):
+    for idx, site in enumerate(randomized_sites):  # TODO: parallelize
         state = glauber_dynamics_update(J, state, idx, t)
     print t
 print state
