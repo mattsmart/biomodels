@@ -45,17 +45,17 @@ def memory_corr_matrix_and_inv(xi):
     return corr_matrix, np.linalg.inv(corr_matrix)
 
 
-def interaction_matrix(xi, corr_inv, method):  # note may be off # by scaling factor of 1/N
+def interaction_matrix(xi, corr_inv, method):
     if method == "hopfield":
-        return np.dot(xi, xi.T)
+        return np.dot(xi, xi.T) / len(xi)                         # note not sure if factor 1/N needed
     elif method == "projection":
-        return reduce(np.dot, [xi, corr_inv, xi.T])
+        return reduce(np.dot, [xi, corr_inv, xi.T]) / len(xi)     # note not sure if factor 1/N needed
     else:
         raise ValueError("method arg invalid, must be one of %s" % ["projection", "hopfield"])
 
 
 def predictivity_matrix(xi, corr_inv):
-    return np.dot(corr_inv, xi.T) / N  # eta_ij is the "predictivity" of TF i in cell fate j
+    return np.dot(corr_inv, xi.T) / len(xi)  # eta_ij is the "predictivity" of TF i in cell fate j
 
 
 def singlecell_simsetup():
@@ -66,6 +66,7 @@ def singlecell_simsetup():
     j = interaction_matrix(xi, a_inv, method=METHOD)
     eta = predictivity_matrix(xi, a_inv)
     return gene_labels, celltype_labels, len(gene_labels), len(celltype_labels), xi, a_inv, j, eta
+
 
 # DEFINE SIMULATION CONSTANTS IN ISOLATED SETUP CALL
 GENE_LABELS, CELLTYPE_LABELS, N, P, XI, A_INV, J, ETA = singlecell_simsetup()

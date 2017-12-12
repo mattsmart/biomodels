@@ -9,4 +9,4 @@ RUNS_FOLDER = "runs" + os.sep             # store timestamped runs here
 BETA = 2.2                                # value used in Mehta 2014
 METHOD = "projection"                     # 'projection' or 'hopfield'
 FLAG_BOOL = True                          # use binarized states (up/down vs continuous)
-TIMESTEPS = 3                             # number of timesteps to loop for
+NUM_STEPS = 3                             # number of timesteps to loop for
