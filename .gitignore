@@ -25,3 +25,4 @@ oncogenesis_dynamics/python/output/
 transcriptome_clustering/rawdata/
 transcriptome_clustering/documentation/
 celltypes/abm_celltypes/runs/
+celltypes/singlecell/runs/
