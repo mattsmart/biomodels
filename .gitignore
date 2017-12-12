@@ -24,3 +24,4 @@ population_genetics/simulate - time.py
 oncogenesis_dynamics/python/output/
 transcriptome_clustering/rawdata/
 transcriptome_clustering/documentation/
+celltypes/abm_celltypes/runs/
