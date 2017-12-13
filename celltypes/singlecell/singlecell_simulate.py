@@ -37,7 +37,7 @@ for step in steps[:-1]:
 
     shuffle(randomized_sites)  # randomize site ordering each timestep updates
     for idx, site in enumerate(randomized_sites):  # TODO: parallelize
-        state = glauber_dynamics_update(state, idx, step)
+        state = glauber_dynamics_update(state, site, step)
 
 # Write
 print "Writing state to file.."
