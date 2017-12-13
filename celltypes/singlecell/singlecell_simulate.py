@@ -31,7 +31,7 @@ def main(init_type=None, iterations=NUM_STEPS, plot_period=10):
     for i in xrange(iterations-1):
         print "cell steps:", singlecell.steps, " H(state) =", singlecell.get_energy()
         if singlecell.steps % plot_period == 0:
-            singlecell.plot_projection(plot_lattice_folder)
+            singlecell.plot_projection(pltdir=plot_lattice_folder)
         singlecell.update_state()
 
     # Write

@@ -51,7 +51,7 @@ class Cell(object):
         overlap = self.get_memories_overlap()
         fig, ax = plot_as_radar(overlap)
         if pltdir is not None:
-            save_manual(fig, pltdir, "sc_state_radar_%d" % self.steps)
+            save_manual(fig, pltdir, "sc_state_radar_%s_%d" % (self.label, self.steps))
         return fig, ax
 
     def get_memories_projection(self):
@@ -61,7 +61,7 @@ class Cell(object):
         proj = self.get_memories_projection()
         fig, ax = plot_as_radar(proj)
         if pltdir is not None:
-            save_manual(fig, pltdir, "sc_state_radar_%d" % self.steps)
+            save_manual(fig, pltdir, "state_radar_%s_%d" % (self.label, self.steps))
         return fig, ax
 
     def update_state(self, field=None):
@@ -77,7 +77,7 @@ class Cell(object):
         return self.state
 
     def write_state(self, datadir):
-        state_write(self.state_array, range(self.steps), self.gene_list, "sc_state", "times", "gene_labels", datadir)
+        state_write(self.state_array, range(self.steps), self.gene_list, "sc_state_%s" % self.label, "times", "gene_labels", datadir)
 
     def state_subsample(self, ratio_to_remove=0.5):
             state_subsample = self.state
