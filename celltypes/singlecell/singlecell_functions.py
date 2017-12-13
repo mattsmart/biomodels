@@ -2,7 +2,7 @@ import numpy as np
 from random import random
 
 from singlecell_constants import BETA
-from singlecell_simsetup import N, XI, A_INV, J
+from singlecell_simsetup import N, XI, A_INV, J, CELLTYPE_LABELS
 
 """
 Conventions follow from Lang & Mehta 2014, PLOS Comp. Bio
@@ -10,8 +10,8 @@ Conventions follow from Lang & Mehta 2014, PLOS Comp. Bio
 """
 
 
-def hamiltonian(state, t):
-    return -0.5*reduce(np.dot, [state[:,t].T, J, state[:,t]])  # plus some other field terms... do we care for these?
+def hamiltonian(state_vec):
+    return -0.5*reduce(np.dot, [state_vec.T, J, state_vec])  # plus some other field terms... do we care for these?
 
 
 def local_field(state, gene_idx, t):
@@ -27,7 +27,7 @@ def glauber_dynamics_update(state, gene_idx, t):
     beta_h = BETA * local_field(state, gene_idx, t)
     prob_on_after_timestep = 1 / (1 + np.exp(-2*beta_h))  # probability that site i will be "up" after the timestep
     if prob_on_after_timestep > r1:
-        state[gene_idx, t+1] = 1
+        state[gene_idx, t + 1] = 1
     else:
         state[gene_idx, t + 1] = -1
     return state
@@ -39,3 +39,13 @@ def state_memory_overlap(state_arr, time):
 
 def state_memory_projection(state_arr, time):
     return np.dot(A_INV, state_memory_overlap(state_arr, time))
+
+
+def check_memory_energies():
+    # in projection method, expect all to have value -N/2, global minimum value (Mehta 2014)
+    # TODO: what is expectation in hopfield method?
+    for idx, label in enumerate(CELLTYPE_LABELS):
+        mem = XI[:,idx]
+        h = hamiltonian(mem)
+        print idx, label, h
+    return
