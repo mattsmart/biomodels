@@ -18,7 +18,7 @@ def main(init_type=None, iterations=NUM_STEPS, plot_period=10):
     # IO setup
     current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = run_subdir_setup()
 
-    # Cell steup
+    # Cell setup
     if init_type is None:
         init_type = "All on"
         init_state = 1 + np.zeros(N)  # start with all genes on
@@ -29,7 +29,7 @@ def main(init_type=None, iterations=NUM_STEPS, plot_period=10):
 
     # Simulate
     for i in xrange(iterations-1):
-        print "i:", i, "cell steps:", singlecell.steps, " H(state) =", singlecell.get_energy()
+        print "cell steps:", singlecell.steps, " H(state) =", singlecell.get_energy()
         if singlecell.steps % plot_period == 0:
             singlecell.plot_projection(plot_lattice_folder)
         singlecell.update_state()

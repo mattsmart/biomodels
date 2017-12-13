@@ -6,9 +6,14 @@ from singlecell_functions import glauber_dynamics_update, state_memory_projectio
 from singlecell_simsetup import GENE_LABELS, CELLTYPE_LABELS
 from singlecell_visualize import plot_as_radar, save_manual
 
+"""
+TODO:
+    -steps is redundant: np.shape(state_array)[1]
+    -state is redundant: state_array[:,-1]
+"""
 
 class Cell(object):
-    def __init__(self, state, label, location=None, memories_list=CELLTYPE_LABELS, gene_list=GENE_LABELS, state_array=None,
+    def __init__(self, state, label, memories_list=CELLTYPE_LABELS, gene_list=GENE_LABELS, state_array=None,
                  steps=None):
         self.state = state  # this should be N x 1 array
         self.label = label  # label represents it's init cond
@@ -17,7 +22,6 @@ class Cell(object):
         self.P = len(memories_list)
         self.N = len(gene_list)
         assert len(self.state) == self.N
-        self.location = location  # in multicell sim use list [i,j], else None
         if state_array is None:
             state_array_temp = np.zeros((self.N, 1))
             state_array_temp[:, 0] = state
@@ -60,13 +64,13 @@ class Cell(object):
             save_manual(fig, pltdir, "sc_state_radar_%d" % self.steps)
         return fig, ax
 
-    def update_state(self):
+    def update_state(self, field=None):
         randomized_sites = range(self.N)
         shuffle(randomized_sites)  # randomize site ordering each timestep updates
         state_array_ext = np.zeros((self.N, np.shape(self.state_array)[1] + 1))
         state_array_ext[:, :-1] = self.state_array
         for idx, site in enumerate(randomized_sites):  # TODO: parallelize
-            state_array_ext = glauber_dynamics_update(state_array_ext, site, self.steps)
+            state_array_ext = glauber_dynamics_update(state_array_ext, site, self.step, field=field)
         self.state_array = state_array_ext
         self.steps += 1
         self.state = state_array_ext[:, -1]
@@ -74,3 +78,17 @@ class Cell(object):
 
     def write_state(self, datadir):
         state_write(self.state_array, range(self.steps), self.gene_list, "sc_state", "times", "gene_labels", datadir)
+
+    def state_subsample(self, ratio_to_remove=0.5):
+            state_subsample = self.state
+            vals_to_keep = np.random.choice(range(N), np.round(ratio_to_remove*self.N), replace=False)
+            for val in vals_to_keep:
+                state_subsample[val] = 0.0
+            return state_subsample
+
+    def state_only_on(self):
+            state_only_on = self.state
+            for idx, val in enumerate(state_only_on):
+                if val < 0:
+                    state_only_on[idx] = 0.0
+            return state_only_on

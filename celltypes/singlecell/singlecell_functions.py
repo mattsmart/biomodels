@@ -1,7 +1,7 @@
 import numpy as np
 from random import random
 
-from singlecell_constants import BETA
+from singlecell_constants import BETA, PARAM_EXOSOME
 from singlecell_simsetup import N, XI, A_INV, J, CELLTYPE_LABELS
 
 """
@@ -22,9 +22,12 @@ def local_field(state, gene_idx, t):
     return h_i
 
 
-def glauber_dynamics_update(state, gene_idx, t):
+def glauber_dynamics_update(state, gene_idx, t, field=None):
     r1 = random()
-    beta_h = BETA * local_field(state, gene_idx, t)
+    if field is None:
+        beta_h = BETA * local_field(state, gene_idx, t)
+    else:
+        beta_h = BETA * (local_field(state, gene_idx, t) + PARAM_EXOSOME * field[gene_idx])
     prob_on_after_timestep = 1 / (1 + np.exp(-2*beta_h))  # probability that site i will be "up" after the timestep
     if prob_on_after_timestep > r1:
         state[gene_idx, t + 1] = 1
