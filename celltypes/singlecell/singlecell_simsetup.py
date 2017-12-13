@@ -41,7 +41,7 @@ def binarize_data(xi):
 
 
 def memory_corr_matrix_and_inv(xi):
-    corr_matrix = np.dot(xi.T, xi)
+    corr_matrix = np.dot(xi.T, xi) / len(xi)
     return corr_matrix, np.linalg.inv(corr_matrix)
 
 
@@ -65,8 +65,10 @@ def singlecell_simsetup():
     a, a_inv = memory_corr_matrix_and_inv(xi)
     j = interaction_matrix(xi, a_inv, method=METHOD)
     eta = predictivity_matrix(xi, a_inv)
-    return gene_labels, celltype_labels, len(gene_labels), len(celltype_labels), xi, a_inv, j, eta
+    return gene_labels, celltype_labels, len(gene_labels), len(celltype_labels), xi, a, a_inv, j, eta
 
 
 # DEFINE SIMULATION CONSTANTS IN ISOLATED SETUP CALL
-GENE_LABELS, CELLTYPE_LABELS, N, P, XI, A_INV, J, ETA = singlecell_simsetup()
+GENE_LABELS, CELLTYPE_LABELS, N, P, XI, A, A_INV, J, ETA = singlecell_simsetup()
+CELLTYPE_ID = {k: v for v, k in enumerate(CELLTYPE_LABELS)}
+GENE_ID = {k: v for v, k in enumerate(GENE_LABELS)}
