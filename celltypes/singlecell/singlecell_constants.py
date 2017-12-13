@@ -9,4 +9,5 @@ RUNS_FOLDER = "runs" + os.sep             # store timestamped runs here
 BETA = 2.2                                # value used in Mehta 2014
 METHOD = "projection"                     # 'projection' or 'hopfield'
 FLAG_BOOL = True                          # use binarized states (up/down vs continuous)
+FLAG_REMOVE_DUPES = True                  # remove genes that have same binarized state across all memories
 NUM_STEPS = 100                           # number of timesteps to loop for

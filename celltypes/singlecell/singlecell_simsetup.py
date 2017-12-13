@@ -1,7 +1,7 @@
 import numpy as np
 import re
 
-from singlecell_constants import METHOD, FLAG_BOOL, ZSCORE_DATAFILE
+from singlecell_constants import METHOD, FLAG_BOOL, FLAG_REMOVE_DUPES, ZSCORE_DATAFILE
 
 """
 Conventions follow from Lang & Mehta 2014, PLOS Comp. Bio
@@ -37,7 +37,17 @@ def load_singlecell_data(zscore_datafile=ZSCORE_DATAFILE):
 
 
 def binarize_data(xi):
-    return np.where(xi > 0, 1, -1)
+    return 1.0 * np.where(xi > 0, 1, -1)  # mult by 1.0 to cast as float
+
+
+def reduce_gene_set(xi, gene_labels):  # TODO: my removal ends with 1339 left but theirs with 1337 why?
+    genes_to_remove = []
+    for row_idx, row in enumerate(xi):
+        if all(map(lambda x: x == row[0], row)):
+            genes_to_remove.append(row_idx)
+    reduced_gene_labels = [gene_labels[idx] for idx in xrange(len(xi)) if idx not in genes_to_remove]
+    reduced_xi = np.array([row for idx, row in enumerate(xi) if idx not in genes_to_remove])
+    return reduced_gene_labels, reduced_xi
 
 
 def memory_corr_matrix_and_inv(xi):
@@ -47,11 +57,13 @@ def memory_corr_matrix_and_inv(xi):
 
 def interaction_matrix(xi, corr_inv, method):
     if method == "hopfield":
-        return np.dot(xi, xi.T) / len(xi)                         # note not sure if factor 1/N needed
+        j = np.dot(xi, xi.T) / len(xi[0])                         # TODO: not sure if factor 1/N or 1/p needed...
+        # np.fill_diagonal(j, 0)                                  # TODO: is this step necessary in hopfield case?
     elif method == "projection":
-        return reduce(np.dot, [xi, corr_inv, xi.T]) / len(xi)     # note not sure if factor 1/N needed
+        j = reduce(np.dot, [xi, corr_inv, xi.T]) / len(xi)     # TODO: not sure if factor 1/N needed
     else:
         raise ValueError("method arg invalid, must be one of %s" % ["projection", "hopfield"])
+    return j
 
 
 def predictivity_matrix(xi, corr_inv):
@@ -62,6 +74,9 @@ def singlecell_simsetup():
     gene_labels, celltype_labels, xi = load_singlecell_data()
     if FLAG_BOOL:
         xi = binarize_data(xi)
+    if FLAG_REMOVE_DUPES:
+        assert FLAG_BOOL
+        gene_labels, xi = reduce_gene_set(xi, gene_labels)
     a, a_inv = memory_corr_matrix_and_inv(xi)
     j = interaction_matrix(xi, a_inv, method=METHOD)
     eta = predictivity_matrix(xi, a_inv)
