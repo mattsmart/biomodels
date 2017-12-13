@@ -1,11 +1,9 @@
 import numpy as np
-from random import shuffle
 
+from singlecell_class import Cell
 from singlecell_constants import NUM_STEPS
-from singlecell_data_io import run_subdir_setup, state_write
-from singlecell_functions import glauber_dynamics_update, state_memory_projection, state_memory_overlap, hamiltonian
-from singlecell_simsetup import GENE_LABELS, CELLTYPE_LABELS, N, P, XI, A, A_INV, J, ETA, CELLTYPE_ID
-from singlecell_visualize import plot_as_radar, save_manual
+from singlecell_data_io import run_subdir_setup
+from singlecell_simsetup import N, XI, CELLTYPE_ID
 
 """
 NOTES:
@@ -14,33 +12,34 @@ NOTES:
 - in hopfield sim, at normal temps it jumps immediately to much more stable state and stays there
 """
 
-# IO setup
-current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = run_subdir_setup()
 
-# Variable setup
-init_state = XI[:,CELLTYPE_ID['B Cell']] #-1 + np.zeros((N,1))
-randomized_sites = range(N)
-state = np.zeros((N,NUM_STEPS))
-steps = range(NUM_STEPS)
-state[:,0] = init_state[:]
+def main(init_type=None, iterations=NUM_STEPS, plot_period=10):
 
-# Simulate
-for step in steps[:-1]:
-    print "step:", step, " H(state) =", hamiltonian(state[:,step])
+    # IO setup
+    current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = run_subdir_setup()
 
-    if step % 1 == 0:
-        #state_vec_proj = state_memory_overlap(state, step)
-        state_vec_proj = state_memory_projection(state, step)
-        #print state_vec_proj, np.shape(state_vec_proj)
-        fig, ax = plot_as_radar(state_vec_proj)
-        save_manual(fig, plot_lattice_folder, "sc_state_radar_%d" % step)
+    # Cell steup
+    if init_type is None:
+        init_type = "All on"
+        init_state = 1 + np.zeros(N)  # start with all genes on
+    else:
+        init_state = XI[:, CELLTYPE_ID[init_type]]
+    singlecell = Cell(init_state, init_type)
+    print singlecell
 
-    shuffle(randomized_sites)  # randomize site ordering each timestep updates
-    for idx, site in enumerate(randomized_sites):  # TODO: parallelize
-        state = glauber_dynamics_update(state, site, step)
+    # Simulate
+    for i in xrange(iterations-1):
+        print "i:", i, "cell steps:", singlecell.steps, " H(state) =", singlecell.get_energy()
+        if singlecell.steps % plot_period == 0:
+            singlecell.plot_projection(plot_lattice_folder)
+        singlecell.update_state()
 
-# Write
-print "Writing state to file.."
-print state
-state_write(state, steps, GENE_LABELS, "sc_state", "times", "gene_labels", data_folder)
-print "Done"
+    # Write
+    print "Writing state to file.."
+    print singlecell.get_current_state()
+    singlecell.write_state(data_folder)
+    print "Done"
+
+
+if __name__ == '__main__':
+    main()
