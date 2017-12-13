@@ -1,0 +1,69 @@
+import numpy as np
+
+from singlecell.singlecell_class import Cell
+from singlecell.singlecell_simsetup import GENE_LABELS, CELLTYPE_LABELS
+
+
+class SpatialCell(Cell):
+    def __init__(self, state, label, location, memories_list=CELLTYPE_LABELS, gene_list=GENE_LABELS,
+                 state_array=None, steps=None):
+        Cell.__init__(self, state, label, memories_list=memories_list, gene_list=gene_list, state_array=state_array,
+                      steps=steps)
+        self.location = location
+
+    def get_surroundings_square(self, search_radius, gridsize):
+        """Specifies the location of the top left corner of the search square
+        Args:
+            search_radius: half-edge length of the square
+        Returns:
+            list of locations; length should be (2 * search_radius + 1) ** 2 (- 1 remove self?)
+        Notes:
+            - periodic BCs apply, so search boxes wrap around at boundaries
+            - note that we assert that search_radius be less than half the grid size
+            - may have different search radius depending om context (neighbouring bacteria / empty cells)
+            - currently DOES NOT remove the original location
+        """
+        row = self.location[0]
+        col = self.location[1]
+        surroundings = [[row_to_search % gridsize, col_to_search % gridsize]
+                        for row_to_search in xrange(row - search_radius, row + search_radius + 1)
+                        for col_to_search in xrange(col - search_radius, col + search_radius + 1)]
+        surroundings.remove(self.location)  # TODO test behaviour
+        return surroundings
+
+    def get_local_signal_field(self, lattice, search_radius, gridsize):
+        """
+        # TODO: try other methods, currently sample from on genes in nearby states
+        A - use only 'on' genes
+        B - sample from whole gene state vector
+        C - use whole vector don't randomly sample at all
+        """
+        neighbours = self.get_surroundings_square(search_radius, gridsize)
+        field_state = np.zeros(self.N)
+
+        # METHOD A
+        """
+        for loc in neighbours:  # TODO should skip self when going through (i.e. don't count your current position)
+            nbr_cell = lattice[loc[0]][loc[1]]
+            nbr_state_only_on = nbr_cell.state_only_on()
+            field_state += nbr_state_only_on
+        """
+
+        # METHOD B
+        """
+        for loc in neighbours:  # TODO should skip self when going through (i.e. don't count your current position)
+            nbr_cell = lattice[loc[0]][loc[1]]
+            nbr_state_subsample = nbr_cell.state_subsample(ratio_to_remove=0.5)
+            field_state += nbr_state_subsample
+        """
+
+        # METHOD C
+        for loc in neighbours:  # TODO should skip self when going through (i.e. don't count your current position)
+            nbr_state = lattice[loc[0]][loc[1]].get_current_state()
+            field_state += nbr_state
+
+        return field_state
+
+    def update_with_signal_field(self, lattice, search_radius, gridsize):
+        field_vec = self.get_local_signal_field(lattice, search_radius, gridsize)
+        self.update_state(field=field_vec)
