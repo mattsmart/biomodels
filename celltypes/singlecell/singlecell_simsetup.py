@@ -1,7 +1,7 @@
 import numpy as np
 import re
 
-from singlecell_constants import METHOD, FLAG_BOOL, FLAG_REMOVE_DUPES, ZSCORE_DATAFILE
+from singlecell_constants import METHOD, FLAG_BOOL, FLAG_REMOVE_DUPES, ZSCORE_DATAFILE_PATH
 
 """
 Conventions follow from Lang & Mehta 2014, PLOS Comp. Bio
@@ -9,7 +9,7 @@ Conventions follow from Lang & Mehta 2014, PLOS Comp. Bio
 """
 
 
-def load_singlecell_data(zscore_datafile=ZSCORE_DATAFILE):
+def load_singlecell_data(zscore_datafile=ZSCORE_DATAFILE_PATH):
     """
     Returns list of cell types (size p), list of TFs (size N), and xi array where xi_ij is ith TF value in cell type j
     Note the Mehta SI file has odd formatting (use regex to parse); array text file is read in as single line:
@@ -58,11 +58,11 @@ def memory_corr_matrix_and_inv(xi):
 def interaction_matrix(xi, corr_inv, method):
     if method == "hopfield":
         j = np.dot(xi, xi.T) / len(xi[0])                         # TODO: not sure if factor 1/N or 1/p needed...
-        # np.fill_diagonal(j, 0)                                  # TODO: is this step necessary in hopfield case?
     elif method == "projection":
         j = reduce(np.dot, [xi, corr_inv, xi.T]) / len(xi)     # TODO: not sure if factor 1/N needed
     else:
         raise ValueError("method arg invalid, must be one of %s" % ["projection", "hopfield"])
+    np.fill_diagonal(j, 0)                                    # TODO: is this step necessary in both cases? speedup...
     return j
 
 

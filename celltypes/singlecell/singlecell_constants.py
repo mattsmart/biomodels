@@ -1,13 +1,13 @@
 import os
 
-
 # IO
-ZSCORE_DATAFILE = "mehta_zscore_table" + os.sep + "mehta_zscore_table.txt"
+ZSCORE_DATAFILE_NAME = "mehta_zscore_table.txt"
+ZSCORE_DATAFILE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), ZSCORE_DATAFILE_NAME))
 RUNS_FOLDER = "runs" + os.sep             # store timestamped runs here
 
 # SINGLECELL SIMULATION CONSTANTS
 BETA = 2.2                                # value used in Mehta 2014
-PARAM_EXOSOME = BETA*2                    # relative strength of exosome local field effect
+PARAM_EXOSOME = 0.025                      # relative strength of exosome local field effect
 METHOD = "projection"                     # 'projection' or 'hopfield'
 FLAG_BOOL = True                          # use binarized states (up/down vs continuous)
 FLAG_REMOVE_DUPES = True                  # remove genes that have same binarized state across all memories
