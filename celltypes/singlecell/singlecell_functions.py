@@ -11,29 +11,54 @@ Conventions follow from Lang & Mehta 2014, PLOS Comp. Bio
 
 
 def hamiltonian(state_vec):
-    return -0.5*reduce(np.dot, [state_vec.T, J, state_vec])  # plus some other field terms... do we care for these?
+    return -0.5*reduce(np.dot, [state_vec.T, J, state_vec])  # plus some other field terms... do we care for these? ie. "-sum h_i*s_i"
 
 
-def local_field(state, gene_idx, t):
-    h_i = 0
+def internal_field(state, gene_idx, t):
+    """
+    Original slow summation:
+    h_1 = 0
     intxn_list = range(0, gene_idx) + range(gene_idx+1, N)
     for j in intxn_list:
-        h_i += J[gene_idx,j] * state[j,t]  # plus some other field terms... do we care for these?
-    return h_i
+        h_1 += J[gene_idx,j] * state[j,t]  # plus some other field terms... do we care for these?
+    """
+    internal_field = np.dot(J[gene_idx,:], state[:,t])  # note diagonals assumed to be zero (enforce in J definition)
+    return internal_field
 
 
-def glauber_dynamics_update(state, gene_idx, t, field=None):
+def glauber_dynamics_update(state, gene_idx, t, external_field=None):
+    """
+    See page 107-111 Amit for discussion on functional form
+    """
     r1 = random()
-    if field is None:
-        beta_h = BETA * local_field(state, gene_idx, t)
+    if external_field is None:
+        total_field = internal_field(state, gene_idx, t)
     else:
-        beta_h = BETA * (local_field(state, gene_idx, t) + PARAM_EXOSOME * field[gene_idx])
-    prob_on_after_timestep = 1 / (1 + np.exp(-2*beta_h))  # probability that site i will be "up" after the timestep
+        total_field = internal_field(state, gene_idx, t) + PARAM_EXOSOME * external_field[gene_idx]
+    prob_on_after_timestep = 1 / (1 + np.exp(-2*BETA*total_field))  # probability that site i will be "up" after the timestep
     if prob_on_after_timestep > r1:
-        state[gene_idx, t + 1] = 1
+        state[gene_idx, t + 1] = 1.0
     else:
-        state[gene_idx, t + 1] = -1
+        state[gene_idx, t + 1] = -1.0
     return state
+
+
+def state_subsample(state_vec, ratio_to_remove=0.5):
+    state_subsample = np.zeros(len(state_vec))
+    vals_to_keep = np.random.choice(range(len(state_vec)), np.round(ratio_to_remove*len(state_vec)), replace=False)
+    for val in vals_to_keep:
+        state_subsample[val] = state_vec[val]
+    return state_subsample
+
+
+def state_only_on(state_vec):
+    state_only_on = np.zeros(len(state_vec))
+    for idx, val in enumerate(state_vec):
+        if val < 0.0:
+            state_only_on[idx] = 0.0
+        else:
+            state_only_on[idx] = val
+    return state_only_on
 
 
 def state_memory_overlap(state_arr, time):
