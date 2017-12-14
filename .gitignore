@@ -26,3 +26,4 @@ transcriptome_clustering/rawdata/
 transcriptome_clustering/documentation/
 celltypes/abm_celltypes/runs/
 celltypes/singlecell/runs/
+celltypes/runs/
