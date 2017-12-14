@@ -1,6 +1,7 @@
 import numpy as np
 
 from singlecell.singlecell_class import Cell
+from singlecell.singlecell_functions import state_subsample, state_only_on
 from singlecell.singlecell_simsetup import GENE_LABELS, CELLTYPE_LABELS
 
 
@@ -34,33 +35,24 @@ class SpatialCell(Cell):
     def get_local_signal_field(self, lattice, search_radius, gridsize):
         """
         # TODO: try other methods, currently sample from on genes in nearby states
-        A - use only 'on' genes
+        A - sample from only 'on' genes
         B - sample from whole gene state vector
-        C - use whole vector don't randomly sample at all
         """
         neighbours = self.get_surroundings_square(search_radius, gridsize)
         field_state = np.zeros(self.N)
 
-        # METHOD A
-        """
-        for loc in neighbours:  # TODO should skip self when going through (i.e. don't count your current position)
-            nbr_cell = lattice[loc[0]][loc[1]]
-            nbr_state_only_on = nbr_cell.state_only_on()
+        # METHOD A - ONLY ON
+        for loc in neighbours:
+            nbr_cell_state = lattice[loc[0]][loc[1]].get_current_state()
+            nbr_state_only_on = state_only_on(nbr_cell_state)
+            #nbr_state_only_on = state_subsample(nbr_state_only_on, ratio_to_remove=0.5)
             field_state += nbr_state_only_on
-        """
 
-        # METHOD B
-        """
-        for loc in neighbours:  # TODO should skip self when going through (i.e. don't count your current position)
-            nbr_cell = lattice[loc[0]][loc[1]]
-            nbr_state_subsample = nbr_cell.state_subsample(ratio_to_remove=0.5)
-            field_state += nbr_state_subsample
-        """
-
-        # METHOD C
-        for loc in neighbours:  # TODO should skip self when going through (i.e. don't count your current position)
-            nbr_state = lattice[loc[0]][loc[1]].get_current_state()
-            field_state += nbr_state
+        # METHOD B - ALL
+        # for loc in neighbours:
+        #     nbr_cell_state = lattice[loc[0]][loc[1]].get_current_state()
+        #     nbr_state_subsample = state_subsample(nbr_cell_state, ratio_to_remove=0.5)
+        #     field_state += nbr_state_subsample
 
         return field_state
 

@@ -45,7 +45,7 @@ class Cell(object):
         return hamiltonian(self.state)
 
     def get_memories_overlap(self):
-        return state_memory_overlap(self.state_array, self.step)
+        return state_memory_overlap(self.state_array, self.steps)
 
     def plot_overlap(self, pltdir=None):
         overlap = self.get_memories_overlap()
@@ -68,9 +68,9 @@ class Cell(object):
         randomized_sites = range(self.N)
         shuffle(randomized_sites)  # randomize site ordering each timestep updates
         state_array_ext = np.zeros((self.N, np.shape(self.state_array)[1] + 1))
-        state_array_ext[:, :-1] = self.state_array
+        state_array_ext[:, :-1] = self.state_array  # TODO: make sure don't need array copy
         for idx, site in enumerate(randomized_sites):  # TODO: parallelize
-            state_array_ext = glauber_dynamics_update(state_array_ext, site, self.step, field=field)
+            state_array_ext = glauber_dynamics_update(state_array_ext, site, self.steps, external_field=field)
         self.state_array = state_array_ext
         self.steps += 1
         self.state = state_array_ext[:, -1]
@@ -78,17 +78,3 @@ class Cell(object):
 
     def write_state(self, datadir):
         state_write(self.state_array, range(self.steps), self.gene_list, "sc_state_%s" % self.label, "times", "gene_labels", datadir)
-
-    def state_subsample(self, ratio_to_remove=0.5):
-            state_subsample = self.state
-            vals_to_keep = np.random.choice(range(N), np.round(ratio_to_remove*self.N), replace=False)
-            for val in vals_to_keep:
-                state_subsample[val] = 0.0
-            return state_subsample
-
-    def state_only_on(self):
-            state_only_on = self.state
-            for idx, val in enumerate(state_only_on):
-                if val < 0:
-                    state_only_on[idx] = 0.0
-            return state_only_on
