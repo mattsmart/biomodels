@@ -45,7 +45,7 @@ def glauber_dynamics_update(state, gene_idx, t, external_field=None):
 
 def state_subsample(state_vec, ratio_to_remove=0.5):
     state_subsample = np.zeros(len(state_vec))
-    vals_to_keep = np.random.choice(range(len(state_vec)), np.round(ratio_to_remove*len(state_vec)), replace=False)
+    vals_to_keep = np.random.choice(range(len(state_vec)), int(np.round(ratio_to_remove*len(state_vec))), replace=False)
     for val in vals_to_keep:
         state_subsample[val] = state_vec[val]
     return state_subsample

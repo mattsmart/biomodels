@@ -5,6 +5,16 @@ from math import pi
 from singlecell_simsetup import CELLTYPE_LABELS
 
 
+def plot_as_bar(projection_vec, memory_labels=CELLTYPE_LABELS):
+    fig = plt.figure(1)
+    fig.set_size_inches(18.5, 10.5)
+    h = plt.bar(xrange(len(memory_labels)), projection_vec, label=memory_labels)
+    plt.subplots_adjust(bottom=0.3)
+    xticks_pos = [0.65 * patch.get_width() + patch.get_xy()[0] for patch in h]
+    plt.xticks(xticks_pos, memory_labels, ha='right', rotation=45, size=7)
+    return fig, plt.gca()
+
+
 def plot_as_radar(projection_vec, memory_labels=CELLTYPE_LABELS):
     """
     # radar plots not built-in to matplotlib

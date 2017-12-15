@@ -20,7 +20,7 @@ def main(init_type=None, iterations=NUM_STEPS, plot_period=10):
 
     # Cell setup
     if init_type is None:
-        init_type = "All on"
+        init_type = "All_on"
         init_state = 1 + np.zeros(N)  # start with all genes on
     else:
         init_state = XI[:, CELLTYPE_ID[init_type]]
@@ -31,7 +31,7 @@ def main(init_type=None, iterations=NUM_STEPS, plot_period=10):
     for i in xrange(iterations-1):
         print "cell steps:", singlecell.steps, " H(state) =", singlecell.get_energy()
         if singlecell.steps % plot_period == 0:
-            singlecell.plot_projection(pltdir=plot_lattice_folder)
+            fig, ax, proj = singlecell.plot_projection(use_radar=False, pltdir=plot_lattice_folder)
         singlecell.update_state()
 
     # Write
@@ -42,4 +42,4 @@ def main(init_type=None, iterations=NUM_STEPS, plot_period=10):
 
 
 if __name__ == '__main__':
-    main()
+    main(plot_period=10)

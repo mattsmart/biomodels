@@ -4,7 +4,7 @@ from random import shuffle
 from singlecell_data_io import state_write
 from singlecell_functions import glauber_dynamics_update, state_memory_projection, state_memory_overlap, hamiltonian
 from singlecell_simsetup import GENE_LABELS, CELLTYPE_LABELS
-from singlecell_visualize import plot_as_radar, save_manual
+from singlecell_visualize import plot_as_bar, plot_as_radar, save_manual
 
 """
 TODO:
@@ -35,7 +35,7 @@ class Cell(object):
     def __str__(self):
         return self.label
 
-    def get_current_state(self):
+    def get_current_state(self):  # TODO maybe make this and other copy instead of pass pointer np.zeros(self.N).. etc
         return self.state
 
     def get_state_array(self):
@@ -47,22 +47,32 @@ class Cell(object):
     def get_memories_overlap(self):
         return state_memory_overlap(self.state_array, self.steps)
 
-    def plot_overlap(self, pltdir=None):
+    def plot_overlap(self, use_radar=False, pltdir=None):
         overlap = self.get_memories_overlap()
-        fig, ax = plot_as_radar(overlap)
-        if pltdir is not None:
-            save_manual(fig, pltdir, "sc_state_radar_%s_%d" % (self.label, self.steps))
-        return fig, ax
+        if use_radar:
+            fig, ax = plot_as_radar(overlap)
+            if pltdir is not None:
+                save_manual(fig, pltdir, "state_overlap_radar_%s_%d" % (self.label, self.steps))
+        else:
+            fig, ax = plot_as_bar(overlap)
+            if pltdir is not None:
+                save_manual(fig, pltdir, "state_overlap_bar_%s_%d" % (self.label, self.steps))
+        return fig, ax, overlap
 
     def get_memories_projection(self):
         return state_memory_projection(self.state_array, self.steps)
 
-    def plot_projection(self, pltdir=None):
+    def plot_projection(self, use_radar=False, pltdir=None):
         proj = self.get_memories_projection()
-        fig, ax = plot_as_radar(proj)
-        if pltdir is not None:
-            save_manual(fig, pltdir, "state_radar_%s_%d" % (self.label, self.steps))
-        return fig, ax
+        if use_radar:
+            fig, ax = plot_as_radar(proj)
+            if pltdir is not None:
+                save_manual(fig, pltdir, "state_proj_radar_%s_%d" % (self.label, self.steps))
+        else:
+            fig, ax = plot_as_bar(proj)
+            if pltdir is not None:
+                save_manual(fig, pltdir, "state_proj_bar_%s_%d" % (self.label, self.steps))
+        return fig, ax, proj
 
     def update_state(self, field=None):
         randomized_sites = range(self.N)
