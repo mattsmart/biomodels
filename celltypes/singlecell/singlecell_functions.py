@@ -45,9 +45,10 @@ def glauber_dynamics_update(state, gene_idx, t, external_field=None):
 
 def state_subsample(state_vec, ratio_to_remove=0.5):
     state_subsample = np.zeros(len(state_vec))
-    vals_to_keep = np.random.choice(range(len(state_vec)), int(np.round(ratio_to_remove*len(state_vec))), replace=False)
-    for val in vals_to_keep:
-        state_subsample[val] = state_vec[val]
+    state_subsample[:] = state_vec[:]
+    vals_to_remove = np.random.choice(range(len(state_vec)), int(np.round(ratio_to_remove*len(state_vec))), replace=False)
+    for val in vals_to_remove:
+        state_subsample[val] = 0.0
     return state_subsample
 
 
@@ -59,6 +60,16 @@ def state_only_on(state_vec):
         else:
             state_only_on[idx] = val
     return state_only_on
+
+
+def state_only_off(state_vec):
+    state_only_off = np.zeros(len(state_vec))
+    for idx, val in enumerate(state_vec):
+        if val > 0.0:
+            state_only_off[idx] = 0.0
+        else:
+            state_only_off[idx] = val
+    return state_only_off
 
 
 def state_memory_overlap(state_arr, time):

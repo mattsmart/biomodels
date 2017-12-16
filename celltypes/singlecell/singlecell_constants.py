@@ -7,7 +7,7 @@ RUNS_FOLDER = "runs" + os.sep             # store timestamped runs here
 
 # SINGLECELL SIMULATION CONSTANTS
 BETA = 2.2                                # value used in Mehta 2014
-PARAM_EXOSOME = 0.025                       # relative strength of exosome local field effect
+PARAM_EXOSOME = 0.25                       # relative strength of exosome local field effect
 METHOD = "projection"                     # 'projection' or 'hopfield'
 FLAG_BOOL = True                          # use binarized states (up/down vs continuous)
 FLAG_REMOVE_DUPES = True                  # remove genes that have same binarized state across all memories

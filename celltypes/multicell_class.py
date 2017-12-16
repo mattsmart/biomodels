@@ -32,7 +32,7 @@ class SpatialCell(Cell):
         surroundings.remove(self.location)  # TODO test behaviour
         return surroundings
 
-    def get_local_signal_field(self, lattice, search_radius, gridsize):
+    def get_local_signal_field(self, lattice, search_radius, gridsize, ratio_to_remove=0.0):
         """
         # TODO: try other methods, currently sample from on genes in nearby states
         A - sample from only 'on' genes
@@ -45,17 +45,24 @@ class SpatialCell(Cell):
         for loc in neighbours:
             nbr_cell_state = lattice[loc[0]][loc[1]].get_current_state()
             nbr_state_only_on = state_only_on(nbr_cell_state)
-            #nbr_state_only_on = state_subsample(nbr_state_only_on, ratio_to_remove=0.5)
-            field_state += nbr_state_only_on
+            if ratio_to_remove == 0.0:
+                field_state += nbr_state_only_on
+            else:
+                nbr_state_only_on = state_subsample(nbr_state_only_on, ratio_to_remove=ratio_to_remove)
+                field_state += nbr_state_only_on
 
         # METHOD B - ALL
         # for loc in neighbours:
-        #     nbr_cell_state = lattice[loc[0]][loc[1]].get_current_state()
-        #     nbr_state_subsample = state_subsample(nbr_cell_state, ratio_to_remove=0.5)
-        #     field_state += nbr_state_subsample
+        #     nbr_cell_state = np.zeros(self.N)
+        #     nbr_cell_state[:] = lattice[loc[0]][loc[1]].get_current_state()[:]
+        #     if ratio_to_remove == 0.0:
+        #         field_state += nbr_cell_state
+        #     else:
+        #         nbr_state_subsample = state_subsample(nbr_cell_state, ratio_to_remove=ratio_to_remove)
+        #         field_state += nbr_state_subsample
 
         return field_state
 
-    def update_with_signal_field(self, lattice, search_radius, gridsize):
-        field_vec = self.get_local_signal_field(lattice, search_radius, gridsize)
+    def update_with_signal_field(self, lattice, search_radius, gridsize, ratio_to_remove=0.0):
+        field_vec = self.get_local_signal_field(lattice, search_radius, gridsize, ratio_to_remove=ratio_to_remove)
         self.update_state(field=field_vec)
