@@ -2,7 +2,7 @@ import numpy as np
 from random import shuffle
 
 from singlecell_data_io import state_write
-from singlecell_functions import glauber_dynamics_update, state_memory_projection, state_memory_overlap, hamiltonian
+from singlecell_functions import glauber_dynamics_update, state_memory_projection, state_memory_overlap, hamiltonian, state_burst_errors
 from singlecell_simsetup import GENE_LABELS, CELLTYPE_LABELS
 from singlecell_visualize import plot_as_bar, plot_as_radar, save_manual
 
@@ -67,12 +67,18 @@ class Cell(object):
         if use_radar:
             fig, ax = plot_as_radar(proj)
             if pltdir is not None:
-                save_manual(fig, pltdir, "state_proj_radar_%s_%d" % (self.label, self.steps))
+                save_manual(fig, pltdir, "state_%d_proj_radar_%s" % (self.steps, self.label))
         else:
             fig, ax = plot_as_bar(proj)
             if pltdir is not None:
-                save_manual(fig, pltdir, "state_proj_bar_%s_%d" % (self.label, self.steps))
+                save_manual(fig, pltdir, "state_%d_proj_bar_%s" % (self.steps, self.label))
         return fig, ax, proj
+
+    def apply_burst_errors(self, ratio_to_flip=0.02):
+        burst_errors = state_burst_errors(self.state, ratio_to_flip=ratio_to_flip)
+        self.state[:] = burst_errors[:]
+        self.state_array[:, -1] = burst_errors[:]
+        return burst_errors
 
     def update_state(self, field=None):
         randomized_sites = range(self.N)
