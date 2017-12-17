@@ -1,154 +1,114 @@
-import csv
-import datetime
 import numpy as np
 import os
 import random
-import sys
-import time
-from math import ceil, floor
-from numpy.random import randint
+import matplotlib.pyplot as plt
 
-from multicell_class import SpatialCell
+from multicell_constants import GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS, VALID_BUILDSTRINGS, VALID_FIELDSTRINGS, LATTICE_PLOT_PERIOD, FIELD_REMOVE_RATIO
+from multicell_lattice import build_lattice_main, get_cell_locations, prep_lattice_data_dict
+from multicell_lattice_io import printer, write_state_all_cells
+from multicell_visualize import lattice_plotter
+from singlecell.singlecell_constants import FIELD_STRENGTH
 from singlecell.singlecell_data_io import run_subdir_setup
 from singlecell.singlecell_simsetup import XI, CELLTYPE_ID, CELLTYPE_LABELS
-from utils import make_video
 
 
-# Constants
-# =================================================
-# simulation lattice parameters
-n = 4
-search_radius_cell = 1
-assert search_radius_cell < n / 2
-
-"""
-standard_run_time = 1 * 24.0  # typical simulation time in h
-turn_rate = 10.0  # 2.0  # average turns between each division; simulation step size
-time_per_turn = min(donor_A_div_mean, donor_B_div_mean) / turn_rate  # currently 20min / turn rate
-plots_period_in_turns = 5  # 1 or 1000 or 2 * turn_rate
-total_turns = int(ceil(standard_run_time / time_per_turn))
-
-# miscellaneous simulation settings
-video_flag = False  # WARNING: auto video creation requires proper ffmpeg setup and folder permissions and luck
-FPS = 6
-"""
-
-
-# Functions
-# =================================================
-def printer(lattice):
-    for i in xrange(n):
-        str_lst = [lattice[i][j].label for j in xrange(n)]
-        print " " + ' '.join(str_lst)
-    print
-
-
-def build_lattice_default(n):
-    lattice = [[0 for y in xrange(n)] for x in xrange(n)]  # TODO: this can be made faster as np array
-    for i in xrange(n):
-        for j in xrange(n):
-            #celltype = np.random.choice(CELLTYPE_LABELS)
-            celltype = CELLTYPE_LABELS[5]
-            init_state = XI[:, CELLTYPE_ID[celltype]]
-            lattice[i][j] = SpatialCell(init_state, "%d,%d_%s" % (i,j,celltype), [i,j])
-    return lattice
-
-
-def get_label(lattice, loc):
-    return lattice[loc[0]][loc[1]].label
-
-
-def get_cell_locations(lattice):
-    cell_locations = []
-    for i in xrange(n):
-        for j in xrange(n):
-            loc = (i, j)
-            if isinstance(lattice[i][j], SpatialCell):
-                cell_locations.append(loc)
-    return cell_locations
-
-
-def write_state_all_cells(lattice, data_folder):
-    print "Writing states to file.."
-    for i in xrange(len(lattice)):
-        for j in xrange(len(lattice[0])):
-            lattice[i][j].write_state(data_folder)
-    print "Done"
-
-
-def run_sim(lattice, duration):
-
+def run_sim(lattice, num_lattice_steps, data_dict, field_remove_ratio=0.0, plot_period=LATTICE_PLOT_PERIOD):
     """
-    # get stats for lattice initial condition before entering simulation loop, add to lattice data
-    print 'Turn ', 0, ' : Time Elapsed ', 0.0, "h"
-    dict_counts = count_cells()
-    lattice_data[0, :] = np.array([0, 0.0, dict_counts['_'], dict_counts['D_a'], dict_counts['D_b'], dict_counts['B']])
-
-    # plot initial conditions
-    lattice_plotter(lattice, 0.0, n, dict_counts, plot_lattice_folder)  # TODO Re-add
-
-    # simulation loop initialization
-    new_cell_locations = []
-    locations_to_remove = []
-    cell_locations = get_cell_locations()
+    Form of data_dict:
+        {'memory_proj_arr':
+            {memory_idx: np array [N x num_steps] of projection each grid cell onto memory idx}
+         'params': TODO
+        }
+    Notes:
+        -can replace update_with_signal_field with update_state to simulate ensemble of non-intxn n**2 cells
     """
-
-    cell_locations = get_cell_locations(lattice)
-
-    proj_data = np.zeros((16, duration+1))
-    proj_data[:,0] = np.ones(16)
-    loc_to_idx = {pair: idx for idx, pair in enumerate(cell_locations)}
-
-
     current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = run_subdir_setup()
     n = len(lattice)
-    assert n == len(lattice[0])
+    assert n == len(lattice[0])  # work with square lattice for simplicity
+    cell_locations = get_cell_locations(lattice, n)
+    loc_to_idx = {pair: idx for idx, pair in enumerate(cell_locations)}
+    memory_idx_list = data_dict['memory_proj_arr'].keys()
 
-    for turn in xrange(1, duration + 1):
-        print '\nTurn ', turn
-        random.shuffle(cell_locations)  # TODO USE AND TEST SWAPPED RANDOM INITIALIZER
+    # plot initial state of the lattice
+    for mem_idx in memory_idx_list:
+        lattice_plotter(lattice, 0, n, plot_lattice_folder, mem_idx)
+    # get data for initial state of the lattice
+    for loc in cell_locations:
+        for mem_idx in memory_idx_list:
+            proj = lattice[loc[0]][loc[1]].get_memories_projection()
+            data_dict['memory_proj_arr'][mem_idx][loc_to_idx[loc], 0] = proj[mem_idx]
+
+    for turn in xrange(1, num_lattice_steps + 1):
+        print 'Turn ', turn
+        random.shuffle(cell_locations)
         for idx, loc in enumerate(cell_locations):
             cell = lattice[loc[0]][loc[1]]
-            #print "BEFORE", idx, loc, cell, sum(np.abs(cell.state)), len(cell.state), set(cell.state)
-            cell.update_with_signal_field(lattice, search_radius_cell, n)
-            #print "AFTER", idx, loc, cell, sum(np.abs(cell.state)), len(cell.state), set(cell.state)
-            #cell.plot_projection(pltdir=plot_lattice_folder)
+            cell.update_with_signal_field(lattice, SEARCH_RADIUS_CELL, n, ratio_to_remove=field_remove_ratio)
+            proj = cell.get_memories_projection()
+            for mem_idx in memory_idx_list:
+                data_dict['memory_proj_arr'][mem_idx][loc_to_idx[loc], turn] = proj[mem_idx]
+            if turn % (10*plot_period) == 0:  # plot proj visualization of each cell (takes a while, do every k full plots)
+                fig, ax, proj = cell.plot_projection(use_radar=False, pltdir=plot_lattice_folder)
+        if turn % plot_period == 0:  # plot the lattice
+            for mem_idx in memory_idx_list:
+                lattice_plotter(lattice, turn, n, plot_lattice_folder, mem_idx)
 
-            #proj = cell.get_memories_projection()
-            #proj_data[loc_to_idx[loc],turn] = proj[7]
-
-        """
-        # periodically plot the lattice (it takes a while)
-        if turn % plots_period_in_turns == 0:
-            t0_a = time.clock()
-            t0_b = time.time()
-            lattice_plotter(lattice, turn * time_per_turn, n, dict_counts, plot_lattice_folder)
-            print "PLOT process time:", time.clock() - t0_a
-            print "PLOT wall time:", time.time() - t0_b
-        """
-    #print proj_data
-    import matplotlib.pyplot as plt
-    #plt.plot(proj_data.T)
-    #plt.show()
-    return lattice, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder
+    return lattice, data_dict, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder
 
 
-# Main Function
-# =================================================
-def main(lattice_size, duration):
-    # choose ICs
-    lattice = build_lattice_default(lattice_size)
+def main(gridize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring="mono", fieldstring="on",
+         field_remove_ratio=FIELD_REMOVE_RATIO, field_strength=FIELD_STRENGTH, plot_period=LATTICE_PLOT_PERIOD):
+
+    # check args
+    assert type(gridize) is int
+    assert type(num_steps) is int
+    assert type(plot_period) is int
+    assert buildstring in VALID_BUILDSTRINGS
+    assert fieldstring in VALID_FIELDSTRINGS
+    assert 0.0 <= field_remove_ratio < 1.0
+    assert 0.0 <= field_strength < 10.0
+
+    # setup lattice IC
+    type_1_idx = 5
+    type_2_idx = 24
+    if buildstring == "mono":
+        list_of_type_idx = [type_1_idx]
+    if buildstring == "dual":
+        list_of_type_idx = [type_1_idx, type_2_idx]
+    lattice = build_lattice_main(gridize, list_of_type_idx, buildstring)
+    print list_of_type_idx
+
+    # prep data dictionary
+    data_dict = {}  # TODO: can also store params in data dict for main/run_sim then save to file
+    data_dict = prep_lattice_data_dict(gridize, num_steps, list_of_type_idx, buildstring, data_dict)
 
     # run the simulation
-    lattice, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = run_sim(lattice, duration)
+    lattice, data_dict, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = \
+        run_sim(lattice, num_steps, data_dict, field_remove_ratio=field_remove_ratio, plot_period=plot_period)
 
-    # write data to file
+    # check the data data
+    for data_idx, memory_idx in enumerate(data_dict['memory_proj_arr'].keys()):
+        print data_dict['memory_proj_arr'][memory_idx]
+        plt.plot(data_dict['memory_proj_arr'][memory_idx].T)
+        plt.title('Projection of each grid cell onto memory %s vs grid timestep' % CELLTYPE_LABELS[memory_idx])
+        plt.savefig(plot_data_folder + os.sep + '%s_%s_n%d_t%d_remove%.2f_exo%.2f.png' % (fieldstring, buildstring, gridize, num_steps, field_remove_ratio, field_strength))
+        #plt.show()
+
+    # write cell state TODO: and data_dict to file
+    # write cell state TODO: and data_dict to file
     write_state_all_cells(lattice, data_folder)
 
-    print "\nDone Multicell Sim"
+    print "\nMulticell simulation complete - output in %s" % current_run_folder
     return
 
+
 if __name__ == '__main__':
-    print XI[:, 5], set(XI[:, 5])  # used 7 first, fix above too
-    duration = 100
-    main(n, duration)
+    n = 20  # global GRIDSIZE
+    steps = 40  # global NUM_LATTICE_STEPS
+    buildstring = "mono"  # mono/dual/
+    fieldstring = "on"  # on/off/all, note off means send info about 'off' genes only
+    subsample = 0.01  # amount of field idx to randomly prune from each cell
+    exo = 0.25  # global FIELD_STRENGTH
+    plot_period=2
+    main(gridize=n, num_steps=steps, buildstring=buildstring, fieldstring=fieldstring, field_remove_ratio=subsample,
+         field_strength=exo, plot_period=plot_period)
