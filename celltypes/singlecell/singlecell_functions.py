@@ -1,7 +1,7 @@
 import numpy as np
 from random import random
 
-from singlecell_constants import BETA, PARAM_EXOSOME
+from singlecell_constants import BETA, FIELD_STRENGTH
 from singlecell_simsetup import N, XI, A_INV, J, CELLTYPE_LABELS
 
 """
@@ -34,7 +34,7 @@ def glauber_dynamics_update(state, gene_idx, t, external_field=None):
     if external_field is None:
         total_field = internal_field(state, gene_idx, t)
     else:
-        total_field = internal_field(state, gene_idx, t) + PARAM_EXOSOME * external_field[gene_idx]
+        total_field = internal_field(state, gene_idx, t) + FIELD_STRENGTH * external_field[gene_idx]
     prob_on_after_timestep = 1 / (1 + np.exp(-2*BETA*total_field))  # probability that site i will be "up" after the timestep
     if prob_on_after_timestep > r1:
         state[gene_idx, t + 1] = 1.0
@@ -46,10 +46,19 @@ def glauber_dynamics_update(state, gene_idx, t, external_field=None):
 def state_subsample(state_vec, ratio_to_remove=0.5):
     state_subsample = np.zeros(len(state_vec))
     state_subsample[:] = state_vec[:]
-    vals_to_remove = np.random.choice(range(len(state_vec)), int(np.round(ratio_to_remove*len(state_vec))), replace=False)
-    for val in vals_to_remove:
-        state_subsample[val] = 0.0
+    idx_to_remove = np.random.choice(range(len(state_vec)), int(np.round(ratio_to_remove*len(state_vec))), replace=False)
+    for idx in idx_to_remove:
+        state_subsample[idx] = 0.0
     return state_subsample
+
+
+def state_burst_errors(state_vec, ratio_to_flip=0.02):
+    state_burst_errors = np.zeros(len(state_vec))
+    state_burst_errors[:] = state_vec[:]
+    idx_to_flip = np.random.choice(range(len(state_vec)), int(np.round(ratio_to_flip*len(state_vec))), replace=False)
+    for idx in idx_to_flip:
+        state_burst_errors[idx] = -state_vec[idx]
+    return state_burst_errors
 
 
 def state_only_on(state_vec):
