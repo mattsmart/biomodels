@@ -9,7 +9,6 @@ from matplotlib.patches import Rectangle
 COMMENTS:
     -radius seems to extend 85% of r, to intersect middle of line seg
         -eg. radius 10 means cell takes up almost 20 x slots
-    -JAMES: will try circles
 INPUT:
    1) n
    2) list of lists, of size n x n, containing labels (corresponding to colour)
@@ -46,7 +45,6 @@ def lattice_draw(lattice, n, uniplot_key):
             cell = lattice[i][j]
             cell_proj = cell.get_memories_projection()
             cell_ij = mpatches.Rectangle((x, y), 2 * cell_radius, 2 * cell_radius, facecolor=memory_colour_dict[uniplot_key], ec="none", alpha=np.abs(cell_proj[uniplot_key]))  # might be faster solid square plotter
-            print uniplot_key, i,j,cell_proj[uniplot_key]
             plt.gca().add_patch(cell_ij)
             x += dx
 
@@ -91,7 +89,7 @@ def lattice_draw_fast(lattice, n, dict_counts):
     f = plt.figure()
     # plot actual data
     for key in dict_array.keys():
-        plt.scatter(dict_array[key][0], dict_array[key][1], s=size_param, color=label_colour_dict[key], marker='s', lw=linewidth, edgecolor='black')  # can use alpha=0.5 for 3d
+        plt.scatter(dict_array[key][0], dict_array[key][1], s=size_param, color=memory_colour_dict[key], marker='s', lw=linewidth, edgecolor='black')  # can use alpha=0.5 for 3d
     return f
 
 
@@ -124,8 +122,6 @@ def lattice_plotter(lattice, time, n, lattice_plot_dir, uniplot_key, dict_counts
     plt.axis('off')
     plt.title('Lattice site-wise projection onto memory %d' % uniplot_key)
     # save figure
-    #plt.savefig(lattice_plot_dir + 'lattice_at_time_%f.png' % time)
-    #plt.savefig(lattice_plot_dir + 'lattice_at_time_%f.png' % time, bbox_inches='tight', figsize=(16, 16), dpi=max(80.0, n/2.0))
-    plt.savefig(os.path.join(lattice_plot_dir, 'lattice_proj%d_step%d.png' % (uniplot_key, time)), dpi=max(80.0, n/2.0))
+    plt.savefig(os.path.join(lattice_plot_dir, 'lattice_step%d_proj%d.png' % (time, uniplot_key)), dpi=max(80.0, n/2.0))
     plt.close()
     return
