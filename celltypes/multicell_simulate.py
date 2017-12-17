@@ -91,7 +91,7 @@ def main(gridize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring="mono", fiel
         print data_dict['memory_proj_arr'][memory_idx]
         plt.plot(data_dict['memory_proj_arr'][memory_idx].T)
         plt.title('Projection of each grid cell onto memory %s vs grid timestep' % CELLTYPE_LABELS[memory_idx])
-        plt.savefig(plot_data_folder + os.sep + '%s_%s_n%d_t%d_remove%.2f_exo%.2f.png' % (fieldstring, buildstring, gridize, num_steps, field_remove_ratio, field_strength))
+        plt.savefig(plot_data_folder + os.sep + '%s_%s_n%d_t%d_proj%d_remove%.2f_exo%.2f.png' % (fieldstring, buildstring, gridize, num_steps, memory_idx, field_remove_ratio, field_strength))
         #plt.show()
 
     # write cell state TODO: and data_dict to file
@@ -105,10 +105,10 @@ def main(gridize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring="mono", fiel
 if __name__ == '__main__':
     n = 20  # global GRIDSIZE
     steps = 40  # global NUM_LATTICE_STEPS
-    buildstring = "mono"  # mono/dual/
+    buildstring = "dual"  # mono/dual/
     fieldstring = "on"  # on/off/all, note off means send info about 'off' genes only
-    subsample = 0.01  # amount of field idx to randomly prune from each cell
-    exo = 0.25  # global FIELD_STRENGTH
+    subsample = 0.0  # amount of field idx to randomly prune from each cell
+    exo = 0.1  # global FIELD_STRENGTH
     plot_period=2
     main(gridize=n, num_steps=steps, buildstring=buildstring, fieldstring=fieldstring, field_remove_ratio=subsample,
          field_strength=exo, plot_period=plot_period)
