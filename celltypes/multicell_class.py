@@ -1,7 +1,8 @@
 import numpy as np
 
+from multicell_constants import VALID_FIELDSTRINGS, FIELDSTRING
 from singlecell.singlecell_class import Cell
-from singlecell.singlecell_functions import state_subsample, state_only_on
+from singlecell.singlecell_functions import state_subsample, state_only_on, state_only_off
 from singlecell.singlecell_simsetup import GENE_LABELS, CELLTYPE_LABELS
 
 
@@ -32,7 +33,7 @@ class SpatialCell(Cell):
         surroundings.remove(self.location)  # TODO test behaviour
         return surroundings
 
-    def get_local_signal_field(self, lattice, search_radius, gridsize, ratio_to_remove=0.0):
+    def get_local_signal_field(self, lattice, search_radius, gridsize, fieldstring=FIELDSTRING, ratio_to_remove=0.0):
         """
         # TODO: try other methods, currently sample from on genes in nearby states
         A - sample from only 'on' genes
@@ -40,29 +41,38 @@ class SpatialCell(Cell):
         """
         neighbours = self.get_surroundings_square(search_radius, gridsize)
         field_state = np.zeros(self.N)
-
-        # METHOD A - ONLY ON
-        for loc in neighbours:
-            nbr_cell_state = lattice[loc[0]][loc[1]].get_current_state()
-            nbr_state_only_on = state_only_on(nbr_cell_state)
-            if ratio_to_remove == 0.0:
-                field_state += nbr_state_only_on
-            else:
-                nbr_state_only_on = state_subsample(nbr_state_only_on, ratio_to_remove=ratio_to_remove)
-                field_state += nbr_state_only_on
-
-        # METHOD B - ALL
-        # for loc in neighbours:
-        #     nbr_cell_state = np.zeros(self.N)
-        #     nbr_cell_state[:] = lattice[loc[0]][loc[1]].get_current_state()[:]
-        #     if ratio_to_remove == 0.0:
-        #         field_state += nbr_cell_state
-        #     else:
-        #         nbr_state_subsample = state_subsample(nbr_cell_state, ratio_to_remove=ratio_to_remove)
-        #         field_state += nbr_state_subsample
+        if fieldstring == "on":
+            for loc in neighbours:
+                nbr_cell_state = lattice[loc[0]][loc[1]].get_current_state()
+                nbr_state_only_on = state_only_on(nbr_cell_state)
+                if ratio_to_remove == 0.0:
+                    field_state += nbr_state_only_on
+                else:
+                    nbr_state_only_on = state_subsample(nbr_state_only_on, ratio_to_remove=ratio_to_remove)
+                    field_state += nbr_state_only_on
+        elif fieldstring == "all":
+            for loc in neighbours:
+                nbr_cell_state = np.zeros(self.N)
+                nbr_cell_state[:] = lattice[loc[0]][loc[1]].get_current_state()[:]
+                if ratio_to_remove == 0.0:
+                    field_state += nbr_cell_state
+                else:
+                    nbr_state_subsample = state_subsample(nbr_cell_state, ratio_to_remove=ratio_to_remove)
+                    field_state += nbr_state_subsample
+        elif fieldstring == "off":
+            for loc in neighbours:
+                nbr_cell_state = lattice[loc[0]][loc[1]].get_current_state()
+                nbr_state_only_off = state_only_off(nbr_cell_state)
+                if ratio_to_remove == 0.0:
+                    field_state += nbr_state_only_off
+                else:
+                    nbr_state_only_off = state_subsample(nbr_state_only_off, ratio_to_remove=ratio_to_remove)
+                    field_state += nbr_state_only_off
+        else:
+            raise ValueError("fieldstring arg invalid, must be one of %s" % VALID_FIELDSTRINGS)
 
         return field_state
 
-    def update_with_signal_field(self, lattice, search_radius, gridsize, ratio_to_remove=0.0):
-        field_vec = self.get_local_signal_field(lattice, search_radius, gridsize, ratio_to_remove=ratio_to_remove)
+    def update_with_signal_field(self, lattice, search_radius, gridsize, fieldstring=FIELDSTRING, ratio_to_remove=0.0):
+        field_vec = self.get_local_signal_field(lattice, search_radius, gridsize, fieldstring=fieldstring, ratio_to_remove=ratio_to_remove)
         self.update_state(field=field_vec)

@@ -7,3 +7,5 @@ FIELD_REMOVE_RATIO = 0.0
 
 VALID_BUILDSTRINGS = ["mono", "dual"]
 VALID_FIELDSTRINGS = ["on", "off", "all"]
+BUILDSTRING = "dual"
+FIELDSTRING = "on"

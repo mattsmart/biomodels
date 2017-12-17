@@ -3,16 +3,15 @@ import os
 import random
 import matplotlib.pyplot as plt
 
-from multicell_constants import GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS, VALID_BUILDSTRINGS, VALID_FIELDSTRINGS, LATTICE_PLOT_PERIOD, FIELD_REMOVE_RATIO
-from multicell_lattice import build_lattice_main, get_cell_locations, prep_lattice_data_dict
-from multicell_lattice_io import printer, write_state_all_cells
+from multicell_constants import GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS, VALID_BUILDSTRINGS, VALID_FIELDSTRINGS, FIELDSTRING, BUILDSTRING, LATTICE_PLOT_PERIOD, FIELD_REMOVE_RATIO
+from multicell_lattice import build_lattice_main, get_cell_locations, prep_lattice_data_dict, write_state_all_cells
 from multicell_visualize import lattice_plotter
 from singlecell.singlecell_constants import FIELD_STRENGTH
 from singlecell.singlecell_data_io import run_subdir_setup
 from singlecell.singlecell_simsetup import XI, CELLTYPE_ID, CELLTYPE_LABELS
 
 
-def run_sim(lattice, num_lattice_steps, data_dict, field_remove_ratio=0.0, plot_period=LATTICE_PLOT_PERIOD):
+def run_sim(lattice, num_lattice_steps, data_dict, fieldstring=FIELDSTRING, field_remove_ratio=0.0, plot_period=LATTICE_PLOT_PERIOD):
     """
     Form of data_dict:
         {'memory_proj_arr':
@@ -43,11 +42,11 @@ def run_sim(lattice, num_lattice_steps, data_dict, field_remove_ratio=0.0, plot_
         random.shuffle(cell_locations)
         for idx, loc in enumerate(cell_locations):
             cell = lattice[loc[0]][loc[1]]
-            cell.update_with_signal_field(lattice, SEARCH_RADIUS_CELL, n, ratio_to_remove=field_remove_ratio)
+            cell.update_with_signal_field(lattice, SEARCH_RADIUS_CELL, n, fieldstring=fieldstring, ratio_to_remove=field_remove_ratio)
             proj = cell.get_memories_projection()
             for mem_idx in memory_idx_list:
                 data_dict['memory_proj_arr'][mem_idx][loc_to_idx[loc], turn] = proj[mem_idx]
-            if turn % (10*plot_period) == 0:  # plot proj visualization of each cell (takes a while, do every k full plots)
+            if turn % (10*plot_period) == 0:  # plot proj visualization of each cell (takes a while; every k lat plots)
                 fig, ax, proj = cell.plot_projection(use_radar=False, pltdir=plot_lattice_folder)
         if turn % plot_period == 0:  # plot the lattice
             for mem_idx in memory_idx_list:
@@ -56,7 +55,7 @@ def run_sim(lattice, num_lattice_steps, data_dict, field_remove_ratio=0.0, plot_
     return lattice, data_dict, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder
 
 
-def main(gridize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring="mono", fieldstring="on",
+def main(gridize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING, fieldstring=FIELDSTRING,
          field_remove_ratio=FIELD_REMOVE_RATIO, field_strength=FIELD_STRENGTH, plot_period=LATTICE_PLOT_PERIOD):
 
     # check args
@@ -84,22 +83,23 @@ def main(gridize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring="mono", fiel
 
     # run the simulation
     lattice, data_dict, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = \
-        run_sim(lattice, num_steps, data_dict, field_remove_ratio=field_remove_ratio, plot_period=plot_period)
+        run_sim(lattice, num_steps, data_dict, fieldstring=fieldstring, field_remove_ratio=field_remove_ratio, plot_period=plot_period)
 
     # check the data data
     for data_idx, memory_idx in enumerate(data_dict['memory_proj_arr'].keys()):
         print data_dict['memory_proj_arr'][memory_idx]
         plt.plot(data_dict['memory_proj_arr'][memory_idx].T)
         plt.title('Projection of each grid cell onto memory %s vs grid timestep' % CELLTYPE_LABELS[memory_idx])
-        plt.savefig(plot_data_folder + os.sep + '%s_%s_n%d_t%d_proj%d_remove%.2f_exo%.2f.png' % (fieldstring, buildstring, gridize, num_steps, memory_idx, field_remove_ratio, field_strength))
-        #plt.show()
+        plt.savefig(plot_data_folder + os.sep + '%s_%s_n%d_t%d_proj%d_remove%.2f_exo%.2f.png' %
+                    (fieldstring, buildstring, gridize, num_steps, memory_idx, field_remove_ratio, field_strength))
+        plt.clf()  #plt.show()
 
     # write cell state TODO: and data_dict to file
     # write cell state TODO: and data_dict to file
     write_state_all_cells(lattice, data_folder)
 
     print "\nMulticell simulation complete - output in %s" % current_run_folder
-    return
+    return lattice, data_dict, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder
 
 
 if __name__ == '__main__':
@@ -107,8 +107,8 @@ if __name__ == '__main__':
     steps = 40  # global NUM_LATTICE_STEPS
     buildstring = "dual"  # mono/dual/
     fieldstring = "on"  # on/off/all, note off means send info about 'off' genes only
-    subsample = 0.0  # amount of field idx to randomly prune from each cell
+    fieldprune = 0.2  # amount of field idx to randomly prune from each cell
     exo = 0.1  # global FIELD_STRENGTH
     plot_period=2
-    main(gridize=n, num_steps=steps, buildstring=buildstring, fieldstring=fieldstring, field_remove_ratio=subsample,
+    main(gridize=n, num_steps=steps, buildstring=buildstring, fieldstring=fieldstring, field_remove_ratio=fieldprune,
          field_strength=exo, plot_period=plot_period)
