@@ -2,6 +2,7 @@ import numpy as np
 from random import shuffle
 
 from singlecell_data_io import state_write
+from singlecell_constants import FIELD_STRENGTH
 from singlecell_functions import glauber_dynamics_update, state_memory_projection, state_memory_overlap, hamiltonian, state_burst_errors
 from singlecell_simsetup import GENE_LABELS, CELLTYPE_LABELS
 from singlecell_visualize import plot_as_bar, plot_as_radar, save_manual
@@ -80,13 +81,13 @@ class Cell(object):
         self.state_array[:, -1] = burst_errors[:]
         return burst_errors
 
-    def update_state(self, field=None):
+    def update_state(self, field=None, field_strength=FIELD_STRENGTH):
         randomized_sites = range(self.N)
         shuffle(randomized_sites)  # randomize site ordering each timestep updates
         state_array_ext = np.zeros((self.N, np.shape(self.state_array)[1] + 1))
         state_array_ext[:, :-1] = self.state_array  # TODO: make sure don't need array copy
         for idx, site in enumerate(randomized_sites):  # TODO: parallelize
-            state_array_ext = glauber_dynamics_update(state_array_ext, site, self.steps, external_field=field)
+            state_array_ext = glauber_dynamics_update(state_array_ext, site, self.steps, external_field=field, field_strength=field_strength)
         self.state_array = state_array_ext
         self.steps += 1
         self.state = state_array_ext[:, -1]

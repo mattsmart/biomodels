@@ -26,7 +26,7 @@ def internal_field(state, gene_idx, t):
     return internal_field
 
 
-def glauber_dynamics_update(state, gene_idx, t, external_field=None):
+def glauber_dynamics_update(state, gene_idx, t, external_field=None, field_strength=FIELD_STRENGTH):
     """
     See page 107-111 Amit for discussion on functional form
     """
@@ -34,7 +34,7 @@ def glauber_dynamics_update(state, gene_idx, t, external_field=None):
     if external_field is None:
         total_field = internal_field(state, gene_idx, t)
     else:
-        total_field = internal_field(state, gene_idx, t) + FIELD_STRENGTH * external_field[gene_idx]
+        total_field = internal_field(state, gene_idx, t) + field_strength * external_field[gene_idx]
     prob_on_after_timestep = 1 / (1 + np.exp(-2*BETA*total_field))  # probability that site i will be "up" after the timestep
     if prob_on_after_timestep > r1:
         state[gene_idx, t + 1] = 1.0

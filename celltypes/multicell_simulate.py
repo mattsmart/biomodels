@@ -11,7 +11,7 @@ from singlecell.singlecell_data_io import run_subdir_setup
 from singlecell.singlecell_simsetup import XI, CELLTYPE_ID, CELLTYPE_LABELS
 
 
-def run_sim(lattice, num_lattice_steps, data_dict, fieldstring=FIELDSTRING, field_remove_ratio=0.0, plot_period=LATTICE_PLOT_PERIOD):
+def run_sim(lattice, num_lattice_steps, data_dict, fieldstring=FIELDSTRING, field_remove_ratio=0.0, field_strength=FIELD_STRENGTH, plot_period=LATTICE_PLOT_PERIOD):
     """
     Form of data_dict:
         {'memory_proj_arr':
@@ -42,7 +42,7 @@ def run_sim(lattice, num_lattice_steps, data_dict, fieldstring=FIELDSTRING, fiel
         random.shuffle(cell_locations)
         for idx, loc in enumerate(cell_locations):
             cell = lattice[loc[0]][loc[1]]
-            cell.update_with_signal_field(lattice, SEARCH_RADIUS_CELL, n, fieldstring=fieldstring, ratio_to_remove=field_remove_ratio)
+            cell.update_with_signal_field(lattice, SEARCH_RADIUS_CELL, n, fieldstring=fieldstring, ratio_to_remove=field_remove_ratio, field_strength=field_strength)
             proj = cell.get_memories_projection()
             for mem_idx in memory_idx_list:
                 data_dict['memory_proj_arr'][mem_idx][loc_to_idx[loc], turn] = proj[mem_idx]
@@ -83,7 +83,7 @@ def main(gridize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING,
 
     # run the simulation
     lattice, data_dict, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = \
-        run_sim(lattice, num_steps, data_dict, fieldstring=fieldstring, field_remove_ratio=field_remove_ratio, plot_period=plot_period)
+        run_sim(lattice, num_steps, data_dict, fieldstring=fieldstring, field_remove_ratio=field_remove_ratio, field_strength=field_strength, plot_period=plot_period)
 
     # check the data data
     for data_idx, memory_idx in enumerate(data_dict['memory_proj_arr'].keys()):
@@ -106,7 +106,7 @@ if __name__ == '__main__':
     n = 20  # global GRIDSIZE
     steps = 40  # global NUM_LATTICE_STEPS
     buildstring = "dual"  # mono/dual/
-    fieldstring = "on"  # on/off/all, note off means send info about 'off' genes only
+    fieldstring = "on"  # on/off/all, note e.g. 'off' means send info about 'off' genes only
     fieldprune = 0.2  # amount of field idx to randomly prune from each cell
     exo = 0.1  # global FIELD_STRENGTH
     plot_period=2
