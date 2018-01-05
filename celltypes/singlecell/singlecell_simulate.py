@@ -13,18 +13,19 @@ NOTES:
 """
 
 
-def main(init_type=None, iterations=NUM_STEPS, plot_period=10):
+def main(init_state=None, init_id=None, iterations=NUM_STEPS, plot_period=10):
 
     # IO setup
     current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = run_subdir_setup()
 
     # Cell setup
-    if init_type is None:
-        init_type = "All_on"
-        init_state = 1 + np.zeros(N)  # start with all genes on
-    else:
-        init_state = XI[:, CELLTYPE_ID[init_type]]
-    singlecell = Cell(init_state, init_type)
+    if init_state is None:
+        if init_id is None:
+            init_id = "All_on"
+            init_state = 1 + np.zeros(N)  # start with all genes on
+        else:
+            init_state = XI[:, CELLTYPE_ID[init_id]]
+    singlecell = Cell(init_state, init_id)
     print singlecell
 
     # Simulate
@@ -39,6 +40,7 @@ def main(init_type=None, iterations=NUM_STEPS, plot_period=10):
     print singlecell.get_current_state()
     singlecell.write_state(data_folder)
     print "Done"
+    return singlecell.get_state_array()
 
 
 if __name__ == '__main__':
