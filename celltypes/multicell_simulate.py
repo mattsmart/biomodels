@@ -107,8 +107,8 @@ if __name__ == '__main__':
     steps = 40  # global NUM_LATTICE_STEPS
     buildstring = "dual"  # mono/dual/
     fieldstring = "on"  # on/off/all, note e.g. 'off' means send info about 'off' genes only
-    fieldprune = 0.2  # amount of field idx to randomly prune from each cell
-    exo = 0.1  # global FIELD_STRENGTH
+    fieldprune = 0.8  # amount of field idx to randomly prune from each cell
+    exo = 0.3  # global FIELD_STRENGTH
     plot_period=2
     main(gridize=n, num_steps=steps, buildstring=buildstring, fieldstring=fieldstring, field_remove_ratio=fieldprune,
          field_strength=exo, plot_period=plot_period)
