@@ -26,7 +26,6 @@ def main(init_state=None, init_id=None, iterations=NUM_STEPS, plot_period=10):
         else:
             init_state = XI[:, CELLTYPE_ID[init_id]]
     singlecell = Cell(init_state, init_id)
-    print singlecell
 
     # Simulate
     for i in xrange(iterations-1):
