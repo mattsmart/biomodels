@@ -1,7 +1,7 @@
 import numpy as np
 import re
 
-from singlecell_constants import METHOD, FLAG_BOOL, FLAG_REMOVE_DUPES, ZSCORE_DATAFILE_PATH
+from singlecell_constants import METHOD, FLAG_BOOL, FLAG_REMOVE_DUPES, ZSCORE_DATAFILE_PATH, J_RANDOM_DELETE_RATIO, FLAG_PRUNE_INTXN_MATRIX
 
 """
 Conventions follow from Lang & Mehta 2014, PLOS Comp. Bio
@@ -55,7 +55,7 @@ def memory_corr_matrix_and_inv(xi):
     return corr_matrix, np.linalg.inv(corr_matrix)
 
 
-def interaction_matrix(xi, corr_inv, method):
+def interaction_matrix(xi, corr_inv, method, flag_prune_intxn_matrix=False):
     if method == "hopfield":
         j = np.dot(xi, xi.T) / len(xi[0])                         # TODO: not sure if factor 1/N or 1/p needed...
     elif method == "projection":
@@ -63,6 +63,11 @@ def interaction_matrix(xi, corr_inv, method):
     else:
         raise ValueError("method arg invalid, must be one of %s" % ["projection", "hopfield"])
     np.fill_diagonal(j, 0)                                    # TODO: is this step necessary in both cases? speedup...
+    if flag_prune_intxn_matrix:
+        randarr = np.random.rand(len(j), len(j[0]))
+        randarr = np.where(randarr > J_RANDOM_DELETE_RATIO, 1, 0)
+        #print randarr
+        j = j * randarr
     return j
 
 
@@ -70,7 +75,7 @@ def predictivity_matrix(xi, corr_inv):
     return np.dot(corr_inv, xi.T) / len(xi)  # eta_ij is the "predictivity" of TF i in cell fate j
 
 
-def singlecell_simsetup():
+def singlecell_simsetup(flag_prune_intxn_matrix=False):
     gene_labels, celltype_labels, xi = load_singlecell_data()
     if FLAG_BOOL:
         xi = binarize_data(xi)
@@ -78,12 +83,14 @@ def singlecell_simsetup():
         assert FLAG_BOOL
         gene_labels, xi = reduce_gene_set(xi, gene_labels)
     a, a_inv = memory_corr_matrix_and_inv(xi)
-    j = interaction_matrix(xi, a_inv, method=METHOD)
+    j = interaction_matrix(xi, a_inv, method=METHOD, flag_prune_intxn_matrix=flag_prune_intxn_matrix)
     eta = predictivity_matrix(xi, a_inv)
     return gene_labels, celltype_labels, len(gene_labels), len(celltype_labels), xi, a, a_inv, j, eta
 
 
 # DEFINE SIMULATION CONSTANTS IN ISOLATED SETUP CALL
-GENE_LABELS, CELLTYPE_LABELS, N, P, XI, A, A_INV, J, ETA = singlecell_simsetup()
+if FLAG_PRUNE_INTXN_MATRIX:
+    print "Note FLAG_PRUNE_INTXN_MATRIX is True with ratio %.2f" % J_RANDOM_DELETE_RATIO
+GENE_LABELS, CELLTYPE_LABELS, N, P, XI, A, A_INV, J, ETA = singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX)
 CELLTYPE_ID = {k: v for v, k in enumerate(CELLTYPE_LABELS)}
 GENE_ID = {k: v for v, k in enumerate(GENE_LABELS)}
