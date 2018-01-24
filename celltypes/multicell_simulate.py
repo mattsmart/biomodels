@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 from multicell_constants import GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS, VALID_BUILDSTRINGS, VALID_FIELDSTRINGS, FIELDSTRING, BUILDSTRING, LATTICE_PLOT_PERIOD, FIELD_REMOVE_RATIO
 from multicell_lattice import build_lattice_main, get_cell_locations, prep_lattice_data_dict, write_state_all_cells
-from multicell_visualize import lattice_plotter
+from multicell_visualize import lattice_plotter, reference_overlap_plotter
 from singlecell.singlecell_constants import FIELD_STRENGTH
 from singlecell.singlecell_data_io import run_subdir_setup
 from singlecell.singlecell_simsetup import XI, CELLTYPE_ID, CELLTYPE_LABELS
@@ -51,6 +51,7 @@ def run_sim(lattice, num_lattice_steps, data_dict, fieldstring=FIELDSTRING, fiel
         if turn % plot_period == 0:  # plot the lattice
             for mem_idx in memory_idx_list:
                 lattice_plotter(lattice, turn, n, plot_lattice_folder, mem_idx)
+                reference_overlap_plotter(lattice, turn, n, plot_lattice_folder)
 
     return lattice, data_dict, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder
 
@@ -103,12 +104,12 @@ def main(gridize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING,
 
 
 if __name__ == '__main__':
-    n = 20  # global GRIDSIZE
+    n = 10  # global GRIDSIZE
     steps = 40  # global NUM_LATTICE_STEPS
     buildstring = "dual"  # mono/dual/
     fieldstring = "on"  # on/off/all, note e.g. 'off' means send info about 'off' genes only
     fieldprune = 0.8  # amount of field idx to randomly prune from each cell
     exo = 0.3  # global FIELD_STRENGTH
-    plot_period=2
+    plot_period=1
     main(gridize=n, num_steps=steps, buildstring=buildstring, fieldstring=fieldstring, field_remove_ratio=fieldprune,
          field_strength=exo, plot_period=plot_period)

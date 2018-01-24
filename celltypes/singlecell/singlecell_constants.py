@@ -9,8 +9,8 @@ RUNS_FOLDER = "runs" + os.sep             # store timestamped runs here
 BETA = 2.2                                # value used in Mehta 2014
 FIELD_STRENGTH = 0.30                     # relative strength of exosome local field effect
 
-FLAG_PRUNE_INTXN_MATRIX = False            # flag for non-eq dilution of the symmetric J
-J_RANDOM_DELETE_RATIO = 0.2              # this ratio of elements randomly pruned from J
+FLAG_PRUNE_INTXN_MATRIX = False           # flag for non-eq dilution of the symmetric J
+J_RANDOM_DELETE_RATIO = 0.2               # this ratio of elements randomly pruned from J
 
 METHOD = "projection"                     # 'projection' or 'hopfield'
 FLAG_BOOL = True                          # use binarized states (up/down vs continuous)

@@ -4,6 +4,7 @@ import numpy as np
 import os
 from matplotlib.patches import Rectangle
 
+from singlecell.singlecell_simsetup import N
 
 """
 COMMENTS:
@@ -123,5 +124,64 @@ def lattice_plotter(lattice, time, n, lattice_plot_dir, uniplot_key, dict_counts
     plt.title('Lattice site-wise projection onto memory %d' % uniplot_key)
     # save figure
     plt.savefig(os.path.join(lattice_plot_dir, 'lattice_step%d_proj%d.png' % (time, uniplot_key)), dpi=max(80.0, n/2.0))
+    plt.close()
+    return
+
+
+def site_site_overlap(lattice, loc_1, loc_2, time):
+    cellstate_1 = lattice[loc_1[0]][loc_1[1]].get_state_array()[:, time]
+    cellstate_2 = lattice[loc_2[0]][loc_2[1]].get_state_array()[:, time]
+    return np.dot(cellstate_1.T, cellstate_2) / N
+
+
+def reference_overlap_plotter(lattice, time, n, lattice_plot_dir, ref_site=[0,0]):
+    overlaps = np.zeros((n,n))
+
+    for i in xrange(n):
+        for j in xrange(n):
+            #cell = lattice[i][j]
+            state_overlap = site_site_overlap(lattice, [i,j], ref_site, time)
+            overlaps[i,j] = state_overlap
+
+    """
+    # set figure size
+    fig_handle = plt.gcf()
+    fig_handle.set_size_inches(16, 16)
+    # pad figure to hide gaps between squares
+    scale_settings = {10: {'x': (-22, 122), 'y': (-20, 120)},
+                      100: {'x': (-4, 104), 'y': (-4, 104)},
+                      250: {'x': (-28, 128), 'y': (-22, 122)},
+                      500: {'x': (-28, 128), 'y': (-22, 122)},
+                      1000: {'x': (-28, 128), 'y': (-22, 122)}}
+    if n in scale_settings.keys():
+        ax_handle = plt.gca()
+        axis_lims = scale_settings[n]
+        ax_handle.set_xlim(axis_lims['x'])
+        ax_handle.set_ylim(axis_lims['y'])
+        ax_handle.add_patch((Rectangle((0, 12.5), 100, 87.5, facecolor="none")))
+        ax_handle.text(46, 102, 'step = %.3f' % time)
+    # hide axis
+    axis_ticks = range(0, axis_tick_length + 1, 10)
+    plt.xticks(axis_ticks)
+    plt.yticks(axis_ticks)
+    plt.axis('off')
+    """
+    # plot
+    colourmap = plt.get_cmap('PiYG')  # see https://matplotlib.org/examples/color/colormaps_reference.html
+    plt.imshow(overlaps, cmap=colourmap)  # TODO: normalize? also use this for other lattice plot fn...
+    plt.title('Lattice site-wise projection onto site %d, %d' % (ref_site[0],ref_site[1]))
+    plt.colorbar()
+    # draw gridlines
+    ax = plt.gca()
+    ax.grid(which='major', axis='both', linestyle='-', color='k', linewidth=2)
+    ax.set_xticks(np.arange(-.5, n, 1))
+    ax.set_yticks(np.arange(-.5, n, 1))
+    # mark reference
+    ax.plot(ref_site[0], ref_site[1], marker='*')
+    # save figure
+    overlapdir = 'overlapRef_%d_%d' % (ref_site[0], ref_site[1])
+    if not os.path.exists(os.path.join(lattice_plot_dir, overlapdir)):
+        os.makedirs(os.path.join(lattice_plot_dir, overlapdir))
+    plt.savefig(os.path.join(lattice_plot_dir, overlapdir, 'lattice_%s_step%d.png' % (overlapdir, time)), dpi=max(80.0, n/2.0))
     plt.close()
     return
