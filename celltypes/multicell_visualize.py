@@ -47,7 +47,7 @@ def lattice_uniplotter(lattice, time, n, lattice_plot_dir, uniplot_key, dict_cou
     colourmap = plt.get_cmap('PiYG')
     plt.imshow(proj_vals, cmap=colourmap, vmin=-1, vmax=1)
     plt.colorbar()
-    plt.title('Lattice site-wise projection onto memory %d (%s)' % (uniplot_key, CELLTYPE_LABELS[uniplot_key]))
+    plt.title('Lattice site-wise projection onto memory %d (%s) (Step=%d)' % (uniplot_key, CELLTYPE_LABELS[uniplot_key], time))
     # draw gridlines
     ax = plt.gca()
     ax.grid(which='major', axis='both', linestyle='-', color='k', linewidth=2)
