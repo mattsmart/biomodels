@@ -49,10 +49,10 @@ def run_sim(lattice, num_lattice_steps, data_dict, fieldstring=FIELDSTRING, fiel
             if turn % (40*plot_period) == 0:  # plot proj visualization of each cell (takes a while; every k lat plots)
                 fig, ax, proj = cell.plot_projection(use_radar=False, pltdir=plot_lattice_folder)
         if turn % plot_period == 0:  # plot the lattice
+            lattice_projection_composite(lattice, turn, n, plot_lattice_folder)
+            reference_overlap_plotter(lattice, turn, n, plot_lattice_folder)
             for mem_idx in memory_idx_list:
                 lattice_uniplotter(lattice, turn, n, plot_lattice_folder, mem_idx)
-                lattice_projection_composite(lattice, turn, n, plot_lattice_folder)
-                reference_overlap_plotter(lattice, turn, n, plot_lattice_folder)
 
     return lattice, data_dict, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder
 
