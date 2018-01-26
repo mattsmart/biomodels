@@ -114,5 +114,6 @@ def construct_app_field_from_genes(gene_list, num_steps):
     app_field = np.zeros((N, num_steps))
     for label in gene_list:
         app_field[GENE_ID[label], :] += 1
+        #app_field[GENE_ID[label], :num_steps/2] += 1
         #print app_field[GENE_ID[label]-1:GENE_ID[label]+2,0:5]
     return app_field
