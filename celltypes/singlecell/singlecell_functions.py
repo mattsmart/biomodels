@@ -2,7 +2,7 @@ import numpy as np
 from random import random
 
 from singlecell_constants import BETA, EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH
-from singlecell_simsetup import N, XI, A_INV, J, CELLTYPE_LABELS, ETA
+from singlecell_simsetup import N, XI, A_INV, J, CELLTYPE_LABELS, GENE_ID, ETA
 
 """
 Conventions follow from Lang & Mehta 2014, PLOS Comp. Bio
@@ -108,3 +108,11 @@ def check_memory_energies():
         h = hamiltonian(mem)
         print idx, label, h
     return
+
+
+def construct_app_field_from_genes(gene_list, num_steps):
+    app_field = np.zeros((N, num_steps))
+    for label in gene_list:
+        app_field[GENE_ID[label], :] += 1
+        #print app_field[GENE_ID[label]-1:GENE_ID[label]+2,0:5]
+    return app_field

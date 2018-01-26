@@ -8,7 +8,7 @@ import numpy as np
 import os
 
 from singlecell_constants import RUNS_FOLDER, IPSC_CORE_GENES
-from singlecell_functions import state_burst_errors, state_memory_projection_single
+from singlecell_functions import state_burst_errors, state_memory_projection_single, construct_app_field_from_genes
 from singlecell_simsetup import N, P, XI, CELLTYPE_ID, A_INV, J, GENE_ID, GENE_LABELS, CELLTYPE_LABELS
 from singlecell_simulate import main
 
@@ -23,14 +23,6 @@ def get_memory_proj_timeseries(state_array, memory_idx):
     return timeseries
 
 
-def construct_app_field_from_genes(gene_list, num_steps):
-    app_field = np.zeros((N, num_steps))
-    for label in gene_list:
-        app_field[GENE_ID[label], :] += 1
-        print app_field[GENE_ID[label]-1:GENE_ID[label]+2,0:5]
-    return app_field
-
-
 def gen_projection_timeseries(figname='figure1_20.png'):
     FLAG_BURST_ERRORS = True
     FLAG_DILUTE_INTXNS = False  # TODO: propogate through to singlecell_functions or singlecell_simsetup?
@@ -38,7 +30,7 @@ def gen_projection_timeseries(figname='figure1_20.png'):
     esc_label = 'esc'
     esc_idx = CELLTYPE_ID[esc_label]
     num_steps = 100
-    app_field = construct_app_field_from_genes(IPSC_CORE_GENES, 100)
+    app_field = construct_app_field_from_genes(IPSC_CORE_GENES, num_steps)
     proj_timeseries_array = np.zeros((num_steps, P))
 
     for idx, memory_label in enumerate(CELLTYPE_LABELS):
