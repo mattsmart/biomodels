@@ -1,6 +1,7 @@
 import numpy as np
 
 from multicell_class import SpatialCell
+from multicell_constants import VALID_BUILDSTRINGS
 from singlecell.singlecell_simsetup import XI, CELLTYPE_ID, CELLTYPE_LABELS
 
 # TODO: could wrap all these lattice operations into Lattice class
@@ -35,6 +36,19 @@ def build_lattice_half_half(n, type_1_idx, type_2_idx):
     return lattice
 
 
+def build_lattice_memory_sequence(n, mem_list):
+    lattice = [[0 for _ in xrange(n)] for _ in xrange(n)]  # TODO: this can be made faster as np array
+    idx = 0
+    for i in xrange(n):
+        for j in xrange(n):
+            mem_idx = mem_list[idx % len(mem_list)]
+            cellname = CELLTYPE_LABELS[mem_idx]
+            cellstate = XI[:, mem_idx]
+            lattice[i][j] = SpatialCell(cellstate, "%d,%d_%s" % (i, j, cellname), [i, j])
+            idx += 1
+    return lattice
+
+
 def build_lattice_main(n, list_of_celltype_idx, buildstring):
     print "Building %s lattice with types %s" % (buildstring, list_of_celltype_idx)
     if buildstring == "mono":
@@ -43,8 +57,10 @@ def build_lattice_main(n, list_of_celltype_idx, buildstring):
     elif buildstring == "dual":
         assert len(list_of_celltype_idx) == 2
         return build_lattice_half_half(n, list_of_celltype_idx[0], list_of_celltype_idx[1])
+    elif buildstring == "memory_sequence":
+        return build_lattice_memory_sequence(n, list_of_celltype_idx)
     else:
-        raise ValueError("buildstring arg invalid, must be one of %s" % ["mono", "dual"])
+        raise ValueError("buildstring arg invalid, must be one of %s" % VALID_BUILDSTRINGS)
 
 
 def prep_lattice_data_dict(n, duration, list_of_celltype_idx, buildstring, data_dict):
@@ -55,8 +71,12 @@ def prep_lattice_data_dict(n, duration, list_of_celltype_idx, buildstring, data_
     elif buildstring == "dual":
         for idx in list_of_celltype_idx:
             data_dict['memory_proj_arr'][idx] = np.zeros((n*n, duration + 1))
+    elif buildstring == "memory_sequence":
+        # TODO
+        for idx in list_of_celltype_idx:
+            data_dict['memory_proj_arr'][idx] = np.zeros((n*n, duration + 1))
     else:
-        raise ValueError("buildstring arg invalid, must be one of %s" % ["mono", "dual"])
+        raise ValueError("buildstring arg invalid, must be one of %s" % VALID_BUILDSTRINGS)
     return data_dict
 
 
