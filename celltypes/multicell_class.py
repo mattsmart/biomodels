@@ -1,7 +1,7 @@
 import numpy as np
 
 from multicell_constants import VALID_FIELDSTRINGS, FIELDSTRING
-from singlecell.singlecell_constants import EXT_FIELD_STRENGTH
+from singlecell.singlecell_constants import EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH
 from singlecell.singlecell_class import Cell
 from singlecell.singlecell_functions import state_subsample, state_only_on, state_only_off
 from singlecell.singlecell_simsetup import GENE_LABELS, CELLTYPE_LABELS
@@ -74,6 +74,7 @@ class SpatialCell(Cell):
 
         return field_state
 
-    def update_with_signal_field(self, lattice, search_radius, gridsize, fieldstring=FIELDSTRING, ratio_to_remove=0.0, field_strength=EXT_FIELD_STRENGTH):
-        field_vec = self.get_local_signal_field(lattice, search_radius, gridsize, fieldstring=fieldstring, ratio_to_remove=ratio_to_remove)
-        self.update_state(ext_field=field_vec, ext_field_strength=field_strength)
+    def update_with_signal_field(self, lattice, search_radius, gridsize, fieldstring=FIELDSTRING, ratio_to_remove=0.0,
+                                 ext_field_strength=EXT_FIELD_STRENGTH, app_field=None, app_field_strength=APP_FIELD_STRENGTH):
+        ext_field = self.get_local_signal_field(lattice, search_radius, gridsize, fieldstring=fieldstring, ratio_to_remove=ratio_to_remove)
+        self.update_state(ext_field=ext_field, ext_field_strength=ext_field_strength, app_field=app_field, app_field_strength=app_field_strength)

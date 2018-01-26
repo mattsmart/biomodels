@@ -6,12 +6,15 @@ import matplotlib.pyplot as plt
 from multicell_constants import GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS, VALID_BUILDSTRINGS, VALID_FIELDSTRINGS, FIELDSTRING, BUILDSTRING, LATTICE_PLOT_PERIOD, FIELD_REMOVE_RATIO
 from multicell_lattice import build_lattice_main, get_cell_locations, prep_lattice_data_dict, write_state_all_cells
 from multicell_visualize import lattice_uniplotter, reference_overlap_plotter, lattice_projection_composite
-from singlecell.singlecell_constants import EXT_FIELD_STRENGTH
+from singlecell.singlecell_constants import EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, IPSC_CORE_GENES
 from singlecell.singlecell_data_io import run_subdir_setup
-from singlecell.singlecell_simsetup import XI, CELLTYPE_ID, CELLTYPE_LABELS
+from singlecell.singlecell_functions import construct_app_field_from_genes
+from singlecell.singlecell_simsetup import N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS
 
 
-def run_sim(lattice, num_lattice_steps, data_dict, fieldstring=FIELDSTRING, field_remove_ratio=0.0, field_strength=EXT_FIELD_STRENGTH, plot_period=LATTICE_PLOT_PERIOD):
+def run_sim(lattice, num_lattice_steps, data_dict, fieldstring=FIELDSTRING, field_remove_ratio=0.0,
+            ext_field_strength=EXT_FIELD_STRENGTH, app_field=None, app_field_strength=APP_FIELD_STRENGTH,
+            plot_period=LATTICE_PLOT_PERIOD):
     """
     Form of data_dict:
         {'memory_proj_arr':
@@ -21,9 +24,17 @@ def run_sim(lattice, num_lattice_steps, data_dict, fieldstring=FIELDSTRING, fiel
     Notes:
         -can replace update_with_signal_field with update_state to simulate ensemble of non-intxn n**2 cells
     """
-    current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = run_subdir_setup()
+
+    # Input checks
     n = len(lattice)
     assert n == len(lattice[0])  # work with square lattice for simplicity
+    if app_field is not None:
+        assert len(app_field) == N
+        assert len(app_field[0]) == num_lattice_steps
+    else:
+        app_field_timestep = None
+
+    current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = run_subdir_setup()
     cell_locations = get_cell_locations(lattice, n)
     loc_to_idx = {pair: idx for idx, pair in enumerate(cell_locations)}
     memory_idx_list = data_dict['memory_proj_arr'].keys()
@@ -42,7 +53,8 @@ def run_sim(lattice, num_lattice_steps, data_dict, fieldstring=FIELDSTRING, fiel
         random.shuffle(cell_locations)
         for idx, loc in enumerate(cell_locations):
             cell = lattice[loc[0]][loc[1]]
-            cell.update_with_signal_field(lattice, SEARCH_RADIUS_CELL, n, fieldstring=fieldstring, ratio_to_remove=field_remove_ratio, field_strength=field_strength)
+            cell.update_with_signal_field(lattice, SEARCH_RADIUS_CELL, n, fieldstring=fieldstring, ratio_to_remove=field_remove_ratio,
+                                          ext_field_strength=ext_field_strength, app_field=app_field[:,turn], app_field_strength=app_field_strength)
             proj = cell.get_memories_projection()
             for mem_idx in memory_idx_list:
                 data_dict['memory_proj_arr'][mem_idx][loc_to_idx[loc], turn] = proj[mem_idx]
@@ -58,7 +70,8 @@ def run_sim(lattice, num_lattice_steps, data_dict, fieldstring=FIELDSTRING, fiel
 
 
 def main(gridize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING, fieldstring=FIELDSTRING,
-         field_remove_ratio=FIELD_REMOVE_RATIO, field_strength=EXT_FIELD_STRENGTH, plot_period=LATTICE_PLOT_PERIOD):
+         field_remove_ratio=FIELD_REMOVE_RATIO, ext_field_strength=EXT_FIELD_STRENGTH, app_field=None,
+         app_field_strength=APP_FIELD_STRENGTH, plot_period=LATTICE_PLOT_PERIOD):
 
     # check args
     assert type(gridize) is int
@@ -67,7 +80,7 @@ def main(gridize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING,
     assert buildstring in VALID_BUILDSTRINGS
     assert fieldstring in VALID_FIELDSTRINGS
     assert 0.0 <= field_remove_ratio < 1.0
-    assert 0.0 <= field_strength < 10.0
+    assert 0.0 <= ext_field_strength < 10.0
 
     # setup lattice IC
     type_1_idx = 5
@@ -76,6 +89,8 @@ def main(gridize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING,
         list_of_type_idx = [type_1_idx]
     if buildstring == "dual":
         list_of_type_idx = [type_1_idx, type_2_idx]
+    if buildstring == "memory_sequence":
+        list_of_type_idx = range(P)
     lattice = build_lattice_main(gridize, list_of_type_idx, buildstring)
     print list_of_type_idx
 
@@ -85,7 +100,9 @@ def main(gridize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING,
 
     # run the simulation
     lattice, data_dict, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = \
-        run_sim(lattice, num_steps, data_dict, fieldstring=fieldstring, field_remove_ratio=field_remove_ratio, field_strength=field_strength, plot_period=plot_period)
+        run_sim(lattice, num_steps, data_dict, fieldstring=fieldstring, field_remove_ratio=field_remove_ratio,
+                ext_field_strength=ext_field_strength, app_field=app_field, app_field_strength=app_field_strength,
+                plot_period=plot_period)
 
     # check the data data
     for data_idx, memory_idx in enumerate(data_dict['memory_proj_arr'].keys()):
@@ -93,7 +110,7 @@ def main(gridize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING,
         plt.plot(data_dict['memory_proj_arr'][memory_idx].T)
         plt.title('Projection of each grid cell onto memory %s vs grid timestep' % CELLTYPE_LABELS[memory_idx])
         plt.savefig(plot_data_folder + os.sep + '%s_%s_n%d_t%d_proj%d_remove%.2f_exo%.2f.png' %
-                    (fieldstring, buildstring, gridize, num_steps, memory_idx, field_remove_ratio, field_strength))
+                    (fieldstring, buildstring, gridize, num_steps, memory_idx, field_remove_ratio, ext_field_strength))
         plt.clf()  #plt.show()
 
     # write cell state TODO: and data_dict to file
@@ -105,12 +122,14 @@ def main(gridize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING,
 
 
 if __name__ == '__main__':
-    n = 4  # global GRIDSIZE
+    n = 8  # global GRIDSIZE
     steps = 40  # global NUM_LATTICE_STEPS
-    buildstring = "dual"  # mono/dual/
+    buildstring = "memory_sequence"  # mono/dual/memory_sequence/ TODO random / TODO mono_random
     fieldstring = "on"  # on/off/all, note e.g. 'off' means send info about 'off' genes only
-    fieldprune = 0.2  # amount of field idx to randomly prune from each cell
-    exo = 0.3  # global EXT_FIELD_STRENGTH
-    plot_period=1
+    fieldprune = 0.0  # amount of external field idx to randomly prune from each cell
+    ext_field_strength = 0.0                                                  # global EXT_FIELD_STRENGTH
+    app_field = construct_app_field_from_genes(IPSC_CORE_GENES, steps)        # size N x timesteps or None
+    app_field_strength = 1.0                                                  # global APP_FIELD_STRENGTH
+    plot_period = 1
     main(gridize=n, num_steps=steps, buildstring=buildstring, fieldstring=fieldstring, field_remove_ratio=fieldprune,
-         field_strength=exo, plot_period=plot_period)
+         ext_field_strength=ext_field_strength, app_field=app_field, app_field_strength=app_field_strength, plot_period=plot_period)
