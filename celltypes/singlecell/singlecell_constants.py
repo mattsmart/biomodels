@@ -19,3 +19,6 @@ FLAG_REMOVE_DUPES = True                  # remove genes that have same binarize
 
 NUM_STEPS = 100                           # number of full TF grid updates in the single cell simulation
 BURST_ERROR_PERIOD = 5                    # val 5 = apply every 5 full spin updates (~5000 individual spin updates)
+
+IPSC_CORE_GENES = ['Sox2', 'Pou5f1', 'Klf4', 'Mycbp']  # "yamanaka" factors to make iPSC (labels for mehta dataset)
+IPSC_EXTENDED_GENES = IPSC_CORE_GENES + ['nanog']
