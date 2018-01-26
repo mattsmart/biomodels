@@ -67,14 +67,14 @@ def prep_lattice_data_dict(n, duration, list_of_celltype_idx, buildstring, data_
     data_dict['memory_proj_arr'] = {}
     if buildstring == "mono":
         for idx in list_of_celltype_idx:
-            data_dict['memory_proj_arr'][idx] = np.zeros((n*n, duration + 1))
+            data_dict['memory_proj_arr'][idx] = np.zeros((n*n, duration))
     elif buildstring == "dual":
         for idx in list_of_celltype_idx:
-            data_dict['memory_proj_arr'][idx] = np.zeros((n*n, duration + 1))
+            data_dict['memory_proj_arr'][idx] = np.zeros((n*n, duration))
     elif buildstring == "memory_sequence":
         # TODO
         for idx in list_of_celltype_idx:
-            data_dict['memory_proj_arr'][idx] = np.zeros((n*n, duration + 1))
+            data_dict['memory_proj_arr'][idx] = np.zeros((n*n, duration))
     else:
         raise ValueError("buildstring arg invalid, must be one of %s" % VALID_BUILDSTRINGS)
     return data_dict
