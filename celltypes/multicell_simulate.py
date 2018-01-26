@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from multicell_constants import GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS, VALID_BUILDSTRINGS, VALID_FIELDSTRINGS, FIELDSTRING, BUILDSTRING, LATTICE_PLOT_PERIOD, FIELD_REMOVE_RATIO
 from multicell_lattice import build_lattice_main, get_cell_locations, prep_lattice_data_dict, write_state_all_cells
 from multicell_visualize import lattice_uniplotter, reference_overlap_plotter, lattice_projection_composite
-from singlecell.singlecell_constants import EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, IPSC_CORE_GENES
+from singlecell.singlecell_constants import EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, IPSC_CORE_GENES, IPSC_EXTENDED_GENES
 from singlecell.singlecell_data_io import run_subdir_setup
 from singlecell.singlecell_functions import construct_app_field_from_genes
 from singlecell.singlecell_simsetup import N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS
@@ -14,7 +14,7 @@ from singlecell.singlecell_simsetup import N, P, XI, CELLTYPE_ID, CELLTYPE_LABEL
 
 def run_sim(lattice, num_lattice_steps, data_dict, fieldstring=FIELDSTRING, field_remove_ratio=0.0,
             ext_field_strength=EXT_FIELD_STRENGTH, app_field=None, app_field_strength=APP_FIELD_STRENGTH,
-            plot_period=LATTICE_PLOT_PERIOD):
+            plot_period=LATTICE_PLOT_PERIOD, flag_uniplots=True):
     """
     Form of data_dict:
         {'memory_proj_arr':
@@ -40,15 +40,16 @@ def run_sim(lattice, num_lattice_steps, data_dict, fieldstring=FIELDSTRING, fiel
     memory_idx_list = data_dict['memory_proj_arr'].keys()
 
     # plot initial state of the lattice
-    for mem_idx in memory_idx_list:
-        lattice_uniplotter(lattice, 0, n, plot_lattice_folder, mem_idx)
+    if flag_uniplots:
+        for mem_idx in memory_idx_list:
+            lattice_uniplotter(lattice, 0, n, plot_lattice_folder, mem_idx)
     # get data for initial state of the lattice
     for loc in cell_locations:
         for mem_idx in memory_idx_list:
             proj = lattice[loc[0]][loc[1]].get_memories_projection()
             data_dict['memory_proj_arr'][mem_idx][loc_to_idx[loc], 0] = proj[mem_idx]
 
-    for turn in xrange(1, num_lattice_steps + 1):
+    for turn in xrange(1, num_lattice_steps):
         print 'Turn ', turn
         random.shuffle(cell_locations)
         for idx, loc in enumerate(cell_locations):
@@ -63,8 +64,9 @@ def run_sim(lattice, num_lattice_steps, data_dict, fieldstring=FIELDSTRING, fiel
         if turn % plot_period == 0:  # plot the lattice
             lattice_projection_composite(lattice, turn, n, plot_lattice_folder)
             reference_overlap_plotter(lattice, turn, n, plot_lattice_folder)
-            for mem_idx in memory_idx_list:
-                lattice_uniplotter(lattice, turn, n, plot_lattice_folder, mem_idx)
+            if flag_uniplots:
+                for mem_idx in memory_idx_list:
+                    lattice_uniplotter(lattice, turn, n, plot_lattice_folder, mem_idx)
 
     return lattice, data_dict, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder
 
@@ -85,14 +87,17 @@ def main(gridize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING,
     # setup lattice IC
     type_1_idx = 5
     type_2_idx = 24
+    flag_uniplots = False
     if buildstring == "mono":
         list_of_type_idx = [type_1_idx]
     if buildstring == "dual":
         list_of_type_idx = [type_1_idx, type_2_idx]
     if buildstring == "memory_sequence":
+        flag_uniplots = False
         list_of_type_idx = range(P)
+        random.shuffle(list_of_type_idx)  # shuffle or not?
     lattice = build_lattice_main(gridize, list_of_type_idx, buildstring)
-    print list_of_type_idx
+    #print list_of_type_idx
 
     # prep data dictionary
     data_dict = {}  # TODO: can also store params in data dict for main/run_sim then save to file
@@ -102,9 +107,9 @@ def main(gridize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING,
     lattice, data_dict, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = \
         run_sim(lattice, num_steps, data_dict, fieldstring=fieldstring, field_remove_ratio=field_remove_ratio,
                 ext_field_strength=ext_field_strength, app_field=app_field, app_field_strength=app_field_strength,
-                plot_period=plot_period)
+                plot_period=plot_period, flag_uniplots=flag_uniplots)
 
-    # check the data data
+    # check the data dict
     for data_idx, memory_idx in enumerate(data_dict['memory_proj_arr'].keys()):
         print data_dict['memory_proj_arr'][memory_idx]
         plt.plot(data_dict['memory_proj_arr'][memory_idx].T)
@@ -122,14 +127,14 @@ def main(gridize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING,
 
 
 if __name__ == '__main__':
-    n = 8  # global GRIDSIZE
-    steps = 40  # global NUM_LATTICE_STEPS
-    buildstring = "memory_sequence"  # mono/dual/memory_sequence/ TODO random / TODO mono_random
+    n = 6  # global GRIDSIZE
+    steps = 20  # global NUM_LATTICE_STEPS
+    buildstring = "dual"  # mono/dual/memory_sequence/
     fieldstring = "on"  # on/off/all, note e.g. 'off' means send info about 'off' genes only
-    fieldprune = 0.0  # amount of external field idx to randomly prune from each cell
-    ext_field_strength = 0.0                                                  # global EXT_FIELD_STRENGTH
-    app_field = construct_app_field_from_genes(IPSC_CORE_GENES, steps)        # size N x timesteps or None
-    app_field_strength = 1.0                                                  # global APP_FIELD_STRENGTH
-    plot_period = 1
+    fieldprune = 0.8  # amount of external field idx to randomly prune from each cell
+    ext_field_strength = 0.3                                                  # global EXT_FIELD_STRENGTH
+    app_field = construct_app_field_from_genes(IPSC_EXTENDED_GENES, steps)        # size N x timesteps or None
+    app_field_strength = 0.0 #100.0                                                  # global APP_FIELD_STRENGTH
+    plot_period = 4
     main(gridize=n, num_steps=steps, buildstring=buildstring, fieldstring=fieldstring, field_remove_ratio=fieldprune,
          ext_field_strength=ext_field_strength, app_field=app_field, app_field_strength=app_field_strength, plot_period=plot_period)
