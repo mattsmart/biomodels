@@ -6,12 +6,12 @@ import matplotlib.pyplot as plt
 from multicell_constants import GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS, VALID_BUILDSTRINGS, VALID_FIELDSTRINGS, FIELDSTRING, BUILDSTRING, LATTICE_PLOT_PERIOD, FIELD_REMOVE_RATIO
 from multicell_lattice import build_lattice_main, get_cell_locations, prep_lattice_data_dict, write_state_all_cells
 from multicell_visualize import lattice_uniplotter, reference_overlap_plotter, lattice_projection_composite
-from singlecell.singlecell_constants import FIELD_STRENGTH
+from singlecell.singlecell_constants import EXT_FIELD_STRENGTH
 from singlecell.singlecell_data_io import run_subdir_setup
 from singlecell.singlecell_simsetup import XI, CELLTYPE_ID, CELLTYPE_LABELS
 
 
-def run_sim(lattice, num_lattice_steps, data_dict, fieldstring=FIELDSTRING, field_remove_ratio=0.0, field_strength=FIELD_STRENGTH, plot_period=LATTICE_PLOT_PERIOD):
+def run_sim(lattice, num_lattice_steps, data_dict, fieldstring=FIELDSTRING, field_remove_ratio=0.0, field_strength=EXT_FIELD_STRENGTH, plot_period=LATTICE_PLOT_PERIOD):
     """
     Form of data_dict:
         {'memory_proj_arr':
@@ -58,7 +58,7 @@ def run_sim(lattice, num_lattice_steps, data_dict, fieldstring=FIELDSTRING, fiel
 
 
 def main(gridize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING, fieldstring=FIELDSTRING,
-         field_remove_ratio=FIELD_REMOVE_RATIO, field_strength=FIELD_STRENGTH, plot_period=LATTICE_PLOT_PERIOD):
+         field_remove_ratio=FIELD_REMOVE_RATIO, field_strength=EXT_FIELD_STRENGTH, plot_period=LATTICE_PLOT_PERIOD):
 
     # check args
     assert type(gridize) is int
@@ -110,7 +110,7 @@ if __name__ == '__main__':
     buildstring = "dual"  # mono/dual/
     fieldstring = "on"  # on/off/all, note e.g. 'off' means send info about 'off' genes only
     fieldprune = 0.2  # amount of field idx to randomly prune from each cell
-    exo = 0.3  # global FIELD_STRENGTH
+    exo = 0.3  # global EXT_FIELD_STRENGTH
     plot_period=1
     main(gridize=n, num_steps=steps, buildstring=buildstring, fieldstring=fieldstring, field_remove_ratio=fieldprune,
          field_strength=exo, plot_period=plot_period)
