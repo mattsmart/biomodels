@@ -39,13 +39,13 @@ def gen_projection_timeseries(figname='figure1_20.png'):
     esc_idx = CELLTYPE_ID[esc_label]
     num_steps = 100
     app_field = construct_app_field_from_genes(IPSC_CORE_GENES, 100)
-    ratio_amounts = np.linspace(0.0, 0.5, 50)  # this makes more sense and plot makes more sense
     proj_timeseries_array = np.zeros((num_steps, P))
 
     for idx, memory_label in enumerate(CELLTYPE_LABELS):
         print idx, memory_label
-        cellstate_array, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = main(init_id=memory_label, iterations=num_steps, app_field=app_field ,flag_burst_error=FLAG_BURST_ERRORS,
-                                                                                                       flag_write=False, analysis_subdir=analysis_subdir, plot_period=num_steps*2)
+        cellstate_array, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = main(init_id=memory_label, iterations=num_steps, app_field=app_field, app_field_strength=10.0,
+                                                                                                       flag_burst_error=FLAG_BURST_ERRORS, flag_write=False, analysis_subdir=analysis_subdir,
+                                                                                                       plot_period=num_steps*2)
         proj_timeseries_array[:, idx] = get_memory_proj_timeseries(cellstate_array, esc_idx)[:]
 
     # cleanup output folders from main()
