@@ -47,8 +47,9 @@ def gen_projection_timeseries(figname='figure1_20.png'):
     print N
 
 
-gen_projection_timeseries('figure1_0_A.png')
-gen_projection_timeseries('figure1_0_B.png')
-gen_projection_timeseries('figure1_0_C.png')
-gen_projection_timeseries('figure1_0_D.png')
-gen_projection_timeseries('figure1_0_E.png')
+if __name__ == '__main__':
+    gen_projection_timeseries('figure1_0_A.png')
+    gen_projection_timeseries('figure1_0_B.png')
+    gen_projection_timeseries('figure1_0_C.png')
+    gen_projection_timeseries('figure1_0_D.png')
+    gen_projection_timeseries('figure1_0_E.png')
