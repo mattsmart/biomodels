@@ -50,7 +50,7 @@ def lattice_uniplotter(lattice, time, n, lattice_plot_dir, uniplot_key, dict_cou
     plt.title('Lattice site-wise projection onto memory %d (%s) (Step=%d)' % (uniplot_key, CELLTYPE_LABELS[uniplot_key], time))
     # draw gridlines
     ax = plt.gca()
-    ax.grid(which='major', axis='both', linestyle='-', color='k', linewidth=2)
+    ax.grid(which='major', axis='both', linestyle='-', color='k', linewidth=1)
     ax.set_xticks(np.arange(-.5, n, 1))
     ax.set_yticks(np.arange(-.5, n, 1))
     # save figure

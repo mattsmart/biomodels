@@ -48,6 +48,13 @@ def run_sim(lattice, num_lattice_steps, data_dict, fieldstring=FIELDSTRING, fiel
         for mem_idx in memory_idx_list:
             proj = lattice[loc[0]][loc[1]].get_memories_projection()
             data_dict['memory_proj_arr'][mem_idx][loc_to_idx[loc], 0] = proj[mem_idx]
+    # initial condition plot
+    lattice_projection_composite(lattice, 0, n, plot_lattice_folder)
+    reference_overlap_plotter(lattice, 0, n, plot_lattice_folder)
+    if flag_uniplots:
+        for mem_idx in memory_idx_list:
+            lattice_uniplotter(lattice, 0, n, plot_lattice_folder, mem_idx)
+
 
     for turn in xrange(1, num_lattice_steps):
         print 'Turn ', turn
@@ -86,8 +93,8 @@ def main(gridize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING,
 
     # setup lattice IC
     type_1_idx = 5
-    type_2_idx = 24
-    flag_uniplots = False
+    type_2_idx = 36
+    flag_uniplots = True
     if buildstring == "mono":
         list_of_type_idx = [type_1_idx]
     if buildstring == "dual":
@@ -113,12 +120,12 @@ def main(gridize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING,
     for data_idx, memory_idx in enumerate(data_dict['memory_proj_arr'].keys()):
         print data_dict['memory_proj_arr'][memory_idx]
         plt.plot(data_dict['memory_proj_arr'][memory_idx].T)
-        plt.title('Projection of each grid cell onto memory %s vs grid timestep' % CELLTYPE_LABELS[memory_idx])
+        plt.ylabel('Projection of all cells onto type: %s' % CELLTYPE_LABELS[memory_idx])
+        plt.xlabel('Time (full lattice steps)')
         plt.savefig(plot_data_folder + os.sep + '%s_%s_n%d_t%d_proj%d_remove%.2f_exo%.2f.png' %
                     (fieldstring, buildstring, gridize, num_steps, memory_idx, field_remove_ratio, ext_field_strength))
         plt.clf()  #plt.show()
 
-    # write cell state TODO: and data_dict to file
     # write cell state TODO: and data_dict to file
     write_state_all_cells(lattice, data_folder)
 
