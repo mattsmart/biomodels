@@ -31,13 +31,13 @@ class State(object):
     def get_state_array(self):
         return self.state_array
 
-    def update_state(self, app_field=None):
+    def update_state(self, intxn_matrix, app_field=None):
         randomized_sites = range(self.N)
         shuffle(randomized_sites)  # randomize site ordering each timestep updates
         state_array_ext = np.zeros((self.N, np.shape(self.state_array)[1] + 1))
         state_array_ext[:, :-1] = self.state_array  # TODO: make sure don't need array copy
         for idx, site in enumerate(randomized_sites):  # TODO: parallelize
-            state_array_ext = glauber_dynamics_update(state_array_ext, site, self.steps, app_field=app_field)
+            state_array_ext = glauber_dynamics_update(state_array_ext, site, self.steps, intxn_matrix, app_field=app_field)
         self.state_array = state_array_ext
         self.steps += 1
         self.state = state_array_ext[:, -1]

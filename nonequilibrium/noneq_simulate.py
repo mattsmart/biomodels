@@ -5,13 +5,14 @@ from noneq_data_io import run_subdir_setup
 from noneq_state import State
 
 
-def state_simulate(init_state=None, init_id=None, N=DEFAULT_N, iterations=NUM_STEPS, app_field=None,
+def state_simulate(init_state=None, init_id=None, N=DEFAULT_N, iterations=NUM_STEPS, intxn_matrix=None, app_field=None,
                    flag_write=True, analysis_subdir=None, plot_period=10):
 
     """
     init_state: N x 1
-    init_id: None, or memory label like 'esc', or arbitrary label (e.g. 'All on')
+    init_id: None, or memory label like 'esc', or arbitrary label (e.g. 'All_on')
     iterations: main simulation loop duration
+    intxn_matrix: J_ij interaction elements for spin i influence on spin j
     app_field: size N x timesteps applied field array; column k is field to apply at timestep k
     flag_write: False only if want to avoid saving state to file
     analysis_subdir: use to store data for non-standard runs
@@ -24,16 +25,19 @@ def state_simulate(init_state=None, init_id=None, N=DEFAULT_N, iterations=NUM_ST
     else:
         current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = run_subdir_setup(run_subfolder=analysis_subdir)
 
-    # Cell setup
+    # State setup
     if init_state is None:
         if init_id is None:
-            init_id = "All_on"
-            init_state = 1 + np.zeros(N)  # start with all genes on
+            init_id = "init_random"
+            init_state = np.random.choice([-1, 1], size=(N,), p=[1./2, 1./2])
         else:
-            init_id = "unspecified"
             init_state = 1 + np.zeros(N)  # start with all genes on
     assert(len(init_state)) == N
     state = State(init_state, init_id)
+
+    # Interaction matrix setup
+    if intxn_matrix is None:
+        intxn_matrix = np.random.rand(N,N)
 
     # Input checks
     if app_field is not None:
@@ -57,7 +61,7 @@ def state_simulate(init_state=None, init_id=None, N=DEFAULT_N, iterations=NUM_ST
             fig, ax, proj = singlecell.plot_projection(use_radar=True, pltdir=plot_lattice_folder)
         """
 
-        state.update_state(app_field=app_field_timestep)
+        state.update_state(intxn_matrix, app_field=app_field_timestep)
 
     # Write
     print "Writing state to file.."
