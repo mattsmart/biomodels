@@ -6,7 +6,7 @@ from noneq_state import State
 
 
 def state_simulate(init_state=None, init_id=None, N=DEFAULT_N, iterations=NUM_STEPS, intxn_matrix=None, app_field=None,
-                   flag_write=True, analysis_subdir=None, plot_period=10):
+                   flag_makedir=True, flag_write=True, analysis_subdir=None, plot_period=10):
 
     """
     init_state: N x 1
@@ -20,10 +20,14 @@ def state_simulate(init_state=None, init_id=None, N=DEFAULT_N, iterations=NUM_ST
     """
     # TODO: if dirs is None then do run subdir setup (just current run dir?)
     # IO setup
-    if analysis_subdir is None:
-        current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = run_subdir_setup()
+    if flag_makedir:
+        if analysis_subdir is None:
+            current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = run_subdir_setup()
+        else:
+            current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = run_subdir_setup(run_subfolder=analysis_subdir)
     else:
-        current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = run_subdir_setup(run_subfolder=analysis_subdir)
+        current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = [None]*4
+        assert not flag_write
 
     # State setup
     if init_state is None:
@@ -48,8 +52,8 @@ def state_simulate(init_state=None, init_id=None, N=DEFAULT_N, iterations=NUM_ST
 
     # Simulate
     for step in xrange(iterations-1):
-        print "cell steps:", state.steps
-        #print "H(state) =", singlecell.get_energy()
+        #print "cell steps:", state.steps
+        #print "H(state) =", state.get_energy()
 
         # prep applied field TODO see if better speed to pass array of zeros and ditch all these if not None checks...
         if app_field is not None:
@@ -64,11 +68,11 @@ def state_simulate(init_state=None, init_id=None, N=DEFAULT_N, iterations=NUM_ST
         state.update_state(intxn_matrix, app_field=app_field_timestep)
 
     # Write
-    print "Writing state to file.."
-    print state.get_current_state()
     if flag_write:
+        print "Writing state to file.."
+        print state.get_current_state()
         state.write_state(data_folder)
-    print "Done"
+        print "Done"
     return state.get_state_array(), current_run_folder, data_folder, plot_lattice_folder, plot_data_folder
 
 

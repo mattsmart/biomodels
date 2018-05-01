@@ -4,8 +4,8 @@ from random import random
 from noneq_constants import BETA
 
 
-def hamiltonian(state_vec):
-    return -0.5*reduce(np.dot, [state_vec.T, J, state_vec])  # plus some other field terms... do we care for these? ie. "-sum h_i*s_i"
+def hamiltonian(state_vec, J):
+    return -reduce(np.dot, [state_vec.T, J, state_vec])  # plus some other field terms... do we care for these? ie. "-sum h_i*s_i"
 
 
 def internal_field(state, spin_idx, t, intxn_matrix):
@@ -32,7 +32,7 @@ def state_to_label(state):
     # "0" corresponds to all -1
     # 2^N - 1 corresponds to all +1
     label = 0
-    bitlist = (1+state)/2
+    bitlist = (1+np.array(state, dtype=int))/2
     for bit in bitlist:
         label = (label << 1) | bit
     return label
@@ -41,11 +41,9 @@ def state_to_label(state):
 def label_to_state(label, N):
     # n is the integer label of a set of spins
     bitlist = [1 if digit=='1' else 0 for digit in bin(label)[2:]]
-    print bitlist
     if len(bitlist) < N:
         tmp = bitlist
         bitlist = np.zeros(N, dtype=int)
         bitlist[-len(tmp):] = tmp[:]
-    print bitlist
     state = np.array(bitlist)*2 - 1
     return state
