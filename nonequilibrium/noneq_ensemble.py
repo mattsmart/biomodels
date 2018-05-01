@@ -19,14 +19,15 @@ def get_steadystate_dist(ensemble_size, total_steps, N, J):
                                                  flag_makedir=False, app_field=None, flag_write=False, analysis_subdir="ensemble", plot_period=10)
         end_state = state_array[:, -1]
         end_label = states_to_labels[tuple(end_state)] #state_to_label(end_state)
-        print system, end_state, end_label
+        if system % 1000 == 0:
+            print system, end_state, end_label
         occupancy_counts[end_label] += 1
     return occupancy_counts / float(ensemble_size)
 
 if __name__ == '__main__':
     # settings
-    ensemble_size = int(1e3)
-    total_steps = int(1e3)
+    ensemble_size = int(1e5)
+    total_steps = int(1e2)
     N = 3
     J = np.array([[0, 1, 1],
                   [1, 0, 1],

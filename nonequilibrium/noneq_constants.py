@@ -4,6 +4,6 @@ import os
 RUNS_FOLDER = "runs" + os.sep             # store timestamped runs here
 
 # SIMULATION CONSTANTS
-BETA = 2.0
+BETA = 0.2
 NUM_STEPS = 100
 DEFAULT_N = 3
