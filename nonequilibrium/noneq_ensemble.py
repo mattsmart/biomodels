@@ -26,7 +26,7 @@ def get_steadystate_dist(ensemble_size, total_steps, N, J):
 if __name__ == '__main__':
     # settings
     ensemble_size = int(1e3)
-    total_steps = int(1e5)
+    total_steps = int(1e3)
     N = 3
     J = np.array([[0, 1, 1],
                   [1, 0, 1],
@@ -44,7 +44,6 @@ if __name__ == '__main__':
     partition_fn = np.sum(propensities)
     plt.bar(range(2 ** N), propensities / partition_fn)
     plt.title('H(x) = - x^T J x determined boltzmann dist')
-    plt.ylabel('e^beta*H(x) / Z')
+    plt.ylabel('e^-beta*H(x) / Z')
     plt.xlabel('State label')
-
     plt.show()
