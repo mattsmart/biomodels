@@ -59,7 +59,7 @@ def main(init_state=None, init_id=None, iterations=NUM_STEPS, app_field=None, ap
             app_field_timestep = app_field[:, step]
         if singlecell.steps % plot_period == 0:
             fig, ax, proj = singlecell.plot_projection(use_radar=True, pltdir=plot_lattice_folder)
-        singlecell.update_state(app_field=app_field_timestep, app_field_strength=app_field_strength)
+        singlecell.update_state(app_field=app_field_timestep, app_field_strength=app_field_strength, randomize=False)
 
     # Write
     print "Writing state to file.."

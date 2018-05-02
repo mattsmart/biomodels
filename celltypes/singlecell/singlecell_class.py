@@ -81,19 +81,22 @@ class Cell(object):
         self.state_array[:, -1] = burst_errors[:]
         return burst_errors
 
-    def update_state(self, ext_field=None, ext_field_strength=EXT_FIELD_STRENGTH, app_field=None, app_field_strength=APP_FIELD_STRENGTH):
+    def update_state(self, ext_field=None, ext_field_strength=EXT_FIELD_STRENGTH, app_field=None,
+                     app_field_strength=APP_FIELD_STRENGTH, randomize=False):
         """
         ext_field - N x 1 - field external to the cell in a signalling sense; exosome field in multicell sym
         ext_field_strength  - scaling factor for ext_field
         app_field - N x 1 - unnatural external field (e.g. force TF on for some time period experimentally)
         app_field_strength - scaling factor for appt_field
         """
-        randomized_sites = range(self.N)
-        shuffle(randomized_sites)  # randomize site ordering each timestep updates
+        sites = range(self.N)
+        if randomize:
+            shuffle(sites)  # randomize site ordering each timestep updates
         state_array_ext = np.zeros((self.N, np.shape(self.state_array)[1] + 1))
         state_array_ext[:, :-1] = self.state_array  # TODO: make sure don't need array copy
-        for idx, site in enumerate(randomized_sites):  # TODO: parallelize
-            state_array_ext = glauber_dynamics_update(state_array_ext, site, self.steps, ext_field=ext_field,
+        state_array_ext[:,-1] = self.state_array[:,-1]
+        for idx, site in enumerate(sites):  # TODO: parallelize
+            state_array_ext = glauber_dynamics_update(state_array_ext, site, self.steps + 1, ext_field=ext_field,
                                                       ext_field_strength=ext_field_strength, app_field=app_field,
                                                       app_field_strength=app_field_strength)
         self.state_array = state_array_ext

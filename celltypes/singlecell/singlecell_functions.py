@@ -42,9 +42,9 @@ def glauber_dynamics_update(state, gene_idx, t, ext_field=None, ext_field_streng
         total_field += app_field_strength * app_field[gene_idx]
     prob_on_after_timestep = 1 / (1 + np.exp(-2*BETA*total_field))  # probability that site i will be "up" after the timestep
     if prob_on_after_timestep > r1:
-        state[gene_idx, t + 1] = 1.0
+        state[gene_idx, t] = 1.0
     else:
-        state[gene_idx, t + 1] = -1.0
+        state[gene_idx, t] = -1.0
     return state
 
 
