@@ -4,8 +4,14 @@ from random import random
 from noneq_constants import BETA
 
 
-def hamiltonian(state_vec, J):
-    return -reduce(np.dot, [state_vec.T, J, state_vec])  # plus some other field terms... do we care for these? ie. "-sum h_i*s_i"
+def hamming(s1, s2):
+    """Calculate the Hamming distance between two bit lists"""
+    assert len(s1) == len(s2)
+    return sum(c1 != c2 for c1, c2 in zip(s1, s2))
+
+
+def hamiltonian(state_vec, intxn_matrix):
+    return -0.5 * reduce(np.dot, [state_vec.T, intxn_matrix, state_vec])  # plus some other field terms... do we care for these? ie. "-sum h_i*s_i"
 
 
 def internal_field(state, spin_idx, t, intxn_matrix):
@@ -19,10 +25,13 @@ def glauber_dynamics_update(state, spin_idx, t, intxn_matrix, app_field=None):
     if app_field is not None:
         total_field += app_field[spin_idx]
     prob_on_after_timestep = 1 / (1 + np.exp(-2*BETA*total_field))  # probability that site i will be "up" after the timestep
+    #prob_on_after_timestep = 1 / (1 + np.exp(-BETA*total_field))  # (note remove factor of 2 because h = 0.5*J*s) probability that site i will be "up" after the timestep
     if prob_on_after_timestep > r1:
-        state[spin_idx, t + 1] = 1.0
+        #state[spin_idx, t + 1] = 1.0
+        state[spin_idx, t] = 1.0
     else:
-        state[spin_idx, t + 1] = -1.0
+        #state[spin_idx, t + 1] = -1.0
+        state[spin_idx, t] = -1.0
     return state
 
 
@@ -47,3 +56,15 @@ def label_to_state(label, N):
         bitlist[-len(tmp):] = tmp[:]
     state = np.array(bitlist)*2 - 1
     return state
+
+
+def get_adjacent_labels(state):
+    # TODO slow, how to speedup with permutation?
+    N = len(state)
+    labels = [0] * N
+    tmp = np.zeros(N, dtype=int)
+    for i in xrange(N):
+        tmp[:] = state[:]
+        tmp[i] = -1 * state[i]
+        labels[i] = state_to_label(tmp)
+    return labels

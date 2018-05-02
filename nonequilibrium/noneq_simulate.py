@@ -64,8 +64,8 @@ def state_simulate(init_state=None, init_id=None, N=DEFAULT_N, iterations=NUM_ST
         if state.steps % plot_period == 0:
             fig, ax, proj = singlecell.plot_projection(use_radar=True, pltdir=plot_lattice_folder)
         """
-
-        state.update_state(intxn_matrix, app_field=app_field_timestep)
+        #state.update_state(intxn_matrix, app_field=app_field_timestep)
+        state.update_state(intxn_matrix, app_field=app_field_timestep, randomize=False)
 
     # Write
     if flag_write:
@@ -78,4 +78,4 @@ def state_simulate(init_state=None, init_id=None, N=DEFAULT_N, iterations=NUM_ST
 
 if __name__ == '__main__':
     #app_field = np.zeros((N, NUM_STEPS))
-    state_simulate(plot_period=10)
+    state_simulate(plot_period=10, iterations=3)
