@@ -6,6 +6,7 @@ from noneq_functions import state_to_label, label_to_state, hamiltonian, hamming
 
 
 def get_states_energies_prob(N, J, beta=BETA):
+    # only makes sense for symmetric J
     num_states = 2 ** N
     Z = 0.0
     states = np.zeros((num_states, N), dtype=int)
