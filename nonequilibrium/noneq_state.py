@@ -1,3 +1,5 @@
+import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
 from random import shuffle
 
@@ -44,6 +46,24 @@ class State(object):
         self.steps += 1
         self.state = state_array_ext[:, -1]
         return self.state
+
+    def visualize(self, style='spring'):
+        # TODO want like Petrie polygon Orthographic projections on wikipedia
+        # TODO make G an updating property of state (need to label nodes appropriately etc)
+        G = nx.hypercube_graph(self.N)
+        if style is None:
+            nx.draw(G)
+        elif style == 'circular':
+            nx.draw_circular(G)
+        elif style == 'spectral':
+            nx.draw_spectral(G)
+        elif style == 'spring':
+            nx.draw_spring(G)
+        elif style == 'shell':
+            nx.draw_shell(G)
+        plt.show()
+        return
+
 
     def write_state(self, datadir):
         state_write(self.state_array, range(self.steps), self.spin_labels, "sc_state_%s" % self.label, "times", "spin_labels", datadir)
