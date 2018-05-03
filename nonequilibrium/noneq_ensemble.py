@@ -83,8 +83,6 @@ def periodicity_analysis(ensemble_label_timeseries, endratio=0.01):
 
 if __name__ == '__main__':
     # settings
-    ensemble_size = 2 #int(1e5)
-    total_steps = 10000 #int(1e2)
     N = 3
     J_symm = np.array([[0, 1, 1],
                        [1, 0, 1],
@@ -103,18 +101,26 @@ if __name__ == '__main__':
                           [87, 11, 0]])
     J = J_symm
 
+    # flags
+    flag_timeseries_periodicity = False
+    flag_mean_timeseries = False
+    flag_visualize = True
+
     # analysis (plot label timeseries, periodicity plots)
-    small_ensemble_size = 1
-    total_steps = 10000
-    steadystate_fraction = 0.1  # last x percent of the time
-    #ensemble_label_timeseries = get_ensemble_label_timeseries(small_ensemble_size, total_steps, N, J)
-    #plot_label_timeseries(ensemble_label_timeseries, endratio=steadystate_fraction)
-    #periodicity_analysis(ensemble_label_timeseries, endratio=steadystate_fraction)
+    if flag_timeseries_periodicity:
+        small_ensemble_size = 1
+        total_steps = 10000
+        steadystate_fraction = 0.1  # last x percent of the time
+        ensemble_label_timeseries = get_ensemble_label_timeseries(small_ensemble_size, total_steps, N, J)
+        plot_label_timeseries(ensemble_label_timeseries, endratio=steadystate_fraction)
+        periodicity_analysis(ensemble_label_timeseries, endratio=steadystate_fraction)
 
     # analysis (mean label timeseries)
-    ensemble_size_mean = 100
-    #mean_label_timeseries(ensemble_size_mean, N, J)
+    if flag_mean_timeseries:
+        ensemble_size_mean = 100
+        mean_label_timeseries(ensemble_size_mean, N, J)
 
     # visualize few steps of big ensemble
-    ensemble_label_timeseries = get_ensemble_label_timeseries(1000, 10, N, J)
-    visualize_ensemble_label_timeseries(ensemble_label_timeseries, N)
+    if flag_visualize:
+        ensemble_label_timeseries = get_ensemble_label_timeseries(1000, 10, N, J)
+        visualize_ensemble_label_timeseries(ensemble_label_timeseries, N)
