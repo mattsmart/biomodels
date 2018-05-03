@@ -70,7 +70,8 @@ def mean_label_timeseries(ensemble_size, N, J, total_steps=10000):
     return 0
 
 
-def periodicity_analysis(ensemble_label_timeseries, total_steps=10000, endratio=0.01):
+def periodicity_analysis(ensemble_label_timeseries, endratio=0.01):
+    ensemble_size, total_steps = np.shape(ensemble_label_timeseries)
     steadystate_steps = int(endratio * total_steps)
     print "total steps:", total_steps
     print "steps at end we are calling steady state:", steadystate_steps
@@ -92,8 +93,8 @@ if __name__ == '__main__':
     J_broken1 = np.array([[0, 1, 2],
                           [0.5, 0, 1],
                           [1, 1, 0]])
-    J_broken2 = np.array([[0, 1, 6],
-                          [-1, 0, -0.1],
+    J_broken2 = np.array([[0, 1, 2],
+                          [-0.5, 0, 1],
                           [1, 1, 0]])
     J_broken3 = np.array([[0, 0.1, 6],
                           [-1, 0, -0.1],
@@ -101,15 +102,15 @@ if __name__ == '__main__':
     J_general = np.array([[0, -61, -100],
                           [-9, 0, -1],
                           [87, 11, 0]])
-    J = J_broken1
+    J = J_broken2
 
     # analysis (plot label timeseries, periodicity plots)
-    small_ensemble_size = 4
-    total_steps = 100000
+    small_ensemble_size = 1
+    total_steps = 10000
     steadystate_fraction = 0.1  # last x percent of the time
     ensemble_label_timeseries = get_ensemble_label_timeseries(small_ensemble_size, total_steps, N, J)
     plot_label_timeseries(ensemble_label_timeseries, endratio=steadystate_fraction)
-    periodicity_analysis(ensemble_label_timeseries, total_steps=10000, endratio=steadystate_fraction)
+    periodicity_analysis(ensemble_label_timeseries, endratio=steadystate_fraction)
 
     # analysis (mean label timeseries)
     ensemble_size_mean = 100

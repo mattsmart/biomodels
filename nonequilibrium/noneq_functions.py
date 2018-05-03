@@ -47,14 +47,17 @@ def state_to_label(state):
     return label
 
 
-def label_to_state(label, N):
+def label_to_state(label, N, use_neg=True):
     # n is the integer label of a set of spins
     bitlist = [1 if digit=='1' else 0 for digit in bin(label)[2:]]
     if len(bitlist) < N:
         tmp = bitlist
         bitlist = np.zeros(N, dtype=int)
         bitlist[-len(tmp):] = tmp[:]
-    state = np.array(bitlist)*2 - 1
+    if use_neg:
+        state = np.array(bitlist)*2 - 1
+    else:
+        state = np.array(bitlist)
     return state
 
 

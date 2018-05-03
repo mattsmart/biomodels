@@ -65,7 +65,7 @@ def state_simulate(init_state=None, init_id=None, N=DEFAULT_N, iterations=NUM_ST
             fig, ax, proj = singlecell.plot_projection(use_radar=True, pltdir=plot_lattice_folder)
         """
         #state.update_state(intxn_matrix, app_field=app_field_timestep)
-        state.update_state(intxn_matrix, app_field=app_field_timestep, randomize=False)
+        state.update_state(intxn_matrix, app_field=app_field_timestep, randomize=True)
 
     # Write
     if flag_write:

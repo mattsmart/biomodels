@@ -63,6 +63,6 @@ def fft_label_timeseries(traj):
     f_axis = np.fft.rfftfreq(T, d=1.0)
     plt.plot(f_axis, f_components_abs)
     plt.title('magnitude of rfft of one traj, steps %d' % T)
-    #plt.xlim(f_axis[1], f_axis[-1])
-    #plt.ylim(-0.1, np.max(f_components_abs[1:]))
+    plt.xlim(f_axis[1], f_axis[-1])
+    plt.ylim(-0.1, np.max(f_components_abs[1:]))
     plt.show()
