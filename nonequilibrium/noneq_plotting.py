@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import networkx as nx
 import numpy as np
 
 from noneq_constants import BETA
@@ -66,3 +67,43 @@ def fft_label_timeseries(traj):
     plt.xlim(f_axis[1], f_axis[-1])
     plt.ylim(-0.1, np.max(f_components_abs[1:]))
     plt.show()
+
+
+def visualize_ensemble_label_timeseries(ensemble_label_timeseries, N):
+    ensemble_size, T = np.shape(ensemble_label_timeseries)
+
+    # dictionaries
+    labels_to_states01 = {idx: tuple(label_to_state(idx, N, use_neg=False)) for idx in xrange(2 ** N)}
+    states01_to_labels = {tuple(v): k for k, v in labels_to_states01.iteritems()}
+    states01_to_states = {state: tuple([2 * v - 1 for v in state]) for state in states01_to_labels.keys()}
+    states01_to_colors = {state01: np.random.rand(3,) for state01, label in states01_to_labels.iteritems()}
+
+    # initialize graph
+    G = nx.hypercube_graph(N)
+    pos = nx.spring_layout(G)
+
+    # initialize ensemble plot properties
+    ensemble_pos = np.zeros((ensemble_size, 2))
+    ensemble_colors = [0] * ensemble_size
+    delta = 0.05
+    x_perturb = np.random.uniform(-delta, delta, ensemble_size)
+    y_perturb = np.random.uniform(-delta, delta, ensemble_size)
+
+    for step in xrange(T):
+        nx.draw_networkx_nodes(G, pos=pos, nodelist=G.nodes(),node_size=150)
+        nx.draw_networkx_edges(G, pos=pos, edgelist=G.edges())
+        nx.draw_networkx_labels(G, pos=pos, font_size=12)
+        plt.gca().axis('off')
+
+        for idx, label in enumerate(ensemble_label_timeseries[:,step]):
+            state01 = labels_to_states01[label]
+            val_xy = pos[state01]
+            val_xy_perturbed = val_xy + np.array([x_perturb[idx], y_perturb[idx]])
+            ensemble_pos[idx, :] = val_xy_perturbed
+            ensemble_colors[idx] = states01_to_colors[state01]
+        plt.scatter(ensemble_pos[:, 0], ensemble_pos[:, 1], c=ensemble_colors, alpha=0.7)
+        plt.title('Step %d' % step)
+        plt.show()
+
+    return 0
+

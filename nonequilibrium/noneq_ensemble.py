@@ -4,7 +4,7 @@ import numpy as np
 from noneq_constants import BETA
 from noneq_functions import state_to_label, label_to_state, hamiltonian
 from noneq_plotting import plot_steadystate_dist, plot_boltzmann_dist, autocorr_label_timeseries, fft_label_timeseries, \
-                           plot_label_timeseries
+                           plot_label_timeseries, visualize_ensemble_label_timeseries
 from noneq_simulate import state_simulate
 
 # TODO optimization-dictionary in memory of state labels to spins (and vice versa? invert how) and see if runtime improves
@@ -14,7 +14,6 @@ def get_steadystate_dist_simple(ensemble_size, total_steps, N, J):
     # get steady state of ensemble without wasting resources collecting other statistics
     labels_to_states = {idx:label_to_state(idx, N) for idx in xrange(2 ** N)}
     states_to_labels = {tuple(v): k for k, v in labels_to_states.iteritems()}
-
     occupancy_counts = np.zeros(2**N)
     for system in xrange(ensemble_size):
         state_array, _, _, _, _ = state_simulate(init_state=None, init_id=None, N=N, iterations=total_steps, intxn_matrix=J,
@@ -27,7 +26,7 @@ def get_steadystate_dist_simple(ensemble_size, total_steps, N, J):
     return occupancy_counts / float(ensemble_size)
 
 
-def get_ensemble_label_timeseries(ensemble_size, total_steps, N, J):
+def get_ensemble_label_timeseries(ensemble_size, total_steps, N, J, visual=False):
     labels_to_states = {idx:label_to_state(idx, N) for idx in xrange(2 ** N)}
     states_to_labels = {tuple(v): k for k, v in labels_to_states.iteritems()}
     ensemble_label_timeseries = np.zeros((ensemble_size, total_steps))
@@ -102,16 +101,20 @@ if __name__ == '__main__':
     J_general = np.array([[0, -61, -100],
                           [-9, 0, -1],
                           [87, 11, 0]])
-    J = J_broken2
+    J = J_symm
 
     # analysis (plot label timeseries, periodicity plots)
     small_ensemble_size = 1
     total_steps = 10000
     steadystate_fraction = 0.1  # last x percent of the time
-    ensemble_label_timeseries = get_ensemble_label_timeseries(small_ensemble_size, total_steps, N, J)
-    plot_label_timeseries(ensemble_label_timeseries, endratio=steadystate_fraction)
-    periodicity_analysis(ensemble_label_timeseries, endratio=steadystate_fraction)
+    #ensemble_label_timeseries = get_ensemble_label_timeseries(small_ensemble_size, total_steps, N, J)
+    #plot_label_timeseries(ensemble_label_timeseries, endratio=steadystate_fraction)
+    #periodicity_analysis(ensemble_label_timeseries, endratio=steadystate_fraction)
 
     # analysis (mean label timeseries)
     ensemble_size_mean = 100
     #mean_label_timeseries(ensemble_size_mean, N, J)
+
+    # visualize few steps of big ensemble
+    ensemble_label_timeseries = get_ensemble_label_timeseries(1000, 10, N, J)
+    visualize_ensemble_label_timeseries(ensemble_label_timeseries, N)
