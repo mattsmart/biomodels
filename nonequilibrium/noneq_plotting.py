@@ -25,3 +25,44 @@ def plot_boltzmann_dist(N, J, beta=BETA):
     plt.xlabel('State label')
     plt.show()
     return 0
+
+
+def plot_label_timeseries(ensemble_label_timeseries, endratio=1.0):
+    assert 0.0 < endratio <= 1.0
+    ensemble_size, T = np.shape(ensemble_label_timeseries)
+    start = int((1-endratio)*T)
+    stop = T
+    ensemble_label_timeseries = ensemble_label_timeseries[:,start:stop]
+    plt.plot(range(start, stop), ensemble_label_timeseries.transpose())
+    plt.title('%d trajectories (defined by integer state labels) truncated to last %.2f steps' % (ensemble_size, endratio))
+    plt.xlabel('steps')
+    plt.ylabel('label (state) at time t')
+    plt.show()
+    return 0
+
+
+def autocorr_label_timeseries(traj):
+    T = len(traj)
+    vertical_scale = np.dot(traj, traj)
+    f_components = np.fft.rfft(traj)
+    Cw = f_components.conj() * f_components
+    autocorr = np.fft.fftshift(np.fft.irfft(Cw))
+    lag_axis = np.arange(-T/2, T/2)
+    #plt.figure(figsize=(16, 8))
+    plt.plot(lag_axis, autocorr / vertical_scale, 'r--')
+    plt.title('autocorrelation of one traj, %d steps' % T)
+    plt.xlabel('step lag')
+    plt.ylabel('x(t)*x(t+tau) overlap')
+    plt.show()
+
+
+def fft_label_timeseries(traj):
+    T = len(traj)
+    f_components = np.fft.rfft(traj)
+    f_components_abs = np.abs(f_components)
+    f_axis = np.fft.rfftfreq(T, d=1.0)
+    plt.plot(f_axis, f_components_abs)
+    plt.title('magnitude of rfft of one traj, steps %d' % T)
+    #plt.xlim(f_axis[1], f_axis[-1])
+    #plt.ylim(-0.1, np.max(f_components_abs[1:]))
+    plt.show()
