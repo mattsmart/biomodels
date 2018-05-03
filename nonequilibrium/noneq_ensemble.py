@@ -3,7 +3,8 @@ import numpy as np
 
 from noneq_constants import BETA
 from noneq_functions import state_to_label, label_to_state, hamiltonian
-from noneq_plotting import plot_steadystate_dist, plot_boltzmann_dist
+from noneq_plotting import plot_steadystate_dist, plot_boltzmann_dist, autocorr_label_timeseries, fft_label_timeseries, \
+                           plot_label_timeseries
 from noneq_simulate import state_simulate
 
 # TODO optimization-dictionary in memory of state labels to spins (and vice versa? invert how) and see if runtime improves
@@ -57,20 +58,59 @@ def get_ensemble_statistics(ensemble_size, total_steps, N, J):
     return 0
 
 
+def mean_label_timeseries(ensemble_size, N, J, total_steps=10000):
+    ensemble_label_timeseries = get_ensemble_label_timeseries(ensemble_size, total_steps, N, J)
+    mean_label_timeseries = np.mean(ensemble_label_timeseries, axis=0)
+    assert len(mean_label_timeseries) == total_steps
+    plt.plot(range(total_steps), mean_label_timeseries)
+    plt.title('Mean label timeseries (%d steps, %d ensemble size)' % (total_steps, ensemble_size))
+    plt.xlabel('steps')
+    plt.ylabel('mean state label over all trajectories at step t')
+    plt.show()
+    return 0
+
+
+def periodicity_analysis(ensemble_label_timeseries, total_steps=10000, endratio=0.01):
+    steadystate_steps = int(endratio * total_steps)
+    print "total steps:", total_steps
+    print "steps at end we are calling steady state:", steadystate_steps
+    for traj in xrange(ensemble_size):
+        steadystate_traj = ensemble_label_timeseries[traj,-steadystate_steps:]
+        fft_label_timeseries(steadystate_traj)
+        autocorr_label_timeseries(steadystate_traj)
+    return 0
+
+
 if __name__ == '__main__':
     # settings
-    ensemble_size = 3 #int(1e5)
+    ensemble_size = 2 #int(1e5)
     total_steps = 10000 #int(1e2)
     N = 3
-    J = np.array([[0, 1, 1],
-                  [1, 0, 1],
-                  [1, 1, 0]])
-    ensemble_label_timeseries = get_ensemble_label_timeseries(ensemble_size, total_steps, N, J)
-    print ensemble_label_timeseries
+    J_symm = np.array([[0, 1, 1],
+                       [1, 0, 1],
+                       [1, 1, 0]])
+    J_broken1 = np.array([[0, 1, 2],
+                          [0.5, 0, 1],
+                          [1, 1, 0]])
+    J_broken2 = np.array([[0, 1, 6],
+                          [-1, 0, -0.1],
+                          [1, 1, 0]])
+    J_broken3 = np.array([[0, 0.1, 6],
+                          [-1, 0, -0.1],
+                          [-4, 10, 0]])
+    J_general = np.array([[0, -61, -100],
+                          [-9, 0, -1],
+                          [87, 11, 0]])
+    J = J_broken1
 
-    # periodicity analysis
-    for traj in xrange(ensemble_size):
-        f_components = np.fft.rfft(ensemble_label_timeseries[traj,:])
-        f_axis = np.fft.rfftfreq(total_steps, d=1.0)
-        plt.plot(f_axis, np.abs(f_components))
-        plt.show()
+    # analysis (plot label timeseries, periodicity plots)
+    small_ensemble_size = 4
+    total_steps = 100000
+    steadystate_fraction = 0.1  # last x percent of the time
+    ensemble_label_timeseries = get_ensemble_label_timeseries(small_ensemble_size, total_steps, N, J)
+    plot_label_timeseries(ensemble_label_timeseries, endratio=steadystate_fraction)
+    periodicity_analysis(ensemble_label_timeseries, total_steps=10000, endratio=steadystate_fraction)
+
+    # analysis (mean label timeseries)
+    ensemble_size_mean = 100
+    #mean_label_timeseries(ensemble_size_mean, N, J)
