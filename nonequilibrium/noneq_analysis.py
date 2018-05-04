@@ -25,7 +25,19 @@ def get_states_energies_prob(N, J, beta=BETA):
     return states, energies, probabilities
 
 
-def get_transition_matrix(N, J, beta=BETA):
+def calc_glauber_beta_to_alpha(N, J, alpha_idx, beta_idx, map_labels_to_states, beta=BETA):
+    state_alpha = np.array(map_labels_to_states[alpha_idx], dtype=int)
+    state_beta = np.array(map_labels_to_states[beta_idx], dtype=int)
+    # identify spin which is to be flipped (sum of up(1)/downs(-1) has unique -1 element) and get its value
+    spin_idx_flip = list(state_alpha*state_beta).index(-1)
+    spin_val = state_alpha[spin_idx_flip]
+    # calc delta_E analog
+    h_at_spin_idx_at_t = np.dot(J[spin_idx_flip, :], state_beta)  # analog of energy diff, sum J_ij*s_j ~ h_i
+    energy_diff_analog = 2 * spin_val * h_at_spin_idx_at_t
+    return 1.0 / (1.0 + np.exp(-beta * energy_diff_analog))  # factor 2 maybe
+
+
+def get_transition_matrix_using_energy(N, J, beta=BETA):
     # p 111 Amit divide by N eah probability because of a priori probability of picking specific spin to flip
     num_states = 2**N
     states, energies, probabilities = get_states_energies_prob(N, J, beta=beta)
@@ -48,6 +60,30 @@ def get_transition_matrix(N, J, beta=BETA):
     return Q
 
 
+def get_transition_matrix(N, J, beta=BETA):
+    # p 111 Amit divide by N eah probability because of a priori probability of picking specific spin to flip
+    num_states = 2**N
+    labels_to_states = {idx:label_to_state(idx, N) for idx in xrange(2 ** N)}
+
+    Q = np.zeros((num_states, num_states))
+    for i in xrange(num_states):
+        for j in xrange(num_states):
+            hamming_dist = hamming(labels_to_states[i], labels_to_states[j])
+            if hamming_dist == 1:
+                glauber_prob = calc_glauber_beta_to_alpha(N, J, i, j, labels_to_states, beta=beta)
+                Q[i,j] = glauber_prob / N  # prob jump from j to i
+            elif hamming_dist == 0:  # here i == j
+                prob_leave = 0.0
+                adjacent_labels = get_adjacent_labels(labels_to_states[i])
+                for k in adjacent_labels:
+                    glauber_prob = calc_glauber_beta_to_alpha(N, J, k, i, labels_to_states, beta=beta)
+                    prob_leave += glauber_prob / N
+                Q[i,j] = 1 - prob_leave  # prob stay at site (diagonals) is 1 - prob_leave
+            else:
+                Q[i,j] = 0
+    return Q
+
+
 def construct_flux_matrix(Q):
     # based on: Wang, 2017, PLOS
     eigenpairs = eigen(Q)
@@ -60,6 +96,16 @@ def construct_flux_matrix(Q):
         for j in xrange(Q.shape[1]):
             F[i,j] = -Q[j,i]*pss[i] + Q[i,j]*pss[j]
     return F
+
+
+def get_flux_dict(N, J, beta=BETA):
+    Q = get_transition_matrix(N, J, beta=beta)
+    F = construct_flux_matrix(Q)
+    labels_to_states01 = {idx: tuple(label_to_state(idx, N, use_neg=False)) for idx in xrange(2 ** N)}
+    flux_dict = {(labels_to_states01[i], labels_to_states01[j]): F[i, j]
+                 for i in xrange(2 ** N) for j in xrange(2 ** N) if np.abs(F[i, j]) > 1e-4}  # note could do j in xrange(i+1, 2 ** N)
+    #flux_dict = {(labels_to_states01[i], labels_to_states01[j]): F[i, j] for i in xrange(2 ** N) for j in xrange(i+1, 2 ** N)}
+    return flux_dict
 
 
 def decompose_matrix(Q):
@@ -147,17 +193,17 @@ def analyze_transition_rate_matrices(N, J, beta=BETA, tau=1.0):
 
 if __name__ == '__main__':
     # settings
-    beta=0.2 #0.2
+    beta=1.0 #0.2
     tau=1e-3
     N = 3
-    J = build_J(N, id='symm')
+    J = build_J(N, id='asymm_1')
     print "J is\n", J
 
     # stoch matrix decompositions
+    np.set_printoptions(precision=2)
     Q = get_transition_matrix(N, J, beta=beta)
     F = construct_flux_matrix(Q)
     C, D = decompose_matrix(Q)
-    np.set_printoptions(precision=2)
     print F
     print C
     print D
