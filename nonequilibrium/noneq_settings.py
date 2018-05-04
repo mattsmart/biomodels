@@ -52,6 +52,6 @@ def build_J(N, id='symm', asymm_scale=0.01):
 
     else:
         print "warning, N=%d not implemented" % N
-        J = 0
+        J = np.random.uniform(-1,1,(N,N))
 
     return J
