@@ -26,7 +26,7 @@ def get_steadystate_dist_simple(ensemble_size, total_steps, N, J):
     return occupancy_counts / float(ensemble_size)
 
 
-def get_ensemble_label_timeseries(ensemble_size, total_steps, N, J, visual=False):
+def get_ensemble_label_timeseries(ensemble_size, total_steps, N, J):
     labels_to_states = {idx:label_to_state(idx, N) for idx in xrange(2 ** N)}
     states_to_labels = {tuple(v): k for k, v in labels_to_states.iteritems()}
     ensemble_label_timeseries = np.zeros((ensemble_size, total_steps))
@@ -38,23 +38,21 @@ def get_ensemble_label_timeseries(ensemble_size, total_steps, N, J, visual=False
     return ensemble_label_timeseries
 
 
-def get_ensemble_statistics(ensemble_size, total_steps, N, J):
-    """
+def get_ensemble_spin_statistics(ensemble_size, N, J, total_steps=10000):
     labels_to_states = {idx:label_to_state(idx, N) for idx in xrange(2 ** N)}
     states_to_labels = {tuple(v): k for k, v in labels_to_states.iteritems()}
-
-    occupancy_counts = np.zeros(2**N)
-    for system in xrange(ensemble_size):
-        state_array, _, _, _, _ = state_simulate(init_state=None, init_id=None, N=N, iterations=total_steps, intxn_matrix=J,
-                                                 flag_makedir=False, app_field=None, flag_write=False, analysis_subdir="ensemble", plot_period=10)
-        end_state = state_array[:, -1]
-        end_label = states_to_labels[tuple(end_state)] #state_to_label(end_state)
-        if system % 1000 == 0:
-            print system, end_state, end_label
-        occupancy_counts[end_label] += 1
-    return occupancy_counts / float(ensemble_size)
-    """
-    return 0
+    ensemble_label_timeseries = get_ensemble_label_timeseries(ensemble_size, total_steps, N, J)
+    ensemble_size, total_steps = np.shape(ensemble_label_timeseries)
+    spin_mean_timeseries = np.zeros((N, total_steps))
+    for step in xrange(total_steps):
+        ensemble_labels_at_t = ensemble_label_timeseries[:,step]
+        for spin_idx in xrange(N):
+            spin_sum_at_t = 0.0
+            for sample in xrange(ensemble_size):
+                state = labels_to_states[ensemble_labels_at_t[sample]]
+                spin_sum_at_t += state[spin_idx]
+            spin_mean_timeseries[spin_idx, step] = spin_sum_at_t / ensemble_size
+    return spin_mean_timeseries
 
 
 def mean_label_timeseries(ensemble_size, N, J, total_steps=10000):
@@ -85,11 +83,15 @@ if __name__ == '__main__':
     # settings
     N = 3
     J = build_J(N, id='symm')
+    #J = build_J(N, id='asymm_2')
+    #J = build_J(N, id='asymm_1')
+
 
     # flags
     flag_timeseries_periodicity = False
-    flag_mean_timeseries = False
-    flag_visualize = True
+    flag_mean_label_timeseries = False
+    flag_mean_spin_timeseries = True
+    flag_visualize = False
 
     # analysis (plot label timeseries, periodicity plots)
     if flag_timeseries_periodicity:
@@ -101,9 +103,18 @@ if __name__ == '__main__':
         periodicity_analysis(ensemble_label_timeseries, endratio=steadystate_fraction)
 
     # analysis (mean label timeseries)
-    if flag_mean_timeseries:
+    if flag_mean_label_timeseries:
         ensemble_size_mean = 100
         mean_label_timeseries(ensemble_size_mean, N, J)
+
+    # analysis (mean spin timeseries)
+    if flag_mean_spin_timeseries:
+        ensemble_size_mean = 1000
+        spin_mean_steps = 100
+        spin_mean_timeseries = get_ensemble_spin_statistics(ensemble_size_mean, N, J, total_steps=spin_mean_steps)
+        plt.plot(range(spin_mean_steps), spin_mean_timeseries[0, :])
+        plt.plot(range(spin_mean_steps), spin_mean_timeseries[1, :])
+        plt.show()
 
     # visualize few steps of big ensemble
     if flag_visualize:
