@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
+from noneq_analysis import get_flux_dict
 from noneq_settings import BETA, build_J
 from noneq_functions import state_to_label, label_to_state, hamiltonian
 from noneq_plotting import plot_steadystate_dist, plot_boltzmann_dist, autocorr_label_timeseries, fft_label_timeseries, \
@@ -81,17 +82,17 @@ def periodicity_analysis(ensemble_label_timeseries, endratio=0.01):
 
 if __name__ == '__main__':
     # settings
+    beta=BETA
     N = 3
-    J = build_J(N, id='symm')
+    J = build_J(N, id='asymm_2')
     #J = build_J(N, id='asymm_2')
     #J = build_J(N, id='asymm_1')
-
 
     # flags
     flag_timeseries_periodicity = False
     flag_mean_label_timeseries = False
-    flag_mean_spin_timeseries = True
-    flag_visualize = False
+    flag_mean_spin_timeseries = False
+    flag_visualize = True
 
     # analysis (plot label timeseries, periodicity plots)
     if flag_timeseries_periodicity:
@@ -118,5 +119,7 @@ if __name__ == '__main__':
 
     # visualize few steps of big ensemble
     if flag_visualize:
-        ensemble_label_timeseries = get_ensemble_label_timeseries(100, 10, N, J)
-        visualize_ensemble_label_timeseries(ensemble_label_timeseries, N)
+        ensemble_label_timeseries = get_ensemble_label_timeseries(1000, 10, N, J)
+        flux_dict = get_flux_dict(N, J, beta=beta)
+        flux_dict_str = {key:"%.3f" % flux_dict[key] for key in flux_dict.keys()}
+        visualize_ensemble_label_timeseries(ensemble_label_timeseries, N, flux_dict=flux_dict_str)

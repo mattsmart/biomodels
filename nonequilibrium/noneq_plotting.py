@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 
-from noneq_settings import BETA
+from noneq_settings import BETA, get_network_pos
 from noneq_functions import state_to_label, label_to_state, hamiltonian
 
 
@@ -69,7 +69,7 @@ def fft_label_timeseries(traj):
     plt.show()
 
 
-def visualize_ensemble_label_timeseries(ensemble_label_timeseries, N):
+def visualize_ensemble_label_timeseries(ensemble_label_timeseries, N, flux_dict=None):
     ensemble_size, T = np.shape(ensemble_label_timeseries)
 
     # dictionaries
@@ -78,9 +78,12 @@ def visualize_ensemble_label_timeseries(ensemble_label_timeseries, N):
     states01_to_states = {state: tuple([2 * v - 1 for v in state]) for state in states01_to_labels.keys()}
     #states01_to_colors = {state01: np.random.rand(3,) for state01, label in states01_to_labels.iteritems()}
 
-    # initialize graph
+    # initialize graph and get node pos
     G = nx.hypercube_graph(N)
-    pos = nx.spring_layout(G)
+    G = G.to_directed()
+    pos = get_network_pos(N)
+    if pos is None:
+        pos = nx.spring_layout(G)  # could keep generating then save preferred one in settings
 
     # initialize ensemble plot properties
     ensemble_pos = np.zeros((ensemble_size, 2))
@@ -91,7 +94,9 @@ def visualize_ensemble_label_timeseries(ensemble_label_timeseries, N):
 
     for step in xrange(T):
         nx.draw_networkx_nodes(G, pos=pos, nodelist=G.nodes(),node_size=150)
-        nx.draw_networkx_edges(G, pos=pos, edgelist=G.edges())
+        nx.draw_networkx_edges(G, pos=pos, edgelist=G.edges(),arrows=False)
+        nx.draw_networkx_edges(G, pos=pos, edgelist=flux_dict.keys(),edge_color='blue',arrows=True)
+        nx.draw_networkx_edge_labels(G, pos=pos, edge_labels=flux_dict, font_size=10)
         nx.draw_networkx_labels(G, pos=pos, font_size=12)
         plt.gca().axis('off')
 

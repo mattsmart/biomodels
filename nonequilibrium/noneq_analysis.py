@@ -103,7 +103,7 @@ def get_flux_dict(N, J, beta=BETA):
     F = construct_flux_matrix(Q)
     labels_to_states01 = {idx: tuple(label_to_state(idx, N, use_neg=False)) for idx in xrange(2 ** N)}
     flux_dict = {(labels_to_states01[i], labels_to_states01[j]): F[i, j]
-                 for i in xrange(2 ** N) for j in xrange(2 ** N) if np.abs(F[i, j]) > 1e-4}  # note could do j in xrange(i+1, 2 ** N)
+                 for i in xrange(2 ** N) for j in xrange(2 ** N) if F[i, j] > 1e-4}  # note could do j in xrange(i+1, 2 ** N)
     #flux_dict = {(labels_to_states01[i], labels_to_states01[j]): F[i, j] for i in xrange(2 ** N) for j in xrange(i+1, 2 ** N)}
     return flux_dict
 

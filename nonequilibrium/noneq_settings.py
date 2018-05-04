@@ -55,3 +55,14 @@ def build_J(N, id='symm', asymm_scale=0.01):
         J = np.random.uniform(-1,1,(N,N))
 
     return J
+
+
+# VISUALIZATION SETTINGS:
+def get_network_pos(N):
+    if N==3:
+        pos = {(1, 1, 0): np.array([0.83582596, 0.47751457]), (0, 1, 1): np.array([0.05537278, 0.]),
+               (1, 0, 0): np.array([0.78376018, 1.]), (0, 0, 1): np.array([0., 0.52530576]),
+               (1, 0, 1): np.array([0.50786198, 0.62561025]), (0, 0, 0): np.array([0.26718072, 0.89391983]),
+               (0, 1, 0): np.array([0.32738261, 0.37897392]), (1, 1, 1): np.array([0.56842864, 0.11116961])}
+    else:
+        return None
