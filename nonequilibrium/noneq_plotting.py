@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 
-from noneq_constants import BETA
+from noneq_settings import BETA
 from noneq_functions import state_to_label, label_to_state, hamiltonian
 
 

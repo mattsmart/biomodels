@@ -1,6 +1,6 @@
 import numpy as np
 
-from noneq_constants import NUM_STEPS, DEFAULT_N
+from noneq_settings import NUM_STEPS, DEFAULT_N
 from noneq_data_io import run_subdir_setup
 from noneq_state import State
 

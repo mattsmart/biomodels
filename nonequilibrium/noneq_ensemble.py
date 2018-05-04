@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from noneq_constants import BETA
+from noneq_settings import BETA
 from noneq_functions import state_to_label, label_to_state, hamiltonian
 from noneq_plotting import plot_steadystate_dist, plot_boltzmann_dist, autocorr_label_timeseries, fft_label_timeseries, \
                            plot_label_timeseries, visualize_ensemble_label_timeseries
@@ -84,6 +84,7 @@ def periodicity_analysis(ensemble_label_timeseries, endratio=0.01):
 if __name__ == '__main__':
     # settings
     N = 3
+    """
     J_symm = np.array([[0, 1, 1],
                        [1, 0, 1],
                        [1, 1, 0]])
@@ -100,18 +101,20 @@ if __name__ == '__main__':
                           [-9, 0, -1],
                           [87, 11, 0]])
     J = J_broken2
-    
     """
+
+
     N = 4
     factor_asymm = 0.1
     mem = [[1 for i in xrange(N)]]
     XI = np.transpose(np.array(mem))
     J = np.dot(XI, np.transpose(XI)) - np.eye(N)
     J = J + factor_asymm*np.random.uniform(-1.0,1.0,(N,N))
+    np.fill_diagonal(J, 0)
     print XI
     print np.transpose(XI)
     print J
-    """
+
 
     # flags
     flag_timeseries_periodicity = False

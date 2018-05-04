@@ -3,7 +3,7 @@ import numpy as np
 import os
 from os import sep
 
-from noneq_constants import RUNS_FOLDER
+from noneq_settings import RUNS_FOLDER
 
 
 def run_subdir_setup(run_subfolder=None):

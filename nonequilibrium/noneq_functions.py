@@ -1,7 +1,7 @@
 import numpy as np
 from random import random
 
-from noneq_constants import BETA
+from noneq_settings import BETA
 
 
 def hamming(s1, s2):
