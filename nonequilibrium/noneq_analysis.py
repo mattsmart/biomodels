@@ -48,8 +48,45 @@ def get_transition_matrix(N, J, beta=BETA):
     return Q
 
 
-def decompose_transition_matrix(Q):
-    return 0
+def construct_flux_matrix(Q):
+    # based on: Wang, 2017, PLOS
+    eigenpairs = eigen(Q)
+    pss_pair = eigenpairs[-1]
+    assert 1.0 - 1e-4 < pss_pair[0] < 1.0 + 1e-4
+    pss = pss_pair[1]
+
+    F = np.zeros(Q.shape)
+    for i in xrange(Q.shape[0]):
+        for j in xrange(Q.shape[1]):
+            F[i,j] = -Q[j,i]*pss[i] + Q[i,j]*pss[j]
+    return F
+
+
+def decompose_matrix(Q):
+    # TODO: don't think this works for stoch matrix Q, only stoch rate (W-) matrices (LITERATURE UNCLEAR)
+    # TODO: fix this.. if possible
+    # based on: Wang, 2017, PLOS
+    # Q = C + D
+    # C is irreversible and does not satisfy detailed balance
+    # D is detailed-balnce prserving part
+    eigenpairs = eigen(Q)
+    pss_pair = eigenpairs[-1]
+    assert 1.0 - 1e-4 < pss_pair[0] < 1.0 + 1e-4
+    pss = pss_pair[1]
+
+    C = np.zeros(Q.shape)
+    D = np.zeros(Q.shape)
+    for i in xrange(Q.shape[0]):
+        for j in xrange(Q.shape[1]):
+            C[i, j] = max(Q[j,i]*pss[i] - Q[i,j]*pss[j], 0)
+            D[i, j] = min(Q[j,i]*pss[i],  Q[i,j]*pss[j])
+    # set diagonals
+    np.fill_diagonal(C, 0)
+    np.fill_diagonal(D, 0)
+    for i in xrange(Q.shape[0]):
+        C[i, i] = 1 - np.sum([C[j,i] for j in xrange(Q.shape[1])])  # columns sum to 1
+        D[i, i] = 1 - np.sum([D[j,i] for j in xrange(Q.shape[1])])  # columns sum to 1
+    return C, D
 
 
 def get_transition_rate_matrix(N, J, tau=1.0, beta=BETA):
@@ -64,7 +101,7 @@ def get_transition_rate_matrix(N, J, tau=1.0, beta=BETA):
     return M
 
 
-def get_eigen(A):
+def eigen(A):
     eigenval, eigenvec = np.linalg.eig(A)
     #eigenval, eigenvec = zip(*sorted(zip(eigenval, eigenvec)))
     pairs = [(eigenval[idx], eigenvec[:,idx]) for idx in xrange(len(eigenval))]
@@ -86,8 +123,8 @@ def analyze_transition_rate_matrices(N, J, beta=BETA, tau=1.0):
     print Q
     print "The transition rate matrix M is:"
     print M
-    Q_eigenpairs = get_eigen(Q)
-    M_eigenpairs = get_eigen(M)
+    Q_eigenpairs = eigen(Q)
+    M_eigenpairs = eigen(M)
     print "Q eigenvalues are:"
     print Q_eigenpairs
     print "M eigenvalues are:"
@@ -109,9 +146,23 @@ def analyze_transition_rate_matrices(N, J, beta=BETA, tau=1.0):
 
 
 if __name__ == '__main__':
+    # settings
     beta=0.2 #0.2
     tau=1e-3
     N = 3
     J = build_J(N, id='symm')
     print "J is\n", J
-    analyze_transition_rate_matrices(N, J, beta=beta, tau=tau)
+
+    # stoch matrix decompositions
+    Q = get_transition_matrix(N, J, beta=beta)
+    F = construct_flux_matrix(Q)
+    C, D = decompose_matrix(Q)
+    np.set_printoptions(precision=2)
+    print F
+    print C
+    print D
+    print "commute?"
+    print np.allclose(np.dot(C,D), np.dot(D,C), atol=1e-04)
+
+    # stoch rate matrix construction checks
+    #analyze_transition_rate_matrices(N, J, beta=beta, tau=tau)
