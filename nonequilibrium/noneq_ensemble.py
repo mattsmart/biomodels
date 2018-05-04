@@ -99,7 +99,19 @@ if __name__ == '__main__':
     J_general = np.array([[0, -61, -100],
                           [-9, 0, -1],
                           [87, 11, 0]])
-    J = J_symm
+    J = J_broken2
+    
+    """
+    N = 4
+    factor_asymm = 0.1
+    mem = [[1 for i in xrange(N)]]
+    XI = np.transpose(np.array(mem))
+    J = np.dot(XI, np.transpose(XI)) - np.eye(N)
+    J = J + factor_asymm*np.random.uniform(-1.0,1.0,(N,N))
+    print XI
+    print np.transpose(XI)
+    print J
+    """
 
     # flags
     flag_timeseries_periodicity = False

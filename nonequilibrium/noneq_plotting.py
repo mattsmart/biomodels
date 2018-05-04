@@ -76,7 +76,7 @@ def visualize_ensemble_label_timeseries(ensemble_label_timeseries, N):
     labels_to_states01 = {idx: tuple(label_to_state(idx, N, use_neg=False)) for idx in xrange(2 ** N)}
     states01_to_labels = {tuple(v): k for k, v in labels_to_states01.iteritems()}
     states01_to_states = {state: tuple([2 * v - 1 for v in state]) for state in states01_to_labels.keys()}
-    states01_to_colors = {state01: np.random.rand(3,) for state01, label in states01_to_labels.iteritems()}
+    #states01_to_colors = {state01: np.random.rand(3,) for state01, label in states01_to_labels.iteritems()}
 
     # initialize graph
     G = nx.hypercube_graph(N)
@@ -84,7 +84,7 @@ def visualize_ensemble_label_timeseries(ensemble_label_timeseries, N):
 
     # initialize ensemble plot properties
     ensemble_pos = np.zeros((ensemble_size, 2))
-    ensemble_colors = [0] * ensemble_size
+    ensemble_colors = [np.random.rand(3,) for _ in xrange(ensemble_size)]
     delta = 0.05
     x_perturb = np.random.uniform(-delta, delta, ensemble_size)
     y_perturb = np.random.uniform(-delta, delta, ensemble_size)
@@ -100,7 +100,7 @@ def visualize_ensemble_label_timeseries(ensemble_label_timeseries, N):
             val_xy = pos[state01]
             val_xy_perturbed = val_xy + np.array([x_perturb[idx], y_perturb[idx]])
             ensemble_pos[idx, :] = val_xy_perturbed
-            ensemble_colors[idx] = states01_to_colors[state01]
+            #ensemble_colors[idx] = states01_to_colors[state01]
         plt.scatter(ensemble_pos[:, 0], ensemble_pos[:, 1], c=ensemble_colors, alpha=0.7)
         plt.title('Step %d' % step)
         plt.show()
