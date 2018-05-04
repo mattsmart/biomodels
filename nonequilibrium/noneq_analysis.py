@@ -1,11 +1,12 @@
 import numpy as np
 from scipy.linalg import logm, expm
 
-from noneq_settings import BETA
+from noneq_settings import BETA, build_J
 from noneq_functions import state_to_label, label_to_state, hamiltonian, hamming, get_adjacent_labels
 
 
 def get_states_energies_prob(N, J, beta=BETA):
+    assert (J.transpose() == J).all()  # assert J is symm
     # only makes sense for symmetric J
     num_states = 2 ** N
     Z = 0.0
@@ -47,6 +48,10 @@ def get_transition_matrix(N, J, beta=BETA):
     return Q
 
 
+def decompose_transition_matrix(Q):
+    return 0
+
+
 def get_transition_rate_matrix(N, J, tau=1.0, beta=BETA):
     # TODO: fix this.. if possible
     # suppose p_k+1 = Q * p_k for some known Q
@@ -61,10 +66,13 @@ def get_transition_rate_matrix(N, J, tau=1.0, beta=BETA):
 
 def get_eigen(A):
     eigenval, eigenvec = np.linalg.eig(A)
-    return eigenval, eigenvec
+    #eigenval, eigenvec = zip(*sorted(zip(eigenval, eigenvec)))
+    pairs = [(eigenval[idx], eigenvec[:,idx]) for idx in xrange(len(eigenval))]
+    pairs.sort(key=lambda pair: pair[0])
+    return pairs
 
 
-def analyze_transition_matrices(N, J, beta=BETA, tau=1.0):
+def analyze_transition_rate_matrices(N, J, beta=BETA, tau=1.0):
     states, energies, probabilities = get_states_energies_prob(N, J, beta=beta)
     print "The system's state labels, energies, boltzmann probabilities"
     for label in xrange(2**N):
@@ -78,20 +86,20 @@ def analyze_transition_matrices(N, J, beta=BETA, tau=1.0):
     print Q
     print "The transition rate matrix M is:"
     print M
-    Q_eigenval, Q_eigenvec = get_eigen(Q)
-    M_eigenval, M_eigenvec = get_eigen(M)
+    Q_eigenpairs = get_eigen(Q)
+    M_eigenpairs = get_eigen(M)
     print "Q eigenvalues are:"
-    print Q_eigenval
+    print Q_eigenpairs
     print "M eigenvalues are:"
-    print M_eigenval
+    print M_eigenpairs
     print "Q Pss: third eigenvector (check that it corresp. eigenvalue 1)"
-    Q_Pss = Q_eigenvec[:,2]
-    print Q_Pss
+    Q_Pss = Q_eigenpairs[-1][1]
+    print Q_eigenpairs[-1][0], Q_Pss
     print "QPss = Pss"
     print np.dot(Q, Q_Pss)
     print "M Pss: third eigenvector (check that it corresp. eigenvalue 0)"
-    M_Pss = M_eigenvec[:,0]
-    print M_Pss
+    M_Pss = M_eigenpairs[-1][1]
+    print M_eigenpairs[-1][0], M_Pss
     print "MPss = Pss"
     print np.dot(M, M_Pss)
     print "normalized 1-eigenvector of Q:"
@@ -104,7 +112,6 @@ if __name__ == '__main__':
     beta=0.2 #0.2
     tau=1e-3
     N = 3
-    J = np.array([[0, 1, 1],
-                  [1, 0, 1],
-                  [1, 1, 0]])
-    analyze_transition_matrices(N, J, beta=beta, tau=tau)
+    J = build_J(N, id='symm')
+    print "J is\n", J
+    analyze_transition_rate_matrices(N, J, beta=beta, tau=tau)

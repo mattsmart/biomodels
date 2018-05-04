@@ -31,7 +31,7 @@ def build_J(N, id='symm', asymm_scale=0.01):
                               [-9, 0, -1],
                               [87, 11, 0]])
         if id == 'symm':
-            J = J_broken2
+            J = J_symm
         elif id == 'asymm_1':
             J = J_broken1
         elif id == 'asymm_2':
@@ -49,7 +49,9 @@ def build_J(N, id='symm', asymm_scale=0.01):
         J = np.dot(XI, np.transpose(XI))
         J = J + asymm_scale * np.random.uniform(-5.0, 5.0, (N, N))
         np.fill_diagonal(J, 0)
+
     else:
         print "warning, N=%d not implemented" % N
         J = 0
+
     return J
