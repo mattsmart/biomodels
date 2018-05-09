@@ -13,7 +13,7 @@ NOTES:
 """
 
 
-def main(init_state=None, init_id=None, iterations=NUM_STEPS, app_field=None, app_field_strength=APP_FIELD_STRENGTH, flag_burst_error=False, flag_write=True, analysis_subdir=None, plot_period=10):
+def singlecell_sim(init_state=None, init_id=None, iterations=NUM_STEPS, app_field=None, app_field_strength=APP_FIELD_STRENGTH, flag_burst_error=False, flag_write=True, analysis_subdir=None, plot_period=10):
     """
     init_state: N x 1
     init_id: None, or memory label like 'esc', or arbitrary label (e.g. 'All on')
@@ -72,4 +72,4 @@ def main(init_state=None, init_id=None, iterations=NUM_STEPS, app_field=None, ap
 
 if __name__ == '__main__':
     app_field = np.zeros((N, NUM_STEPS))
-    main(plot_period=10, app_field=app_field)
+    singlecell_sim(plot_period=10, app_field=app_field)

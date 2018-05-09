@@ -10,7 +10,7 @@ import os
 from singlecell_constants import RUNS_FOLDER, IPSC_CORE_GENES
 from singlecell_functions import state_burst_errors, state_memory_projection_single, construct_app_field_from_genes
 from singlecell_simsetup import N, P, XI, CELLTYPE_ID, A_INV, J, GENE_ID, GENE_LABELS, CELLTYPE_LABELS
-from singlecell_simulate import main
+from singlecell_simulate import singlecell_sim
 
 
 # TODO: rename function, very similar to other gen projection timeseries function... modularize
@@ -35,9 +35,9 @@ def gen_projection_timeseries(figname='figure1_20.png'):
 
     for idx, memory_label in enumerate(CELLTYPE_LABELS):
         print idx, memory_label
-        cellstate_array, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = main(init_id=memory_label, iterations=num_steps, app_field=app_field, app_field_strength=10.0,
-                                                                                                       flag_burst_error=FLAG_BURST_ERRORS, flag_write=False, analysis_subdir=analysis_subdir,
-                                                                                                       plot_period=num_steps*2)
+        cellstate_array, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = singlecell_sim(init_id=memory_label, iterations=num_steps, app_field=app_field, app_field_strength=10.0,
+                                                                                                                 flag_burst_error=FLAG_BURST_ERRORS, flag_write=False, analysis_subdir=analysis_subdir,
+                                                                                                                 plot_period=num_steps*2)
         proj_timeseries_array[:, idx] = get_memory_proj_timeseries(cellstate_array, esc_idx)[:]
 
     # cleanup output folders from main()

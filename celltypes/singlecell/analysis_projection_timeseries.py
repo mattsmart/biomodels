@@ -5,7 +5,7 @@ import os
 from singlecell_constants import RUNS_FOLDER
 from singlecell_functions import state_burst_errors, state_memory_projection_single
 from singlecell_simsetup import N, XI, CELLTYPE_ID, A_INV, J
-from singlecell_simulate import main
+from singlecell_simulate import singlecell_sim
 
 
 def get_memory_proj_timeseries(state_array, memory_idx):
@@ -31,8 +31,8 @@ def gen_projection_timeseries(figname='figure1_20.png'):
 
     for idx, ratio_to_flip in enumerate(ratio_amounts):
         subsample_state = state_burst_errors(init_state_esc, ratio_to_flip=ratio_to_flip)
-        cellstate_array, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = main(init_state=subsample_state, iterations=num_steps, flag_burst_error=FLAG_BURST_ERRORS,
-                                                                                                       flag_write=False, analysis_subdir=analysis_subdir, plot_period=num_steps*2)
+        cellstate_array, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = singlecell_sim(init_state=subsample_state, iterations=num_steps, flag_burst_error=FLAG_BURST_ERRORS,
+                                                                                                                 flag_write=False, analysis_subdir=analysis_subdir, plot_period=num_steps*2)
         proj_timeseries_array[:, idx] = get_memory_proj_timeseries(cellstate_array, esc_idx)[:]
 
     # cleanup output folders from main()
