@@ -82,7 +82,6 @@ class SpatialCell(Cell):
             for loc in neighbours:
                 nbr_cell_state = np.zeros(self.N)
                 nbr_cell_state[:] = lattice[loc[0]][loc[1]].get_current_state()[:]
-                ext_field += np.dot(intxn_matrix, nbr_cell_state)
-                print "ext_field", ext_field
+                ext_field += np.dot(signal_matrix, nbr_cell_state)
 
         self.update_state(intxn_matrix=intxn_matrix, ext_field=ext_field, ext_field_strength=ext_field_strength, app_field=app_field, app_field_strength=app_field_strength)
