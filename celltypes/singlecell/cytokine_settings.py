@@ -5,7 +5,10 @@ import numpy as np
 DEFAULT_CYTOKINE_MODEL = 'B'
 VALID_CYTOKINE_MODELS = ['A', 'B']
 
-# parameter values
+# inverse temperature
+BETA_CYTOKINE = 100.0
+
+# J_ij and h_i parameters
 APP_FIELD_STRENGTH = 1.0
 INTXN_INTERCELL = 0.3
 INTXN_AUTOCRINE = 0.5
