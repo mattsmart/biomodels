@@ -1,6 +1,6 @@
 import numpy as np
 
-from cytokine_settings import build_model, DEFAULT_MODEL, APP_FIELD_STRENGTH, RUNS_SUBDIR_CYTOKINES
+from cytokine_settings import build_intracell_model, DEFAULT_CYTOKINE_MODEL, APP_FIELD_STRENGTH, RUNS_SUBDIR_CYTOKINES
 from cytokine_simulate import cytokine_sim
 
 from singlecell_class import Cell
@@ -9,9 +9,9 @@ from singlecell_data_io import run_subdir_setup
 from singlecell_functions import state_to_label, label_to_state
 
 
-def state_landscape(model_name=DEFAULT_MODEL, iterations=NUM_STEPS, applied_field_strength=APP_FIELD_STRENGTH, flag_write=False):
+def state_landscape(model_name=DEFAULT_CYTOKINE_MODEL, iterations=NUM_STEPS, applied_field_strength=APP_FIELD_STRENGTH, flag_write=False):
 
-    spin_labels, intxn_matrix, applied_field_const, init_state = build_model(DEFAULT_MODEL)
+    spin_labels, intxn_matrix, applied_field_const, init_state = build_intracell_model(DEFAULT_CYTOKINE_MODEL)
     N = len(spin_labels)
 
     labels_to_states = {idx:label_to_state(idx, N) for idx in xrange(2 ** N)}
