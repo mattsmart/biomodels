@@ -19,8 +19,9 @@ def state_landscape(model_name=DEFAULT_MODEL, iterations=NUM_STEPS, applied_fiel
 
     for state_label in range(2**N):
         init_cond = labels_to_states[state_label]
-        print "\nSimulating with init state label", state_label, ":", init_cond
-        state_array, dirs = cytokine_sim(iterations=iterations, beta=100.0, flag_write=False, applied_field_strength=0.0, init_state_force=init_cond)
+        print "\n\nSimulating with init state label", state_label, ":", init_cond
+        state_array, dirs = cytokine_sim(iterations=iterations, beta=1000.0, flag_write=False,
+                                         applied_field_strength=applied_field_strength, init_state_force=init_cond)
         label_timeseries = [states_to_labels[tuple(state_array[:,t])] for t in xrange(iterations)]
         for elem in label_timeseries:
             print elem, "|",
@@ -28,4 +29,8 @@ def state_landscape(model_name=DEFAULT_MODEL, iterations=NUM_STEPS, applied_fiel
 
 
 if __name__ == '__main__':
-    state_landscape(iterations=10)
+    # For model A:
+    # - deterministic oscillations between state 0 (all-off) and state 15 (all-on)
+    # - if sufficient field is added, the oscillations disappear and its just stuck in the all-on state 15
+    # - threshold h_0 strength is cancelling the negative feedback term J_2on0 = J[0,2] of SOCS (s_2) on R (s_0)
+    state_landscape(iterations=10, applied_field_strength=0.0)
