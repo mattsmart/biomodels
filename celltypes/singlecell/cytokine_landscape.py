@@ -33,4 +33,5 @@ if __name__ == '__main__':
     # - deterministic oscillations between state 0 (all-off) and state 15 (all-on)
     # - if sufficient field is added, the oscillations disappear and its just stuck in the all-on state 15
     # - threshold h_0 strength is cancelling the negative feedback term J_2on0 = J[0,2] of SOCS (s_2) on R (s_0)
+    # - TODO: issue seen in multicell may 10 that SOCS off => R on, logical wiring problem... need to resolve
     state_landscape(iterations=10, applied_field_strength=0.0)

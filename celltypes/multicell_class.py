@@ -1,7 +1,7 @@
 import numpy as np
 
 from multicell_constants import VALID_EXOSOME_STRINGS, EXOSTRING
-from singlecell.singlecell_constants import EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH
+from singlecell.singlecell_constants import BETA, EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH
 from singlecell.singlecell_class import Cell
 from singlecell.singlecell_functions import state_subsample, state_only_on, state_only_off
 from singlecell.singlecell_simsetup import GENE_LABELS, CELLTYPE_LABELS, J
@@ -75,7 +75,7 @@ class SpatialCell(Cell):
             raise ValueError("exosome_string arg invalid, must be one of %s" % VALID_EXOSOME_STRINGS)
         return field_state, neighbours
 
-    def update_with_signal_field(self, lattice, search_radius, gridsize, intxn_matrix=J, signal_matrix=None, exosome_string=EXOSTRING, ratio_to_remove=0.0,
+    def update_with_signal_field(self, lattice, search_radius, gridsize, beta=BETA, intxn_matrix=J, signal_matrix=None, exosome_string=EXOSTRING, ratio_to_remove=0.0,
                                  ext_field_strength=EXT_FIELD_STRENGTH, app_field=None, app_field_strength=APP_FIELD_STRENGTH):
         ext_field, neighbours = self.get_local_exosome_field(lattice, search_radius, gridsize, exosome_string=exosome_string, ratio_to_remove=ratio_to_remove)
         if signal_matrix is not None:
@@ -84,4 +84,4 @@ class SpatialCell(Cell):
                 nbr_cell_state[:] = lattice[loc[0]][loc[1]].get_current_state()[:]
                 ext_field += np.dot(signal_matrix, nbr_cell_state)
 
-        self.update_state(intxn_matrix=intxn_matrix, ext_field=ext_field, ext_field_strength=ext_field_strength, app_field=app_field, app_field_strength=app_field_strength)
+        self.update_state(beta=beta, intxn_matrix=intxn_matrix, ext_field=ext_field, ext_field_strength=ext_field_strength, app_field=app_field, app_field_strength=app_field_strength)
