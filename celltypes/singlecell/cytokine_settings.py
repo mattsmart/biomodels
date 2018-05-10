@@ -6,9 +6,9 @@ DEFAULT_CYTOKINE_MODEL = 'B'
 VALID_CYTOKINE_MODELS = ['A', 'B']
 
 # parameter values
-APP_FIELD_STRENGTH = 4.0
+APP_FIELD_STRENGTH = 1.0
 INTXN_INTERCELL = 0.3
-INTXN_WEAK = 0.5
+INTXN_AUTOCRINE = 0.5
 INTXN_MEDIUM = 1.5
 INTXN_PRODUCE = 1.5
 BIAS_DEGRADE = INTXN_PRODUCE / 2
@@ -27,7 +27,7 @@ def build_intracell_model(model_name=DEFAULT_CYTOKINE_MODEL):
         # effect of each on "bound_dimeric_receptor"
         J_1_on_0 = 0.0
         J_2_on_0 = -1 * INTXN_MEDIUM  # ON SOCS => OFF bound_dimeric_receptor
-        J_3_on_0 = INTXN_WEAK  # ON cytokine => ON bound receptor
+        J_3_on_0 = INTXN_AUTOCRINE  # ON cytokine => ON bound receptor
         # effect of each on "pSTAT"
         J_0_on_1 = INTXN_MEDIUM  # ON bound_dimeric_receptor => ON pSTAT
         J_2_on_1 = 0.0
@@ -48,15 +48,7 @@ def build_intracell_model(model_name=DEFAULT_CYTOKINE_MODEL):
         init_state = np.array([-1, -1, -1, -1])  # all off to start
         applied_field_const = np.array([1, 0, 0, 0])
 
-    else:
-        print "Warning: invalid model name specified"
-        spin_labels = None
-        intxn_matrix = None
-        applied_field_const = None
-        init_state = None
-
-
-    if model_name == 'B':
+    elif model_name == 'B':
         spin_labels = ["bound_dimeric_receptor",
                        "pSTAT",
                        "SOCS",
@@ -64,7 +56,7 @@ def build_intracell_model(model_name=DEFAULT_CYTOKINE_MODEL):
         # effect of each on "bound_dimeric_receptor"
         J_1_on_0 = 0.0
         J_2_on_0 = -1 * INTXN_MEDIUM / 2    # ON SOCS => OFF bound_dimeric_receptor
-        J_3_on_0 = INTXN_WEAK / 2           # ON cytokine => ON bound receptor
+        J_3_on_0 = INTXN_AUTOCRINE / 2           # ON cytokine => ON bound receptor
         # effect of each on "pSTAT"
         J_0_on_1 = INTXN_PRODUCE  # ON bound_dimeric_receptor => ON pSTAT
         J_2_on_1 = 0.0
@@ -84,7 +76,8 @@ def build_intracell_model(model_name=DEFAULT_CYTOKINE_MODEL):
                                  [J_0_on_3, J_1_on_3, J_2_on_3, 0.0]])
         init_state = np.array([-1, -1, -1, -1])  # all off to start
         # everything is biased to the off state
-        applied_field_const = np.array([J_2_on_0 + J_3_on_0,  # receptor bias off, negate effect of SOCS off => R on
+        eps = 0.1
+        applied_field_const = np.array([J_2_on_0 + J_3_on_0 - eps,  # receptor bias off, negate effect of SOCS off => R on
                                         -BIAS_DEGRADE,       # degradation of pSTAT
                                         -BIAS_DEGRADE,       # degradation of SOCS
                                         -BIAS_DEGRADE])      # degradation of C
