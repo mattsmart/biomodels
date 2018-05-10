@@ -78,12 +78,12 @@ def run_sim(lattice, num_lattice_steps, data_dict, fieldstring=FIELDSTRING, fiel
     return lattice, data_dict, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder
 
 
-def main(gridize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING, fieldstring=FIELDSTRING,
+def main(gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING, fieldstring=FIELDSTRING,
          field_remove_ratio=FIELD_REMOVE_RATIO, ext_field_strength=EXT_FIELD_STRENGTH, app_field=None,
          app_field_strength=APP_FIELD_STRENGTH, plot_period=LATTICE_PLOT_PERIOD):
 
     # check args
-    assert type(gridize) is int
+    assert type(gridsize) is int
     assert type(num_steps) is int
     assert type(plot_period) is int
     assert buildstring in VALID_BUILDSTRINGS
@@ -103,12 +103,12 @@ def main(gridize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING,
         flag_uniplots = False
         list_of_type_idx = range(P)
         random.shuffle(list_of_type_idx)  # shuffle or not?
-    lattice = build_lattice_main(gridize, list_of_type_idx, buildstring)
+    lattice = build_lattice_main(gridsize, list_of_type_idx, buildstring)
     #print list_of_type_idx
 
     # prep data dictionary
     data_dict = {}  # TODO: can also store params in data dict for main/run_sim then save to file
-    data_dict = prep_lattice_data_dict(gridize, num_steps, list_of_type_idx, buildstring, data_dict)
+    data_dict = prep_lattice_data_dict(gridsize, num_steps, list_of_type_idx, buildstring, data_dict)
 
     # run the simulation
     lattice, data_dict, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = \
@@ -123,7 +123,7 @@ def main(gridize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING,
         plt.ylabel('Projection of all cells onto type: %s' % CELLTYPE_LABELS[memory_idx])
         plt.xlabel('Time (full lattice steps)')
         plt.savefig(plot_data_folder + os.sep + '%s_%s_n%d_t%d_proj%d_remove%.2f_exo%.2f.png' %
-                    (fieldstring, buildstring, gridize, num_steps, memory_idx, field_remove_ratio, ext_field_strength))
+                    (fieldstring, buildstring, gridsize, num_steps, memory_idx, field_remove_ratio, ext_field_strength))
         plt.clf()  #plt.show()
 
     # write cell state TODO: and data_dict to file
@@ -143,5 +143,5 @@ if __name__ == '__main__':
     app_field = construct_app_field_from_genes(IPSC_EXTENDED_GENES, steps)        # size N x timesteps or None
     app_field_strength = 0.0 #100.0                                                  # global APP_FIELD_STRENGTH
     plot_period = 4
-    main(gridize=n, num_steps=steps, buildstring=buildstring, fieldstring=fieldstring, field_remove_ratio=fieldprune,
+    main(gridsize=n, num_steps=steps, buildstring=buildstring, fieldstring=fieldstring, field_remove_ratio=fieldprune,
          ext_field_strength=ext_field_strength, app_field=app_field, app_field_strength=app_field_strength, plot_period=plot_period)
