@@ -4,7 +4,7 @@ from random import shuffle
 from singlecell_data_io import state_write
 from singlecell_constants import EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH
 from singlecell_functions import glauber_dynamics_update, state_memory_projection, state_memory_overlap, hamiltonian, state_burst_errors
-from singlecell_simsetup import GENE_LABELS, CELLTYPE_LABELS
+from singlecell_simsetup import GENE_LABELS, CELLTYPE_LABELS, J
 from singlecell_visualize import plot_as_bar, plot_as_radar, save_manual
 
 """
@@ -81,7 +81,7 @@ class Cell(object):
         self.state_array[:, -1] = burst_errors[:]
         return burst_errors
 
-    def update_state(self, ext_field=None, ext_field_strength=EXT_FIELD_STRENGTH, app_field=None,
+    def update_state(self, intxn_matrix=J, ext_field=None, ext_field_strength=EXT_FIELD_STRENGTH, app_field=None,
                      app_field_strength=APP_FIELD_STRENGTH, randomize=False):
         """
         ext_field - N x 1 - field external to the cell in a signalling sense; exosome field in multicell sym
@@ -96,7 +96,8 @@ class Cell(object):
         state_array_ext[:, :-1] = self.state_array  # TODO: make sure don't need array copy
         state_array_ext[:,-1] = self.state_array[:,-1]
         for idx, site in enumerate(sites):  # TODO: parallelize
-            state_array_ext = glauber_dynamics_update(state_array_ext, site, self.steps + 1, ext_field=ext_field,
+            state_array_ext = glauber_dynamics_update(state_array_ext, site, self.steps + 1,
+                                                      intxn_matrix=intxn_matrix, ext_field=ext_field,
                                                       ext_field_strength=ext_field_strength, app_field=app_field,
                                                       app_field_strength=app_field_strength)
         self.state_array = state_array_ext
