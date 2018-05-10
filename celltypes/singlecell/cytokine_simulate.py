@@ -27,7 +27,7 @@ def cytokine_sim(model_name=DEFAULT_CYTOKINE_MODEL, iterations=NUM_STEPS, beta=B
     for step in xrange(iterations-1):
 
         if flag_print:
-            print cell.steps, "cell steps:", cell.get_current_state()
+            print cell.steps, "cell steps:", cell.get_current_state(), "aka", cell.get_current_label()
 
         # plotting
         #if singlecell.steps % plot_period == 0:

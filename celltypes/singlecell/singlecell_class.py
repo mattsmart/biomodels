@@ -3,7 +3,7 @@ from random import shuffle
 
 from singlecell_data_io import state_write
 from singlecell_constants import BETA, EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH
-from singlecell_functions import glauber_dynamics_update, state_memory_projection, state_memory_overlap, hamiltonian, state_burst_errors
+from singlecell_functions import glauber_dynamics_update, state_memory_projection, state_memory_overlap, hamiltonian, state_burst_errors, state_to_label
 from singlecell_simsetup import GENE_LABELS, CELLTYPE_LABELS, J
 from singlecell_visualize import plot_as_bar, plot_as_radar, save_manual
 
@@ -38,6 +38,10 @@ class Cell(object):
 
     def get_current_state(self):  # TODO maybe make this and other copy instead of pass pointer np.zeros(self.N).. etc
         return self.state
+
+    def get_current_label(self):
+        state = self.state
+        return state_to_label(tuple(state))
 
     def get_state_array(self):
         return self.state_array
