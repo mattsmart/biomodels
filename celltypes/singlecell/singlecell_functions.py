@@ -117,3 +117,29 @@ def construct_app_field_from_genes(gene_list, num_steps):
         #app_field[GENE_ID[label], :num_steps/2] += 1
         #print app_field[GENE_ID[label]-1:GENE_ID[label]+2,0:5]
     return app_field
+
+
+def state_to_label(state):
+    # Idea: assign integer label (0 to 2^N - 1) to the state
+    # state acts like binary representation of integers
+    # "0" corresponds to all -1
+    # 2^N - 1 corresponds to all +1
+    label = 0
+    bitlist = (1+np.array(state, dtype=int))/2
+    for bit in bitlist:
+        label = (label << 1) | bit
+    return label
+
+
+def label_to_state(label, N, use_neg=True):
+    # n is the integer label of a set of spins
+    bitlist = [1 if digit=='1' else 0 for digit in bin(label)[2:]]
+    if len(bitlist) < N:
+        tmp = bitlist
+        bitlist = np.zeros(N, dtype=int)
+        bitlist[-len(tmp):] = tmp[:]
+    if use_neg:
+        state = np.array(bitlist)*2 - 1
+    else:
+        state = np.array(bitlist)
+    return state
