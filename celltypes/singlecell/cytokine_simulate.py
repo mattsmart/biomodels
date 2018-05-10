@@ -37,7 +37,7 @@ def cytokine_sim(model_name=DEFAULT_CYTOKINE_MODEL, iterations=NUM_STEPS, beta=B
 
     # end state
     if flag_print:
-        print cell.steps + 1, "cell steps:", cell.get_current_state()
+        print cell.steps, "cell steps:", cell.get_current_state(), "aka", cell.get_current_label()
 
     # Write
     if flag_write:
