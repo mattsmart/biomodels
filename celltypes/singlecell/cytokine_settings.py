@@ -2,11 +2,12 @@ import numpy as np
 
 
 # model settings
-DEFAULT_MODEL = "A"
-VALID_MODELS = ["A"]
+DEFAULT_CYTOKINE_MODEL = "A"
+VALID_CYTOKINE_MODELS = ["A"]
 
 # parameter values
 APP_FIELD_STRENGTH = 4.0
+INTXN_INTERCELL = 0.1
 INTXN_WEAK = 0.5
 INTXN_MEDIUM = 1.5
 
@@ -14,14 +15,14 @@ INTXN_MEDIUM = 1.5
 RUNS_SUBDIR_CYTOKINES = "cytokines"
 
 
-def build_model(model_name=DEFAULT_MODEL):
+def build_intracell_model(model_name=DEFAULT_CYTOKINE_MODEL):
 
     if model_name == "A":
         spin_labels = ["bound_dimeric_receptor",
                        "pSTAT",
                        "SOCS",
                        "cytokine"]
-        # effect of all on "bound_dimeric_receptor"
+        # effect of each on "bound_dimeric_receptor"
         J_1_on_0 = 0.0
         J_2_on_0 = -1 * INTXN_MEDIUM  # ON SOCS => OFF bound_dimeric_receptor
         J_3_on_0 = INTXN_WEAK  # ON cytokine => ON bound receptor
@@ -53,3 +54,24 @@ def build_model(model_name=DEFAULT_MODEL):
         init_state = None
 
     return spin_labels, intxn_matrix, applied_field_const, init_state
+
+
+def build_intercell_model(model_name=DEFAULT_CYTOKINE_MODEL):
+    spin_labels, intxn_matrix, applied_field_const, init_state = build_intracell_model(model_name=model_name)
+
+    if model_name == "A":
+        # effect of singalling element (cytokine) in neighbouring cell on each state element
+        signal_3_on_0 = INTXN_INTERCELL  # ON cytokine in neighbour => ON bound_dimeric_receptor
+        signal_3_on_1 = 0.0  # effect on pSTAT
+        signal_3_on_2 = 0.0  # effect on SOCS
+        # fill in cell A on cell B interaction matrix
+        signal_matrix = np.array([[0.0, 0.0, 0.0, signal_3_on_0],
+                                  [0.0, 0.0, 0.0, signal_3_on_1],
+                                  [0.0, 0.0, 0.0, signal_3_on_2],
+                                  [0.0, 0.0, 0.0, 0.0]])
+
+    else:
+        print "Warning: invalid model name specified"
+        signal_matrix = None
+
+    return spin_labels, intxn_matrix, applied_field_const, init_state, signal_matrix
