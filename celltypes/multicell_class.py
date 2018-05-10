@@ -34,7 +34,7 @@ class SpatialCell(Cell):
         surroundings.remove(self.location)  # TODO test behaviour
         return surroundings
 
-    def get_local_signal_field(self, lattice, search_radius, gridsize, fieldstring=FIELDSTRING, ratio_to_remove=0.0):
+    def get_local_exosome_field(self, lattice, search_radius, gridsize, fieldstring=FIELDSTRING, ratio_to_remove=0.0):
         """
         # TODO: try other methods, currently sample from on genes in nearby states
         A - sample from only 'on' genes
@@ -76,5 +76,5 @@ class SpatialCell(Cell):
 
     def update_with_signal_field(self, lattice, search_radius, gridsize, fieldstring=FIELDSTRING, ratio_to_remove=0.0,
                                  ext_field_strength=EXT_FIELD_STRENGTH, app_field=None, app_field_strength=APP_FIELD_STRENGTH):
-        ext_field = self.get_local_signal_field(lattice, search_radius, gridsize, fieldstring=fieldstring, ratio_to_remove=ratio_to_remove)
+        ext_field = self.get_local_exosome_field(lattice, search_radius, gridsize, fieldstring=fieldstring, ratio_to_remove=ratio_to_remove)
         self.update_state(ext_field=ext_field, ext_field_strength=ext_field_strength, app_field=app_field, app_field_strength=app_field_strength)
