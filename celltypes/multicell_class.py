@@ -1,10 +1,10 @@
 import numpy as np
 
-from multicell_constants import VALID_FIELDSTRINGS, FIELDSTRING
+from multicell_constants import VALID_EXOSOME_STRINGS, EXOSTRING
 from singlecell.singlecell_constants import EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH
 from singlecell.singlecell_class import Cell
 from singlecell.singlecell_functions import state_subsample, state_only_on, state_only_off
-from singlecell.singlecell_simsetup import GENE_LABELS, CELLTYPE_LABELS
+from singlecell.singlecell_simsetup import GENE_LABELS, CELLTYPE_LABELS, J
 
 
 class SpatialCell(Cell):
@@ -34,7 +34,7 @@ class SpatialCell(Cell):
         surroundings.remove(self.location)  # TODO test behaviour
         return surroundings
 
-    def get_local_exosome_field(self, lattice, search_radius, gridsize, fieldstring=FIELDSTRING, ratio_to_remove=0.0):
+    def get_local_exosome_field(self, lattice, search_radius, gridsize, exosome_string=EXOSTRING, ratio_to_remove=0.0):
         """
         # TODO: try other methods, currently sample from on genes in nearby states
         A - sample from only 'on' genes
@@ -42,7 +42,7 @@ class SpatialCell(Cell):
         """
         neighbours = self.get_surroundings_square(search_radius, gridsize)
         field_state = np.zeros(self.N)
-        if fieldstring == "on":
+        if exosome_string == "on":
             for loc in neighbours:
                 nbr_cell_state = lattice[loc[0]][loc[1]].get_current_state()
                 nbr_state_only_on = state_only_on(nbr_cell_state)
@@ -51,7 +51,7 @@ class SpatialCell(Cell):
                 else:
                     nbr_state_only_on = state_subsample(nbr_state_only_on, ratio_to_remove=ratio_to_remove)
                     field_state += nbr_state_only_on
-        elif fieldstring == "all":
+        elif exosome_string == "all":
             for loc in neighbours:
                 nbr_cell_state = np.zeros(self.N)
                 nbr_cell_state[:] = lattice[loc[0]][loc[1]].get_current_state()[:]
@@ -60,7 +60,7 @@ class SpatialCell(Cell):
                 else:
                     nbr_state_subsample = state_subsample(nbr_cell_state, ratio_to_remove=ratio_to_remove)
                     field_state += nbr_state_subsample
-        elif fieldstring == "off":
+        elif exosome_string == "off":
             for loc in neighbours:
                 nbr_cell_state = lattice[loc[0]][loc[1]].get_current_state()
                 nbr_state_only_off = state_only_off(nbr_cell_state)
@@ -69,12 +69,20 @@ class SpatialCell(Cell):
                 else:
                     nbr_state_only_off = state_subsample(nbr_state_only_off, ratio_to_remove=ratio_to_remove)
                     field_state += nbr_state_only_off
+        elif exosome_string == "no_exo_field":
+            field_state = np.zeros(self.N)
         else:
-            raise ValueError("fieldstring arg invalid, must be one of %s" % VALID_FIELDSTRINGS)
+            raise ValueError("exosome_string arg invalid, must be one of %s" % VALID_EXOSOME_STRINGS)
+        return field_state, neighbours
 
-        return field_state
-
-    def update_with_signal_field(self, lattice, search_radius, gridsize, fieldstring=FIELDSTRING, ratio_to_remove=0.0,
+    def update_with_signal_field(self, lattice, search_radius, gridsize, intxn_matrix=J, signal_matrix=None, exosome_string=EXOSTRING, ratio_to_remove=0.0,
                                  ext_field_strength=EXT_FIELD_STRENGTH, app_field=None, app_field_strength=APP_FIELD_STRENGTH):
-        ext_field = self.get_local_exosome_field(lattice, search_radius, gridsize, fieldstring=fieldstring, ratio_to_remove=ratio_to_remove)
-        self.update_state(ext_field=ext_field, ext_field_strength=ext_field_strength, app_field=app_field, app_field_strength=app_field_strength)
+        ext_field, neighbours = self.get_local_exosome_field(lattice, search_radius, gridsize, exosome_string=exosome_string, ratio_to_remove=ratio_to_remove)
+        if signal_matrix is not None:
+            for loc in neighbours:
+                nbr_cell_state = np.zeros(self.N)
+                nbr_cell_state[:] = lattice[loc[0]][loc[1]].get_current_state()[:]
+                ext_field += np.dot(intxn_matrix, nbr_cell_state)
+                print "ext_field", ext_field
+
+        self.update_state(intxn_matrix=intxn_matrix, ext_field=ext_field, ext_field_strength=ext_field_strength, app_field=app_field, app_field_strength=app_field_strength)
