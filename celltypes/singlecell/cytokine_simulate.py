@@ -1,16 +1,16 @@
 import numpy as np
 
-from cytokine_settings import build_model, DEFAULT_MODEL, APP_FIELD_STRENGTH, RUNS_SUBDIR_CYTOKINES
+from cytokine_settings import build_intracell_model, DEFAULT_CYTOKINE_MODEL, APP_FIELD_STRENGTH, RUNS_SUBDIR_CYTOKINES
 from singlecell_class import Cell
 from singlecell_constants import NUM_STEPS, BETA
 from singlecell_data_io import run_subdir_setup
 
 
-def cytokine_sim(model_name=DEFAULT_MODEL, iterations=NUM_STEPS, beta=BETA,
+def cytokine_sim(model_name=DEFAULT_CYTOKINE_MODEL, iterations=NUM_STEPS, beta=BETA,
                  applied_field_strength=APP_FIELD_STRENGTH, init_state_force=None, flag_write=False, flag_print=False):
 
     # setup model and init cell class
-    spin_labels, intxn_matrix, applied_field_const, init_state = build_model(model_name=model_name)
+    spin_labels, intxn_matrix, applied_field_const, init_state = build_intracell_model(model_name=model_name)
     if init_state_force is None:
         cell = Cell(init_state, "model_%s" % model_name, memories_list=[], gene_list=spin_labels)
     else:
