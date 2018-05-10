@@ -4,8 +4,9 @@ import random
 import matplotlib.pyplot as plt
 
 from singlecell.cytokine_settings import APP_FIELD_STRENGTH, RUNS_SUBDIR_CYTOKINES
+from singlecell.singlecell_functions import state_to_label
 from singlecell.singlecell_data_io import run_subdir_setup
-from cytokine_lattice import build_cytokine_lattice_mono
+from cytokine_lattice_build import build_cytokine_lattice_mono
 from multicell_lattice import get_cell_locations, write_state_all_cells
 
 
@@ -60,6 +61,7 @@ def run_cytokine_network(lattice, num_lattice_steps, intxn_matrix, signal_matrix
             cell.update_with_signal_field(lattice, SEARCH_RADIUS_CELL, n, intxn_matrix=intxn_matrix,
                                           signal_matrix=signal_matrix, exosome_string="no_exo_field",
                                           app_field=app_field_timestep, app_field_strength=app_field_strength)
+            print "Cell at", loc, "is in state:", state_to_label(tuple(cell.get_current_state()))
 
             """
             if turn % (40*plot_period) == 0:  # plot proj visualization of each cell (takes a while; every k lat plots)
