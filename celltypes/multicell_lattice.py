@@ -2,6 +2,7 @@ import numpy as np
 
 from multicell_class import SpatialCell
 from multicell_constants import VALID_BUILDSTRINGS
+from singlecell.singlecell_functions import state_to_label
 from singlecell.singlecell_simsetup import XI, CELLTYPE_ID, CELLTYPE_LABELS
 
 # TODO: could wrap all these lattice operations into Lattice class
@@ -93,11 +94,21 @@ def get_cell_locations(lattice, n):
 
 
 def printer(lattice):
+    n = len(lattice)
     for i in xrange(n):
         str_lst = [lattice[i][j].label for j in xrange(n)]
         print " " + ' '.join(str_lst)
     print
 
+
+def printer_labels(lattice):
+    n = len(lattice)
+    for i in xrange(n):
+        for j in xrange(n):
+            state = lattice[i][j].get_current_state()
+            label = state_to_label(tuple(state))
+            print label, " | ",
+        print
 
 def write_state_all_cells(lattice, data_folder):
     print "Writing states to file.."
