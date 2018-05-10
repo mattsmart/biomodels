@@ -5,9 +5,11 @@ from singlecell.singlecell_functions import state_to_label
 from singlecell.cytokine_settings import build_intercell_model, DEFAULT_CYTOKINE_MODEL
 
 
-def build_cytokine_lattice_mono(n, model_name=DEFAULT_CYTOKINE_MODEL):
+def build_cytokine_lattice_mono(n, model_name=DEFAULT_CYTOKINE_MODEL, init_cond_force=None):
     spin_labels, intxn_matrix, applied_field_const, init_state, signal_matrix = build_intercell_model(model_name=DEFAULT_CYTOKINE_MODEL)
     lattice = [[0 for _ in xrange(n)] for _ in xrange(n)]  # TODO: this can be made faster as np array
+    if init_cond_force is not None:
+        init_state = init_cond_force
     for i in xrange(n):
         for j in xrange(n):
             label = "%d,%d_%d" % (i, j, state_to_label(init_state))

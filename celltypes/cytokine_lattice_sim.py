@@ -15,15 +15,15 @@ NUM_LATTICE_STEPS = 5
 SEARCH_RADIUS_CELL = 1  # TODO find nice way to have none flag here for inf range singles / homogeneous?
 
 
-def run_cytokine_network(lattice, num_lattice_steps, intxn_matrix, signal_matrix, app_field=None, app_field_strength=APP_FIELD_STRENGTH, flag_write=False):
+def run_cytokine_network(lattice, num_lattice_steps, intxn_matrix, signal_matrix, app_field_const=None, app_field_strength=APP_FIELD_STRENGTH, flag_write=False):
 
     # Input checks
     N = len(intxn_matrix)
     n = len(lattice)
     assert n == len(lattice[0])  # work with square lattice for simplicity
-    if app_field is not None:
-        assert len(app_field) == N
-        assert len(app_field[0]) == num_lattice_steps
+    if app_field_const is not None:
+        assert len(app_field_const) == N
+        app_field_timestep = app_field_const
     else:
         app_field_timestep = None
 
@@ -83,13 +83,13 @@ def run_cytokine_network(lattice, num_lattice_steps, intxn_matrix, signal_matrix
     return lattice, dirs
 
 
-def wrapper_cytokine_network(gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, app_field=None, app_field_strength=APP_FIELD_STRENGTH, flag_write=False):
+def wrapper_cytokine_network(gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, init_cond_force=None, app_field_strength=APP_FIELD_STRENGTH, flag_write=False):
 
     # setup lattice IC
-    lattice, spin_labels, intxn_matrix, applied_field_const, init_state, signal_matrix = build_cytokine_lattice_mono(gridsize)
+    lattice, spin_labels, intxn_matrix, applied_field_const, init_state, signal_matrix = build_cytokine_lattice_mono(gridsize, init_cond_force=init_cond_force)
 
     # run the simulation
-    lattice, dirs = run_cytokine_network(lattice, num_steps, intxn_matrix, signal_matrix, app_field=app_field,
+    lattice, dirs = run_cytokine_network(lattice, num_steps, intxn_matrix, signal_matrix, app_field_const=applied_field_const,
                                          app_field_strength=app_field_strength, flag_write=flag_write)
 
     # write cell state TODO: and data_dict to file
@@ -102,4 +102,5 @@ def wrapper_cytokine_network(gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, app
 
 
 if __name__ == '__main__':
-    wrapper_cytokine_network()
+    init_cond = np.array([1,-1,-1,-1])
+    wrapper_cytokine_network(init_cond_force=init_cond)
