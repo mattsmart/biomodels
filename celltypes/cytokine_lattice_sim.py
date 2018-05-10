@@ -83,10 +83,15 @@ def run_cytokine_network(lattice, num_lattice_steps, intxn_matrix, signal_matrix
     return lattice, dirs
 
 
-def wrapper_cytokine_network(gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, init_cond_force=None, app_field_strength=APP_FIELD_STRENGTH, flag_write=False):
+def wrapper_cytokine_network(gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, init_cond_force=None, app_field_strength=APP_FIELD_STRENGTH, external_field=None, flag_write=False):
 
     # setup lattice IC
     lattice, spin_labels, intxn_matrix, applied_field_const, init_state, signal_matrix = build_cytokine_lattice_mono(gridsize, init_cond_force=init_cond_force)
+
+    # augment applied field
+    if external_field is not None:
+        assert np.shape(applied_field_const) == np.shape(applied_field_const)
+        applied_field_const += external_field
 
     # run the simulation
     lattice, dirs = run_cytokine_network(lattice, num_steps, intxn_matrix, signal_matrix, app_field_const=applied_field_const,
@@ -103,4 +108,5 @@ def wrapper_cytokine_network(gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, ini
 
 if __name__ == '__main__':
     init_cond = np.array([1,-1,-1,-1])
-    wrapper_cytokine_network(init_cond_force=init_cond)
+    external_field = np.array([1,0,0,0])
+    wrapper_cytokine_network(init_cond_force=init_cond, external_field=external_field)
