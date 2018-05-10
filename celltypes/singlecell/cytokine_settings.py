@@ -7,7 +7,7 @@ VALID_CYTOKINE_MODELS = ["A"]
 
 # parameter values
 APP_FIELD_STRENGTH = 4.0
-INTXN_INTERCELL = 0.1
+INTXN_INTERCELL = 0.3
 INTXN_WEAK = 0.5
 INTXN_MEDIUM = 1.5
 
@@ -62,8 +62,8 @@ def build_intercell_model(model_name=DEFAULT_CYTOKINE_MODEL):
     if model_name == "A":
         # effect of singalling element (cytokine) in neighbouring cell on each state element
         signal_3_on_0 = INTXN_INTERCELL  # ON cytokine in neighbour => ON bound_dimeric_receptor
-        signal_3_on_1 = 0.0  # effect on pSTAT
-        signal_3_on_2 = 0.0  # effect on SOCS
+        signal_3_on_1 = 0.0              # effect on pSTAT
+        signal_3_on_2 = 0.0              # effect on SOCS
         # fill in cell A on cell B interaction matrix
         signal_matrix = np.array([[0.0, 0.0, 0.0, signal_3_on_0],
                                   [0.0, 0.0, 0.0, signal_3_on_1],
