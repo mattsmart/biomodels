@@ -23,7 +23,7 @@ def build_model(model_name=DEFAULT_MODEL):
                        "cytokine"]
         # effect of all on "bound_dimeric_receptor"
         J_1_on_0 = 0.0
-        J_2_on_0 = INTXN_MEDIUM  # ON SOCS => OFF bound_dimeric_receptor
+        J_2_on_0 = -1 * INTXN_MEDIUM  # ON SOCS => OFF bound_dimeric_receptor
         J_3_on_0 = INTXN_WEAK  # ON cytokine => ON bound receptor
         # effect of each on "pSTAT"
         J_0_on_1 = INTXN_MEDIUM  # ON bound_dimeric_receptor => ON pSTAT
