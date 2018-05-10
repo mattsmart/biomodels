@@ -3,7 +3,7 @@ import os
 import random
 import matplotlib.pyplot as plt
 
-from multicell_constants import GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS, VALID_BUILDSTRINGS, VALID_FIELDSTRINGS, FIELDSTRING, BUILDSTRING, LATTICE_PLOT_PERIOD, FIELD_REMOVE_RATIO
+from multicell_constants import GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS, VALID_BUILDSTRINGS, VALID_EXOSOME_STRINGS, EXOSTRING, BUILDSTRING, LATTICE_PLOT_PERIOD, FIELD_REMOVE_RATIO
 from multicell_lattice import build_lattice_main, get_cell_locations, prep_lattice_data_dict, write_state_all_cells
 from multicell_visualize import lattice_uniplotter, reference_overlap_plotter, lattice_projection_composite
 from singlecell.singlecell_constants import EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, IPSC_CORE_GENES, IPSC_EXTENDED_GENES
@@ -12,7 +12,7 @@ from singlecell.singlecell_functions import construct_app_field_from_genes
 from singlecell.singlecell_simsetup import N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS
 
 
-def run_sim(lattice, num_lattice_steps, data_dict, fieldstring=FIELDSTRING, field_remove_ratio=0.0,
+def run_sim(lattice, num_lattice_steps, data_dict, exosome_string=EXOSTRING, field_remove_ratio=0.0,
             ext_field_strength=EXT_FIELD_STRENGTH, app_field=None, app_field_strength=APP_FIELD_STRENGTH,
             plot_period=LATTICE_PLOT_PERIOD, flag_uniplots=True):
     """
@@ -61,7 +61,7 @@ def run_sim(lattice, num_lattice_steps, data_dict, fieldstring=FIELDSTRING, fiel
         random.shuffle(cell_locations)
         for idx, loc in enumerate(cell_locations):
             cell = lattice[loc[0]][loc[1]]
-            cell.update_with_signal_field(lattice, SEARCH_RADIUS_CELL, n, fieldstring=fieldstring, ratio_to_remove=field_remove_ratio,
+            cell.update_with_signal_field(lattice, SEARCH_RADIUS_CELL, n, exosome_string=exosome_string, ratio_to_remove=field_remove_ratio,
                                           ext_field_strength=ext_field_strength, app_field=app_field[:,turn], app_field_strength=app_field_strength)
             proj = cell.get_memories_projection()
             for mem_idx in memory_idx_list:
@@ -78,7 +78,7 @@ def run_sim(lattice, num_lattice_steps, data_dict, fieldstring=FIELDSTRING, fiel
     return lattice, data_dict, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder
 
 
-def main(gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING, fieldstring=FIELDSTRING,
+def main(gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING, exosome_string=EXOSTRING,
          field_remove_ratio=FIELD_REMOVE_RATIO, ext_field_strength=EXT_FIELD_STRENGTH, app_field=None,
          app_field_strength=APP_FIELD_STRENGTH, plot_period=LATTICE_PLOT_PERIOD):
 
@@ -87,7 +87,7 @@ def main(gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING
     assert type(num_steps) is int
     assert type(plot_period) is int
     assert buildstring in VALID_BUILDSTRINGS
-    assert fieldstring in VALID_FIELDSTRINGS
+    assert exosome_string in VALID_EXOSOME_STRINGS
     assert 0.0 <= field_remove_ratio < 1.0
     assert 0.0 <= ext_field_strength < 10.0
 
@@ -112,7 +112,7 @@ def main(gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING
 
     # run the simulation
     lattice, data_dict, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = \
-        run_sim(lattice, num_steps, data_dict, fieldstring=fieldstring, field_remove_ratio=field_remove_ratio,
+        run_sim(lattice, num_steps, data_dict, exosome_string=exosome_string, field_remove_ratio=field_remove_ratio,
                 ext_field_strength=ext_field_strength, app_field=app_field, app_field_strength=app_field_strength,
                 plot_period=plot_period, flag_uniplots=flag_uniplots)
 
@@ -123,7 +123,7 @@ def main(gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING
         plt.ylabel('Projection of all cells onto type: %s' % CELLTYPE_LABELS[memory_idx])
         plt.xlabel('Time (full lattice steps)')
         plt.savefig(plot_data_folder + os.sep + '%s_%s_n%d_t%d_proj%d_remove%.2f_exo%.2f.png' %
-                    (fieldstring, buildstring, gridsize, num_steps, memory_idx, field_remove_ratio, ext_field_strength))
+                    (exosome_string, buildstring, gridsize, num_steps, memory_idx, field_remove_ratio, ext_field_strength))
         plt.clf()  #plt.show()
 
     # write cell state TODO: and data_dict to file
@@ -143,5 +143,5 @@ if __name__ == '__main__':
     app_field = construct_app_field_from_genes(IPSC_EXTENDED_GENES, steps)        # size N x timesteps or None
     app_field_strength = 0.0 #100.0                                                  # global APP_FIELD_STRENGTH
     plot_period = 4
-    main(gridsize=n, num_steps=steps, buildstring=buildstring, fieldstring=fieldstring, field_remove_ratio=fieldprune,
+    main(gridsize=n, num_steps=steps, buildstring=buildstring, exosome_string=fieldstring, field_remove_ratio=fieldprune,
          ext_field_strength=ext_field_strength, app_field=app_field, app_field_strength=app_field_strength, plot_period=plot_period)
