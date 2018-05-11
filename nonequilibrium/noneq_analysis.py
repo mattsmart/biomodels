@@ -135,15 +135,18 @@ def decompose_matrix(Q):
     return C, D
 
 
-def get_transition_rate_matrix(N, J, tau=1.0, beta=BETA):
+def get_transition_rate_matrix(N, J, beta=BETA, alpha=0.4):
     # TODO: fix this.. if possible
+    # this form: https://arxiv.org/pdf/1304.0814.pdf
     # suppose p_k+1 = Q * p_k for some known Q
     # then determine corresponding generator M
     # if one knew M, could construct Q ~ I + M*tau (tau = timestep)
     # here we take: scipy.linalg.logm(Q) since Q = e^(M tau)
-    Q = get_transition_matrix(N, J, beta=BETA)
-    M = logm(Q) / tau
-    print expm(M)
+    assert 0.0 < alpha < 1.0
+    Q = get_transition_matrix(N, J, beta=beta)
+    #M = logm(Q) / tau
+    #print expm(M)
+    M = (1/alpha) * (Q - (1-alpha) * np.eye(2 ** N))
     return M
 
 
@@ -164,7 +167,7 @@ def analyze_transition_rate_matrices(N, J, beta=BETA, tau=1.0):
 
     print "The transition matrix Q is:"
     Q = get_transition_matrix(N, J, beta=beta)
-    M = get_transition_rate_matrix(N, J, tau=tau, beta=beta)
+    M = get_transition_rate_matrix(N, J, beta=beta)
     np.set_printoptions(precision=3)
     print Q
     print "The transition rate matrix M is:"
@@ -175,12 +178,12 @@ def analyze_transition_rate_matrices(N, J, beta=BETA, tau=1.0):
     print Q_eigenpairs
     print "M eigenvalues are:"
     print M_eigenpairs
-    print "Q Pss: third eigenvector (check that it corresp. eigenvalue 1)"
+    print "Q Pss: max eigenvector (check that it corresp. eigenvalue 1)"
     Q_Pss = Q_eigenpairs[-1][1]
     print Q_eigenpairs[-1][0], Q_Pss
     print "QPss = Pss"
     print np.dot(Q, Q_Pss)
-    print "M Pss: third eigenvector (check that it corresp. eigenvalue 0)"
+    print "M Pss: max eigenvector (check that it corresp. eigenvalue 0)"
     M_Pss = M_eigenpairs[-1][1]
     print M_eigenpairs[-1][0], M_Pss
     print "MPss = Pss"
@@ -193,10 +196,10 @@ def analyze_transition_rate_matrices(N, J, beta=BETA, tau=1.0):
 
 if __name__ == '__main__':
     # settings
-    beta=1.0 #0.2
+    beta=0.5 #0.2
     tau=1e-3
     N = 3
-    J = build_J(N, id='asymm_1')
+    J = build_J(N, id='symm')
     print "J is\n", J
 
     # stoch matrix decompositions
@@ -211,4 +214,4 @@ if __name__ == '__main__':
     print np.allclose(np.dot(C,D), np.dot(D,C), atol=1e-04)
 
     # stoch rate matrix construction checks
-    #analyze_transition_rate_matrices(N, J, beta=beta, tau=tau)
+    analyze_transition_rate_matrices(N, J, beta=beta, tau=tau)
