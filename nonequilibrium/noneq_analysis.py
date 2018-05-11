@@ -135,18 +135,15 @@ def decompose_matrix(Q):
     return C, D
 
 
-def get_transition_rate_matrix(N, J, beta=BETA, alpha=0.4):
-    # TODO: fix this.. if possible
-    # this form: https://arxiv.org/pdf/1304.0814.pdf
+def get_transition_rate_matrix(N, J, beta=BETA, tau=1.0):
     # suppose p_k+1 = Q * p_k for some known Q
     # then determine corresponding generator M
     # if one knew M, could construct Q ~ I + M*tau (tau = timestep)
     # here we take: scipy.linalg.logm(Q) since Q = e^(M tau)
-    assert 0.0 < alpha < 1.0
     Q = get_transition_matrix(N, J, beta=beta)
     #M = logm(Q) / tau
     #print expm(M)
-    M = (1/alpha) * (Q - (1-alpha) * np.eye(2 ** N))
+    M = (1/tau) * (Q - np.eye(2 ** N))
     return M
 
 
