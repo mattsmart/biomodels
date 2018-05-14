@@ -4,6 +4,7 @@ import numpy as np
 from simulate import popgen_simulate
 from simulate_reversible import popgen_simulate_reversible
 
+
 N_list = [1e2, 5*1e2, 1e3, 5*1e3, 1e4, 5*1e4, 1e5, 5*1e5, 1e6, 5*1e6, 1e7]
 
 # parameters to replicate figure 5a of 2014 valley crossing paper
@@ -13,6 +14,9 @@ s = 0.1
 mu_0 = 1e-4
 mu_0_backward = 1e-4
 mu_1 = 1e-5
+mutant_traits_fig5a = [(0.0, mu_0, 0),    # base pop
+                       (delta, mu_1, 0),  # 1-mutant
+                       (s, 0.0, 0)]       # 2-mutant
 mutant_traits_reversible = [(0.0, mu_0, 0.0),              # base pop
                             (delta, mu_1, mu_0_backward),  # 1-mutant
                             (s, 0.0, 0.0)]                 # 2-mutant
