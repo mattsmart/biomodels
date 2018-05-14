@@ -6,6 +6,10 @@ from noneq_settings import BETA, get_network_pos
 from noneq_functions import state_to_label, label_to_state, hamiltonian
 
 
+# matplotlib overrides
+#plt.rcParams.update({'font.size': 22})
+
+
 def plot_steadystate_dist(pss):
     state_space = len(pss)
     plt.bar(range(state_space), pss)

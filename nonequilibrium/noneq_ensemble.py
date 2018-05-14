@@ -84,7 +84,7 @@ if __name__ == '__main__':
     # settings
     beta=1.0
     N = 3
-    J = build_J(N, id='symm')
+    J = build_J(N, id='asymm_2')
     #J = build_J(N, id='asymm_2')
     #J = build_J(N, id='asymm_1')
 
@@ -126,6 +126,6 @@ if __name__ == '__main__':
         visualize_ensemble_label_timeseries(ensemble_label_timeseries, N, flux_dict=flux_dict_str)
 
     if flag_steadystate_simple:
-        pss = get_steadystate_dist_simple(1000, 100, N,J,beta=beta)
+        pss = get_steadystate_dist_simple(10000, 100, N,J,beta=beta)
         plot_steadystate_dist(pss)
         plot_boltzmann_dist(N,J,beta=beta)
