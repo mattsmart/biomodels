@@ -24,13 +24,16 @@ mutant_traits_reversible_fast = [(0.0, mu_0, 0.0),                      # base p
                                  (delta, mu_1, 0.1*mu_0_backward),      # 1-mutant
                                  (s, 0.0, 0.0)]                         # 2-mutant
 
+
 REPEATS=10
 def get_average_run(N, mutant_traits, repeats=REPEATS):
+    # TODO: should also be reporting stdev or variance
     trials = [0 for i in xrange(repeats)]
     for i in xrange(repeats):
         population, t = popgen_simulate_reversible(N, mutant_traits)
         trials[i] = t
     return sum(trials)/float(repeats)
+
 
 # simulate
 t_list_fig5a = [0 for N in N_list]
@@ -54,6 +57,5 @@ plt.xlabel('N')
 plt.ylabel('time')
 plt.legend(loc='upper right')
 plt.title('Mean fixation time (avg %d runs per data point)' % REPEATS)
-
 
 plt.show()
