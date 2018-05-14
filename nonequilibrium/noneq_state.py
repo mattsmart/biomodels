@@ -5,6 +5,7 @@ from random import shuffle
 
 from noneq_data_io import state_write
 from noneq_functions import glauber_dynamics_update
+from noneq_settings import BETA
 
 
 class State(object):
@@ -33,7 +34,7 @@ class State(object):
     def get_state_array(self):
         return self.state_array
 
-    def update_state(self, intxn_matrix, app_field=None, randomize=False):
+    def update_state(self, intxn_matrix, app_field=None, beta=BETA, randomize=False):
         sites = range(self.N)
         if randomize:
             shuffle(sites)  # randomize site ordering each timestep updates
@@ -41,7 +42,7 @@ class State(object):
         state_array_ext[:, :-1] = self.state_array  # TODO: make sure don't need array copy
         state_array_ext[:,-1] = self.state_array[:,-1]
         for idx, site in enumerate(sites):  # TODO: parallelize
-            state_array_ext = glauber_dynamics_update(state_array_ext, site, self.steps + 1, intxn_matrix, app_field=app_field)
+            state_array_ext = glauber_dynamics_update(state_array_ext, site, self.steps + 1, intxn_matrix, app_field=app_field, beta=beta)
         self.state_array = state_array_ext
         self.steps += 1
         self.state = state_array_ext[:, -1]

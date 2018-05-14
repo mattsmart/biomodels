@@ -19,12 +19,12 @@ def internal_field(state, spin_idx, t, intxn_matrix):
     return internal_field
 
 
-def glauber_dynamics_update(state, spin_idx, t, intxn_matrix, app_field=None):
+def glauber_dynamics_update(state, spin_idx, t, intxn_matrix, app_field=None, beta=BETA):
     r1 = random()
     total_field = internal_field(state, spin_idx, t, intxn_matrix)
     if app_field is not None:
         total_field += app_field[spin_idx]
-    prob_on_after_timestep = 1 / (1 + np.exp(-2*BETA*total_field))  # probability that site i will be "up" after the timestep
+    prob_on_after_timestep = 1 / (1 + np.exp(-2*beta*total_field))  # probability that site i will be "up" after the timestep
     #prob_on_after_timestep = 1 / (1 + np.exp(-BETA*total_field))  # (note remove factor of 2 because h = 0.5*J*s) probability that site i will be "up" after the timestep
     if prob_on_after_timestep > r1:
         #state[spin_idx, t + 1] = 1.0

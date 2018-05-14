@@ -1,12 +1,12 @@
 import numpy as np
 
-from noneq_settings import NUM_STEPS, DEFAULT_N
 from noneq_data_io import run_subdir_setup
+from noneq_settings import BETA, NUM_STEPS, DEFAULT_N
 from noneq_state import State
 
 
 def state_simulate(init_state=None, init_id=None, N=DEFAULT_N, iterations=NUM_STEPS, intxn_matrix=None, app_field=None,
-                   flag_makedir=True, flag_write=True, analysis_subdir=None, plot_period=10):
+                   beta=BETA, flag_makedir=True, flag_write=True, analysis_subdir=None, plot_period=10):
 
     """
     init_state: N x 1
@@ -65,7 +65,7 @@ def state_simulate(init_state=None, init_id=None, N=DEFAULT_N, iterations=NUM_ST
             fig, ax, proj = singlecell.plot_projection(use_radar=True, pltdir=plot_lattice_folder)
         """
         #state.update_state(intxn_matrix, app_field=app_field_timestep)
-        state.update_state(intxn_matrix, app_field=app_field_timestep, randomize=True)
+        state.update_state(intxn_matrix, app_field=app_field_timestep, beta=beta, randomize=True)
 
     # Write
     if flag_write:
@@ -78,4 +78,5 @@ def state_simulate(init_state=None, init_id=None, N=DEFAULT_N, iterations=NUM_ST
 
 if __name__ == '__main__':
     #app_field = np.zeros((N, NUM_STEPS))
-    state_simulate(plot_period=10, iterations=3)
+    beta = 2.0
+    state_simulate(plot_period=10, iterations=3, beta=beta)
