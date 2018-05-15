@@ -34,6 +34,9 @@ def sample_events(pop_dict, k, dt, mutant_traits, mean_fitness):
 def increment_pop(increment_list, pop_dict, K, N):
     for k in xrange(K+1):
         pop_dict[k] += increment_list[k]
+        if pop_dict[k] < 0:
+            print pop_dict[k], "(setting to zero)"
+            pop_dict[k] = 0
     if count_pop(pop_dict) != N:
         return normalize_pop(pop_dict, K, N)
     else:
@@ -54,7 +57,7 @@ def popgen_simulate_reversible(N=DEFAULT_N, mutant_traits=DEFAULT_MUTANT_TRAITS_
     print " simulating a %d-hit process on %d individuals" % (K, N)
 
     # ensure mutation fitness deviations are well-defined  
-    assert(1.0/float(N) < mutant_traits[-1][0] < 1.0)  # K-mutant moderately fit
+    #assert(1.0/float(N) < mutant_traits[-1][0] < 1.0)  # K-mutant moderately fit
     assert(mutant_traits[-1][1] == 0.0)  # K-mutants don't mutate forward
     assert(mutant_traits[-1][2] >= 0.0)  # K-mutants may mutate backward
     assert(mutant_traits[0][2] == 0.0)  # 0-mutants don't mutate backward
