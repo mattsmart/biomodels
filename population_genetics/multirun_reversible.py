@@ -22,9 +22,9 @@ mutant_traits_norev = [(0.0, alpha_plus, 0),    # base pop (x)
 mutant_traits_reversible = [(0.0, alpha_plus, 0.0),        # base pop (x)
                             (delta, mu, alpha_minus),      # 1-mutant (y)
                             (s, 0.0, 0.0)]                 # 2-mutant (z)
-mutant_traits_reversible_fast = [(0.0, alpha_plus, 0.0),            # base pop (x)
+mutant_traits_reversible_fast = [(0.0, alpha_plus, 0.0),           # base pop (x)
                                  (delta, 10*mu, alpha_minus),      # 1-mutant (y)
-                                 (s, 0.0, 0.0)]                     # 2-mutant (z)
+                                 (s, 0.0, 0.0)]                    # 2-mutant (z)
 
 """
 mu_0 = 1e-4
@@ -67,7 +67,7 @@ for i, N in enumerate(N_list):
 # plot output
 plt.errorbar(N_list, t_norev, yerr=sd_norev, fmt='--s', label='not reversible')
 plt.errorbar(N_list, t_reversible, yerr=sd_reversible, fmt='--o', label='reversible')
-plt.errorbar(N_list, t_fast, yerr=sd_fast, fmt='--d', label='less reversible')
+plt.errorbar(N_list, t_fast, yerr=sd_fast, fmt='--d', label='faster mutation')
 ax = plt.gca()
 ax.set_xscale('log')
 ax.set_yscale('log')
