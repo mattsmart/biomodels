@@ -10,24 +10,24 @@ from trajectory import trajectory_simulate
 
 # SCRIPT PARAMS
 SIM_METHOD = "libcall"  # see constants.py -- SIM_METHODS
-ODE_SYSTEM = "feedback_z"  # "default" or "feedback_z" or "feedback_yz"
-INIT_COND = [5.0, 5.0, 90.0] #[99.9, 0.1, 0.0]
+ODE_SYSTEM = "default"  # "default" or "feedback_z" or "feedback_yz"
+INIT_COND = [98, 1.0, 1.0] #[99.9, 0.1, 0.0]
 TIME_START = 0.0
 TIME_END = 16000.0  #20.0
 NUM_STEPS = 2000  # number of timesteps in each trajectory
-param_varying_name = "c"
+param_varying_name = "mu"
 assert param_varying_name in PARAMS_ID_INV.keys()
-SEARCH_START = 0.78  #0.55
-SEARCH_END = 0.9 #1.45
+SEARCH_START = 1e-9  #0.55
+SEARCH_END = 1e-1    #1.45
 SEARCH_AMOUNT = 100  #20
 
 # DYNAMICS PARAMETERS
-alpha_plus = 0.2#0.05 #0.4
-alpha_minus = 0.5#4.95 #0.5
+alpha_plus = 0.005 #0.05 #0.4
+alpha_minus = 0.02 #4.95 #0.5
 mu = 0.033 #0.01
 a = 1.0
-b = 0.8
-c = 0.901 #0.95 #2.6 #1.2
+b = 0.99
+c = 1.0 #0.95 #2.6 #1.2
 N = 100.0
 v_x = 0.0
 v_y = 0.0
@@ -69,4 +69,4 @@ for idx, params in enumerate(param_ensemble):
     r_inf_list[idx] = fp_from_timeseries(r, SIM_METHOD)
 plt.savefig(OUTPUT_DIR + sep + "trajectory_mono_z_composite" + ".png")
 plt.show()
-ax_endpts = plot_endpoint_mono(r_inf_list, param_varying_values, param_varying_name, params, True, True, all_axis=True)
+ax_endpts = plot_endpoint_mono(r_inf_list, param_varying_values, param_varying_name, params, True, True, all_axis=True, conv_to_fraction=True)

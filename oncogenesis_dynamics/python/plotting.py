@@ -6,7 +6,8 @@ from matplotlib import colors
 from mpl_toolkits.mplot3d import Axes3D
 from os import sep
 
-from constants import X0_COL, X1_COL, X2_COL, OUTPUT_DIR, STATES_ID_INV, PARAMS_ID, DEFAULT_X_COLOUR, DEFAULT_Y_COLOUR, DEFAULT_Z_COLOUR
+from constants import PARAMS_ID_INV, X0_COL, X1_COL, X2_COL, OUTPUT_DIR, STATES_ID_INV, PARAMS_ID, \
+                      DEFAULT_X_COLOUR, DEFAULT_Y_COLOUR, DEFAULT_Z_COLOUR
 
 
 def plot_simplex(N):
@@ -200,11 +201,14 @@ def plot_trajectory_mono(r, times, flag_show, flag_save, ax_mono=None, mono="z",
 
 
 def plot_endpoint_mono(fp_list, param_list, param_varying_name, params, flag_show, flag_save, ax_mono=None, mono="z",
-                       plt_save="endpoint_mono_", all_axis=True):
+                       plt_save="endpoint_mono_", all_axis=True, conv_to_fraction=False):
     assert mono in STATES_ID_INV.keys()
     axis_idx = STATES_ID_INV[mono]
     fig_mono = plt.figure()
     ax_mono = fig_mono.gca()
+    if conv_to_fraction:
+        N = params[PARAMS_ID_INV["N"]]
+        fp_list = fp_list / N
     if all_axis:
         line_x, = ax_mono.plot(param_list, fp_list[:, 0], '-o', color=DEFAULT_X_COLOUR, label="x")
         line_y, = ax_mono.plot(param_list, fp_list[:, 1], '-o', color=DEFAULT_Y_COLOUR, label="y")
