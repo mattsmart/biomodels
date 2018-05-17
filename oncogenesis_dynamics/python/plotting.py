@@ -6,7 +6,7 @@ from matplotlib import colors
 from mpl_toolkits.mplot3d import Axes3D
 from os import sep
 
-from constants import X0_COL, X1_COL, X2_COL, OUTPUT_DIR, STATES_ID_INV, PARAMS_ID
+from constants import X0_COL, X1_COL, X2_COL, OUTPUT_DIR, STATES_ID_INV, PARAMS_ID, DEFAULT_X_COLOUR, DEFAULT_Y_COLOUR, DEFAULT_Z_COLOUR
 
 
 def plot_simplex(N):
@@ -206,9 +206,9 @@ def plot_endpoint_mono(fp_list, param_list, param_varying_name, params, flag_sho
     fig_mono = plt.figure()
     ax_mono = fig_mono.gca()
     if all_axis:
-        line_x, = ax_mono.plot(param_list, fp_list[:, 0], '-o', label="x")
-        line_y, = ax_mono.plot(param_list, fp_list[:, 1], '-o', label="y")
-        line_z, = ax_mono.plot(param_list, fp_list[:, 2], '-o', label="z")
+        line_x, = ax_mono.plot(param_list, fp_list[:, 0], '-o', color=DEFAULT_X_COLOUR, label="x")
+        line_y, = ax_mono.plot(param_list, fp_list[:, 1], '-o', color=DEFAULT_Y_COLOUR, label="y")
+        line_z, = ax_mono.plot(param_list, fp_list[:, 2], '-o', color=DEFAULT_Z_COLOUR, label="z")
         ax_mono.set_ylabel("axis_i")
         plt.legend(handles=[line_x, line_y, line_z], bbox_to_anchor=(1.05, 0.98))
         plt.title("axis_inf vs param_val")
@@ -219,6 +219,7 @@ def plot_endpoint_mono(fp_list, param_list, param_varying_name, params, flag_sho
     ax_mono.grid(True)
     ax_mono.set_xlabel(param_varying_name)
     # CREATE TABLE OF PARAMS
+    """
     row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
     table_vals = [[params[i]] if PARAMS_ID[i] != param_varying_name else [None] for i in xrange(len(PARAMS_ID))]
     print len(row_labels), len(table_vals)
@@ -227,9 +228,10 @@ def plot_endpoint_mono(fp_list, param_list, param_varying_name, params, flag_sho
                             rowLabels=row_labels,
                             loc='center right')
     #plt.text(12, 3.4, 'Params', size=8)
+    """
 
     if flag_show:
         plt.show()
     if flag_save:
-        fig_mono.savefig(OUTPUT_DIR + sep + plt_save + mono + '.png')
+        fig_mono.savefig(OUTPUT_DIR + sep + plt_save + mono + '.pdf')
     return ax_mono

@@ -39,10 +39,6 @@ ODE_SYSTEMS = ["default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model"]
 
 OUTPUT_DIR = "output"
 
-X0_COL = ["grey", "black"]  # black stable (grey unstable)
-X1_COL = ["red", "blue"]  # blue stable (red unstable)
-X2_COL = ["green", "magenta"]  # magenta stable (green unstable)
-
 CSV_HEADINGS = ['bifurc_id', 'x0_x', 'x0_y', 'x0_z', 'x0_stab', 'x1_x', 'x1_y', 'x1_z', 'x1_stab', 'x2_x', 'x2_y',
                   'x2_z', 'x2_stab']
 CSV_DATA_TYPES = {'bifurc_b': float,
@@ -61,3 +57,13 @@ PARAM_Z0_RATIO = 0.1           # size of z0 relative to N (in feedback_z functio
 PARAM_Y0_PLUS_Z0_RATIO = 0.1   # size of y0 + z0 relative to N (in feedback_yz function)
 PARAM_GAMMA = 9.0              # when z->N, mu_base-> approx (K + 1)*mu_base
 PARAM_HILL = 1                 # (unused currently) hill parameter 'n'
+
+# PLOTTING
+# simplex bifurcation diagram colours
+X0_COL = ["grey", "black"]  # black stable (grey unstable)
+X1_COL = ["red", "blue"]  # blue stable (red unstable)
+X2_COL = ["green", "magenta"]  # magenta stable (green unstable)
+# bifurcation diagram colours for x*=(x,y,z) z fixed points in RGB
+DEFAULT_X_COLOUR = (169/255.0, 209/255.0, 142/255.0)
+DEFAULT_Y_COLOUR = (255/255.0, 217/255.0, 102/255.0)
+DEFAULT_Z_COLOUR = (244/255.0, 177/255.0, 131/255.0)
