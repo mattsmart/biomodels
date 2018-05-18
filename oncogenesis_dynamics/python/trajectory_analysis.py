@@ -7,27 +7,47 @@ from formulae import bifurc_value, fp_from_timeseries
 from plotting import plot_trajectory_mono, plot_endpoint_mono
 from trajectory import trajectory_simulate
 
+# PARAM TO VARY
+param_varying_name = "c"
+if param_varying_name == "c":
+    flag_log = False
+    assert param_varying_name in PARAMS_ID_INV.keys()
+    SEARCH_START = 0.7
+    SEARCH_END = 1.02
+    SEARCH_AMOUNT = 100  #20
+elif param_varying_name == "b":
+    flag_log = False
+    assert param_varying_name in PARAMS_ID_INV.keys()
+    SEARCH_START = 0.8
+    SEARCH_END = 1.2
+    SEARCH_AMOUNT = 100  #20
+else:  # assume "mu" in general
+    flag_log = True
+    assert param_varying_name in PARAMS_ID_INV.keys()
+    SEARCH_START = 1e-9  #0.55
+    SEARCH_END = 1e-2   #1.45
+    SEARCH_AMOUNT = 100  #20
+
+if flag_log:
+    param_varying_values = np.logspace(np.log10(SEARCH_START), np.log10(SEARCH_END), num=SEARCH_AMOUNT)  # log axis
+else:
+    param_varying_values = np.linspace(SEARCH_START, SEARCH_END, SEARCH_AMOUNT)
 
 # SCRIPT PARAMS
 SIM_METHOD = "libcall"  # see constants.py -- SIM_METHODS
-ODE_SYSTEM = "default"  # "default" or "feedback_z" or "feedback_yz"
-INIT_COND = [98, 1.0, 1.0] #[99.9, 0.1, 0.0]
+ODE_SYSTEM = "feedback_z"  # "default" or "feedback_z" or "feedback_yz"
+INIT_COND = [98.0, 1.0, 1.0] #[99.9, 0.1, 0.0]
 TIME_START = 0.0
-TIME_END = 16000.0  #20.0
+TIME_END = 10*16000.0  #20.0
 NUM_STEPS = 2000  # number of timesteps in each trajectory
-param_varying_name = "mu"
-assert param_varying_name in PARAMS_ID_INV.keys()
-SEARCH_START = 1e-9  #0.55
-SEARCH_END = 1e-1    #1.45
-SEARCH_AMOUNT = 100  #20
 
 # DYNAMICS PARAMETERS
-alpha_plus = 0.005 #0.05 #0.4
-alpha_minus = 0.02 #4.95 #0.5
-mu = 0.033 #0.01
+alpha_plus = 0.2
+alpha_minus = 0.5  # 4.95
+mu = 0.02
 a = 1.0
-b = 0.99
-c = 1.0 #0.95 #2.6 #1.2
+b = 0.8  # 1.376666
+c = 1.01
 N = 100.0
 v_x = 0.0
 v_y = 0.0
@@ -47,7 +67,6 @@ else:
 print "Searching in window: %.8f to %.8f with %d points" \
       % (SEARCH_START * param_center, SEARCH_END * param_center, SEARCH_AMOUNT)
 """
-param_varying_values = np.linspace(SEARCH_START, SEARCH_END, SEARCH_AMOUNT)
 
 # CONSTRUCT PARAM ENSEMBLE
 num_param_sets = len(param_varying_values)
@@ -58,6 +77,7 @@ for idx in xrange(num_param_sets):
 # GET TRAJECTORIES
 ax_comp = None
 r_inf_list = np.zeros((len(param_varying_values), 3))
+
 for idx, params in enumerate(param_ensemble):
     r, times, ax_traj, ax_mono = trajectory_simulate(params, ODE_SYSTEM, init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
                                                      sim_method=SIM_METHOD, flag_showplt=False, flag_saveplt=False)
@@ -69,4 +89,5 @@ for idx, params in enumerate(param_ensemble):
     r_inf_list[idx] = fp_from_timeseries(r, SIM_METHOD)
 plt.savefig(OUTPUT_DIR + sep + "trajectory_mono_z_composite" + ".png")
 plt.show()
-ax_endpts = plot_endpoint_mono(r_inf_list, param_varying_values, param_varying_name, params, True, True, all_axis=True, conv_to_fraction=True)
+ax_endpts = plot_endpoint_mono(r_inf_list, param_varying_values, param_varying_name, params, True, True, all_axis=True,
+                               conv_to_fraction=True, flag_log=flag_log)
