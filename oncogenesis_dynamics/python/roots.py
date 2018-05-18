@@ -23,31 +23,6 @@ def a1_eval(params):
     return 2*Delta_c - Delta_b + alpha_plus + alpha_minus + mu
 
 
-def a0_roots(alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base):
-    # TODO: currently only works for 'c' param, extend to all
-    delta = a-b
-    rhat = alpha_plus + alpha_minus + mu
-    p = np.array([1, delta + rhat, alpha_plus*(delta+mu)])
-    roots = np.roots(p)
-    print "a0 roots for s*:", roots
-    rootparams_0 = [alpha_plus, alpha_minus, mu, a, b, roots[0] + a, N, v_x, v_y, v_z, mu_base]
-    print "a0 val at root 0:", a0_eval(rootparams_0)
-    rootparams_1 = [alpha_plus, alpha_minus, mu, a, b, roots[1] + a, N, v_x, v_y, v_z, mu_base]
-    print "a0 val at root 1:", a0_eval(rootparams_1)
-    return roots
-
-
-def a1_roots(alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base, root_param="mu"):
-    # TODO: currently only works for 'c' param, extend to all
-    delta = a-b
-    rhat = alpha_plus + alpha_minus + mu
-    root = 0.5*(-delta-rhat)
-    print "a1 root for s*:", root
-    rootparams = [alpha_plus, alpha_minus, mu, a, b, root + a, N, v_x, v_y, v_z, mu_base]
-    print "a1 vals at root:", a1_eval(rootparams)
-    return root
-
-
 def a0_crit_param(params, root_param="mu"):
     alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
     if root_param == "mu":
@@ -55,20 +30,11 @@ def a0_crit_param(params, root_param="mu"):
         Delta_c = c - a
         slope = (Delta_c + alpha_plus)
         crit = (alpha_minus*alpha_plus - slope * (Delta_c - Delta_b + alpha_minus) ) / slope
-
-        params_to_check = params
-        params_to_check[PARAMS_ID_INV[root_param]] = crit
-        print "CHECK IF 0:", a0_eval(params_to_check)
     elif root_param == "c":
         Delta_b = b - a
         param_sum = alpha_minus + mu - Delta_b
         p = np.array([1, param_sum + alpha_plus, alpha_plus * (param_sum - alpha_minus)])
         crit = np.roots(p)  # list of 2 in general
-
-        for elem in crit:
-            params_to_check = params
-            params_to_check[PARAMS_ID_INV[root_param]] = elem
-            print "CHECK if a0 eval to 0:", a0_eval(params_to_check)
     else:
         assert root_param in ROOT_PARAMS_VALID
         crit = None
@@ -87,11 +53,38 @@ def a1_crit_param(params, root_param="mu"):
     else:
         assert root_param in ROOT_PARAMS_VALID
         crit = None
-
-    params_to_check = params
-    params_to_check[PARAMS_ID_INV[root_param]] = crit
-    print "CHECK if a1 eval to 0:", a1_eval(params_to_check)
     return crit
+
+
+def x0_stab_conditional_region_printer(params, root_param="mu"):
+    assert root_param == "mu"  #TODO implement b, c params
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
+    if root_param == "mu":
+        Delta_b = b - a
+        Delta_c = c - a
+        slope = (Delta_c + alpha_plus)
+
+        mu_crit_a1 = a1_crit_param(params, root_param=root_param)  # a1 always has slope +1 for mu
+        mu_crit_a0 = a0_crit_param(params, root_param=root_param)  # a0 has slope (Delta_c + alpha_plus) for mu
+        slope_a1 = np.sign(1.0)
+        slope_a0 = np.sign((Delta_c + alpha_plus))
+
+        if slope_a1 > 0 and slope_a0 > 0:
+            mu_crit = max(mu_crit_a1, mu_crit_a0)
+            print "All z FP stable after mu_crit =", mu_crit
+
+        elif slope_a1 < 0 and slope_a0 < 0:
+            mu_crit = min(mu_crit_a1, mu_crit_a0)
+            print "All z FP stable before mu_crit =", mu_crit
+
+        else:  # they have opposite sign of slope (or one is zero)
+            if slope_a1 > 0 and mu_crit_a1 < mu_crit_a0:
+                print "All z FP stable in region (A,B):", mu_crit_a1, mu_crit_a0
+            elif slope_a0 > 0 and mu_crit_a0 < mu_crit_a1:
+                print "All z FP stable in region (A,B):", mu_crit_a0, mu_crit_a1
+            else:
+                print "All z FP is not stable for any mu"
+    return
 
 
 def plot_x0_stab_conditional_test(params, root_param="mu", plot_sweep=True):
@@ -102,8 +95,15 @@ def plot_x0_stab_conditional_test(params, root_param="mu", plot_sweep=True):
     print "a1, a0 crit param for %s" % root_param
     a1_crit_val = a1_crit_param(params, root_param=root_param)
     a0_crit_val = a0_crit_param(params, root_param=root_param)
-    print "a1 crit at: %.2f" % a1_crit_val
-    print "a0 crit at: %.2f" % a0_crit_val
+    params_pre = params[:]
+    params_post = params[:]
+    eps = 0.01
+    params_pre[PARAMS_ID_INV[root_param]] = a1_crit_val - eps
+    params_post[PARAMS_ID_INV[root_param]] = a1_crit_val + eps
+    print "a1 crit at: %.4f" % a1_crit_val, "with a1 sign before:", a1_eval(params_pre), "after:",  a1_eval(params_post)
+    params_pre[PARAMS_ID_INV[root_param]] = a0_crit_val - eps
+    params_post[PARAMS_ID_INV[root_param]] = a0_crit_val + eps
+    print "a0 crit at: %.4f" % a0_crit_val, "with a0 sign before:", a0_eval(params_pre), "after:",  a0_eval(params_post)
     # ===========================================================
 
     if plot_sweep:
@@ -112,7 +112,7 @@ def plot_x0_stab_conditional_test(params, root_param="mu", plot_sweep=True):
         a1_array = np.zeros(len(crit_param_vals))
         stab_array = np.zeros(len(crit_param_vals))
         for idx, crit_to_check in enumerate(crit_param_vals):
-            params_to_check = params
+            params_to_check = params[:]
             params_to_check[PARAMS_ID_INV[root_param]] = crit_to_check
             a0_at_check = a0_eval(params_to_check)
             a1_at_check = a1_eval(params_to_check)
@@ -128,11 +128,6 @@ def plot_x0_stab_conditional_test(params, root_param="mu", plot_sweep=True):
         plt.ylabel('a0 and a1 val, stability step line')
         plt.gca().grid(True)
         plt.show()
-
-    roots_from_a0 = a0_roots(*params)
-    root_from_a1 = a1_roots(*params)
-    print "mid", 0.5*(roots_from_a0[0] + roots_from_a0[1])
-
     return
 
 
@@ -167,19 +162,20 @@ def get_predicted_fp_locations_with_traj():
 
 
 if __name__ == '__main__':
-    alpha_plus = 0.05
-    alpha_minus = 0.09 #4.95
+
+    flag_sweep = True
+
+    alpha_plus = 0.02
+    alpha_minus = 0.05 #4.95
     mu = 0.77
     a = 1.0
-    b = 1.1  #1.376666
-    c = 0.8
+    b = 0.95 #1.376666
+    c = 0.99 #1 - alpha_plus*0.9
     N = 100.0
     v_x = 0.0
     v_y = 0.0
     v_z = 0.0
     mu_base = 0.0
-    delta = 1 - b
-    s = c - 1
     params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
     eps = 0.1
     print "main params:", params, '\n'
@@ -188,3 +184,12 @@ if __name__ == '__main__':
 
     plot_x0_stab_conditional_test(params, root_param=root_param)
     get_predicted_fp_locations_with_traj()
+
+    if flag_sweep:
+        params_sweep = params[:]
+        for b_sweep in np.linspace(0.9,1.0,20):
+            for c_sweep in np.linspace(0.9,1.0,20):
+                params_sweep[PARAMS_ID_INV["b"]] = b_sweep
+                params_sweep[PARAMS_ID_INV["c"]] = c_sweep
+                print "For b, c =", b_sweep, c_sweep
+                x0_stab_conditional_region_printer(params_sweep, root_param="mu")
