@@ -196,7 +196,7 @@ if __name__ == '__main__':
     beta=0.5 #0.2
     tau=1e-3
     N = 3
-    J = build_J(N, id='symm')
+    J = build_J(N, id='asymm_2')
     print "J is\n", J
 
     # stoch matrix decompositions

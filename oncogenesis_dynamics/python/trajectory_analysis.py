@@ -8,7 +8,7 @@ from plotting import plot_trajectory_mono, plot_endpoint_mono
 from trajectory import trajectory_simulate
 
 # PARAM TO VARY
-param_varying_name = "c"
+param_varying_name = "mu"
 if param_varying_name == "c":
     flag_log = False
     assert param_varying_name in PARAMS_ID_INV.keys()
@@ -24,9 +24,9 @@ elif param_varying_name == "b":
 else:  # assume "mu" in general
     flag_log = True
     assert param_varying_name in PARAMS_ID_INV.keys()
-    SEARCH_START = 1e-9  #0.55
-    SEARCH_END = 1e-2   #1.45
-    SEARCH_AMOUNT = 100  #20
+    SEARCH_START = 1e-5  #0.55
+    SEARCH_END = 1e-1   #1.45
+    SEARCH_AMOUNT = 80  #20
 
 if flag_log:
     param_varying_values = np.logspace(np.log10(SEARCH_START), np.log10(SEARCH_END), num=SEARCH_AMOUNT)  # log axis
@@ -35,19 +35,19 @@ else:
 
 # SCRIPT PARAMS
 SIM_METHOD = "libcall"  # see constants.py -- SIM_METHODS
-ODE_SYSTEM = "feedback_z"  # "default" or "feedback_z" or "feedback_yz"
+ODE_SYSTEM = "default"  # "default" or "feedback_z" or "feedback_yz"
 INIT_COND = [98.0, 1.0, 1.0] #[99.9, 0.1, 0.0]
 TIME_START = 0.0
 TIME_END = 10*16000.0  #20.0
 NUM_STEPS = 2000  # number of timesteps in each trajectory
 
 # DYNAMICS PARAMETERS
-alpha_plus = 0.2
-alpha_minus = 0.5  # 4.95
+alpha_plus = 0.02
+alpha_minus = 0.05  # 4.95
 mu = 0.02
 a = 1.0
-b = 0.8  # 1.376666
-c = 1.01
+b = 0.985  # 0.985
+c = 0.995  # 0.995
 N = 100.0
 v_x = 0.0
 v_y = 0.0
@@ -90,4 +90,4 @@ for idx, params in enumerate(param_ensemble):
 plt.savefig(OUTPUT_DIR + sep + "trajectory_mono_z_composite" + ".png")
 plt.show()
 ax_endpts = plot_endpoint_mono(r_inf_list, param_varying_values, param_varying_name, params, True, True, all_axis=True,
-                               conv_to_fraction=True, flag_log=flag_log)
+                               conv_to_fraction=True, flag_log=flag_log, plt_save="endpoint_varying_%s" % param_varying_name)
