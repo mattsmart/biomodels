@@ -1,9 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.colors import LinearSegmentedColormap
 from os import sep
 
-from constants import PARAMS_ID, PARAMS_ID_INV, STATES_ID_INV, OUTPUT_DIR
-from data_io import write_params, write_matrix_data_and_idx_vals
+from constants import PARAMS_ID, PARAMS_ID_INV, STATES_ID_INV, OUTPUT_DIR, DEFAULT_X_COLOUR, DEFAULT_Y_COLOUR, DEFAULT_Z_COLOUR
+from data_io import write_params, write_matrix_data_and_idx_vals, read_matrix_data_and_idx_vals, read_params
 from formulae import is_stable, fp_location_general, get_physical_and_stable_fp, get_stable_fp
 
 # TODO: have ONLY 1 plotting script with datatype flags (e.g. fp count flag, stability data flag, other...)
@@ -55,22 +56,31 @@ def plot_stability_data_2d(params_general, param_1_name, param_1_range, param_2_
     return plt.gca()
 
 
-def get_gap_dist(params, system, axis="z"):
+def get_gap_dist(params, system, axis="z", flag_simple=True):
     N = params[PARAMS_ID_INV['N']]
     fp_list = get_physical_and_stable_fp(params, system)
-    if len(fp_list) == 1:
+    if len(fp_list) > 2:
+        print "WARNING: %d phys/stable fixed points at these params:" % len(fp_list)
+        print params, system
+        print "FPs:", fp_list
+        write_params(params, system, OUTPUT_DIR, "broken_params.csv")
+    elif len(fp_list) == 1:
         #return fp_list[0][STATES_ID_INV[axis]]
         #return N - fp_list[0][STATES_ID_INV[axis]]
         #return N
-        return (N - fp_list[0][STATES_ID_INV[axis]]) / (N)
+        if flag_simple:
+            val = fp_list[0][STATES_ID_INV[axis]]
+        else:
+            val = (N - fp_list[0][STATES_ID_INV[axis]]) / (N)
     else:
-        if len(fp_list) > 2:
-            print "WARNING: %d phys/stable fixed points at these params:" % len(fp_list)
-            print params, system
-            print "FPs:", fp_list
-            write_params(params, system, OUTPUT_DIR, "broken_params.csv")
-        return (N - (fp_list[0][STATES_ID_INV[axis]] + fp_list[1][STATES_ID_INV[axis]])) / (N)
-        #return np.abs(fp_list[0][STATES_ID_INV[axis]] - fp_list[1][STATES_ID_INV[axis]])  # gap in z-coordinate
+        if flag_simple:
+            val = -0.01
+            #val = np.abs(fp_list[0][STATES_ID_INV[axis]] - fp_list[1][STATES_ID_INV[axis]])
+        else:
+            val = (N - (fp_list[0][STATES_ID_INV[axis]] + fp_list[1][STATES_ID_INV[axis]])) / (N)
+            #val = np.abs(fp_list[0][STATES_ID_INV[axis]] - fp_list[1][STATES_ID_INV[axis]])  # gap in z-coordinate
+    return val
+
 
 
 def get_gap_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, axis_gap="z", figname_mod="", flag_write=True):
@@ -94,7 +104,15 @@ def get_gap_data_2d(params_general, param_1_name, param_1_range, param_2_name, p
 
 
 def plot_gap_data_2d(gap_data_2d, params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, axis_gap="z", figname_mod="", flag_show=True):
-    plt.imshow(gap_data_2d, cmap='seismic', interpolation="none", origin='lower', aspect='auto',
+    # custom cmap for gap diagram
+    grey = (169/255.0, 169/255.0, 169/255.0)
+    val_to_colour = [(0.0, grey),
+                     (1e-4, DEFAULT_X_COLOUR),
+                     (0.5, DEFAULT_Y_COLOUR),
+                     (1.0, DEFAULT_Z_COLOUR)]
+    xyz_cmap_gradient = LinearSegmentedColormap.from_list('xyz_cmap_gradient', val_to_colour, N=100)
+    # plot image
+    plt.imshow(gap_data_2d, cmap=xyz_cmap_gradient, interpolation="none", origin='lower', aspect='auto',
                extent=[param_2_range[0], param_2_range[-1], param_1_range[0], param_1_range[-1]])
     ax = plt.gca()
     ax.grid(which='major', axis='both', linestyle='-')
@@ -227,6 +245,10 @@ def plot_stable_fp_count_2d(fp_count_array, params_general, param_1_name, param_
 
 
 if __name__ == "__main__":
+
+    flag_generate = False
+    flag_load = True
+
     alpha_plus = 0.2  # 0.05 #0.4
     alpha_minus = 0.5  # 4.95 #0.5
     mu = 0.01  # 0.01
@@ -252,5 +274,27 @@ if __name__ == "__main__":
     param_2_steps = 100
     param_2_range = np.linspace(param_2_start, param_2_stop, param_2_steps)
 
-    fp_data = get_stable_fp_count_2d(params, param_1_name, param_1_range, param_2_name, param_2_range, ode_system)
-    plot_stable_fp_count_2d(fp_data, params, param_1_name, param_1_range, param_2_name, param_2_range, ode_system, figname_mod="default")
+    # generate and plot data
+    if flag_generate:
+        fp_data = get_stable_fp_count_2d(params, param_1_name, param_1_range, param_2_name, param_2_range, ode_system)
+        plot_stable_fp_count_2d(fp_data, params, param_1_name, param_1_range, param_2_name, param_2_range, ode_system, figname_mod="default")
+
+    # loaf data
+    if flag_load:
+        row_name = 'c'  # aka param 2 is row
+        col_name = 'b'  # aka param 1 is col
+        datapath = OUTPUT_DIR + sep + "gapdist2d_full.txt"
+        rowpath = OUTPUT_DIR + sep + "gapdist2d_full_%s.txt" % row_name
+        colpath = OUTPUT_DIR + sep + "gapdist2d_full_%s.txt" % col_name
+        paramsname = "gapdist2d_full_params.csv"
+
+        gap_data_2d, param_2_name, param_1_range = read_matrix_data_and_idx_vals(datapath, rowpath, colpath)
+        param_1_name = col_name
+        param_2_name = row_name
+
+        params_general = read_params(OUTPUT_DIR, paramsname)
+        system = params_general[-1]
+        print params_general
+
+        plot_gap_data_2d(gap_data_2d, params_general, param_1_name, param_1_range, param_2_name, param_2_range, system,
+                         axis_gap="z", figname_mod="", flag_show=True)
