@@ -230,6 +230,7 @@ def plot_endpoint_mono(fp_list, param_list, param_varying_name, params, flag_sho
         ax_mono.set_ylabel(mono + "_inf")
         plt.title(mono + "_inf vs param_val")
     #ax_mono.grid(True)
+    #ax_mono.tick_params(labelsize=16)
     ax_mono.set_xlabel(param_varying_name)
     # CREATE TABLE OF PARAMS
     """

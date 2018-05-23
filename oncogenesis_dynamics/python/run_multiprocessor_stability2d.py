@@ -11,12 +11,12 @@ from stability_diagram import plot_stable_fp_count_2d, get_stable_fp_count_2d, g
 NUM_PROCESSES = -1 + cpu_count()
 
 # PARAMS
-alpha_plus = 0.2  # 0.05 #0.4
-alpha_minus = 0.5  # 4.95 #0.5
-mu = 0.001  # 0.01
+alpha_plus = 0.02  # 0.05 #0.4
+alpha_minus = 0.1  # 4.95 #0.5
+mu = 1e-3  # 0.01
 a = 1.0
-b = 0.8
-c = 0.85  # 2.6 #1.2
+b = 0.0
+c = 0.0  # 2.6 #1.2
 N = 100.0  # 100
 v_x = 0.0
 v_y = 0.0
@@ -27,21 +27,21 @@ ode_system = "feedback_z"
 
 # ARGS TO PASS
 param_1_name = "b"
-param_1_start = 0.5 #0.975 #0.5
-param_1_stop = 1.1 #1.005 #1.1
-param_1_steps = 210 #350 #700
+param_1_start = 0.9
+param_1_stop = 1.05
+param_1_steps = 63
 param_1_range = np.linspace(param_1_start, param_1_stop, param_1_steps)
 param_2_name = "c"
-param_2_start = 0.6 #0.6  # 1.1 #0.7
-param_2_stop = 1.1 #1.005 #1.1  # 1.3 #0.95
-param_2_steps = 100 #250 #500
+param_2_start = 0.9  # 1.1 #0.7
+param_2_stop = 1.05  # 1.3 #0.95
+param_2_steps = 60
 param_2_range = np.linspace(param_2_start, param_2_stop, param_2_steps)
 
 #param_name_to_split = 2
 #assert param_name_to_split in [1,2]
 
 data_id = "fpcount"  # gapdist or fpcount
-flag_physicalfp = True
+flag_physicalfp = False
 flag_plot = True
 if data_id == "fpcount":
     data_fnstr = "phys"*flag_physicalfp + "fpcount2d_full"

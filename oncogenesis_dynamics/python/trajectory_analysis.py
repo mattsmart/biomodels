@@ -35,7 +35,7 @@ else:
 
 # SCRIPT PARAMS
 SIM_METHOD = "libcall"  # see constants.py -- SIM_METHODS
-ODE_SYSTEM = "default"  # "default" or "feedback_z" or "feedback_yz"
+ODE_SYSTEM = "feedback_z"  # "default" or "feedback_z" or "feedback_yz"
 INIT_COND = [98.0, 1.0, 1.0] #[99.9, 0.1, 0.0]
 TIME_START = 0.0
 TIME_END = 10*16000.0  #20.0
@@ -43,11 +43,11 @@ NUM_STEPS = 2000  # number of timesteps in each trajectory
 
 # DYNAMICS PARAMETERS
 alpha_plus = 0.02
-alpha_minus = 0.05  # 4.95
-mu = 0.02
+alpha_minus = 0.1  # 4.95
+mu = 1e-4
 a = 1.0
-b = 0.985  # 0.985
-c = 0.995  # 0.995
+b = 0.92    # 0.98 1.01
+c = 0.99  # 0.98
 N = 100.0
 v_x = 0.0
 v_y = 0.0
