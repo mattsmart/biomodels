@@ -106,13 +106,18 @@ def get_gap_data_2d(params_general, param_1_name, param_1_range, param_2_name, p
 def plot_gap_data_2d(gap_data_2d, params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, axis_gap="z", figname_mod="", flag_show=True):
     # custom cmap for gap diagram
     grey = (169/255.0, 169/255.0, 169/255.0)
-    val_to_colour = [(0.0, grey),
-                     (1e-4, DEFAULT_X_COLOUR),
+    val_to_colour_bistable = [(0.0, grey),
+                     (1e-9, DEFAULT_X_COLOUR),
                      (0.5, DEFAULT_Y_COLOUR),
                      (1.0, DEFAULT_Z_COLOUR)]
-    xyz_cmap_gradient = LinearSegmentedColormap.from_list('xyz_cmap_gradient', val_to_colour, N=100)
+    xyz_cmap_gradient_bistable = LinearSegmentedColormap.from_list('xyz_cmap_gradient_bistable', val_to_colour_bistable, N=100)
+    val_to_colour_3 = [(0.0, DEFAULT_X_COLOUR),
+                     (0.5, DEFAULT_Y_COLOUR),
+                     (1.0, DEFAULT_Z_COLOUR)]
+    xyz_cmap_gradient_3 = LinearSegmentedColormap.from_list('xyz_cmap_gradient_3', val_to_colour_3, N=100)
+
     # plot image
-    plt.imshow(gap_data_2d, cmap=xyz_cmap_gradient, interpolation="none", origin='lower', aspect='auto',
+    plt.imshow(gap_data_2d, cmap=xyz_cmap_gradient_3, interpolation="none", origin='lower', aspect='auto',
                extent=[param_2_range[0], param_2_range[-1], param_1_range[0], param_1_range[-1]])
     ax = plt.gca()
     ax.grid(which='major', axis='both', linestyle='-')
@@ -288,7 +293,7 @@ if __name__ == "__main__":
         colpath = OUTPUT_DIR + sep + "gapdist2d_full_%s.txt" % col_name
         paramsname = "gapdist2d_full_params.csv"
 
-        gap_data_2d, param_2_name, param_1_range = read_matrix_data_and_idx_vals(datapath, rowpath, colpath)
+        gap_data_2d, param_2_range, param_1_range = read_matrix_data_and_idx_vals(datapath, rowpath, colpath)
         param_1_name = col_name
         param_2_name = row_name
 
