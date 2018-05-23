@@ -114,10 +114,11 @@ def plot_gap_data_2d(gap_data_2d, params_general, param_1_name, param_1_range, p
     val_to_colour_3 = [(0.0, DEFAULT_X_COLOUR),
                      (0.5, DEFAULT_Y_COLOUR),
                      (1.0, DEFAULT_Z_COLOUR)]
-    xyz_cmap_gradient_3 = LinearSegmentedColormap.from_list('xyz_cmap_gradient_3', val_to_colour_3, N=100)
+    xyz_cmap_gradient_3 = LinearSegmentedColormap.from_list('xyz_cmap_gradient_3', val_to_colour_3, N=200)
+    xyz_cmap_gradient = val_to_colour_bistable
 
     # plot image
-    plt.imshow(gap_data_2d, cmap=xyz_cmap_gradient_3, interpolation="none", origin='lower', aspect='auto',
+    plt.imshow(gap_data_2d, cmap=xyz_cmap_gradient_bistable, interpolation="none", origin='lower', aspect='auto',
                extent=[param_2_range[0], param_2_range[-1], param_1_range[0], param_1_range[-1]])
     ax = plt.gca()
     ax.grid(which='major', axis='both', linestyle='-')
