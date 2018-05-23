@@ -74,7 +74,7 @@ def get_gap_dist(params, system, axis="z", flag_simple=True):
             val = (N - fp_list[0][STATES_ID_INV[axis]]) / (N)
     else:
         if flag_simple:
-            val = -0.01
+            val = -1.0
             #val = np.abs(fp_list[0][STATES_ID_INV[axis]] - fp_list[1][STATES_ID_INV[axis]])
         else:
             val = (N - (fp_list[0][STATES_ID_INV[axis]] + fp_list[1][STATES_ID_INV[axis]])) / (N)
