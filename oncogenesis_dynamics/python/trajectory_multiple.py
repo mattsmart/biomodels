@@ -82,7 +82,7 @@ if __name__ == "__main__":
     mu = 0.001  # 0.01
     a = 1.0
     b = 0.6
-    c = 0.6  # 2.6 #1.2
+    c = 0.75  # 2.6 #1.2
     N = 100.0  # 100
     v_x = 0.0
     v_y = 0.0
@@ -102,4 +102,4 @@ if __name__ == "__main__":
         phase_portrait(params_step, system, num_traj=800, output_dir=output_dir, figname_mod=fmname, basins_flag=True)
         phase_portrait(params_step, system, num_traj=20, output_dir=output_dir, figname_mod=fmname, basins_flag=False)
     """
-    phase_portrait(params, system, num_traj=8, show_flag=True, basins_flag=False)
+    phase_portrait(params, system, num_traj=280, show_flag=True, basins_flag=True)
