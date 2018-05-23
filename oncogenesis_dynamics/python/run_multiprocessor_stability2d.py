@@ -4,15 +4,15 @@ from multiprocessing import Pool
 from multiprocessing import cpu_count
 
 from constants import OUTPUT_DIR
-from data_io import write_matrix_data_and_idx_vals
+from data_io import write_matrix_data_and_idx_vals, write_params
 from stability_diagram import plot_stable_fp_count_2d, get_stable_fp_count_2d, get_gap_data_2d, plot_gap_data_2d
 
 # CONSTANTS
 NUM_PROCESSES = -1 + cpu_count()
 
 # PARAMS
-alpha_plus = 0.02  # 0.05 #0.4
-alpha_minus = 0.1  # 4.95 #0.5
+alpha_plus = 0.2  # 0.05 #0.4
+alpha_minus = 0.5  # 4.95 #0.5
 mu = 1e-3  # 0.01
 a = 1.0
 b = 0.0
@@ -27,21 +27,21 @@ ode_system = "feedback_z"
 
 # ARGS TO PASS
 param_1_name = "b"
-param_1_start = 0.9
-param_1_stop = 1.05
+param_1_start = 0.5
+param_1_stop = 1.1
 param_1_steps = 63
 param_1_range = np.linspace(param_1_start, param_1_stop, param_1_steps)
 param_2_name = "c"
-param_2_start = 0.9  # 1.1 #0.7
-param_2_stop = 1.05  # 1.3 #0.95
+param_2_start = 0.6  # 1.1 #0.7
+param_2_stop = 1.1  # 1.3 #0.95
 param_2_steps = 60
 param_2_range = np.linspace(param_2_start, param_2_stop, param_2_steps)
 
 #param_name_to_split = 2
 #assert param_name_to_split in [1,2]
 
-data_id = "fpcount"  # gapdist or fpcount
-flag_physicalfp = False
+data_id = "gapdist"  # gapdist or fpcount
+flag_physicalfp = True
 flag_plot = True
 if data_id == "fpcount":
     data_fnstr = "phys"*flag_physicalfp + "fpcount2d_full"
@@ -85,6 +85,8 @@ if __name__ == "__main__":
         results_collected[i*results_dim[0]:(i+1)*results_dim[0], :] = result
     write_matrix_data_and_idx_vals(results_collected, param_1_range, param_2_range, data_fnstr,
                                    param_1_name, param_2_name, output_dir=OUTPUT_DIR)
+    write_params(params, ode_system, OUTPUT_DIR, data_fnstr + "_params.csv")
+
     if flag_plot:
         plot_fn(results_collected, params, param_1_name, param_1_range, param_2_name,
                 param_2_range, ode_system, **kwargs_plot_dict)
