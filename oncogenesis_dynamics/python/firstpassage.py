@@ -31,7 +31,11 @@ def wrapper_get_fpt(fn_args_dict):
         return get_fpt(*fn_args_dict['args'])
 
 
-def fast_fp_times(ensemble, init_cond, params, system, num_processes):
+def fast_fp_times(ensemble, init_cond, params, system, num_processes, num_steps='default'):
+    if num_steps == 'default':
+        kwargs_dict = 100000
+    else:
+        kwargs_dict = {'num_steps': num_steps}
     fn_args_dict = [0]*num_processes
     print "NUM_PROCESSES:", num_processes
     assert ensemble % num_processes == 0
@@ -39,7 +43,7 @@ def fast_fp_times(ensemble, init_cond, params, system, num_processes):
         subensemble = ensemble / num_processes
         print "process:", i, "job size:", subensemble, "runs"
         fn_args_dict[i] = {'args': (subensemble, init_cond, params, system),
-                           'kwargs': None}
+                           'kwargs': kwargs_dict}
     t0 = time.time()
     pool = Pool(num_processes)
     results = pool.map(wrapper_get_fpt, fn_args_dict)
@@ -182,19 +186,20 @@ if __name__ == "__main__":
     # SCRIPT FLAGS
     flag_compute_fpt = False
     flag_read_fpt = False
-    flag_hist_multi = False
+    flag_generate_hist_multi = True
+    flag_load_hist_multi = False
     flag_collect = False
     flag_means_read_and_plot = False
     flag_means_collect_and_plot = False
 
     # SCRIPT PARAMETERS
-    system = "feedback_mu_XZ_model"  # "feedback_mu_XZ_model" or "feedback_z"
-    num_steps = 100000
-    ensemble = 100
+    system = "feedback_z"  # "feedback_mu_XZ_model" or "feedback_z"
+    num_steps = 100000  # default 100000
+    ensemble = 5  # default 100
 
     # DYNAMICS PARAMETERS
-    alpha_plus = 0.0 #0.2  # 0.05 #0.4
-    alpha_minus = 0.0 #0.5  # 4.95 #0.5
+    alpha_plus = 0.2 #0.2  # 0.05 #0.4
+    alpha_minus = 0.5 #0.5  # 4.95 #0.5
     mu = 0.001  # 0.001
     a = 1.0
     b = 0.8
@@ -221,7 +226,28 @@ if __name__ == "__main__":
         dbdir_10k = dbdir + sep + "fpt_mean" + sep + "10k_c95"
         fp_times_xyz_10k, params_b, system_b = read_fpt_and_params(dbdir_10k)
 
-    if flag_hist_multi:
+    if flag_generate_hist_multi:
+        ensemble = 14
+        num_proc = 7
+        param_vary_id = "c"
+        param_idx = PARAMS_ID_INV[param_vary_id]
+        param_vary_values = {0.8: 'Region I',
+                             0.88: 'Region IV',
+                             0.95: 'Region III'}
+        params_set = [params[:] for _ in param_vary_values.keys()]
+        multi_fpt = np.zeros((len(param_vary_values.keys()), ensemble))
+        multi_fpt_labels = ['label' for _ in param_vary_values.keys()]
+        for idx, param_val in enumerate(param_vary_values.keys()):
+            param_val_string = "%s=%.3f" % (param_vary_id, param_val)
+            params_set[idx][param_idx] = param_val
+            #fp_times = get_fpt(ensemble, init_cond, params_set[idx], system, num_steps=num_steps)
+            fp_times = fast_fp_times(ensemble, init_cond, params_set[idx], system, num_proc, num_steps=num_steps)
+            write_fpt_and_params(fp_times, params_set[idx], system, filename="fpt_multi", filename_mod=param_val_string)
+            multi_fpt[idx,:] = np.array(fp_times)
+            multi_fpt_labels[idx] = "%s (%s)" % (param_vary_values[idx], param_val_string)
+        fpt_histogram_multi(multi_fpt, multi_fpt_labels, show_flag=True, y_log10_flag=False)
+
+    if flag_load_hist_multi:
         dbdir = OUTPUT_DIR + sep + "hist_multi"
         dbdir_c95 = dbdir + "1000_xyz_feedbackZ_c95"
         dbdir_c86 = dbdir + "1000_xyz_feedbackZ_c86"
