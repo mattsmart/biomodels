@@ -64,6 +64,7 @@ def get_gap_dist(params, system, axis="z", flag_simple=True):
         print params, system
         print "FPs:", fp_list
         write_params(params, system, OUTPUT_DIR, "broken_params.csv")
+        val = -1.0
     elif len(fp_list) == 1:
         #return fp_list[0][STATES_ID_INV[axis]]
         #return N - fp_list[0][STATES_ID_INV[axis]]
@@ -74,7 +75,7 @@ def get_gap_dist(params, system, axis="z", flag_simple=True):
             val = (N - fp_list[0][STATES_ID_INV[axis]]) / (N)
     else:
         if flag_simple:
-            val = -1.0
+            val = -1.0  # should be ~ 1% of N or -0.01 if normalized
             #val = np.abs(fp_list[0][STATES_ID_INV[axis]] - fp_list[1][STATES_ID_INV[axis]])
         else:
             val = (N - (fp_list[0][STATES_ID_INV[axis]] + fp_list[1][STATES_ID_INV[axis]])) / (N)
@@ -106,6 +107,15 @@ def get_gap_data_2d(params_general, param_1_name, param_1_range, param_2_name, p
 def plot_gap_data_2d(gap_data_2d, params_general, param_1_name, param_1_range, param_2_name, param_2_range, system, axis_gap="z", figname_mod="", flag_show=True):
     # custom cmap for gap diagram
     grey = (169/255.0, 169/255.0, 169/255.0)
+    Y_low = tuple([0.5*(DEFAULT_X_COLOUR[idx] + DEFAULT_Y_COLOUR[idx]) for idx in xrange(3)])
+    Y_high = tuple([0.5*(DEFAULT_Y_COLOUR[idx] + DEFAULT_Z_COLOUR[idx]) for idx in xrange(3)])
+    val_to_colour_bistable_wide = [(0.0, grey),
+                                   (1e-9, DEFAULT_X_COLOUR),
+                                   (0.15, Y_low),
+                                   (0.5, DEFAULT_Y_COLOUR),
+                                   (0.85, Y_high),
+                                   (1.0, DEFAULT_Z_COLOUR)]
+    xyz_cmap_gradient_bistable_wide = LinearSegmentedColormap.from_list('xyz_cmap_gradient_bistable_wide', val_to_colour_bistable_wide, N=100)
     val_to_colour_bistable = [(0.0, grey),
                      (1e-9, DEFAULT_X_COLOUR),
                      (0.5, DEFAULT_Y_COLOUR),
@@ -115,10 +125,10 @@ def plot_gap_data_2d(gap_data_2d, params_general, param_1_name, param_1_range, p
                      (0.5, DEFAULT_Y_COLOUR),
                      (1.0, DEFAULT_Z_COLOUR)]
     xyz_cmap_gradient_3 = LinearSegmentedColormap.from_list('xyz_cmap_gradient_3', val_to_colour_3, N=200)
-    xyz_cmap_gradient = val_to_colour_bistable
+    xyz_cmap_gradient = xyz_cmap_gradient_bistable_wide
 
     # plot image
-    plt.imshow(gap_data_2d, cmap=xyz_cmap_gradient_bistable, interpolation="none", origin='lower', aspect='auto',
+    plt.imshow(gap_data_2d, cmap=xyz_cmap_gradient, interpolation="none", origin='lower', aspect='auto',
                extent=[param_2_range[0], param_2_range[-1], param_1_range[0], param_1_range[-1]])
     ax = plt.gca()
     ax.grid(which='major', axis='both', linestyle='-')
@@ -135,7 +145,7 @@ def plot_gap_data_2d(gap_data_2d, params_general, param_1_name, param_1_range, p
     #plt.subplots_adjust(left=0.2, bottom=0.2)
     # Now adding the colorbar
     plt.colorbar(orientation='horizontal')
-    plt.savefig(OUTPUT_DIR + sep + 'gap_data_2d_%s_%s_%s.png' % (param_1_name, param_2_name, figname_mod), bbox_inches='tight')
+    plt.savefig(OUTPUT_DIR + sep + 'gap_data_2d_%s_%s_%s.pdf' % (param_1_name, param_2_name, figname_mod), bbox_inches='tight')
     if flag_show:
         plt.show()
     return plt.gca()
