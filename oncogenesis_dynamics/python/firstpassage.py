@@ -231,20 +231,19 @@ if __name__ == "__main__":
         num_proc = 7
         param_vary_id = "c"
         param_idx = PARAMS_ID_INV[param_vary_id]
-        param_vary_values = {0.8: 'Region I',
-                             0.88: 'Region IV',
-                             0.95: 'Region III'}
-        params_set = [params[:] for _ in param_vary_values.keys()]
-        multi_fpt = np.zeros((len(param_vary_values.keys()), ensemble))
-        multi_fpt_labels = ['label' for _ in param_vary_values.keys()]
-        for idx, param_val in enumerate(param_vary_values.keys()):
+        param_vary_values = [0.8, 0.88, 0.95]
+        param_vary_labels = ['Region I','Region IV','Region III']
+        params_set = [params[:] for _ in param_vary_values]
+        multi_fpt = np.zeros((len(param_vary_values), ensemble))
+        multi_fpt_labels = ['label' for _ in param_vary_values]
+        for idx, param_val in enumerate(param_vary_values):
             param_val_string = "%s=%.3f" % (param_vary_id, param_val)
             params_set[idx][param_idx] = param_val
             #fp_times = get_fpt(ensemble, init_cond, params_set[idx], system, num_steps=num_steps)
             fp_times = fast_fp_times(ensemble, init_cond, params_set[idx], system, num_proc, num_steps=num_steps)
             write_fpt_and_params(fp_times, params_set[idx], system, filename="fpt_multi", filename_mod=param_val_string)
             multi_fpt[idx,:] = np.array(fp_times)
-            multi_fpt_labels[idx] = "%s (%s)" % (param_vary_values[idx], param_val_string)
+            multi_fpt_labels[idx] = "%s (%s)" % (param_vary_labels[idx], param_val_string)
         fpt_histogram_multi(multi_fpt, multi_fpt_labels, show_flag=True, y_log10_flag=False)
 
     if flag_load_hist_multi:
