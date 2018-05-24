@@ -13,7 +13,7 @@ NUM_PROCESSES = -1 + cpu_count()
 # PARAMS
 alpha_plus = 0.2  # 0.05 #0.4
 alpha_minus = 0.5  # 4.95 #0.5
-mu = 1e-3  # 0.01
+mu = 0.001  # 0.01
 a = 1.0
 b = 0.0
 c = 0.0  # 2.6 #1.2
@@ -32,8 +32,8 @@ param_1_stop = 1.1
 param_1_steps = 63
 param_1_range = np.linspace(param_1_start, param_1_stop, param_1_steps)
 param_2_name = "c"
-param_2_start = 0.6  # 1.1 #0.7
-param_2_stop = 1.1  # 1.3 #0.95
+param_2_start = 0.6 #0.7
+param_2_stop = 1.1 #0.95
 param_2_steps = 60
 param_2_range = np.linspace(param_2_start, param_2_stop, param_2_steps)
 
