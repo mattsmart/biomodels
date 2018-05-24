@@ -132,8 +132,6 @@ def plot_gap_data_2d(gap_data_2d, params_general, param_1_name, param_1_range, p
                extent=[param_2_range[0], param_2_range[-1], param_1_range[0], param_1_range[-1]])
     ax = plt.gca()
     ax.grid(which='major', axis='both', linestyle='-')
-    ax.set_xlabel(param_2_name)
-    ax.set_ylabel(param_1_name)
     plt.title("Gap in %s between FPs, vary %s, %s" % (axis_gap, param_1_name, param_2_name))
     # CREATE TABLE OF PARAMS
     # bbox is x0, y0, height, width
@@ -144,7 +142,15 @@ def plot_gap_data_2d(gap_data_2d, params_general, param_1_name, param_1_range, p
                             bbox=(1.2, 0.2, 0.1, 0.75))
     #plt.subplots_adjust(left=0.2, bottom=0.2)
     # Now adding the colorbar
-    plt.colorbar(orientation='horizontal')
+    cbar = plt.colorbar(orientation='horizontal')
+    """
+    plt.locator_params(axis='x', nbins=6)
+    plt.locator_params(axis='y', nbins=6)
+    ax.set_xlabel(param_2_name, fontsize=16)
+    ax.set_ylabel(param_1_name, fontsize=16)
+    plt.tick_params(axis='both', which='major', labelsize=16)
+    cbar.ax.tick_params(labelsize=16)
+    """
     plt.savefig(OUTPUT_DIR + sep + 'gap_data_2d_%s_%s_%s.pdf' % (param_1_name, param_2_name, figname_mod), bbox_inches='tight')
     if flag_show:
         plt.show()
