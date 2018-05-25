@@ -29,6 +29,7 @@ from constants import PARAMS_ID, CSV_DATA_TYPES, SIM_METHODS, PARAM_Z0_RATIO, PA
 
 
 def system_vector(init_cond, times, system, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base):
+    #TODO params = system_variants(params, system) use throughout reduce duplicates
     x, y, z = init_cond
     fbar = (a * x + b * y + c * z + v_x + v_y + v_z) / N
     if system == "feedback_z":

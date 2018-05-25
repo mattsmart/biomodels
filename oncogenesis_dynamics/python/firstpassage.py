@@ -33,7 +33,7 @@ def wrapper_get_fpt(fn_args_dict):
 
 def fast_fp_times(ensemble, init_cond, params, system, num_processes, num_steps='default'):
     if num_steps == 'default':
-        kwargs_dict = 100000
+        kwargs_dict = {'num_steps': 100000}
     else:
         kwargs_dict = {'num_steps': num_steps}
     fn_args_dict = [0]*num_processes
