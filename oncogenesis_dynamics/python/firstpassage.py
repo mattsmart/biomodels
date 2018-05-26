@@ -2,9 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 from os import sep
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 
-from constants import OUTPUT_DIR, PARAMS_ID, PARAMS_ID_INV
+from constants import OUTPUT_DIR, PARAMS_ID, PARAMS_ID_INV, DEFAULT_X_COLOUR, DEFAULT_Y_COLOUR, DEFAULT_Z_COLOUR
 from data_io import read_varying_mean_sd_fpt_and_params, collect_fpt_mean_stats_and_params, read_fpt_and_params,\
                     write_fpt_and_params
 from formulae import stoch_gillespie, get_physical_and_stable_fp
@@ -118,7 +118,8 @@ def fpt_histogram(fpt_list, params, system, show_flag=False, figname_mod="", x_l
         plt.show()
 
 
-def fpt_histogram_multi(multi_fpt_list, labels, show_flag=False, figname_mod="", x_log10_flag=False, y_log10_flag=False):
+def fpt_histogram_multi(multi_fpt_list, labels, show_flag=False, figname_mod="", x_log10_flag=False, y_log10_flag=False,
+                        flag_norm=False, fs=12):
     # resize fpt lists if not all same size (to the min size)
     fpt_lengths = [len(fpt) for fpt in multi_fpt_list]
     ensemble_size = np.min(fpt_lengths)
@@ -126,38 +127,116 @@ def fpt_histogram_multi(multi_fpt_list, labels, show_flag=False, figname_mod="",
         print "Resizing multi_fpt_list elements:", fpt_lengths, "to the min size of:", ensemble_size
         for idx in xrange(len(fpt_lengths)):
             multi_fpt_list[idx] = multi_fpt_list[idx][:ensemble_size]
+    bins = np.linspace(np.min(multi_fpt_list), np.max(multi_fpt_list), 70)
 
-    bins = np.linspace(np.min(multi_fpt_list), np.max(multi_fpt_list), 100)
+    grey = (169/255.0, 169/255.0, 169/255.0)
+    blue = (119/255.0, 158/255.0, 203/255.0)
+    grey_dark = (149/255.0, 149/255.0, 149/255.0)
+    eps = 20.0/255.0
+    x_dark = [i - eps for i in DEFAULT_X_COLOUR]
+    z_dark = [i - eps for i in DEFAULT_Z_COLOUR]
+    #colours_orig = [DEFAULT_X_COLOUR, grey, DEFAULT_Z_COLOUR]
+    colours_dark = [x_dark, grey_dark, z_dark]
+    colours_blue = [x_dark, blue, z_dark]
+    colours = colours_blue
+
+    weights = None
+    if flag_norm:
+        y_label = 'probability'
+    else:
+        y_label = 'frequency'
+
+    fig = plt.figure(figsize=(12, 6), dpi=120)
     if x_log10_flag:
         max_log = np.ceil(np.max(np.log10(multi_fpt_list)))
         for idx, fpt_list in enumerate(multi_fpt_list):
-            plt.hist(fpt_list, bins=np.logspace(0.1, max_log, 100), alpha=0.5, label=labels[idx])
+            if flag_norm:
+                weights = np.ones_like(fpt_list) / ensemble_size
+            plt.hist(fpt_list, bins=np.logspace(0.1, max_log, 100), alpha=1.0, color=colours[idx], label=labels[idx],weights=weights)
         ax = plt.gca()
-        ax.set_xlabel('log10(fpt)')
-        ax.set_ylabel('frequency')
+        ax.set_xlabel('fpt', fontsize=fs)
+        ax.set_ylabel(y_label, fontsize=fs)
         ax.set_xscale("log", nonposx='clip')
     elif y_log10_flag:
         for idx, fpt_list in enumerate(multi_fpt_list):
-            plt.hist(fpt_list, bins=bins, alpha=0.5, label=labels[idx])
+            if flag_norm:
+                weights = np.ones_like(fpt_list) / ensemble_size
+            plt.hist(fpt_list, bins=bins, alpha=0.6, color=colours[idx], label=labels[idx],weights=weights,edgecolor=None)
+            #plt.hist(fpt_list, bins=bins, alpha=0.2, color=colours[idx], label=labels[idx],weights=weights)
+
         ax = plt.gca()
-        ax.set_xlabel('fpt')
-        ax.set_ylabel('log10(frequency)')
+        ax.set_xlabel('FP Time (cell division timescale)', fontsize=fs)
+        ax.set_ylabel('%s' % y_label, fontsize=fs)
         ax.set_yscale("log", nonposx='clip')
     else:
         for idx, fpt_list in enumerate(multi_fpt_list):
-            plt.hist(fpt_list, bins=bins, alpha=0.5, label=labels[idx])
+            if flag_norm:
+                weights = np.ones_like(fpt_list) / ensemble_size
+            plt.hist(fpt_list, bins=bins, alpha=0.5, color=colours[idx], label=labels[idx],weights=weights)
         ax = plt.gca()
-        ax.set_xlabel('fpt')
-        ax.set_ylabel('frequency')
+        ax.set_xlabel('FP Time (cell division timescale)', fontsize=fs)
+        ax.set_ylabel(y_label, fontsize=fs)
     plt.title('First passage time histogram (%d runs)' % (ensemble_size))
-    plt.legend(loc='upper right')
+    plt.legend(loc='upper right', fontsize=fs)
+    ax.tick_params(labelsize=fs)
     # DRAW MEAN LINE
     #plt.axvline(np.mean(fpt_list), color='k', linestyle='dashed', linewidth=2)
     plt_save = "fpt_multihistogram" + figname_mod
-    plt.savefig(OUTPUT_DIR + sep + plt_save + '.png', bbox_inches='tight')
+    fig.savefig(OUTPUT_DIR + sep + plt_save + '.pdf', bbox_inches='tight')
     if show_flag:
         plt.show()
 
+
+def fpt_histogram_multi_MAY25(multi_fpt_list, labels, show_flag=False, figname_mod="", x_log10_flag=False, y_log10_flag=False,
+                        flag_norm=False, fs=12):
+    # resize fpt lists if not all same size (to the min size)
+    fpt_lengths = [len(fpt) for fpt in multi_fpt_list]
+    ensemble_size = np.min(fpt_lengths)
+    if sum(fpt_lengths - ensemble_size) > 0:
+        print "Resizing multi_fpt_list elements:", fpt_lengths, "to the min size of:", ensemble_size
+        for idx in xrange(len(fpt_lengths)):
+            multi_fpt_list[idx] = multi_fpt_list[idx][:ensemble_size]
+    bins = np.linspace(np.min(multi_fpt_list), np.max(multi_fpt_list), 75)
+
+    grey = (169/255.0, 169/255.0, 169/255.0)
+    blue = (119/255.0, 158/255.0, 203/255.0)
+    grey_dark = (149/255.0, 149/255.0, 149/255.0)
+    eps = 20.0/255.0
+    x_dark = [i - eps for i in DEFAULT_X_COLOUR]
+    z_dark = [i - eps for i in DEFAULT_Z_COLOUR]
+    #colours_orig = [DEFAULT_X_COLOUR, grey, DEFAULT_Z_COLOUR]
+    colours_dark = [x_dark, grey_dark, z_dark]
+    colours_blue = [x_dark, blue, z_dark]
+    colours = colours_blue
+
+    weights = None
+    if flag_norm:
+        y_label = 'probability'
+    else:
+        y_label = 'frequency'
+
+    fig = plt.figure(figsize=(12, 6), dpi=120)
+
+    if flag_norm:
+        weights = np.ones_like(multi_fpt_list) / ensemble_size
+    ec = None  # 'k' or None
+    lw=0.5
+    #plt.hist(multi_fpt_list, bins=bins, alpha=0.8, color=colours, label=labels, weights=weights, edgecolor=ec, linewidth=lw)
+    plt.hist(multi_fpt_list, bins=bins, color=colours, label=labels, weights=weights, edgecolor=ec,
+             linewidth=lw)
+    ax = plt.gca()
+    ax.set_xlabel('FP Time (cell division timescale)', fontsize=fs)
+    ax.set_ylabel(y_label, fontsize=fs)
+    ax.set_yscale("log", nonposx='clip')
+    plt.title('First passage time histogram (%d runs)' % (ensemble_size))
+    plt.legend(loc='upper right', fontsize=fs)
+    ax.tick_params(labelsize=fs)
+    # DRAW MEAN LINE
+    #plt.axvline(np.mean(fpt_list), color='k', linestyle='dashed', linewidth=2)
+    plt_save = "fpt_multihistogram_may25" + figname_mod
+    fig.savefig(OUTPUT_DIR + sep + plt_save + '.pdf', bbox_inches='tight')
+    if show_flag:
+        plt.show()
 
 def plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_vary_name, param_set, params, system, samplesize, SEM_flag=True, show_flag=False, figname_mod=""):
     if SEM_flag:
@@ -186,8 +265,8 @@ if __name__ == "__main__":
     # SCRIPT FLAGS
     flag_compute_fpt = False
     flag_read_fpt = False
-    flag_generate_hist_multi = True
-    flag_load_hist_multi = False
+    flag_generate_hist_multi = False
+    flag_load_hist_multi = True
     flag_collect = False
     flag_means_read_and_plot = False
     flag_means_collect_and_plot = False
@@ -228,7 +307,7 @@ if __name__ == "__main__":
 
     if flag_generate_hist_multi:
         ensemble = 14
-        num_proc = 7
+        num_proc = cpu_count() - 1
         param_vary_id = "c"
         param_idx = PARAMS_ID_INV[param_vary_id]
         param_vary_values = [0.8, 0.88, 0.95]
@@ -247,22 +326,26 @@ if __name__ == "__main__":
         fpt_histogram_multi(multi_fpt, multi_fpt_labels, show_flag=True, y_log10_flag=False)
 
     if flag_load_hist_multi:
-        dbdir = OUTPUT_DIR + sep + "hist_multi"
-        dbdir_c95 = dbdir + "1000_xyz_feedbackZ_c95"
-        dbdir_c86 = dbdir + "1000_xyz_feedbackZ_c86"
-        fp_times_xyz_c086, params_a, system_a = read_fpt_and_params(dbdir_c86, "fpt_feedback_z_ens256_N10k_c086_full_data.txt",
-                                                                   "fpt_feedback_z_ens256_N10k_c086_full_params.csv")
-        fp_times_xyz_c095, params_b, system_b = read_fpt_and_params(dbdir_c95, "fpt_xyz_feedbackz_1000_c95_data.txt",
-                                                                   "fpt_xyz_feedbackz_1000_c95_params.csv")
-        fpt_histogram(fp_times_xyz_c095, params_b, system_b, y_log10_flag=False, figname_mod="_xyz_feedbackz_N10k_c95_ap18")
-        plt.close('all')
-        fpt_histogram(fp_times_xyz_c095, params_b, system_b, y_log10_flag=True, figname_mod="_xyz_feedbackz_N10k_c95_ap18_logy")
-        plt.close('all')
-        multi_fpt = [fp_times_xyz_c086, fp_times_xyz_c095]
-        labels = ("XYZ_c0.86_N10k", "XYZ_c0.95_N10k")
-        fpt_histogram_multi(multi_fpt, labels, show_flag=True, y_log10_flag=False)
-        plt.close('all')
-        fpt_histogram_multi(multi_fpt, labels, show_flag=True, y_log10_flag=True)
+        flag_norm = True
+        dbdir = OUTPUT_DIR + sep + "may25_100"
+        #dbdir_c80 = dbdir + "fpt_feedback_z_ens1040_c0.80_params"
+        c80_header = "fpt_feedback_z_ens1040_c80_N100"
+        c88_header = "fpt_feedback_z_ens1040_c88_N100"
+        c95_header = "fpt_feedback_z_ens1040_c95_N100"
+        fp_times_xyz_c80, params_a, system_a = read_fpt_and_params(dbdir, "%s_data.txt" % c80_header, "%s_params.csv" % c80_header)
+        fp_times_xyz_c88, params_b, system_b = read_fpt_and_params(dbdir, "%s_data.txt" % c88_header, "%s_params.csv" % c88_header)
+        fp_times_xyz_c95, params_c, system_c = read_fpt_and_params(dbdir, "%s_data.txt" % c95_header, "%s_params.csv" % c95_header)
+        #fpt_histogram(fp_times_xyz_c88, params_b, system_b, y_log10_flag=False, figname_mod="_xyz_feedbackz_N10k_c88_may25")
+        #plt.close('all')
+        #fpt_histogram(fp_times_xyz_c88, params_b, system_b, y_log10_flag=True, figname_mod="_xyz_feedbackz_N10k_c88_may25_logy")
+        #plt.close('all')
+        multi_fpt = [fp_times_xyz_c80, fp_times_xyz_c88, fp_times_xyz_c95]
+        labels = ("XYZ_c0.80_N100", "XYZ_c0.88_N100", "XYZ_c0.95_N100")
+        fpt_histogram_multi(multi_fpt, labels, show_flag=True, y_log10_flag=False, flag_norm=flag_norm, fs=16)
+        #plt.close('all')
+        fpt_histogram_multi(multi_fpt, labels, show_flag=True, y_log10_flag=True, flag_norm=flag_norm, fs=16)
+        fpt_histogram_multi_MAY25(multi_fpt, labels, show_flag=True, y_log10_flag=True, flag_norm=flag_norm, fs=16)
+
 
     if flag_means_read_and_plot:
         datafile = OUTPUT_DIR + sep + "fpt_stats_collected_mean_sd_varying_N.txt"
