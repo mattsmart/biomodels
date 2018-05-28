@@ -5,6 +5,7 @@ from os import sep
 
 import formulae
 from constants import OUTPUT_DIR, PARAMS_ID_INV, INIT_COND, TIME_START, TIME_END, NUM_STEPS, SIM_METHOD
+from params import Params
 from plotting import plot_simplex, plot_trajectory_mono, plot_trajectory
 
 
@@ -15,26 +16,29 @@ pylab.rcParams.update(mpl_params)
 
 
 def trajectory_infoprint(init_cond, t0, t1, num_steps, params):
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
+    # params is class
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params.params_list()
     times = np.linspace(t0, t1, num_steps + 1)
     print "ODE Setup: t0, t1:", t0, t1, "| num_steps, dt:", num_steps, times[1] - times[0]
     print "Init Cond:", init_cond
     print "Specified parameters: \nalpha_plus = " + str(alpha_plus) + " | alpha_minus = " + str(alpha_minus) + \
           " | mu = " + str(mu) + " | a = " + str(a) + " | b = " + str(b) + " | c = " + str(c) + " | N = " + str(N) + \
           " | v_x = " + str(v_x) + " | v_y = " + str(v_y) + " | v_z = " + str(v_z) + " | mu_base = " + str(mu_base)
+    print "System:", params.system
 
 
-def trajectory_simulate(params, system, init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
+def trajectory_simulate(params, init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
                         sim_method=SIM_METHOD, flag_showplt=False, flag_saveplt=True, flag_info=False, plt_save="trajectory"):
+    # params is "Params" class object
     # SIMULATE SETUP
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params.params_list()
     display_spacing = int(num_steps / 10)
     times = np.linspace(t0, t1, num_steps + 1)
     if flag_info:
         trajectory_infoprint(init_cond, t0, t1, num_steps, params)
 
     # SIMULATE
-    r, times = formulae.simulate_dynamics_general(init_cond, times, params, method=sim_method, system=system)
+    r, times = formulae.simulate_dynamics_general(init_cond, times, params, method=sim_method)
     if flag_info:
         print 'Done trajectory\n'
 
@@ -76,7 +80,10 @@ if __name__ == "__main__":
     v_y = 0.0
     v_z = 0.0
     mu_base = 0.0
-    params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
+
+    # load params class
+    params_list = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
+    params = Params(params_list, system)
 
     """
     trajectory_simulate(params, system)
@@ -85,7 +92,8 @@ if __name__ == "__main__":
     ic_mixed = [0.8*N, 0.1*N, 0.1*N]
     param_vary = "c"
     for pv in [0.81, 0.83, 0.85, 0.87, 0.89, 0.91, 0.93, 0.95, 0.97, 0.99, 1.01, 1.03]:
-        params_step = params
-        params_step[PARAMS_ID_INV[param_vary]] = pv
+        params_step_list = params_list[:]
+        params_step_list[PARAMS_ID_INV[param_vary]] = pv
+        params_step = Params(params_step_list, system)
         fmname = "trajectory_main_%s=%.3f" % (param_vary, pv)
-        trajectory_simulate(params, system, init_cond=ic_mixed, t1=2000, plt_save=fmname)
+        trajectory_simulate(params_step, init_cond=ic_mixed, t1=2000, plt_save=fmname, flag_showplt=True)
