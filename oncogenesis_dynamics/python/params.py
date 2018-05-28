@@ -21,7 +21,7 @@ class Params(object):
         self.v_z = v_z
         self.mu_base = mu_base
         # init_cond as x, y, z
-        self.init_cond = init_cond
+        self.init_cond = init_cond  # TODO not fully implemented
         # system as defined in constants.pu (e.g. 'default', 'feedback_z')
         assert system in ODE_SYSTEMS
         self.system = system
@@ -29,13 +29,17 @@ class Params(object):
     def __str__(self):
         return str(self.params)
 
+    def modify_params(self, param_label, new_value):
+        # TODO implement (also modify params list attribute
+        return
+
     def printer(self):
         for idx in xrange(len(PARAMS_ID.keys())):
             print "Param %d: (%s) = %.3f" % (idx, PARAMS_ID[idx], self.params[idx])
 
-    def params_copy(self):
-        params_copy = self.params[:]
-        return params_copy
+    def params_list(self):
+        params_list = self.params[:]
+        return params_list
 
     def write(self, filedir, filename):
         filepath = write_params(self.params, self.system, filedir, filename)
