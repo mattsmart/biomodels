@@ -58,7 +58,7 @@ PARAM_Y0_PLUS_Z0_RATIO = 0.1   # size of y0 + z0 relative to N (in feedback_yz f
 PARAM_GAMMA = 9.0              # when z->N, mu_base-> approx (K + 1)*mu_base
 PARAM_HILL = 1                 # (unused currently) hill parameter 'n'
 
-# PLOTTING
+# COLOURS FOR PLOTTING
 # simplex bifurcation diagram colours
 X0_COL = ["grey", "black"]  # black stable (grey unstable)
 X1_COL = ["red", "blue"]  # blue stable (red unstable)
@@ -67,3 +67,13 @@ X2_COL = ["green", "magenta"]  # magenta stable (green unstable)
 DEFAULT_X_COLOUR = (169/255.0, 209/255.0, 142/255.0)
 DEFAULT_Y_COLOUR = (255/255.0, 217/255.0, 102/255.0)
 DEFAULT_Z_COLOUR = (244/255.0, 177/255.0, 131/255.0)
+# FPT histogram colours
+GREY = (169 / 255.0, 169 / 255.0, 169 / 255.0)
+BLUE = (119 / 255.0, 158 / 255.0, 203 / 255.0)
+GREY_DARK = (149 / 255.0, 149 / 255.0, 149 / 255.0)
+COLOUR_EPS = 20.0 / 255.0
+X_DARK = [i - COLOUR_EPS for i in DEFAULT_X_COLOUR]
+Z_DARK = [i - COLOUR_EPS for i in DEFAULT_Z_COLOUR]
+COLOURS_GREY = [DEFAULT_X_COLOUR, GREY, DEFAULT_Z_COLOUR]
+COLOURS_DARK_GREY = [X_DARK, GREY_DARK, Z_DARK]
+COLOURS_DARK_BLUE = [X_DARK, BLUE, Z_DARK]
