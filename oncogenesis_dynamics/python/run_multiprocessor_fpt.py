@@ -4,6 +4,7 @@ from multiprocessing import cpu_count
 
 from data_io import write_fpt_and_params
 from firstpassage import fast_fp_times, fpt_histogram
+from params import Params
 
 
 def fpt_argparser():
@@ -39,11 +40,12 @@ if __name__ == "__main__":
     v_y = 0.0
     v_z = 0.0
     mu_base = 0.0  #mu*1e-1
-    params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
+    params_list = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
+    params = Params(params_list, system)
 
     init_cond = [int(N), 0, 0]
 
-    fp_times = fast_fp_times(ensemble, init_cond, params, system, num_processes)
-    write_fpt_and_params(fp_times, params, system, filename="fpt_%s_ens%d" % (system, ensemble), filename_mod=suffix)
+    fp_times = fast_fp_times(ensemble, init_cond, params, num_processes)
+    write_fpt_and_params(fp_times, params, filename="fpt_%s_ens%d" % (params.system, ensemble), filename_mod=suffix)
     if plot_flag:
-        fpt_histogram(fp_times, params, system, show_flag=False, figname_mod="_%s_ens%d_%s" % (system, ensemble, suffix))
+        fpt_histogram(fp_times, params, show_flag=False, figname_mod="_%s_ens%d_%s" % (params.system, ensemble, suffix))
