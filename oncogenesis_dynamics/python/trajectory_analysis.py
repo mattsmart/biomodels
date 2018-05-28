@@ -4,6 +4,7 @@ from os import sep
 
 from constants import OUTPUT_DIR, PARAMS_ID, PARAMS_ID_INV, BIFURC_DICT, VALID_BIFURC_PARAMS
 from formulae import bifurc_value, fp_from_timeseries
+from params import Params
 from plotting import plot_trajectory_mono, plot_endpoint_mono
 from trajectory import trajectory_simulate
 
@@ -34,8 +35,8 @@ else:
     param_varying_values = np.linspace(SEARCH_START, SEARCH_END, SEARCH_AMOUNT)
 
 # SCRIPT PARAMS
+system = "feedback_z"  # "default" or "feedback_z" or "feedback_yz"
 SIM_METHOD = "libcall"  # see constants.py -- SIM_METHODS
-ODE_SYSTEM = "feedback_z"  # "default" or "feedback_z" or "feedback_yz"
 INIT_COND = [98.0, 1.0, 1.0] #[99.9, 0.1, 0.0]
 TIME_START = 0.0
 TIME_END = 10*16000.0  #20.0
@@ -53,7 +54,7 @@ v_x = 0.0
 v_y = 0.0
 v_z = 0.0
 mu_base = 0.0
-params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
+params_list = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
 
 # VARYING PARAM SPECIFICATION
 """
@@ -70,7 +71,7 @@ print "Searching in window: %.8f to %.8f with %d points" \
 
 # CONSTRUCT PARAM ENSEMBLE
 num_param_sets = len(param_varying_values)
-param_ensemble = [[elem for elem in params] for _ in xrange(num_param_sets)]
+param_ensemble = [[elem for elem in params_list] for _ in xrange(num_param_sets)]
 for idx in xrange(num_param_sets):
     param_ensemble[idx][PARAMS_ID_INV[param_varying_name]] = param_varying_values[idx]
 
@@ -78,8 +79,9 @@ for idx in xrange(num_param_sets):
 ax_comp = None
 r_inf_list = np.zeros((len(param_varying_values), 3))
 
-for idx, params in enumerate(param_ensemble):
-    r, times, ax_traj, ax_mono = trajectory_simulate(params, ODE_SYSTEM, init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
+for idx, params_list in enumerate(param_ensemble):
+    params = Params(params_list, system)
+    r, times, ax_traj, ax_mono = trajectory_simulate(params, init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
                                                      sim_method=SIM_METHOD, flag_showplt=False, flag_saveplt=False)
     ax_mono = plot_trajectory_mono(r, times, False, False, ax_mono=ax_comp, mono="z")
     ax_comp = ax_mono
