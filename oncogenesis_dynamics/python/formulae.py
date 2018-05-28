@@ -260,7 +260,7 @@ def bifurc_value(params, bifurc_name):
 
 
 def threshold_1(params):
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params.param_list()
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params.params_list()
     assert mu_base <= 10e-10
     delta = 1 - b
     s = c - 1
@@ -268,7 +268,7 @@ def threshold_1(params):
 
 
 def threshold_2(params):
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params.param_list()
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params.params_list()
     assert mu_base <= 10e-10
     delta = 1 - b
     s = c - 1
@@ -276,7 +276,7 @@ def threshold_2(params):
 
 
 def q_get(params, sign):
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params.param_list()
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params.params_list()
     assert mu_base <= 10e-10
     assert sign in [-1, +1]
     delta = 1 - b
@@ -288,7 +288,7 @@ def q_get(params, sign):
 def fp_location_noflow(params):
     q1 = q_get(params, +1)
     q2 = q_get(params, -1)
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params.param_list()
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params.params_list()
     assert mu_base <= 10e-10
     delta = 1 - b
     s = c - 1
