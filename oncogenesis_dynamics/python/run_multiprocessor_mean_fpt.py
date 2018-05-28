@@ -6,6 +6,7 @@ from multiprocessing import cpu_count
 from constants import PARAMS_ID_INV
 from data_io import write_varying_mean_sd_fpt_and_params, read_varying_mean_sd_fpt_and_params
 from firstpassage import fast_mean_fpt_varying, plot_mean_fpt_varying
+from params import Params
 
 
 def fpt_argparser():
@@ -64,7 +65,8 @@ if __name__ == "__main__":
     v_y = 0.0
     v_z = 0.0
     mu_base = 0.0  #mu*1e-1
-    params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
+    params_list = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
+    params = Params(params_list, system)
 
     if param_to_vary == 'N':
         #param_set = [10,20,30,40,50,60,70,80,90,100,200,300,400,500,1000,2000,3000,4000,5000,10000]
@@ -80,15 +82,15 @@ if __name__ == "__main__":
     print param_set
 
     t0 = time.time()
-    mean_fpt_varying, sd_fpt_varying = fast_mean_fpt_varying(param_to_vary, param_set, params, system,
+    mean_fpt_varying, sd_fpt_varying = fast_mean_fpt_varying(param_to_vary, param_set, params,
                                                              num_processes, init_name=init_name, samplesize=ensemble)
     print "Elapsed time:", time.time() - t0
 
     datafile, paramfile = \
-        write_varying_mean_sd_fpt_and_params(mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system,
+        write_varying_mean_sd_fpt_and_params(mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params,
                                              filename_mod=suffix)
-    mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system = \
+    mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params = \
         read_varying_mean_sd_fpt_and_params(datafile, paramfile)
     if plot_flag:
-        plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, system, ensemble,
+        plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, ensemble,
                               show_flag=True, figname_mod="_%s_n%d" % (param_to_vary, ensemble))
