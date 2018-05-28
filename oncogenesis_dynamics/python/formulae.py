@@ -13,7 +13,6 @@ Conventions
                                   params[10] -> mu_base    (typically 0)
 - if an element of params is specified as None then a bifurcation range will be be found and used
 """
-# TODO: make a feedback function which takes in the feedback flag, info on x, y, z, and returns alpha+, alpha-, save ~ 70 lines
 
 import csv
 import numpy as np
@@ -26,50 +25,59 @@ from sympy import Symbol, solve, re
 import trajectory
 from constants import PARAMS_ID, CSV_DATA_TYPES, SIM_METHODS, PARAM_Z0_RATIO, PARAM_Y0_PLUS_Z0_RATIO, PARAM_HILL, \
                       ODE_SYSTEMS, PARAMS_ID_INV, PARAM_GAMMA
+from params import Params
 
 
-def system_vector(init_cond, times, system, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base):
-    #TODO params = system_variants(params, system) use throughout reduce duplicates
+def system_variants(init_cond, times, params):
     x, y, z = init_cond
-    fbar = (a * x + b * y + c * z + v_x + v_y + v_z) / N
-    if system == "feedback_z":
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params.params_list()
+
+    if params.system == "feedback_z":
         alpha_plus = alpha_plus * (1 + z**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL))
         alpha_minus = alpha_minus * (PARAM_Z0_RATIO*N)**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL)
-    elif system == "feedback_yz":
+    elif params.system == "feedback_yz":
         yz = y + z
         alpha_plus = alpha_plus * (1 + yz**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL))
         alpha_minus = alpha_minus * (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL)
+    elif params.system == "feedback_mu_XZ_model":
+        alpha_plus = 0.0
+        alpha_minus = 0.0
+        mu_base = mu_base * (1 + PARAM_GAMMA * z**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO * N)**PARAM_HILL))
+
+    return alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base
+
+
+def ode_system_vector(init_cond, times, params):
+    x, y, z = init_cond
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = system_variants(init_cond, times, params)
+    fbar = (a * x + b * y + c * z + v_x + v_y + v_z) / N
     dxdt = v_x - x * (alpha_plus + mu_base) + y * alpha_minus + (a - fbar) * x
     dydt = v_y + x * alpha_plus - y * (alpha_minus + mu) + (b - fbar) * y
     dzdt = v_z + y * mu + z*mu_base + (c - fbar) * z
     return [dxdt, dydt, dzdt]
 
 
-def system_vector_obj_ode(t_scalar, r_idx, system, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base):
-    return system_vector(r_idx, t_scalar, system, alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base)
+def system_vector_obj_ode(t_scalar, r_idx, params):
+    return ode_system_vector(r_idx, t_scalar, params)
 
 
-def ode_euler(init_cond, times, system, params):
-    fn = system_vector
-    odeparams = [system] + params
+def ode_euler(init_cond, times, params):
     dt = times[1] - times[0]
     r = np.zeros((len(times), 3))
     r[0] = np.array(init_cond)
     for idx, t in enumerate(times[:-1]):
-        v = fn(r[idx], None, *odeparams)
+        v = ode_system_vector(r[idx], None, params)
         r[idx+1] = r[idx] + np.array(v)*dt
     return r, times
 
 
-def ode_rk4(init_cond, times, system, params):
+def ode_rk4(init_cond, times, params):
     dt = times[1] - times[0]
     r = np.zeros((len(times), 3))
     r[0] = np.array(init_cond)
-    odeparams = [system] + params
-    fn = system_vector_obj_ode
-    obj_ode = ode(fn, jac=None)
+    obj_ode = ode(system_vector_obj_ode, jac=None)
     obj_ode.set_initial_value(init_cond, times[0])
-    obj_ode.set_f_params(*odeparams)
+    obj_ode.set_f_params(params)
     obj_ode.set_integrator('dopri5')
     idx = 1
     while obj_ode.successful() and obj_ode.t < times[-1]:
@@ -79,27 +87,15 @@ def ode_rk4(init_cond, times, system, params):
     return r, times
 
 
-def ode_libcall(init_cond, times, system, params):
-    fn = system_vector
-    odeparams = [system] + params
-    r = odeint(fn, init_cond, times, args=tuple(odeparams))
+def ode_libcall(init_cond, times, params):
+    fn = ode_system_vector
+    r = odeint(fn, init_cond, times, args=tuple(params))
     return r, times
 
 
-def reaction_propensities(r, step, system, params, fpt_flag=False):
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
+def reaction_propensities(r, step, params, fpt_flag=False):
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = system_variants(r[step], None, params)
     x_n, y_n, z_n = r[step]
-    if system == "feedback_z":
-        alpha_plus = alpha_plus * (1 + z_n**PARAM_HILL / (z_n**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL))
-        alpha_minus = alpha_minus * (PARAM_Z0_RATIO*N)**PARAM_HILL / (z_n**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL)
-    elif system == "feedback_yz":
-        yz = y_n + z_n
-        alpha_plus = alpha_plus * (1 + yz**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL))
-        alpha_minus = alpha_minus * (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL)
-    elif system == "feedback_mu_XZ_model":
-        alpha_plus = 0.0
-        alpha_minus = 0.0
-        mu_base = mu_base * (1 + PARAM_GAMMA * z_n**PARAM_HILL / (z_n**PARAM_HILL + (PARAM_Z0_RATIO * N)**PARAM_HILL))
     fbar = (a*x_n + b*y_n + c*z_n + v_x + v_y + v_z) / N    # TODO flag to switch N to x + y + z
     rxn_prop = [a*x_n, fbar*(x_n),                      # birth/death events for x  TODO: is it fbar*(x_n - 1)
                 b*y_n, fbar*(y_n),                      # birth/death events for y  TODO: is it fbar*(y_n - 1)
@@ -132,7 +128,7 @@ def bisecting_rxn_search_recurse(propensities, L, R, T, m=0):
         return bisecting_rxn_search_recurse(propensities, L, m-1, T, m=m)
 
 
-def stoch_gillespie(init_cond, num_steps, system, params, fpt_flag=False):
+def stoch_gillespie(init_cond, num_steps, params, fpt_flag=False):
     # There are 12 transitions to consider:
     # - 6 birth/death of the form x_n -> x_n+1, (x birth, x death, ...), label these 0 to 5
     # - 3 transitions of the form x_n -> x_n-1, (x->y, y->x, y->z), label these 6 to 8
@@ -159,7 +155,7 @@ def stoch_gillespie(init_cond, num_steps, system, params, fpt_flag=False):
         r1 = random()  # used to determine time of next reaction
         r2 = random()  # used to partition the probabilities of each reaction
         # compute propensity functions (alpha) and the partitions for all 12 transitions
-        alpha = reaction_propensities(r, step, system, params, fpt_flag=fpt_flag)
+        alpha = reaction_propensities(r, step, params, fpt_flag=fpt_flag)
         alpha_partitions = np.zeros(len(alpha)+1)
         alpha_sum = 0.0
         for i in xrange(len(alpha)):
@@ -191,22 +187,21 @@ def stoch_gillespie(init_cond, num_steps, system, params, fpt_flag=False):
             return r[:step+2, :], times_stoch[:step+2]  # end sim because fpt achieved
     if fpt_flag:  # if code gets here should recursively continue the simulation
         init_cond = r[-1]
-        r_redo, times_stoch_redo = stoch_gillespie(init_cond, num_steps, system, params, fpt_flag=fpt_flag)
+        r_redo, times_stoch_redo = stoch_gillespie(init_cond, num_steps, params, fpt_flag=fpt_flag)
         times_stoch_redo_shifted = times_stoch_redo + times_stoch[-1]  # shift start time of new sim by last time
         return np.concatenate((r, r_redo)), np.concatenate((times_stoch, times_stoch_redo_shifted))
     return r, times_stoch
 
 
-def simulate_dynamics_general(init_cond, times, params, method="libcall", system="default"):
-    assert system in ODE_SYSTEMS
+def simulate_dynamics_general(init_cond, times, params, method="libcall"):
     if method == "libcall":
-        return ode_libcall(init_cond, times, system, params)
+        return ode_libcall(init_cond, times, params)
     elif method == "rk4":
-        return ode_rk4(init_cond, times, system, params)
+        return ode_rk4(init_cond, times, params)
     elif method == "euler":
-        return ode_euler(init_cond, times, system, params)
+        return ode_euler(init_cond, times, params)
     elif method == "gillespie":
-        return stoch_gillespie(init_cond, len(times), system, params)
+        return stoch_gillespie(init_cond, len(times), params)
     else:
         raise ValueError("method arg invalid, must be one of %s" % SIM_METHODS)
 
@@ -227,7 +222,7 @@ def bifurc_value(params, bifurc_name):
     Note: assumes params contains at most one None parameter
     # TODO: implement mu_base (analysis)
     """
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params.params_list()
     assert mu_base <= 10e-10
     if b is not None:
         delta = 1 - b
@@ -265,7 +260,7 @@ def bifurc_value(params, bifurc_name):
 
 
 def threshold_1(params):
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params.param_list()
     assert mu_base <= 10e-10
     delta = 1 - b
     s = c - 1
@@ -273,7 +268,7 @@ def threshold_1(params):
 
 
 def threshold_2(params):
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params.param_list()
     assert mu_base <= 10e-10
     delta = 1 - b
     s = c - 1
@@ -281,7 +276,7 @@ def threshold_2(params):
 
 
 def q_get(params, sign):
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params.param_list()
     assert mu_base <= 10e-10
     assert sign in [-1, +1]
     delta = 1 - b
@@ -293,7 +288,7 @@ def q_get(params, sign):
 def fp_location_noflow(params):
     q1 = q_get(params, +1)
     q2 = q_get(params, -1)
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params.param_list()
     assert mu_base <= 10e-10
     delta = 1 - b
     s = c - 1
@@ -306,20 +301,30 @@ def fp_location_noflow(params):
     return [[0, 0, N], conjugate_fps[0], conjugate_fps[1]]
 
 
-def fp_location_sympy_system(params, system):
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
+def fp_location_sympy_system(params):
     sym_x = Symbol("x")
     sym_y = Symbol("y")
-    VV = (v_x + v_y + v_z) / N
-    if system == "feedback_z":
+    state_vec = [sym_x, sym_y, params.N - sym_x - sym_y]
+
+    # TODO check that new method matches old method
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = system_variants(state_vec, None, params)
+    """ OLD METHOD
+    if params.system == "feedback_z":
         z = N - sym_x - sym_y
         alpha_plus = alpha_plus * (1 + z**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL))
         alpha_minus = alpha_minus * (PARAM_Z0_RATIO*N)**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL)
-    elif system == "feedback_yz":
+    elif params.system == "feedback_yz":
         yz = N - sym_x
         alpha_plus = alpha_plus * (1 + yz**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL))
         alpha_minus = alpha_minus * (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL)
+    elif params.system == "feedback_mu_XZ_model":
+        z = N - sym_x - sym_y
+        alpha_plus = 0.0
+        alpha_minus = 0.0
+        mu_base = mu_base * (1 + PARAM_GAMMA * z**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO * N)**PARAM_HILL))
+    """
 
+    VV = (v_x + v_y + v_z) / N
     xdot = (c-a)/N*sym_x**2 + (c-b)/N*sym_x*sym_y + (a-c-alpha_plus-mu_base-VV)*sym_x + alpha_minus*sym_y + v_x
     ydot = (c-b)/N*sym_y**2 + (c-a)/N*sym_x*sym_y + (b-c-alpha_minus-mu-VV)*sym_y + alpha_plus*sym_x + v_y
     eqns = (xdot, ydot)
@@ -332,18 +337,28 @@ def fp_location_sympy_system(params, system):
     return solution_list
 
 
-def fp_location_sympy_quartic(params, system):
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
+def fp_location_sympy_quartic(params):
     sym_x = Symbol("x")
     sym_y = Symbol("y")
-    if system == "feedback_z":
+    state_vec = [sym_x, sym_y, params.N - sym_x - sym_y]
+
+    # TODO check that new method matches old method
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = system_variants(state_vec, None, params)
+    """ OLD METHOD
+    if params.system == "feedback_z":
         z = N - sym_x - sym_y
         alpha_plus = alpha_plus * (1 + z**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL))
         alpha_minus = alpha_minus * (PARAM_Z0_RATIO*N)**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL)
-    elif system == "feedback_yz":
+    elif params.system == "feedback_yz":
         yz = N - sym_x
         alpha_plus = alpha_plus * (1 + yz**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL))
         alpha_minus = alpha_minus * (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL)
+    elif params.system == "feedback_mu_XZ_model":
+        z = N - sym_x - sym_y
+        alpha_plus = 0.0
+        alpha_minus = 0.0
+        mu_base = mu_base * (1 + PARAM_GAMMA * z**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO * N)**PARAM_HILL))
+    """
     VV = (v_x+v_y+v_z)/N
     a0 = (c-a)/N
     a1 = 0.0
@@ -367,32 +382,24 @@ def fp_location_sympy_quartic(params, system):
     return solution_list
 
 
-def fsolve_func(xvec_guess, system, params):  # TODO: faster if split into 3 fns w.o if else for feedback cases
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
-    VV = (v_x + v_y + v_z) / N
+def fsolve_func(xvec_guess, params):  # TODO: faster if split into 3 fns w.o if else for feedback cases
     x0, y0 = xvec_guess
-    if system == "feedback_z":
-        z = N - x0 - y0
-        alpha_plus = alpha_plus * (1 + z**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL))
-        alpha_minus = alpha_minus * (PARAM_Z0_RATIO*N)**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL)
-    elif system == "feedback_yz":
-        yz = N - x0
-        alpha_plus = alpha_plus * (1 + yz**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL))
-        alpha_minus = alpha_minus * (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL)
-
+    state_guess = [x0, y0, params.N - x0 - y0]
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = system_variants(state_guess, None, params)
+    VV = (v_x + v_y + v_z) / N
     xdot = (c-a)/N*x0**2 + (c-b)/N*x0*y0 + (a-c-alpha_plus-mu_base-VV)*x0 + alpha_minus*y0 + v_x
     ydot = (c-b)/N*y0**2 + (c-a)/N*x0*y0 + (b-c-alpha_minus-mu-VV)*y0 + alpha_plus*x0 + v_y
     return [xdot, ydot]
 
 
-def fp_location_fsolve(params, system, check_near_traj_endpt=True, gridsteps=15, tol=10e-1):
-    N = params[PARAMS_ID_INV["N"]]
+def fp_location_fsolve(params, check_near_traj_endpt=True, gridsteps=15, tol=10e-1):
+    N = params.N
     unique_solutions = []
     # first check for roots near trajectory endpoints (possible stable roots)
     if check_near_traj_endpt:
-        traj, _, _, _ = trajectory.trajectory_simulate(params, system, flag_showplt=False, flag_saveplt=False)
+        traj, _, _, _ = trajectory.trajectory_simulate(params, flag_showplt=False, flag_saveplt=False)
         fp_guess = traj[-1][0:2]
-        solution, infodict, _, _ = fsolve(fsolve_func, fp_guess, (system, params), full_output=True)
+        solution, infodict, _, _ = fsolve(fsolve_func, fp_guess, (params), full_output=True)
         if np.linalg.norm(infodict["fvec"]) <= 10e-3:  # only append actual roots (i.e. f(x)=0)
             unique_solutions.append([solution[0], solution[1], N - solution[0] - solution[1]])
     # grid search of solution space (positive simplex):
@@ -401,7 +408,7 @@ def fp_location_fsolve(params, system, check_near_traj_endpt=True, gridsteps=15,
         for j in xrange(gridsteps-i):
             y_guess = N * i / float(gridsteps)
             # TODO: this returns jacobian estimate.. use it
-            solution, infodict, _, _ = fsolve(fsolve_func, [x_guess, y_guess], (system, params), full_output=True)
+            solution, infodict, _, _ = fsolve(fsolve_func, [x_guess, y_guess], (params), full_output=True)
             append_flag = True
             for k, usol in enumerate(unique_solutions):
                 if np.abs(solution[0] - usol[0]) <= tol:   # only store unique roots from list of all roots
@@ -413,24 +420,24 @@ def fp_location_fsolve(params, system, check_near_traj_endpt=True, gridsteps=15,
     return unique_solutions
 
 
-def fp_location_general(params, system, solver_fsolve=True, solver_fast=False, solver_explicit=False):
+def fp_location_general(params, solver_fsolve=True, solver_fast=False, solver_explicit=False):
     # TODO: sympy solver often fails when feedback added in
     # TODO: cleanup the flags here
-    assert system in ODE_SYSTEMS
     if solver_fsolve:
-        return fp_location_fsolve(params, system)
+        return fp_location_fsolve(params)
     elif solver_explicit:
-        assert system == "default"
+        assert params.system == "default"
         return fp_location_noflow(params)
     else:
         if solver_fast:
-            return fp_location_sympy_quartic(params, system)
+            return fp_location_sympy_quartic(params)
         else:
-            return fp_location_sympy_system(params, system)
+            return fp_location_sympy_system(params)
 
 
 def jacobian_3d(params, fp):
-    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
+    assert params.system == "default"
+    alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params.params_list()
     assert mu_base <= 10e-10
     M = np.array([[a - alpha_plus - mu_base, alpha_minus, 0],
                   [alpha_plus, b - alpha_minus - mu, 0],
@@ -443,34 +450,20 @@ def jacobian_3d(params, fp):
     return M - 1/N*np.array([r1,r2,r3])
 
 
-def jacobian_numerical_2d(params, fp, system):
+def jacobian_numerical_2d(params, fp):
     # TODO: can use numdifftools jacobian function instead
     # TODO: move scope of func xdot etc up and use them both in func fsolve
     def func_xdot(fp):
         x, y = fp[0], fp[1]
-        alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
+        state_vec = [x, y, params.N - x - y]
+        alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = system_variants(state_vec, None, params)
         VV = (v_x + v_y + v_z) / N
-        if system == "feedback_z":
-            z = N - x - y
-            alpha_plus = alpha_plus * (1 + z ** PARAM_HILL / (z ** PARAM_HILL + (PARAM_Z0_RATIO * N) ** PARAM_HILL))
-            alpha_minus = alpha_minus * (PARAM_Z0_RATIO * N) ** PARAM_HILL / (z ** PARAM_HILL + (PARAM_Z0_RATIO * N) ** PARAM_HILL)
-        elif system == "feedback_yz":
-            yz = N - x
-            alpha_plus = alpha_plus * (1 + yz ** PARAM_HILL / (yz ** PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO * N) ** PARAM_HILL))
-            alpha_minus = alpha_minus * (PARAM_Y0_PLUS_Z0_RATIO * N) ** PARAM_HILL / (yz ** PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO * N) ** PARAM_HILL)
         return (c - a) / N * x ** 2 + (c - b) / N * x * y + (a - c - alpha_plus - mu_base - VV) * x + alpha_minus * y + v_x
     def func_ydot(fp):
         x, y = fp[0], fp[1]
-        alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
+        state_vec = [x, y, params.N - x - y]
+        alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = system_variants(state_vec, None, params)
         VV = (v_x + v_y + v_z) / N
-        if system == "feedback_z":
-            z = N - x - y
-            alpha_plus = alpha_plus * (1 + z ** PARAM_HILL / (z ** PARAM_HILL + (PARAM_Z0_RATIO * N) ** PARAM_HILL))
-            alpha_minus = alpha_minus * (PARAM_Z0_RATIO * N) ** PARAM_HILL / (z ** PARAM_HILL + (PARAM_Z0_RATIO * N) ** PARAM_HILL)
-        elif system == "feedback_yz":
-            yz = N - x
-            alpha_plus = alpha_plus * (1 + yz ** PARAM_HILL / (yz ** PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO * N) ** PARAM_HILL))
-            alpha_minus = alpha_minus * (PARAM_Y0_PLUS_Z0_RATIO * N) ** PARAM_HILL / (yz ** PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO * N) ** PARAM_HILL)
         return (c-b)/N*y**2 + (c-a)/N*x*y + (b-c-alpha_minus-mu-VV)*y + alpha_plus*x + v_y
     epsilon = 10e-4
     row_x = approx_fprime(fp, func_xdot, epsilon)
@@ -478,10 +471,10 @@ def jacobian_numerical_2d(params, fp, system):
     return np.array([row_x, row_y])
 
 
-def is_stable(params, fp, system, method="numeric_2d"):
+def is_stable(params, fp, method="numeric_2d"):
     if method == "numeric_2d":
         assert len(fp) == 2
-        J = jacobian_numerical_2d(params, fp, system)
+        J = jacobian_numerical_2d(params, fp)
         eigenvalues, V = np.linalg.eig(J)
     elif method == "algebraic_3d":
         J = jacobian_3d(params, fp)
@@ -491,23 +484,23 @@ def is_stable(params, fp, system, method="numeric_2d"):
     return all(eig < 0 for eig in eigenvalues)
 
 
-def get_stable_fp(params, ode_system):
-    fp_locs = fp_location_general(params, ode_system, solver_fsolve=True)
+def get_stable_fp(params):
+    fp_locs = fp_location_general(params, solver_fsolve=True)
     fp_locs_stable = []
     for fp in fp_locs:
-        if is_stable(params, fp[0:2], ode_system, method="numeric_2d"):
+        if is_stable(params, fp[0:2], method="numeric_2d"):
             fp_locs_stable.append(fp)
             # eigs,V = np.linalg.eig(jacobian_numerical_2d(params, fp[0:2], ode_system))
             # print fp, eigs
     return fp_locs_stable
 
 
-def get_physical_and_stable_fp(params, ode_system):
-    fp_locs = fp_location_general(params, ode_system, solver_fsolve=True)
+def get_physical_and_stable_fp(params):
+    fp_locs = fp_location_general(params, solver_fsolve=True)
     fp_locs_physical_and_stable = []
     for fp in fp_locs:
         if all([val > -0.1 for val in fp]):
-            if is_stable(params, fp[0:2], ode_system, method="numeric_2d"):
+            if is_stable(params, fp[0:2], method="numeric_2d"):
                 fp_locs_physical_and_stable.append(fp)
                 #eigs,V = np.linalg.eig(jacobian_numerical_2d(params, fp[0:2], ode_system))
                 #print fp, eigs
