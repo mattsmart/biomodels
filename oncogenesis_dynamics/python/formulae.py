@@ -23,7 +23,7 @@ from scipy.optimize import approx_fprime, fsolve
 from sympy import Symbol, solve, re
 
 import trajectory
-from constants import PARAMS_ID, CSV_DATA_TYPES, SIM_METHODS, PARAM_Z0_RATIO, PARAM_Y0_PLUS_Z0_RATIO, PARAM_HILL, \
+from constants import PARAMS_ID, CSV_DATA_TYPES, SIM_METHODS_VALID, PARAM_Z0_RATIO, PARAM_Y0_PLUS_Z0_RATIO, PARAM_HILL, \
                       ODE_SYSTEMS, PARAMS_ID_INV, PARAM_GAMMA
 from params import Params
 
@@ -203,7 +203,7 @@ def simulate_dynamics_general(init_cond, times, params, method="libcall"):
     elif method == "gillespie":
         return stoch_gillespie(init_cond, len(times), params)
     else:
-        raise ValueError("method arg invalid, must be one of %s" % SIM_METHODS)
+        raise ValueError("method arg invalid, must be one of %s" % SIM_METHODS_VALID)
 
 
 def fp_from_timeseries(r, sim_method, tol=0.001):

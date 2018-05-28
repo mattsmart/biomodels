@@ -36,7 +36,7 @@ else:
 
 # SCRIPT PARAMS
 system = "feedback_z"  # "default" or "feedback_z" or "feedback_yz"
-SIM_METHOD = "libcall"  # see constants.py -- SIM_METHODS
+SIM_METHOD = "libcall"  # see constants.py -- SIM_METHODS_VALID
 INIT_COND = [98.0, 1.0, 1.0] #[99.9, 0.1, 0.0]
 TIME_START = 0.0
 TIME_END = 10*16000.0  #20.0
