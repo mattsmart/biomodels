@@ -36,7 +36,7 @@ class Params(object):
         # TODO implement (also modify params list attribute
         return self.params[PARAMS_ID_INV[param_label]]
 
-    def modify_params(self, new_values):
+    def mod_copy(self, new_values):
         """
         new_values is list of pairs of form (param id, val)
         return new params instance

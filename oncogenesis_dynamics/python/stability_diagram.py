@@ -26,7 +26,7 @@ def get_stability_data_2d(params_general, param_1_name, param_1_range, param_2_n
     stab_array = np.zeros((len(param_1_range), len(param_2_range)), dtype=bool)
     for i, p1 in enumerate(param_1_range):
         for j, p2 in enumerate(param_2_range):
-            params_step = Params.modify_params(params_general, [(param_1_name, p1), (param_2_name, p2)])
+            params_step = Params.mod_copy(params_general, [(param_1_name, p1), (param_2_name, p2)])
             #stab_array[i,j] = is_stable(params_step, fp_stationary, method="algebraic_3d")
             stab_array[i, j] = is_stable(params_step, fp_stationary[0:2], method="numeric_2d")
     if flag_write:
@@ -92,7 +92,7 @@ def get_gap_data_2d(params_general, param_1_name, param_1_range, param_2_name, p
     gap_array = np.zeros((len(param_1_range), len(param_2_range)))
     for i, p1 in enumerate(param_1_range):
         for j, p2 in enumerate(param_2_range):
-            params_step = Params.modify_params(params_general, [(param_1_name, p1), (param_2_name, p2)])
+            params_step = Params.mod_copy(params_general, [(param_1_name, p1), (param_2_name, p2)])
             gap_array[i, j] = get_gap_dist(params_step, axis=axis_gap)
         print i, j, p1, p2
     if flag_write:
@@ -140,7 +140,7 @@ def plot_gap_data_2d(gap_data_2d, params_general, param_1_name, param_1_range, p
 def get_jump_dist(params_orig, param_1_name, param_2_name, param_1_delta=0.01, param_2_delta=0.01, axis="z"):
     values_mod = [(param_1_name, params_orig.get(param_1_name) + param_1_delta),
                   (param_2_name, params_orig.get(param_2_name) + param_2_delta)]
-    params_shift = params_orig.modify_params(params_orig, values_mod)
+    params_shift = params_orig.mod_copy(params_orig, values_mod)
     fp_orig_list = get_physical_and_stable_fp(params_orig)
     fp_shift_list = get_physical_and_stable_fp(params_shift)
     assert len(fp_orig_list) == 1
@@ -155,7 +155,7 @@ def get_jump_data_2d(params_general, param_1_name, param_1_range, param_2_name, 
     jump_array = np.zeros((len(param_1_range), len(param_2_range)))
     for i, p1 in enumerate(param_1_range):
         for j, p2 in enumerate(param_2_range):
-            params_step = Params.modify_params(params_general, [(param_1_name, p1), (param_2_name, p2)])
+            params_step = Params.mod_copy(params_general, [(param_1_name, p1), (param_2_name, p2)])
             jump_array[i, j] = get_jump_dist(params_step, param_1_name, param_2_name, axis=axis_jump)
         print i, j, p1, p2
     return jump_array
@@ -197,7 +197,7 @@ def get_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2_
     fp_count_array = np.zeros((len(param_1_range), len(param_2_range)))
     for i, p1 in enumerate(param_1_range):
         for j, p2 in enumerate(param_2_range):
-            params_step = Params.modify_params(params_general, [(param_1_name, p1), (param_2_name, p2)])
+            params_step = Params.mod_copy(params_general, [(param_1_name, p1), (param_2_name, p2)])
             fp_list = fpcollector(params_step)
             fp_count_array[i, j] = len(fp_list)
         print i, j, p1, p2
