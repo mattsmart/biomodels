@@ -4,11 +4,11 @@ from data_io import read_params, write_params
 
 class Params(object):
 
-    def __init__(self, params, system, init_cond=None):
-        alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params
-        # vector of params
-        self.params = params
-        # params as scalars
+    def __init__(self, params_list, system, init_cond=None):
+        alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params_list
+        # vector of params_list
+        self.params = params_list
+        # params_list as scalars
         self.alpha_plus = alpha_plus
         self.alpha_minus = alpha_minus
         self.mu = mu
@@ -28,6 +28,9 @@ class Params(object):
 
     def __str__(self):
         return str(self.params)
+
+    def __iter__(self):
+        return self.params
 
     def modify_params(self, param_label, new_value):
         # TODO implement (also modify params list attribute
