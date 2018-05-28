@@ -1,3 +1,6 @@
+import csv
+from os import sep
+
 from constants import ODE_SYSTEMS, PARAMS_ID, PARAMS_ID_INV
 from data_io import read_params, write_params
 
@@ -55,13 +58,35 @@ class Params(object):
         return params_list
 
     def write(self, filedir, filename):
-        filepath = write_params(self.params, self.system, filedir, filename)
+        filepath = filedir + sep + filename
+        with open(filepath, "wb") as csv_file:
+            writer = csv.writer(csv_file, delimiter=',')
+            for idx in xrange(len(PARAMS_ID.keys())):
+                if self.params[idx] is None:
+                    self.params[idx] = 'None'
+                writer.writerow([PARAMS_ID[idx], self.params[idx]])
+            # any extra non-dynamics params
+            writer.writerow(['system', self.system])
         return filepath
 
     @staticmethod
     def read(filedir, filename):
-        params_with_system = read_params(filedir, filename)
-        params = params_with_system[:-1]
+        with open(filedir + sep + filename, 'rb') as csvfile:
+            datareader = csv.reader(csvfile, delimiter=',', quotechar='|')
+            num_params = sum(1 for row in datareader)
+            csvfile.seek(0)
+            params_with_system = [0.0] * num_params
+            for idx, pair in enumerate(datareader):
+                if idx < num_params - 1:
+                    assert pair[0] == PARAMS_ID[idx]
+                    if pair[1] != 'None':
+                        params_with_system[idx] = float(pair[1])
+                    else:
+                        params_with_system[idx] = None
+                else:
+                    assert pair[0] == 'system'
+                    params_with_system[idx] = pair[1]
+        params_list = params_with_system[:-1]
         system = params_with_system[-1]
         assert system in ODE_SYSTEMS
-        return Params(params, system, init_cond=None)
+        return Params(params_list, system, init_cond=None)
