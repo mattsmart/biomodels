@@ -34,7 +34,6 @@ def phase_portrait(params, num_traj=NUM_TRAJ, sim_method=SIM_METHOD, output_dir=
         eigenvalues, V = np.linalg.eig(J)
         print fp, eigenvalues
 
-
     plt_title = "Phase portrait (%d traj) System: %s" % (num_traj, params.system)
     plt_save = output_dir + sep + "trajectory_simplex_multi%s.png" % figname_mod
     if basins_flag:
@@ -98,8 +97,7 @@ if __name__ == "__main__":
     print pv_vals
     output_dir = OUTPUT_DIR + sep + "simplex_during_bifurcation_b06_cvary"
     for pv in pv_vals:
-        params_step = params
-        params_step[PARAMS_ID_INV[param_vary]] = pv
+        params_step = params.mod_copy([(param_vary, pv)])
         fmname = "_%.2fb_%.2fc" % (b,pv)
         phase_portrait(params_step, system, num_traj=800, output_dir=output_dir, figname_mod=fmname, basins_flag=True)
         phase_portrait(params_step, system, num_traj=20, output_dir=output_dir, figname_mod=fmname, basins_flag=False)
