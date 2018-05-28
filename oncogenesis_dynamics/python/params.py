@@ -2,7 +2,6 @@ import csv
 from os import sep
 
 from constants import ODE_SYSTEMS, PARAMS_ID, PARAMS_ID_INV
-from data_io import read_params, write_params
 
 
 class Params(object):
