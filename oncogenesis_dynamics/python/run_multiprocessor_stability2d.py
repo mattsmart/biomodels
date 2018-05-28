@@ -4,7 +4,8 @@ from multiprocessing import Pool
 from multiprocessing import cpu_count
 
 from constants import OUTPUT_DIR
-from data_io import write_matrix_data_and_idx_vals, write_params
+from data_io import write_matrix_data_and_idx_vals
+from params import Params
 from stability_diagram import plot_stable_fp_count_2d, get_stable_fp_count_2d, get_gap_data_2d, plot_gap_data_2d
 
 # CONSTANTS
@@ -22,8 +23,9 @@ v_x = 0.0
 v_y = 0.0
 v_z = 0.0
 mu_base = 0.0
-params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
-ode_system = "feedback_z"
+params_list = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
+system = "feedback_z"
+params = Params(params_list, system)
 
 # ARGS TO PASS
 param_1_name = "b"
@@ -70,7 +72,7 @@ if __name__ == "__main__":
         range_step = param_1_steps / NUM_PROCESSES
         param_1_reduced_range = param_1_range[i*range_step : (1 + i)*range_step]
         print "process:", i, "job size:", len(param_1_reduced_range), "x", len(param_2_range)
-        fn_args_dict[i] = {'args': (params, param_1_name, param_1_reduced_range, param_2_name, param_2_range, ode_system),
+        fn_args_dict[i] = {'args': (params, param_1_name, param_1_reduced_range, param_2_name, param_2_range),
                            'kwargs': kwargs_dict}
     t0 = time.time()
     pool = Pool(NUM_PROCESSES)
@@ -85,8 +87,8 @@ if __name__ == "__main__":
         results_collected[i*results_dim[0]:(i+1)*results_dim[0], :] = result
     write_matrix_data_and_idx_vals(results_collected, param_1_range, param_2_range, data_fnstr,
                                    param_1_name, param_2_name, output_dir=OUTPUT_DIR)
-    write_params(params, ode_system, OUTPUT_DIR, data_fnstr + "_params.csv")
+    params.write(OUTPUT_DIR, data_fnstr + "_params.csv")
 
     if flag_plot:
         plot_fn(results_collected, params, param_1_name, param_1_range, param_2_name,
-                param_2_range, ode_system, **kwargs_plot_dict)
+                param_2_range, **kwargs_plot_dict)

@@ -1,4 +1,4 @@
-from constants import ODE_SYSTEMS, PARAMS_ID
+from constants import ODE_SYSTEMS, PARAMS_ID, PARAMS_ID_INV
 from data_io import read_params, write_params
 
 
@@ -32,9 +32,19 @@ class Params(object):
     def __iter__(self):
         return self.params
 
-    def modify_params(self, param_label, new_value):
+    def get(self, param_label):
         # TODO implement (also modify params list attribute
-        return
+        return self.params[PARAMS_ID_INV[param_label]]
+
+    def modify_params(self, new_values):
+        """
+        new_values is list of pairs of form (param id, val)
+        return new params instance
+        """
+        params_shift_list = self.params_list()
+        for pair in new_values:
+            params_shift_list[PARAMS_ID_INV[pair[0]]] = pair[1]
+        return Params(params_shift_list, self.system)
 
     def printer(self):
         for idx in xrange(len(PARAMS_ID.keys())):
