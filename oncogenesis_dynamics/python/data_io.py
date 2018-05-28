@@ -148,7 +148,7 @@ def collect_fpt_and_params(filedir):
     collected_dirname = "collected_%d" % len(fpt_collected)
     collected_dir = filedir + sep + collected_dirname
     mkdir(collected_dir)
-    write_fpt_and_params(fpt_collected, params_0, params_0, filedir=collected_dir, filename="fpt", filename_mod=collected_dirname)
+    write_fpt_and_params(fpt_collected, params_0, filedir=collected_dir, filename="fpt", filename_mod=collected_dirname)
     return collected_dir
 
 
@@ -193,7 +193,7 @@ def collect_fpt_mean_stats_and_params(filedir, dirbase="means"):
     collected_dir = filedir + sep + coll_dirname
     mkdir(collected_dir)
     coll_df, coll_pf = write_varying_mean_sd_fpt_and_params(fpt_means_collected, fpt_sd_collected, param_vary_name, param_vary_collected,
-                                                            params_0[:-1], params_0[-1], filedir=collected_dir, filename_mod="collected")
+                                                            params_0, filedir=collected_dir, filename_mod="collected")
     return coll_df, coll_pf
 
 
