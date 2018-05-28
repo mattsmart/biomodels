@@ -89,7 +89,7 @@ def ode_rk4(init_cond, times, params):
 
 def ode_libcall(init_cond, times, params):
     fn = ode_system_vector
-    r = odeint(fn, init_cond, times, args=tuple(params))
+    r = odeint(fn, init_cond, times, args=(params,))
     return r, times
 
 
