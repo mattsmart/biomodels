@@ -208,7 +208,7 @@ def plot_endpoint_mono(fp_list, param_list, param_varying_name, params, flag_sho
     fig_mono = plt.figure(figsize=(8, 6), dpi=80)
     ax_mono = fig_mono.gca()
     if conv_to_fraction:
-        N = params[PARAMS_ID_INV["N"]]
+        N = params.N
         fp_list = fp_list / N
     if all_axis:
         if flag_log:
@@ -235,7 +235,7 @@ def plot_endpoint_mono(fp_list, param_list, param_varying_name, params, flag_sho
     # CREATE TABLE OF PARAMS
     """
     row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
-    table_vals = [[params[i]] if PARAMS_ID[i] != param_varying_name else [None] for i in xrange(len(PARAMS_ID))]
+    table_vals = [[params.params[i]] if PARAMS_ID[i] != param_varying_name else [None] for i in xrange(len(PARAMS_ID))]
     print len(row_labels), len(table_vals)
     param_table = plt.table(cellText=table_vals,
                             colWidths=[0.1]*3,
