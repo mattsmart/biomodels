@@ -92,8 +92,6 @@ if __name__ == "__main__":
     ic_mixed = [0.8*N, 0.1*N, 0.1*N]
     param_vary = "c"
     for pv in [0.81, 0.83, 0.85, 0.87, 0.89, 0.91, 0.93, 0.95, 0.97, 0.99, 1.01, 1.03]:
-        params_step_list = params_list[:]
-        params_step_list[PARAMS_ID_INV[param_vary]] = pv
-        params_step = Params(params_step_list, system)
+        params_step = params.mod_copy( [(param_vary, pv)] )
         fmname = "trajectory_main_%s=%.3f" % (param_vary, pv)
         trajectory_simulate(params_step, init_cond=ic_mixed, t1=2000, plt_save=fmname, flag_showplt=True)
