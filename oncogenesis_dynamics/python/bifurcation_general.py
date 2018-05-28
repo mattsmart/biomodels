@@ -27,6 +27,7 @@ from os import sep
 from constants import BIFURC_DICT, VALID_BIFURC_PARAMS, OUTPUT_DIR, PARAMS_ID_INV
 from data_io import write_bifurc_data, write_params
 from formulae import bifurc_value, fp_location_general, is_stable, fp_location_fsolve, jacobian_numerical_2d
+from params import Params
 from plotting import plot_bifurc_dist, plot_fp_curves_general
 from trajectory import trajectory_simulate
 
@@ -52,20 +53,20 @@ solver_fsolve = False             # TODO: fsolve solver doesn't find exactly 3 f
 check_with_trajectory = False
 
 
-def get_fp_data_1d(params, param_1_name, param_1_range, system):
+def get_fp_data_1d(params, param_1_name, param_1_range):
     # return dict of {param vary value: list of [[fixed point i], [eigenvalues i], stability_i]}
     # [fixed point i], [eigenvalues i] are 3-list and 2-list and stability_i is a bool
     # assumes flow=0 and no feedback; uses is_stable with fp=[0,0,N]
     assert param_1_name in PARAMS_ID_INV.keys()
     fp_dict = {p1: [] for p1 in param_1_range}
     for i, p1 in enumerate(param_1_range):
-        params_step = params
-        params_step[PARAMS_ID_INV[param_1_name]] = p1
-        fp_locs = fp_location_fsolve(params_step, system, gridsteps=15)
-
+        params_step_list = params.params_list()
+        params_step_list[PARAMS_ID_INV[param_1_name]] = p1
+        params_step = Params(params_step_list, params.system)
+        fp_locs = fp_location_fsolve(params_step, gridsteps=15)
         fp_info_at_p1 = [0]*len(fp_locs)
         for i, fp in enumerate(fp_locs):
-            J = jacobian_numerical_2d(params, fp[0:2], system)
+            J = jacobian_numerical_2d(params_step, fp[0:2])
             eiglist, V = np.linalg.eig(J)
             fp_info_at_p1[i] = [fp, eiglist, all(eig < 0 for eig in eiglist)]
         fp_dict[p1] = fp_info_at_p1
@@ -88,7 +89,8 @@ if __name__ == '__main__':
     v_y = 0.0
     v_z = 0.0
     mu_base = 0.0
-    params = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
+    params_list = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
+    params = Params(params_list, system)
 
     print "Specified parameters: \nalpha_plus = " + str(alpha_plus) + "\nalpha_minus = " + str(alpha_minus) + \
           "\nmu = " + str(mu) + "\na = " + str(a) + "\nb = " + str(b) + "\nc = " + str(c) + "\nN = " + str(N) + \
@@ -102,7 +104,7 @@ if __name__ == '__main__':
     param_varying_values = np.linspace(param_start, param_stop, param_steps)
     print param_varying_values
 
-    fp_data_dict = get_fp_data_1d(params, param_vary, param_varying_values, system)
+    fp_data_dict = get_fp_data_1d(params, param_vary, param_varying_values)
     print fp_data_dict
 
     plot_fp_curves_general(fp_data_dict, N, flag_show=True)
