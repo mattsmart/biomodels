@@ -19,7 +19,9 @@ Conventions
 """
 
 # MODEL PARAMETERS NAD LABELS
-ODE_SYSTEMS = ["default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model"]
+ODE_SYSTEMS = ["default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"]
+FEEDBACK_SHAPES = ["constant", "hill", "step"]
+DEFAULT_FEEDBACK_SHAPE = "hill"
 PARAMS_ID = {0: "alpha_plus",
              1: "alpha_minus",
              2: "mu",
