@@ -5,7 +5,7 @@ from os import sep
 from constants import OUTPUT_DIR, PARAMS_ID, PARAMS_ID_INV, BIFURC_DICT, VALID_BIFURC_PARAMS
 from formulae import bifurc_value, fp_from_timeseries
 from params import Params
-from plotting import plot_trajectory_mono, plot_endpoint_mono
+from plotting import plot_trajectory_mono, plot_endpoint_mono, plot_table_params
 from trajectory import trajectory_simulate
 
 
@@ -43,8 +43,7 @@ INIT_COND = [98.0, 1.0, 1.0] #[99.9, 0.1, 0.0]
 TIME_START = 0.0
 TIME_END = 10*16000.0  #20.0
 NUM_STEPS = 2000  # number of timesteps in each trajectory
-
-# SCRIPT PARAMETERS
+flag_table = True
 
 # DYNAMICS PARAMETERS
 params_dict = {
@@ -89,13 +88,17 @@ for idx, pv in enumerate(param_varying_values):
     params_step = params.mod_copy({param_varying_name: pv})
     r, times, ax_traj, ax_mono = trajectory_simulate(params_step, init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
                                                      sim_method=SIM_METHOD, flag_showplt=False, flag_saveplt=False)
-    ax_mono = plot_trajectory_mono(r, times, False, False, ax_mono=ax_comp, mono="z")
+    ax_mono = plot_trajectory_mono(r, times, params, False, False, ax_mono=ax_comp, mono="z")
     ax_comp = ax_mono
     #assert np.abs(np.sum(r[-1, :]) - N) <= 0.001
     if idx % 10 == 0:
         ax_comp.text(times[-1], r[-1, 2], '%.3f' % param_varying_values[idx])
     r_inf_list[idx] = fp_from_timeseries(r, SIM_METHOD)
+if flag_table:
+    plot_table_params(ax_mono, params)
 plt.savefig(OUTPUT_DIR + sep + "trajectory_mono_z_composite" + ".png")
 plt.show()
+
 ax_endpts = plot_endpoint_mono(r_inf_list, param_varying_values, param_varying_name, params, True, True, all_axis=True,
-                               conv_to_fraction=True, flag_log=flag_log, plt_save="endpoint_varying_%s" % param_varying_name)
+                               conv_to_fraction=True, flag_log=flag_log, plt_save="endpoint_varying_%s" % param_varying_name,
+                               flag_table=flag_table)
