@@ -15,12 +15,14 @@ Conventions
                                   params[8] -> v_y         (typically 0)
                                   params[9] -> v_z         (typically 0)
                                   params[10] -> mu_base    (typically 0)
+                                  params[11] -> c2         (typically 0)
+                                  params[12] -> v_z2       (typically 0)
 - if an element of params is specified as None then a bifurcation range will be be found and used
 """
 
 # MODEL PARAMETERS NAD LABELS
 ODE_SYSTEMS = ["default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"]
-FEEDBACK_SHAPES = ["constant", "hill", "step"]
+FEEDBACK_SHAPES = ["constant", "hill", "step", "pwlinear"]
 DEFAULT_FEEDBACK_SHAPE = "hill"
 PARAMS_ID = {0: "alpha_plus",
              1: "alpha_minus",
@@ -32,7 +34,9 @@ PARAMS_ID = {0: "alpha_plus",
              7: "v_x",
              8: "v_y",
              9: "v_z",
-             10: "mu_base"}
+             10: "mu_base",
+             11: "c2",
+             12: "v_z2"}
 PARAMS_ID_INV = {v: k for k, v in PARAMS_ID.iteritems()}
 STATES_ID = {0: "x", 1: "y", 2: "z"}
 STATES_ID_INV = {v: k for k, v in STATES_ID.iteritems()}
