@@ -145,40 +145,25 @@ def plot_bifurc_dist(x1_array, bifurcation_search, bifurc_id, N, dist_type, flag
     return fig_dist
 
 
-def plot_trajectory(r, times, N, fig_traj=None, flag_show=False, flag_save=True, plt_save="trajectory"):
+def plot_trajectory(r, times, params, fig_traj=None, flag_show=False, flag_save=True, plt_save="trajectory",flag_table=False):
     if fig_traj is None:
-        fig_traj = plot_simplex(N)
+        fig_traj = plot_simplex(params.N)
     ax_traj = fig_traj.gca()
     ax_traj.view_init(5, 35)  # ax.view_init(-45, -15)
     ax_traj.plot(r[:, 0], r[:, 1], r[:, 2], label='trajectory')
     #ax_traj.plot([x1[0]], [x1[1]], [x1[2]], label='x_weird')
     ax_traj.legend()
     ax_traj.set_title("Trajectory")
+    if flag_table:
+        plot_table_params(ax_traj, params)
     if flag_show:
         plt.show()
     if flag_save:
         fig_traj.savefig(OUTPUT_DIR + sep + plt_save + '.png')
     return ax_traj
 
-"""
-def plot_trajectory_mono(r, times, flag_show, flag_save, mono="z", plt_save="trajectory_mono_"):
-    assert mono in STATES_ID_INV.keys()
-    fig_mono = plt.figure()
-    ax_mono = fig_mono.gca()
-    axis_idx = STATES_ID_INV[mono]
-    plt.plot(times, r[:, axis_idx], )
-    plt.title("Trajectory: " + mono + " only")
-    ax_mono.grid(True)
-    ax_mono.set_xlabel("time")
-    ax_mono.set_ylabel(mono)
-    if flag_show:
-        plt.show()
-    if flag_save:
-        fig_mono.savefig(OUTPUT_DIR + sep + plt_save + mono + '.png')
-    return fig_mono
-"""
 
-def plot_trajectory_mono(r, times, flag_show, flag_save, ax_mono=None, mono="z", plt_save="trajectory_mono_"):
+def plot_trajectory_mono(r, times, params, flag_show, flag_save, ax_mono=None, mono="z", plt_save="trajectory_mono_", flag_table=False):
     assert mono in STATES_ID_INV.keys()
     axis_idx = STATES_ID_INV[mono]
     if ax_mono is None:
@@ -189,19 +174,23 @@ def plot_trajectory_mono(r, times, flag_show, flag_save, ax_mono=None, mono="z",
         ax_mono.grid(True)
         ax_mono.set_xlabel("time")
         ax_mono.set_ylabel(mono)
+        if flag_table:
+            plot_table_params(ax_mono, params)
         if flag_show:
             plt.show()
         if flag_save:
             fig_mono.savefig(OUTPUT_DIR + sep + plt_save + mono + '.png')
     else:
         ax_mono.plot(times, r[:, axis_idx], )
+        if flag_table:
+            plot_table_params(ax_mono, params)
         if flag_show:
             plt.show()
     return ax_mono
 
 
 def plot_endpoint_mono(fp_list, param_list, param_varying_name, params, flag_show, flag_save, ax_mono=None, mono="z",
-                       plt_save="endpoint_mono_", all_axis=True, conv_to_fraction=False, flag_log=True):
+                       plt_save="endpoint_mono_", all_axis=True, conv_to_fraction=False, flag_log=True, flag_table=False):
     assert mono in STATES_ID_INV.keys()
     #rcParams.update({'font.size': 22})
     axis_idx = STATES_ID_INV[mono]
@@ -232,19 +221,30 @@ def plot_endpoint_mono(fp_list, param_list, param_varying_name, params, flag_sho
     #ax_mono.grid(True)
     #ax_mono.tick_params(labelsize=16)
     ax_mono.set_xlabel(param_varying_name)
-    # CREATE TABLE OF PARAMS
-    """
-    row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
-    table_vals = [[params.params_list[i]] if PARAMS_ID[i] != param_varying_name else [None] for i in xrange(len(PARAMS_ID))]
-    print len(row_labels), len(table_vals)
-    param_table = plt.table(cellText=table_vals,
-                            colWidths=[0.1]*3,
-                            rowLabels=row_labels,
-                            loc='center right')
-    #plt.text(12, 3.4, 'Params', size=8)
-    """
+    if flag_table:
+        plot_table_params(ax_mono, params)
     if flag_show:
         plt.show()
     if flag_save:
         fig_mono.savefig(OUTPUT_DIR + sep + plt_save + mono + '.pdf')
     return ax_mono
+
+
+def plot_table_params(ax, params, loc='center right', bbox=None):
+    """
+    params is Params object
+    loc options 'center right', 'best'
+    bbox is x0, y0, height, width e.g. (1.1, 0.2, 0.1, 0.75)
+    """
+    # create table of params
+    row_labels = ['system', 'feedback']
+    row_labels += [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
+    table_vals = [[params.system], [params.feedback]]
+    table_vals += [[val] for val in params.params_list]  # note weird format
+    # plot table
+    param_table = ax.table(cellText=table_vals,
+                           colWidths=[0.1]*3,
+                           rowLabels=row_labels,
+                           loc=loc, bbox=bbox)
+    #ax.text(12, 3.4, 'Params', size=8)
+    return ax
