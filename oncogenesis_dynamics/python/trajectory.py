@@ -4,9 +4,8 @@ import numpy as np
 from operator import itemgetter
 from os import sep
 
-#import formulae
-#from formulae import fp_location_fsolve, jacobian_numerical_2d, get_physical_and_stable_fp, simulate_dynamics_general
-from constants import OUTPUT_DIR, PARAMS_ID, PARAMS_ID_INV, NUM_TRAJ, INIT_COND, TIME_START, TIME_END, NUM_STEPS, SIM_METHOD
+from formulae import fp_location_fsolve, jacobian_numerical_2d, get_physical_and_stable_fp, simulate_dynamics_general
+from constants import OUTPUT_DIR, BASIN_COLOUR_DICT, NUM_TRAJ, INIT_COND, TIME_START, TIME_END, NUM_STEPS, SIM_METHOD
 from params import Params
 from plotting import plot_trajectory_mono, plot_endpoint_mono, plot_simplex, plot_trajectory, plot_table_params
 
@@ -27,7 +26,6 @@ def trajectory_infoprint(init_cond, t0, t1, num_steps, params):
 def trajectory_simulate(params, init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
                         sim_method=SIM_METHOD, flag_showplt=False, flag_saveplt=True, flag_info=False, flag_table=False,
                         plt_save="trajectory"):
-    from formulae import simulate_dynamics_general
     # params is "Params" class object
     # SIMULATE SETUP
     display_spacing = int(num_steps / 10)
@@ -64,9 +62,7 @@ def trajectory_simulate(params, init_cond=INIT_COND, t0=TIME_START, t1=TIME_END,
 
 def phase_portrait(params, num_traj=NUM_TRAJ, sim_method=SIM_METHOD, output_dir=OUTPUT_DIR, figname_mod="",
                    show_flag=False, basins_flag=False, flag_table=False):
-    # IMPORTS
-    from formulae import fp_location_fsolve, jacobian_numerical_2d, get_physical_and_stable_fp
-    # GET TRAJECTORIES
+    # get trajectories
     init_conds = np.zeros((num_traj, 3))
     N = params.N
     for k in xrange(num_traj):
@@ -112,7 +108,7 @@ def phase_portrait(params, num_traj=NUM_TRAJ, sim_method=SIM_METHOD, output_dir=
     plt.title(plt_title)
 
     if flag_table:
-        plot_table_params(ax_traj, params, loc='best', bbox=(1.1, 0.2, 0.1, 0.75))
+        plot_table_params(ax_traj, params, loc='best')
     plt.savefig(plt_save, bbox_inches='tight')
     if show_flag:
         plt.show()
@@ -126,7 +122,6 @@ if __name__ == "__main__":
     run_phaseportrait = True
 
     # PLOTTING OPTIONS
-    BASIN_COLOUR_DICT = {0: 'blue', 1: 'red', 2: 'green'}
     flag_showplt = True
     flag_table = True
 
@@ -167,4 +162,4 @@ if __name__ == "__main__":
                                 flag_table=flag_table)
 
     if run_phaseportrait:
-        phase_portrait(params, num_traj=280, show_flag=True, basins_flag=True, flag_table=flag_table)
+        phase_portrait(params, num_traj=140, show_flag=True, basins_flag=True, flag_table=flag_table)
