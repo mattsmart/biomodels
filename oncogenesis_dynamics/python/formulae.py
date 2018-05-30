@@ -367,7 +367,7 @@ def fsolve_func(xvec_guess, params):  # TODO: faster if split into 3 fns w.o if 
     assert params.system in ["default", "feedback_z", "feedback_yz"]
     x0, y0 = xvec_guess
     state_guess = [x0, y0, params.N - x0 - y0]
-    p = params.mod_copy(params.system_variants(xvec_guess, None))
+    p = params.mod_copy(params.system_variants(state_guess, None))
     VV = (p.v_x + p.v_y + p.v_z) / p.N
     xdot = (p.c-p.a)/p.N*x0**2 + (p.c-p.b)/p.N*x0*y0 + (p.a-p.c-p.alpha_plus-p.mu_base-VV)*x0 + p.alpha_minus*y0 + p.v_x
     ydot = (p.c-p.b)/p.N*y0**2 + (p.c-p.a)/p.N*x0*y0 + (p.b-p.c-p.alpha_minus-p.mu-VV)*y0 + p.alpha_plus*x0 + p.v_y
