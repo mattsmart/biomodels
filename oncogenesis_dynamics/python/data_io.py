@@ -71,7 +71,7 @@ def write_varying_mean_sd_fpt_and_params(fpt_mean, fpt_sd, param_vary_name, para
     else:
         filename_params = filename + "_mean_sd_varying_%s_params.csv" % param_vary_name
         filename_fpt = filename + "_mean_sd_varying_%s.txt" % param_vary_name
-    params = params.mod_copy([(param_vary_name, None)])
+    params = params.mod_copy({param_vary_name: None})
     params.write(filedir, filename_params)
     with open(filedir + sep + filename_fpt, "wb") as csv_file:
         writer = csv.writer(csv_file, delimiter=',')
@@ -183,7 +183,9 @@ def collect_fpt_mean_stats_and_params(filedir, dirbase="means"):
     for idx, fptdir in enumerate(dirstocheck):
         df, pf = data_and_param_files_from_fptdir(fptdir)
         params = read_params(dirname(pf), basename(pf))
-        assert params == params_0
+        assert params.params_list == params_0.params_list  # TODO alt to this is implement __eq__ method in obj
+        assert params.system == params_0.system
+        assert params.feedback == params_0.feedback
         fpt_means, fpt_sd, param_vary_name, param_vary_list = read_varying_mean_sd_fpt(df)
         fpt_means_collected += fpt_means
         fpt_sd_collected += fpt_sd
