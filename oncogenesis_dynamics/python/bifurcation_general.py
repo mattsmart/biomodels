@@ -110,7 +110,7 @@ if __name__ == '__main__':
     fp_data_dict = get_fp_data_1d(params, param_vary, param_varying_values)
     print fp_data_dict
 
-    plot_fp_curves_general(fp_data_dict, N, flag_show=True)
+    plot_fp_curves_general(fp_data_dict, params.N, flag_show=True)
 
     """
     # PLOTTING ON THE SIMPLEX FIGURE
