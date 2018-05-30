@@ -73,6 +73,8 @@ PARAM_HILL = 1                 # (unused currently) hill parameter 'n'
 X0_COL = ["grey", "black"]  # black stable (grey unstable)
 X1_COL = ["red", "blue"]  # blue stable (red unstable)
 X2_COL = ["green", "magenta"]  # magenta stable (green unstable)
+# simplex basins from trajectories
+BASIN_COLOUR_DICT = {0: 'blue', 1: 'red', 2: 'green'}
 # bifurcation diagram colours for x*=(x,y,z) z fixed points in RGB
 DEFAULT_X_COLOUR = (169/255.0, 209/255.0, 142/255.0)
 DEFAULT_Y_COLOUR = (255/255.0, 217/255.0, 102/255.0)
