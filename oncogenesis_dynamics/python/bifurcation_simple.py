@@ -48,44 +48,47 @@ FLAG_SAVEPLT = 1
 FLAG_SAVEDATA = 1
 HEADER_TITLE = 'Fixed Points'
 system = "default"
+feedback = "constant"
 assert system in ["default"]      # TODO: feedback not working in this script bc of unknown number of fp
 solver_fsolve = False             # TODO: fsolve solver doesn't find exactly 3 fp.. usually less
 check_with_trajectory = False
 
+
 # DYNAMICS PARAMETERS
-alpha_plus = 0.4#0.05 #0.4
-alpha_minus = 0.5#4.95 #0.5
-mu = None #0.77 #0.01
-a = 1.0
-b = 0.8
-c = 1.2 #2.6 #1.2
-N = 100.0 #100
-v_x = 0.0
-v_y = 0.0
-v_z = 0.0
-mu_base = 0.0
-if b is not None:
-    delta = 1 - b
-if c is not None:
-    s = c - 1
-if v_x == 0 and v_y == 0 and v_z == 0:
+params_dict = {
+    'alpha_plus': 0.2,
+    'alpha_minus': 0.5,  # 0.5
+    'mu': 0.001,  # 0.01
+    'a': 1.0,
+    'b': 0.8,
+    'c': None,  # 1.2
+    'N': 10000.0,  # 100.0
+    'v_x': 0.0,
+    'v_y': 0.0,
+    'v_z': 0.0,
+    'mu_base': 0.0,
+    'c2': 0.0,
+    'v_z2': 0.0
+}
+params = Params(params_dict, system, feedback=feedback)
+if params.b is not None:
+    delta = 1 - params.b
+if params.c is not None:
+    s = params.c - 1
+if params.v_x == 0 and params.v_y == 0 and params.v_z == 0:
     solver_explicit = True
 else:
     solver_explicit = False
-params_list = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
-params = Params(params_list, system)
 
-print "Specified parameters: \nalpha_plus = " + str(alpha_plus) + "\nalpha_minus = " + str(alpha_minus) + \
-      "\nmu = " + str(mu) + "\na = " + str(a) + "\nb = " + str(b) + "\nc = " + str(c) + "\nN = " + str(N) + \
-      "\nv_x = " + str(v_x) + "\nv_y = " + str(v_y) + "\nv_z = " + str(v_z) + "\nmu_base = " + str(mu_base)
+params.printer()
 print "Use fsolve solver:", solver_fsolve
 if solver_explicit:
     print "Use explicit solver:", solver_explicit
 
 # FP SEARCH SETUP
 bifurc_ids = []
-for idx in xrange(len(params_list)):
-    if params_list[idx] is None:
+for idx in xrange(len(params.params_list)):
+    if params.params_list[idx] is None:
         # identify bifurcation points
         bifurc_idx = idx
         bifurc_id = BIFURC_DICT[idx]
@@ -97,13 +100,13 @@ for idx in xrange(len(params_list)):
               % (SEARCH_START*bifurc_loc, SEARCH_END*bifurc_loc, SEARCH_AMOUNT)
         bifurcation_search = np.linspace(SEARCH_START*bifurc_loc, SEARCH_END*bifurc_loc, SEARCH_AMOUNT)
 nn = len(bifurcation_search)
-x0_array = np.zeros((nn, 3))
-x1_array = np.zeros((nn, 3))
-x2_array = np.zeros((nn, 3))
-params_ensemble = np.zeros((nn, len(params_list)))
-for idx in xrange(len(params_list)):
-    if params_list[idx] is not None:
-        params_ensemble[:, idx] = params_list[idx]
+x0_array = np.zeros((nn, params.numstates))
+x1_array = np.zeros((nn, params.numstates))
+x2_array = np.zeros((nn, params.numstates))
+params_ensemble = np.zeros((nn, len(params.params_list)))
+for idx in xrange(len(params.params_list)):
+    if params.params_list[idx] is not None:
+        params_ensemble[:, idx] = params.params_list[idx]
     else:
         params_ensemble[:, idx] = bifurcation_search
 x0_stabilities = np.zeros((nn, 1), dtype=bool)  # not fully implemented
@@ -139,8 +142,8 @@ if FLAG_SAVEPLT:
     fig_fp_curves.savefig(OUTPUT_DIR + sep + 'bifurcation_curves.png')
 
 # PLOTTING THE BIFURCATION DIAGRAM
-fig_dist_norm = plot_bifurc_dist(x1_array, bifurcation_search, bifurc_id, N, "norm", FLAG_SHOWPLT, FLAG_SAVEPLT)
-fig_dist_z = plot_bifurc_dist(x1_array, bifurcation_search, bifurc_id, N, "z_only", FLAG_SHOWPLT, FLAG_SAVEPLT)
+fig_dist_norm = plot_bifurc_dist(x1_array, bifurcation_search, bifurc_id, params.N, "norm", FLAG_SHOWPLT, FLAG_SAVEPLT)
+fig_dist_z = plot_bifurc_dist(x1_array, bifurcation_search, bifurc_id, params.N, "z_only", FLAG_SHOWPLT, FLAG_SAVEPLT)
 
 # DATA OUTPUT
 if FLAG_SAVEDATA:

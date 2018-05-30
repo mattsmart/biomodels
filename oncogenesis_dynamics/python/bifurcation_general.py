@@ -75,26 +75,31 @@ def get_fp_data_1d(params, param_1_name, param_1_range):
 
 if __name__ == '__main__':
 
-    system = "feedback_z"
+    # SCRIPT PARAMETERS
+    system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
+    feedback = "hill"      # "constant", "hill", "step", "pwlinear"
 
     # DYNAMICS PARAMETERS
-    alpha_plus = 0.2
-    alpha_minus = 0.5
-    mu = 0.04
-    a = 1.0
-    b = 0.8
-    c = 0.86
-    N = 100.0
-    v_x = 0.0
-    v_y = 0.0
-    v_z = 0.0
-    mu_base = 0.0
-    params_list = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
-    params = Params(params_list, system)
+    params_dict = {
+        'alpha_plus': 0.2,
+        'alpha_minus': 0.5,  # 0.5
+        'mu': 0.001,  # 0.01
+        'a': 1.0,
+        'b': 0.8,
+        'c': 0.95,  # 1.2
+        'N': 10000.0,  # 100.0
+        'v_x': 0.0,
+        'v_y': 0.0,
+        'v_z': 0.0,
+        'mu_base': 0.0,
+        'c2': 0.0,
+        'v_z2': 0.0
+    }
+    params = Params(params_dict, system, feedback=feedback)
 
-    print "Specified parameters: \nalpha_plus = " + str(alpha_plus) + "\nalpha_minus = " + str(alpha_minus) + \
-          "\nmu = " + str(mu) + "\na = " + str(a) + "\nb = " + str(b) + "\nc = " + str(c) + "\nN = " + str(N) + \
-          "\nv_x = " + str(v_x) + "\nv_y = " + str(v_y) + "\nv_z = " + str(v_z) + "\nmu_base = " + str(mu_base)
+    init_cond = np.zeros(params.numstates, dtype=int)
+
+    params.printer()
     #print "Use fsolve solver:", solver_fsolve
 
     param_vary = 'c'
