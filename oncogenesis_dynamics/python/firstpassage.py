@@ -231,13 +231,12 @@ if __name__ == "__main__":
     flag_seaborn = False
 
     # SCRIPT PARAMETERS
-    system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
-    feedback = "hill"              # "constant", "hill", "step", "pwlinear"
+    system = "default"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
+    feedback = "constant"              # "constant", "hill", "step", "pwlinear"
     num_steps = 100000  # default 100000
     ensemble = 5  # default 100
 
     # DYNAMICS PARAMETERS
-    mu = 1e-3
     params_dict = {
         'alpha_plus': 0.2,
         'alpha_minus': 0.5,  # 0.5
