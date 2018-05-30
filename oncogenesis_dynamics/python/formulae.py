@@ -14,17 +14,13 @@ Conventions
 - if an element of params is specified as None then a bifurcation range will be be found and used
 """
 
-import csv
 import numpy as np
-from os import sep
 from random import random
 from scipy.integrate import ode, odeint
 from scipy.optimize import approx_fprime, fsolve
 from sympy import Symbol, solve, re
 
-import trajectory
-from constants import PARAMS_ID, CSV_DATA_TYPES, SIM_METHODS_VALID, PARAM_Z0_RATIO, PARAM_Y0_PLUS_Z0_RATIO, PARAM_HILL, \
-                      ODE_SYSTEMS, PARAMS_ID_INV, PARAM_GAMMA
+from constants import PARAMS_ID, CSV_DATA_TYPES, SIM_METHODS_VALID, INIT_COND, TIME_START, TIME_END, NUM_STEPS
 from params import Params
 
 
@@ -380,7 +376,9 @@ def fp_location_fsolve(params, check_near_traj_endpt=True, gridsteps=15, tol=10e
     unique_solutions = []
     # first check for roots near trajectory endpoints (possible stable roots)
     if check_near_traj_endpt:
-        traj, _, _, _ = trajectory.trajectory_simulate(params, flag_showplt=False, flag_saveplt=False)
+        init_cond = INIT_COND
+        times = np.linspace(TIME_START, TIME_END, NUM_STEPS + 1)
+        traj, _ = simulate_dynamics_general(init_cond, times, params, method="libcall")
         fp_guess = traj[-1][0:2]
         solution, infodict, _, _ = fsolve(fsolve_func, fp_guess, (params), full_output=True)
         if np.linalg.norm(infodict["fvec"]) <= 10e-3:  # only append actual roots (i.e. f(x)=0)
