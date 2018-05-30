@@ -74,22 +74,26 @@ def phase_portrait(params, num_traj=NUM_TRAJ, sim_method=SIM_METHOD, output_dir=
 
 if __name__ == "__main__":
     # SCRIPT PARAMETERS
-    system = "feedback_z"  # "default" or "feedback_z" etc
+    system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
+    feedback = "hill"      # "constant", "hill", "step", "pwlinear"
 
     # DYNAMICS PARAMETERS
-    alpha_plus = 0.2  # 0.05 #0.4
-    alpha_minus = 0.5  # 4.95 #0.5
-    mu = 0.001  # 0.01
-    a = 1.0
-    b = 0.6
-    c = 0.75  # 2.6 #1.2
-    N = 100.0  # 100
-    v_x = 0.0
-    v_y = 0.0
-    v_z = 0.0
-    mu_base = 0.0
-    params_list =[alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
-    params = Params(params_list, system)
+    params_dict = {
+        'alpha_plus': 0.2,
+        'alpha_minus': 0.5,  # 0.5
+        'mu': 0.001,  # 0.01
+        'a': 1.0,
+        'b': 0.8,
+        'c': 0.95,  # 1.2
+        'N': 10000.0,  # 100.0
+        'v_x': 0.0,
+        'v_y': 0.0,
+        'v_z': 0.0,
+        'mu_base': 0.0,
+        'c2': 0.0,
+        'v_z2': 0.0
+    }
+    params = Params(params_dict, system, feedback=feedback)
 
     """
     param_vary = 'c'
@@ -97,7 +101,7 @@ if __name__ == "__main__":
     print pv_vals
     output_dir = OUTPUT_DIR + sep + "simplex_during_bifurcation_b06_cvary"
     for pv in pv_vals:
-        params_step = params.mod_copy([(param_vary, pv)])
+        params_step = params.mod_copy({param_vary: pv})
         fmname = "_%.2fb_%.2fc" % (b,pv)
         phase_portrait(params_step, system, num_traj=800, output_dir=output_dir, figname_mod=fmname, basins_flag=True)
         phase_portrait(params_step, system, num_traj=20, output_dir=output_dir, figname_mod=fmname, basins_flag=False)

@@ -8,6 +8,7 @@ from params import Params
 from plotting import plot_trajectory_mono, plot_endpoint_mono
 from trajectory import trajectory_simulate
 
+
 # PARAM TO VARY
 param_varying_name = "mu"
 if param_varying_name == "c":
@@ -35,26 +36,37 @@ else:
     param_varying_values = np.linspace(SEARCH_START, SEARCH_END, SEARCH_AMOUNT)
 
 # SCRIPT PARAMS
-system = "feedback_z"  # "default" or "feedback_z" or "feedback_yz"
+system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
+feedback = "hill"  # "constant", "hill", "step", "pwlinear"
 SIM_METHOD = "libcall"  # see constants.py -- SIM_METHODS_VALID
 INIT_COND = [98.0, 1.0, 1.0] #[99.9, 0.1, 0.0]
 TIME_START = 0.0
 TIME_END = 10*16000.0  #20.0
 NUM_STEPS = 2000  # number of timesteps in each trajectory
 
+# SCRIPT PARAMETERS
+
 # DYNAMICS PARAMETERS
-alpha_plus = 0.02
-alpha_minus = 0.1  # 4.95
-mu = 1e-4
-a = 1.0
-b = 0.92    # 0.98 1.01
-c = 0.99  # 0.98
-N = 100.0
-v_x = 0.0
-v_y = 0.0
-v_z = 0.0
-mu_base = 0.0
-params_list = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
+params_dict = {
+    'alpha_plus': 0.02,
+    'alpha_minus': 0.1,  # 0.5
+    'mu': 1e-4,  # 0.01
+    'a': 1.0,
+    'b': 0.92,
+    'c': 0.99,  # 1.2
+    'N': 100.0,  # 100.0
+    'v_x': 0.0,
+    'v_y': 0.0,
+    'v_z': 0.0,
+    'mu_base': 0.0,
+    'c2': 0.0,
+    'v_z2': 0.0
+}
+params = Params(params_dict, system, feedback=feedback)
+
+# OTHER PARAMETERS
+init_cond = np.zeros(params.numstates, dtype=int)
+init_cond[0] = int(params.N)
 
 # VARYING PARAM SPECIFICATION
 """
@@ -69,19 +81,13 @@ print "Searching in window: %.8f to %.8f with %d points" \
       % (SEARCH_START * param_center, SEARCH_END * param_center, SEARCH_AMOUNT)
 """
 
-# CONSTRUCT PARAM ENSEMBLE
-num_param_sets = len(param_varying_values)
-param_ensemble = [[elem for elem in params_list] for _ in xrange(num_param_sets)]
-for idx in xrange(num_param_sets):
-    param_ensemble[idx][PARAMS_ID_INV[param_varying_name]] = param_varying_values[idx]
-
 # GET TRAJECTORIES
 ax_comp = None
 r_inf_list = np.zeros((len(param_varying_values), 3))
 
-for idx, params_list in enumerate(param_ensemble):
-    params = Params(params_list, system)
-    r, times, ax_traj, ax_mono = trajectory_simulate(params, init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
+for idx, pv in enumerate(param_varying_values):
+    params_step = params.mod_copy({param_varying_name: pv})
+    r, times, ax_traj, ax_mono = trajectory_simulate(params_step, init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
                                                      sim_method=SIM_METHOD, flag_showplt=False, flag_saveplt=False)
     ax_mono = plot_trajectory_mono(r, times, False, False, ax_mono=ax_comp, mono="z")
     ax_comp = ax_mono
