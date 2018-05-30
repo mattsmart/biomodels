@@ -258,7 +258,7 @@ class Params(object):
         print "System: %s" % self.system
         print "Feedback: %s" % self.feedback
         for idx in xrange(len(PARAMS_ID.keys())):
-            print "Param %d: (%s) = %.3f" % (idx, PARAMS_ID[idx], self.params[idx])
+            print "Param %d: (%s) = %s" % (idx, PARAMS_ID[idx], self.params_list[idx])
 
     def params_list(self):
         params_list = self.params_list[:]
