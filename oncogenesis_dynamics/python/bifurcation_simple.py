@@ -24,7 +24,7 @@ import matplotlib.pylab as pylab
 import numpy as np
 from os import sep
 
-from constants import BIFURC_DICT, VALID_BIFURC_PARAMS, OUTPUT_DIR
+from constants import BIFURC_DICT, VALID_BIFURC_PARAMS, OUTPUT_DIR, PARAMS_ID_INV
 from data_io import write_bifurc_data, write_params
 from formulae import bifurc_value, fp_location_general, is_stable
 from params import Params
@@ -115,8 +115,8 @@ x2_stabilities = np.zeros((nn, 1), dtype=bool)  # not fully implemented
 
 # FIND FIXED POINTS
 for idx, bifurc_param_val in enumerate(bifurcation_search):
-    params_step = Params(params_ensemble[idx, :], system)
-
+    d={key:params_ensemble[idx,param_idx] for key, param_idx in PARAMS_ID_INV.iteritems()}
+    params_step = params.mod_copy(d)
     fp_x0, fp_x1, fp_x2 = fp_location_general(params_step, solver_fsolve=solver_fsolve, solver_explicit=solver_explicit)
     x0_array[idx, :] = fp_x0
     x1_array[idx, :] = fp_x1
@@ -131,8 +131,8 @@ for idx, bifurc_param_val in enumerate(bifurcation_search):
         print bifurc_param_val, fp_x1, r[-1]
 
 # PLOTTING ON THE SIMPLEX FIGURE
-fig_fp_curves = plot_fp_curves_simple(x0_array, x0_stabilities, x1_array, x1_stabilities, x2_array, x2_stabilities, N,
-                                      HEADER_TITLE, False, False)
+fig_fp_curves = plot_fp_curves_simple(x0_array, x0_stabilities, x1_array, x1_stabilities, x2_array, x2_stabilities,
+                                      params.N, HEADER_TITLE, False, False)
 if FLAG_BIFTEXT:
     for idx in xrange(0, nn, SPACING_BIFTEXT):
         fig_fp_curves.gca().text(x1_array[idx, 0], x1_array[idx, 1], x1_array[idx, 2], '%.3f' % bifurcation_search[idx])

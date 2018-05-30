@@ -60,9 +60,7 @@ def get_fp_data_1d(params, param_1_name, param_1_range):
     assert param_1_name in PARAMS_ID_INV.keys()
     fp_dict = {p1: [] for p1 in param_1_range}
     for i, p1 in enumerate(param_1_range):
-        params_step_list = params.params_list()
-        params_step_list[PARAMS_ID_INV[param_1_name]] = p1
-        params_step = Params(params_step_list, params.system)
+        params_step = params.mod_copy({param_1_name: p1})
         fp_locs = fp_location_fsolve(params_step, gridsteps=15)
         fp_info_at_p1 = [0]*len(fp_locs)
         for i, fp in enumerate(fp_locs):

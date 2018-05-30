@@ -441,15 +441,16 @@ def jacobian_numerical_2d(params, fp):
     def func_xdot(fp):
         x, y = fp[0], fp[1]
         state_vec = [x, y, params.N - x - y]
-        alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params.system_variants(state_vec, None)
-        VV = (v_x + v_y + v_z) / N
-        return (c - a) / N * x ** 2 + (c - b) / N * x * y + (a - c - alpha_plus - mu_base - VV) * x + alpha_minus * y + v_x
+        p = params.mod_copy(params.system_variants(state_vec, None))
+        VV = (p.v_x + p.v_y + p.v_z) / p.N
+        return (p.c - p.a) / p.N * x ** 2 + (p.c - p.b) / p.N * x * y + (p.a - p.c - p.alpha_plus - p.mu_base - VV) * x \
+               + p.alpha_minus * y + p.v_x
     def func_ydot(fp):
         x, y = fp[0], fp[1]
         state_vec = [x, y, params.N - x - y]
-        alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base = params.system_variants(state_vec, None)
-        VV = (v_x + v_y + v_z) / N
-        return (c-b)/N*y**2 + (c-a)/N*x*y + (b-c-alpha_minus-mu-VV)*y + alpha_plus*x + v_y
+        p = params.mod_copy(params.system_variants(state_vec, None))
+        VV = (p.v_x + p.v_y + p.v_z) / p.N
+        return (p.c-p.b)/p.N*y**2 + (p.c-p.a)/p.N*x*y + (p.b-p.c-p.alpha_minus-p.mu-VV)*y + p.alpha_plus*x + p.v_y
     epsilon = 10e-4
     row_x = approx_fprime(fp, func_xdot, epsilon)
     row_y = approx_fprime(fp, func_ydot, epsilon)
