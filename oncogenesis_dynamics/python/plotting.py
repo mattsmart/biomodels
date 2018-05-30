@@ -235,7 +235,7 @@ def plot_endpoint_mono(fp_list, param_list, param_varying_name, params, flag_sho
     # CREATE TABLE OF PARAMS
     """
     row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
-    table_vals = [[params.params[i]] if PARAMS_ID[i] != param_varying_name else [None] for i in xrange(len(PARAMS_ID))]
+    table_vals = [[params.params_list[i]] if PARAMS_ID[i] != param_varying_name else [None] for i in xrange(len(PARAMS_ID))]
     print len(row_labels), len(table_vals)
     param_table = plt.table(cellText=table_vals,
                             colWidths=[0.1]*3,
