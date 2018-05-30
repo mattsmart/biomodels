@@ -9,6 +9,7 @@ from data_io import read_varying_mean_sd_fpt_and_params, collect_fpt_mean_stats_
                     write_fpt_and_params
 from formulae import stoch_gillespie, get_physical_and_stable_fp
 from params import Params
+from plotting import plot_table_params
 
 
 def get_fpt(ensemble, init_cond, params, num_steps=100000):
@@ -120,15 +121,8 @@ def fpt_histogram(fpt_list, params, figname_mod="", flag_show=False, flag_norm=T
     ax.tick_params(labelsize=fs)
     # plt.locator_params(axis='x', nbins=4)
     #plt.legend(loc='upper right', fontsize=fs)
-
     # create table of params
-    row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
-    table_vals = [[params.params_list[i]] for i in xrange(len(PARAMS_ID))]
-    param_table = plt.table(cellText=table_vals,
-                            colWidths=[0.1]*3,
-                            rowLabels=row_labels,
-                            loc='center right')
-
+    plot_table_params(ax, params)
     # save and show
     plt_save = "fpt_histogram" + figname_mod
     plt.savefig(OUTPUT_DIR + sep + plt_save + '.pdf', bbox_inches='tight')
@@ -204,14 +198,8 @@ def plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_vary_name, par
     ax = plt.gca()
     ax.set_xlabel(param_vary_name)
     ax.set_ylabel('Mean FP time')
-    # CREATE TABLE OF PARAMS
-    row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
-    table_vals = [[params.params_list[i]] if PARAMS_ID[i] not in [param_vary_name] else ["None"]
-                  for i in xrange(len(PARAMS_ID))]
-    param_table = plt.table(cellText=table_vals,
-                            colWidths=[0.1]*3,
-                            rowLabels=row_labels,
-                            loc='center right')
+    # create table of params
+    plot_table_params(ax, params)
     plt_save = "mean_fpt_varying" + figname_mod
     plt.savefig(OUTPUT_DIR + sep + plt_save + '.png', bbox_inches='tight')
     if show_flag:
@@ -221,22 +209,21 @@ def plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_vary_name, par
 
 if __name__ == "__main__":
     # SCRIPT FLAGS
-    flag_compute_fpt = True
-    flag_read_fpt = False
-    flag_generate_hist_multi = False
-    flag_load_hist_multi = False
-    flag_collect = False
-    flag_means_read_and_plot = False
-    flag_means_collect_and_plot = False
-    flag_seaborn = False
+    run_compute_fpt = True
+    run_read_fpt = False
+    run_generate_hist_multi = False
+    run_load_hist_multi = False
+    run_collect = False
+    run_means_read_and_plot = False
+    run_means_collect_and_plot = False
 
     # SCRIPT PARAMETERS
-    system = "default"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
-    feedback = "constant"              # "constant", "hill", "step", "pwlinear"
     num_steps = 100000  # default 100000
     ensemble = 5  # default 100
 
     # DYNAMICS PARAMETERS
+    system = "default"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
+    feedback = "constant"              # "constant", "hill", "step", "pwlinear"
     params_dict = {
         'alpha_plus': 0.2,
         'alpha_minus': 0.5,  # 0.5
@@ -264,19 +251,19 @@ if __name__ == "__main__":
     LW = 0.5
     FIGSIZE=(8,6)
 
-    if flag_compute_fpt:
+    if run_compute_fpt:
         fp_times = get_fpt(ensemble, init_cond, params)
         write_fpt_and_params(fp_times, params)
         fpt_histogram(fp_times, params, flag_show=True, figname_mod="XZ_model_withFeedback_mu1e-1")
 
-    if flag_read_fpt:
+    if run_read_fpt:
         dbdir = OUTPUT_DIR
         dbdir_100 = dbdir + sep + "fpt_mean" + sep + "100_c95"
         fp_times_xyz_100, params_a = read_fpt_and_params(dbdir_100)
         dbdir_10k = dbdir + sep + "fpt_mean" + sep + "10k_c95"
         fp_times_xyz_10k, params_b = read_fpt_and_params(dbdir_10k)
 
-    if flag_generate_hist_multi:
+    if run_generate_hist_multi:
         ensemble = 14
         num_proc = cpu_count() - 1
         param_vary_id = "c"
@@ -296,7 +283,7 @@ if __name__ == "__main__":
             multi_fpt_labels[idx] = "%s (%s)" % (param_vary_labels[idx], param_val_string)
         fpt_histogram_multi(multi_fpt, multi_fpt_labels, flag_show=True, flag_ylog10=False)
 
-    if flag_load_hist_multi:
+    if run_load_hist_multi:
         flag_norm = True
         dbdir = OUTPUT_DIR + sep + "may25_100"
         #dbdir_c80 = dbdir + "fpt_feedback_z_ens1040_c0.80_params"
@@ -316,7 +303,7 @@ if __name__ == "__main__":
         fpt_histogram_multi(multi_fpt, labels, flag_show=True, flag_ylog10=True, flag_norm=flag_norm, fs=FS, ec=EC, lw=LW, figsize=FIGSIZE)
         fpt_histogram_multi(multi_fpt, labels, flag_show=True, flag_ylog10=True, flag_norm=False, fs=FS, ec=EC, lw=LW, figsize=FIGSIZE, flag_disjoint=True)
 
-    if flag_means_read_and_plot:
+    if run_means_read_and_plot:
         datafile = OUTPUT_DIR + sep + "fpt_stats_collected_mean_sd_varying_N.txt"
         paramfile = OUTPUT_DIR + sep + "fpt_stats_collected_mean_sd_varying_N_params.csv"
         samplesize=48
@@ -341,7 +328,7 @@ if __name__ == "__main__":
         plt.show()
         """
 
-    if flag_means_collect_and_plot:
+    if run_means_collect_and_plot:
         dbdir = OUTPUT_DIR + sep + "tocollect" + sep + "runset_nov4_2pm_c6_Nzclose"
         datafile, paramfile = collect_fpt_mean_stats_and_params(dbdir)
         samplesize=48
