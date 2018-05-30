@@ -14,7 +14,7 @@ def fpt_argparser():
     parser.add_argument('-p', '--proc', metavar='P', type=str,
                         help='number of processes to distrbute job over', default=cpu_count())
     parser.add_argument('-n', '--ensemble', metavar='N', type=str,
-                        help='ensemble size (to divide amongst cores)', default=96)
+                        help='ensemble size (to divide amongst cores)', default=80)
     parser.add_argument('-s', '--suffix', metavar='S', type=str,
                         help='output filename modifier', default="")
     parser.add_argument('-c', '--param_to_vary', metavar='C', type=str,
@@ -50,23 +50,30 @@ if __name__ == "__main__":
         pv2_idx = int(args.right_idx)
 
     # SCRIPT PARAMETERS
-    system = "feedback_z"  # "feedback_mu_XZ_model" or "feedback_z"
+    system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
+    feedback = "hill"              # "constant", "hill", "step", "pwlinear"
     plot_flag = False
 
     # DYNAMICS PARAMETERS
-    alpha_plus = 0.2  # 0.2
-    alpha_minus = 0.5  # 0.5
-    mu = 0.001  # 0.01
-    a = 1.0
-    b = 0.6
-    c = 0.95  # 1.2
-    N = 10000.0  # 100.0
-    v_x = 0.0
-    v_y = 0.0
-    v_z = 0.0
-    mu_base = 0.0  #mu*1e-1
-    params_list = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
-    params = Params(params_list, system)
+    params_dict = {
+        'alpha_plus': 0.2,
+        'alpha_minus': 0.5,  # 0.5
+        'mu': 0.001,  # 0.01
+        'a': 1.0,
+        'b': 0.6,
+        'c': 0.95,  # 1.2
+        'N': 10000.0,  # 100.0
+        'v_x': 0.0,
+        'v_y': 0.0,
+        'v_z': 0.0,
+        'mu_base': 0.0,
+        'c2': 0.0,
+        'v_z2': 0.0
+    }
+    params = Params(params_dict, system, feedback=feedback)
+
+    init_cond = np.zeros(params.numstates, dtype=int)
+    init_cond[0] = int(params.N)
 
     if param_to_vary == 'N':
         #param_set = [10,20,30,40,50,60,70,80,90,100,200,300,400,500,1000,2000,3000,4000,5000,10000]
