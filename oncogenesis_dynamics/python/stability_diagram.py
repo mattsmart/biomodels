@@ -7,6 +7,7 @@ from constants import PARAMS_ID, PARAMS_ID_INV, STATES_ID_INV, OUTPUT_DIR, Z_TO_
 from data_io import write_matrix_data_and_idx_vals, read_matrix_data_and_idx_vals, read_params
 from formulae import is_stable, fp_location_general, get_physical_and_stable_fp, get_stable_fp
 from params import Params
+from plotting import plot_table_params
 
 # TODO: have ONLY 1 plotting script with datatype flags (e.g. fp count flag, stability data flag, other...)
 
@@ -44,13 +45,8 @@ def plot_stability_data_2d(params_general, param_1_name, param_1_range, param_2_
     ax.set_xlabel(param_2_name)
     ax.set_ylabel(param_1_name)
     plt.title("Stability of fp [0,0,N] (black=stable), %s vs %s" % (param_1_name, param_2_name))
-    # CREATE TABLE OF PARAMS
-    # bbox is x0, y0, height, width
-    row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
-    table_vals = [[params_general.params_list[i]] if PARAMS_ID[i] not in [param_1_name, param_2_name] else ["None"]
-                  for i in xrange(len(PARAMS_ID))]
-    param_table = plt.table(cellText=table_vals, colWidths=[0.1]*3, rowLabels=row_labels, loc='best',
-                            bbox=(1.2, 0.2, 0.1, 0.75))
+    # create table of params
+    plot_table_params(ax, params_general, loc='best', bbox=(1.2, 0.2, 0.1, 0.75))
     #plt.subplots_adjust(left=0.2, bottom=0.2)
     plt.savefig(OUTPUT_DIR + sep + 'stability_data_2d_%s_%s.png' % (param_1_name, param_2_name), bbox_inches='tight')
     if flag_show:
@@ -114,13 +110,8 @@ def plot_gap_data_2d(gap_data_2d, params_general, param_1_name, param_1_range, p
     ax = plt.gca()
     ax.grid(which='major', axis='both', linestyle='-')
     plt.title("Gap in %s between FPs, vary %s, %s" % (axis_gap, param_1_name, param_2_name))
-    # CREATE TABLE OF PARAMS
-    # bbox is x0, y0, height, width
-    row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
-    table_vals = [[params_general.params_list[i]] if PARAMS_ID[i] not in [param_1_name, param_2_name] else ["None"]
-                  for i in xrange(len(PARAMS_ID))]
-    param_table = plt.table(cellText=table_vals, colWidths=[0.1]*3, rowLabels=row_labels, loc='best',
-                            bbox=(1.2, 0.2, 0.1, 0.75))
+    # create table of params
+    plot_table_params(ax, params_general, loc='best', bbox=(1.2, 0.2, 0.1, 0.75))
     #plt.subplots_adjust(left=0.2, bottom=0.2)
     # Now adding the colorbar
     cbar = plt.colorbar(orientation='horizontal')
@@ -172,13 +163,8 @@ def plot_jump_data_2d(params_general, param_1_name, param_1_range, param_2_name,
     ax.set_xlabel(param_2_name)
     ax.set_ylabel(param_1_name)
     plt.title("Jump in %s when perturbing %s, %s forward" % (axis_jump, param_1_name, param_2_name))
-    # CREATE TABLE OF PARAMS
-    # bbox is x0, y0, height, width
-    row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
-    table_vals = [[params_general.params_list[i]] if PARAMS_ID[i] not in [param_1_name, param_2_name] else ["None"]
-                  for i in xrange(len(PARAMS_ID))]
-    param_table = plt.table(cellText=table_vals, colWidths=[0.1]*3, rowLabels=row_labels, loc='best',
-                            bbox=(1.2, 0.2, 0.1, 0.75))
+    # create table of params
+    plot_table_params(ax, params_general, loc='best', bbox=(1.2, 0.2, 0.1, 0.75))
     #plt.subplots_adjust(left=0.2, bottom=0.2)
     # Now adding the colorbar
     plt.colorbar(orientation='horizontal')
@@ -228,13 +214,8 @@ def plot_stable_fp_count_2d(fp_count_array, params_general, param_1_name, param_
     ax.set_xlabel(param_2_name)
     ax.set_ylabel(param_1_name)
     plt.title(plt_title)
-    # CREATE TABLE OF PARAMS
-    # bbox is x0, y0, height, width
-    row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
-    table_vals = [[params_general.params_list[i]] if PARAMS_ID[i] not in [param_1_name, param_2_name] else ["None"]
-                  for i in xrange(len(PARAMS_ID))]
-    param_table = plt.table(cellText=table_vals, colWidths=[0.1]*3, rowLabels=row_labels, loc='best',
-                            bbox=(1.2, 0.2, 0.1, 0.75))
+    # create table of params
+    plot_table_params(ax, params_general, loc='best', bbox=(1.2, 0.2, 0.1, 0.75))
     #plt.subplots_adjust(left=0.2, bottom=0.2)
     # Now adding the colorbar
     plt.colorbar(orientation='horizontal')
@@ -247,16 +228,16 @@ def plot_stable_fp_count_2d(fp_count_array, params_general, param_1_name, param_
 
 if __name__ == "__main__":
 
-    flag_generate = True
-    flag_load = False
+    run_generate = True
+    run_load = False
 
     # SCRIPT PARAMETERS
-    system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
-    feedback = "hill"              # "constant", "hill", "step", "pwlinear"
     num_steps = 100000  # default 100000
     ensemble = 5  # default 100
 
     # DYNAMICS PARAMETERS
+    system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
+    feedback = "hill"              # "constant", "hill", "step", "pwlinear"
     mu = 1e-3
     params_dict = {
         'alpha_plus': 0.2,
@@ -287,12 +268,12 @@ if __name__ == "__main__":
     param_2_range = np.linspace(param_2_start, param_2_stop, param_2_steps)
 
     # generate and plot data
-    if flag_generate:
+    if run_generate:
         fp_data = get_stable_fp_count_2d(params, param_1_name, param_1_range, param_2_name, param_2_range)
         plot_stable_fp_count_2d(fp_data, params, param_1_name, param_1_range, param_2_name, param_2_range, figname_mod="default")
 
     # loaf data
-    if flag_load:
+    if run_load:
         row_name = 'c'  # aka param 2 is row
         col_name = 'b'  # aka param 1 is col
         datapath = OUTPUT_DIR + sep + "gapdist2d_full.txt"
