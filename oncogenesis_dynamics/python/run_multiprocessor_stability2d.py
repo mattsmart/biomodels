@@ -11,21 +11,28 @@ from stability_diagram import plot_stable_fp_count_2d, get_stable_fp_count_2d, g
 # CONSTANTS
 NUM_PROCESSES = -1 + cpu_count()
 
-# PARAMS
-alpha_plus = 0.2  # 0.05 #0.4
-alpha_minus = 0.5  # 4.95 #0.5
-mu = 0.001  # 0.01
-a = 1.0
-b = 0.0
-c = 0.0  # 2.6 #1.2
-N = 100.0  # 100
-v_x = 0.0
-v_y = 0.0
-v_z = 0.0
-mu_base = 0.0
-params_list = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
-system = "feedback_z"
-params = Params(params_list, system)
+# SCRIPT PARAMETERS
+system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
+feedback = "hill"  # "constant", "hill", "step", "pwlinear"
+
+# DYNAMICS PARAMETERS
+params_dict = {
+    'alpha_plus': 0.2,
+    'alpha_minus': 0.5,  # 0.5
+    'mu': 0.001,  # 0.01
+    'a': 1.0,
+    'b': None,
+    'c': None,  # 1.2
+    'N': 100,  # 100.0
+    'v_x': 0.0,
+    'v_y': 0.0,
+    'v_z': 0.0,
+    'mu_base': 0.0,
+    'c2': 0.0,
+    'v_z2': 0.0
+}
+params = Params(params_dict, system, feedback=feedback)
+
 
 # ARGS TO PASS
 param_1_name = "b"

@@ -26,7 +26,8 @@ def get_stability_data_2d(params_general, param_1_name, param_1_range, param_2_n
     stab_array = np.zeros((len(param_1_range), len(param_2_range)), dtype=bool)
     for i, p1 in enumerate(param_1_range):
         for j, p2 in enumerate(param_2_range):
-            params_step = params_general.mod_copy([(param_1_name, p1), (param_2_name, p2)])
+            param_mod_dict = {param_1_name:p1, param_2_name: p2}
+            params_step = params_general.mod_copy(param_mod_dict)
             #stab_array[i,j] = is_stable(params_step, fp_stationary, method="algebraic_3d")
             stab_array[i, j] = is_stable(params_step, fp_stationary[0:2], method="numeric_2d")
     if flag_write:
@@ -46,7 +47,7 @@ def plot_stability_data_2d(params_general, param_1_name, param_1_range, param_2_
     # CREATE TABLE OF PARAMS
     # bbox is x0, y0, height, width
     row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
-    table_vals = [[params_general.params[i]] if PARAMS_ID[i] not in [param_1_name, param_2_name] else ["None"]
+    table_vals = [[params_general.params_list[i]] if PARAMS_ID[i] not in [param_1_name, param_2_name] else ["None"]
                   for i in xrange(len(PARAMS_ID))]
     param_table = plt.table(cellText=table_vals, colWidths=[0.1]*3, rowLabels=row_labels, loc='best',
                             bbox=(1.2, 0.2, 0.1, 0.75))
@@ -84,7 +85,6 @@ def get_gap_dist(params, axis="z", flag_simple=True):
     return val
 
 
-
 def get_gap_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, axis_gap="z", figname_mod="", flag_write=True):
     # gap between low-z and high-z FPs
     assert param_1_name, param_2_name in PARAMS_ID_INV.keys()
@@ -92,7 +92,8 @@ def get_gap_data_2d(params_general, param_1_name, param_1_range, param_2_name, p
     gap_array = np.zeros((len(param_1_range), len(param_2_range)))
     for i, p1 in enumerate(param_1_range):
         for j, p2 in enumerate(param_2_range):
-            params_step = params_general.mod_copy([(param_1_name, p1), (param_2_name, p2)])
+            param_mod_dict = {param_1_name:p1, param_2_name: p2}
+            params_step = params_general.mod_copy(param_mod_dict)
             gap_array[i, j] = get_gap_dist(params_step, axis=axis_gap)
         print i, j, p1, p2
     if flag_write:
@@ -116,7 +117,7 @@ def plot_gap_data_2d(gap_data_2d, params_general, param_1_name, param_1_range, p
     # CREATE TABLE OF PARAMS
     # bbox is x0, y0, height, width
     row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
-    table_vals = [[params_general.params[i]] if PARAMS_ID[i] not in [param_1_name, param_2_name] else ["None"]
+    table_vals = [[params_general.params_list[i]] if PARAMS_ID[i] not in [param_1_name, param_2_name] else ["None"]
                   for i in xrange(len(PARAMS_ID))]
     param_table = plt.table(cellText=table_vals, colWidths=[0.1]*3, rowLabels=row_labels, loc='best',
                             bbox=(1.2, 0.2, 0.1, 0.75))
@@ -138,8 +139,8 @@ def plot_gap_data_2d(gap_data_2d, params_general, param_1_name, param_1_range, p
 
 
 def get_jump_dist(params_orig, param_1_name, param_2_name, param_1_delta=0.01, param_2_delta=0.01, axis="z"):
-    values_mod = [(param_1_name, params_orig.get(param_1_name) + param_1_delta),
-                  (param_2_name, params_orig.get(param_2_name) + param_2_delta)]
+    values_mod = {param_1_name: params_orig.get(param_1_name) + param_1_delta,
+                  param_2_name: params_orig.get(param_2_name) + param_2_delta}
     params_shift = params_orig.mod_copy(values_mod)
     fp_orig_list = get_physical_and_stable_fp(params_orig)
     fp_shift_list = get_physical_and_stable_fp(params_shift)
@@ -151,11 +152,12 @@ def get_jump_dist(params_orig, param_1_name, param_2_name, param_1_delta=0.01, p
 
 def get_jump_data_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, axis_jump, figname_mod=None):
     assert param_1_name, param_2_name in PARAMS_ID_INV.keys()
-    assert [params_general[PARAMS_ID_INV[x]] for x in ['v_x', 'v_y', 'v_z']] == [0.0, 0.0, 0.0]  # currently hard-code non-flow trivial FP location of [0,0,N]
+    assert [params_general.params_dict[x] for x in ['v_x', 'v_y', 'v_z']] == [0.0, 0.0, 0.0]  # currently hard-code non-flow trivial FP location of [0,0,N]
     jump_array = np.zeros((len(param_1_range), len(param_2_range)))
     for i, p1 in enumerate(param_1_range):
         for j, p2 in enumerate(param_2_range):
-            params_step = params.mod_copy([(param_1_name, p1), (param_2_name, p2)])
+            param_mod_dict = {param_1_name:p1, param_2_name: p2}
+            params_step = params_general.mod_copy(param_mod_dict)
             jump_array[i, j] = get_jump_dist(params_step, param_1_name, param_2_name, axis=axis_jump)
         print i, j, p1, p2
     return jump_array
@@ -173,7 +175,7 @@ def plot_jump_data_2d(params_general, param_1_name, param_1_range, param_2_name,
     # CREATE TABLE OF PARAMS
     # bbox is x0, y0, height, width
     row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
-    table_vals = [[params_general.params[i]] if PARAMS_ID[i] not in [param_1_name, param_2_name] else ["None"]
+    table_vals = [[params_general.params_list[i]] if PARAMS_ID[i] not in [param_1_name, param_2_name] else ["None"]
                   for i in xrange(len(PARAMS_ID))]
     param_table = plt.table(cellText=table_vals, colWidths=[0.1]*3, rowLabels=row_labels, loc='best',
                             bbox=(1.2, 0.2, 0.1, 0.75))
@@ -197,7 +199,8 @@ def get_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2_
     fp_count_array = np.zeros((len(param_1_range), len(param_2_range)))
     for i, p1 in enumerate(param_1_range):
         for j, p2 in enumerate(param_2_range):
-            params_step = params_general.mod_copy([(param_1_name, p1), (param_2_name, p2)])
+            param_mod_dict = {param_1_name:p1, param_2_name: p2}
+            params_step = params_general.mod_copy(param_mod_dict)
             fp_list = fpcollector(params_step)
             fp_count_array[i, j] = len(fp_list)
         print i, j, p1, p2
@@ -228,7 +231,7 @@ def plot_stable_fp_count_2d(fp_count_array, params_general, param_1_name, param_
     # CREATE TABLE OF PARAMS
     # bbox is x0, y0, height, width
     row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
-    table_vals = [[params_general.params[i]] if PARAMS_ID[i] not in [param_1_name, param_2_name] else ["None"]
+    table_vals = [[params_general.params_list[i]] if PARAMS_ID[i] not in [param_1_name, param_2_name] else ["None"]
                   for i in xrange(len(PARAMS_ID))]
     param_table = plt.table(cellText=table_vals, colWidths=[0.1]*3, rowLabels=row_labels, loc='best',
                             bbox=(1.2, 0.2, 0.1, 0.75))
@@ -247,20 +250,30 @@ if __name__ == "__main__":
     flag_generate = True
     flag_load = False
 
-    alpha_plus = 0.2  # 0.05 #0.4
-    alpha_minus = 0.5  # 4.95 #0.5
-    mu = 0.01  # 0.01
-    a = 1.0
-    b = 0.8
-    c = 0.6  # 2.6 #1.2
-    N = 100.0  # 100
-    v_x = 0.1
-    v_y = 0.0
-    v_z = 0.0
-    mu_base = 0.0
-    params_list = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
-    system = "feedback_z"
-    params = Params(params_list, system)
+    # SCRIPT PARAMETERS
+    system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
+    feedback = "hill"              # "constant", "hill", "step", "pwlinear"
+    num_steps = 100000  # default 100000
+    ensemble = 5  # default 100
+
+    # DYNAMICS PARAMETERS
+    mu = 1e-3
+    params_dict = {
+        'alpha_plus': 0.2,
+        'alpha_minus': 0.5,  # 0.5
+        'mu': 0.001,  # 0.01
+        'a': 1.0,
+        'b': 0.8,
+        'c': 0.6,  # 1.2
+        'N': 100.0,  # 100.0
+        'v_x': 0.0,
+        'v_y': 0.0,
+        'v_z': 0.0,
+        'mu_base': 0.0,
+        'c2': 0.0,
+        'v_z2': 0.0
+    }
+    params = Params(params_dict, system, feedback=feedback)
 
     param_1_name = "mu"
     param_1_start = 0.0
