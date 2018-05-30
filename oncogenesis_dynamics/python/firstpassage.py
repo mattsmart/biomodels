@@ -72,7 +72,7 @@ def fast_mean_fpt_varying(param_vary_name, param_vary_values, params, num_proces
     mean_fpt_varying = [0]*len(param_vary_values)
     sd_fpt_varying = [0]*len(param_vary_values)
     for idx, pv in enumerate(param_vary_values):
-        params_step = params.mod_copy( [(param_vary_name, pv)] )
+        params_step = params.mod_copy( {param_vary_name: pv} )
         N = params_step.N
         init_cond = map_init_name_to_init_cond(N, init_name)
         fp_times = fast_fp_times(samplesize, init_cond, params_step, num_processes)
@@ -123,7 +123,7 @@ def fpt_histogram(fpt_list, params, figname_mod="", flag_show=False, flag_norm=T
 
     # create table of params
     row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
-    table_vals = [[params.params[i]] for i in xrange(len(PARAMS_ID))]
+    table_vals = [[params.params_list[i]] for i in xrange(len(PARAMS_ID))]
     param_table = plt.table(cellText=table_vals,
                             colWidths=[0.1]*3,
                             rowLabels=row_labels,
@@ -206,7 +206,7 @@ def plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_vary_name, par
     ax.set_ylabel('Mean FP time')
     # CREATE TABLE OF PARAMS
     row_labels = [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
-    table_vals = [[params.params[i]] if PARAMS_ID[i] not in [param_vary_name] else ["None"]
+    table_vals = [[params.params_list[i]] if PARAMS_ID[i] not in [param_vary_name] else ["None"]
                   for i in xrange(len(PARAMS_ID))]
     param_table = plt.table(cellText=table_vals,
                             colWidths=[0.1]*3,
@@ -221,37 +221,43 @@ def plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_vary_name, par
 
 if __name__ == "__main__":
     # SCRIPT FLAGS
-    flag_compute_fpt = False
+    flag_compute_fpt = True
     flag_read_fpt = False
     flag_generate_hist_multi = False
-    flag_load_hist_multi = True
+    flag_load_hist_multi = False
     flag_collect = False
     flag_means_read_and_plot = False
     flag_means_collect_and_plot = False
     flag_seaborn = False
 
     # SCRIPT PARAMETERS
-    system = "feedback_z"  # "feedback_mu_XZ_model" or "feedback_z"
+    system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
+    feedback = "hill"              # "constant", "hill", "step", "pwlinear"
     num_steps = 100000  # default 100000
     ensemble = 5  # default 100
 
     # DYNAMICS PARAMETERS
-    alpha_plus = 0.2 #0.2  # 0.05 #0.4
-    alpha_minus = 0.5 #0.5  # 4.95 #0.5
-    mu = 0.001  # 0.001
-    a = 1.0
-    b = 0.8
-    c = 0.81  # 2.6 #1.2
-    N = 100.0  # 100
-    v_x = 0.0
-    v_y = 0.0
-    v_z = 0.0
-    mu_base = mu*1e-1
-    params_list = [alpha_plus, alpha_minus, mu, a, b, c, N, v_x, v_y, v_z, mu_base]
-    params = Params(params_list, system)
+    mu = 1e-3
+    params_dict = {
+        'alpha_plus': 0.2,
+        'alpha_minus': 0.5,  # 0.5
+        'mu': 0.001,  # 0.01
+        'a': 1.0,
+        'b': 0.8,
+        'c': 0.95,  # 1.2
+        'N': 100.0,  # 100.0
+        'v_x': 0.0,
+        'v_y': 0.0,
+        'v_z': 0.0,
+        'mu_base': 0.0,
+        'c2': 0.0,
+        'v_z2': 0.0
+    }
+    params = Params(params_dict, system, feedback=feedback)
 
     # OTHER PARAMETERS
-    init_cond = [int(N), 0, 0]
+    init_cond = np.zeros(params.numstates, dtype=int)
+    init_cond[0] = int(params.N)
 
     # PLOTTING
     FS = 16
@@ -283,7 +289,7 @@ if __name__ == "__main__":
         multi_fpt_labels = ['label' for _ in param_vary_values]
         for idx, param_val in enumerate(param_vary_values):
             param_val_string = "%s=%.3f" % (param_vary_id, param_val)
-            params_step = Params(params_ensemble[idx], system)
+            params_step = params.mod_copy({param_vary_id: param_val})
             #fp_times = get_fpt(ensemble, init_cond, params_set[idx], num_steps=num_steps)
             fp_times = fast_fp_times(ensemble, init_cond, params_step, num_proc, num_steps=num_steps)
             write_fpt_and_params(fp_times, params_step, filename="fpt_multi", filename_mod=param_val_string)
@@ -323,7 +329,7 @@ if __name__ == "__main__":
         mu = params.mu
         mixed_fp_zinf_at_N = [0.0]*len(param_set)
         for idx, N in enumerate(param_set):
-            params_at_N = params.mod_copy( [('N', N)] )
+            params_at_N = params.mod_copy( {'N': N} )
             fps = get_physical_and_stable_fp(params_at_N)
             assert len(fps) == 1
             mixed_fp_zinf_at_N[idx] = fps[0][2]
