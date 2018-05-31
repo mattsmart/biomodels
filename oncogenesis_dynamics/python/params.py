@@ -1,9 +1,10 @@
 import csv
 from os import sep
 
-from constants import ODE_SYSTEMS, PARAMS_ID, PARAMS_ID_INV, HILL_Z0_RATIO, HILL_Y0_PLUS_Z0_RATIO, HILL_EXP, \
-                      PARAMS_ID_INV, PARAM_GAMMA, DEFAULT_FEEDBACK_SHAPE, FEEDBACK_SHAPES
-from feedback import hill_increase, hill_decrease
+from constants import ODE_SYSTEMS, PARAMS_ID, PARAMS_ID_INV, HILLORIG_Z0_RATIO, HILLORIG_Y0_PLUS_Z0_RATIO, HILL_EXP, \
+                      MUBASE_MULTIPLIER, SWITCHING_RATIO, FEEDBACK_MULTIPLIER_INC, FEEDBACK_MULTIPLIER_DEC, \
+                      DEFAULT_FEEDBACK_SHAPE, FEEDBACK_SHAPES
+from feedback import hill_increase, hill_decrease, step_increase, step_decrease, hill_orig_increase, hill_orig_decrease
 
 
 class Params(object):
@@ -105,36 +106,40 @@ class Params(object):
         assert self.constant_growthandflowrates
         return sum([state[i]*self.growthrates[i] + self.flowrates[i] for i in xrange(self.numstates)]) / self.N
 
-    def feedback_shape(self, param_name, state_coordinate, param_hill=HILL_EXP, state_ratio=HILL_Z0_RATIO):
+    def feedback_shape(self, param_name, state_coordinate, hill_exp=HILL_EXP, state_ratio=SWITCHING_RATIO, mult=FEEDBACK_MULTIPLIER_INC):
         N = self.N
-        p = state_coordinate
 
         if param_name == "alpha_plus":
             if self.feedback == "constant":
                 print "Warning, feedback functionality in use for constant feedback setting (waste)"
                 feedbackval = self.alpha_plus
+            elif self.feedback == "hillorig":
+                feedbackval = hill_orig_increase(self.alpha_plus, state_coordinate, N, hill_exp=1.0, hill_ratio=HILLORIG_Z0_RATIO)
             elif self.feedback == "hill":
-                feedbackval = self.alpha_plus * (1 + p ** param_hill / (p ** param_hill + (state_ratio * N) ** param_hill))
+                feedbackval = hill_increase(self.alpha_plus, state_coordinate, N, hill_exp=hill_exp, hill_ratio=state_ratio, multiplier=mult)
+                #feedbackval = self.alpha_plus * (1 + p ** param_hill / (p ** param_hill + (state_ratio * N) ** param_hill))
             elif self.feedback == "step":
-                feedbackval = None
+                feedbackval = step_increase(self.alpha_plus, state_coordinate, N, step_ratio=state_ratio, multiplier=mult)
 
         elif param_name == "alpha_minus":
             if self.feedback == "constant":
                 print "Warning, feedback functionality in use for constant feedback setting (waste)"
                 feedbackval = self.alpha_minus
+            elif self.feedback == "hillorig":
+                feedbackval = hill_orig_decrease(self.alpha_minus, state_coordinate, N, hill_exp=1.0, hill_ratio=HILLORIG_Z0_RATIO)
             elif self.feedback == "hill":
-                feedbackval = self.alpha_minus * (state_ratio*N)**param_hill / (p**param_hill + (state_ratio*N)**param_hill)
+                feedbackval = hill_decrease(self.alpha_minus, state_coordinate, N, hill_exp=hill_exp, hill_ratio=state_ratio, multiplier=mult)
             elif self.feedback == "step":
-                feedbackval = None
+                feedbackval = step_decrease(self.alpha_minus, state_coordinate, N, step_ratio=state_ratio, multiplier=mult)
 
         elif param_name == "mu_base":
             if self.feedback == "constant":
                 print "Warning, feedback functionality in use for constant feedback setting (waste)"
                 feedbackval = self.mu_base
             elif self.feedback == "hill":
-                feedbackval = self.mu_base * (1 + PARAM_GAMMA * p ** param_hill / (p ** param_hill + (state_ratio * N) ** param_hill))
+                feedbackval = hill_increase(self.mu_base, state_coordinate, N, hill_exp=hill_exp, hill_ratio=state_ratio, multiplier=mult)
             elif self.feedback == "step":
-                feedbackval = None
+                feedbackval = step_increase(self.mu_base, state_coordinate, N, step_ratio=state_ratio, multiplier=mult)
 
         else:
             print "param_name %s not supported in feedback_shape" % param_name
@@ -148,16 +153,16 @@ class Params(object):
         if self.numstates == 3:
             x, y, z = init_cond
             if self.system == "feedback_z":
-                mod_params_dict['alpha_plus'] = self.feedback_shape("alpha_plus", z, state_ratio=HILL_Z0_RATIO)
-                mod_params_dict['alpha_minus'] = self.feedback_shape("alpha_minus", z, state_ratio=HILL_Z0_RATIO)
+                mod_params_dict['alpha_plus'] = self.feedback_shape("alpha_plus", z, state_ratio=SWITCHING_RATIO, mult=FEEDBACK_MULTIPLIER_INC)
+                mod_params_dict['alpha_minus'] = self.feedback_shape("alpha_minus", z, state_ratio=SWITCHING_RATIO, mult=FEEDBACK_MULTIPLIER_DEC)
                 """
-                alpha_plus = alpha_plus * (1 + z**HILL_EXP / (z**HILL_EXP + (HILL_Z0_RATIO*N)**HILL_EXP))
-                alpha_minus = alpha_minus * (HILL_Z0_RATIO*N)**HILL_EXP / (z**HILL_EXP + (HILL_Z0_RATIO*N)**HILL_EXP)
+                alpha_plus = alpha_plus * (1 + z**HILL_EXP / (z**HILL_EXP + (HILLORIG_Z0_RATIO*N)**HILL_EXP))
+                alpha_minus = alpha_minus * (HILLORIG_Z0_RATIO*N)**HILL_EXP / (z**HILL_EXP + (HILLORIG_Z0_RATIO*N)**HILL_EXP)
                 """
             elif self.system == "feedback_yz":
                 yz = y + z
-                mod_params_dict['alpha_plus'] = self.feedback_shape("alpha_plus", yz, state_ratio=HILL_Y0_PLUS_Z0_RATIO)
-                mod_params_dict['alpha_minus'] = self.feedback_shape("alpha_minus", yz, state_ratio=HILL_Y0_PLUS_Z0_RATIO)
+                mod_params_dict['alpha_plus'] = self.feedback_shape("alpha_plus", yz, state_ratio=SWITCHING_RATIO, mult=FEEDBACK_MULTIPLIER_INC)
+                mod_params_dict['alpha_minus'] = self.feedback_shape("alpha_minus", yz, state_ratio=SWITCHING_RATIO, mult=FEEDBACK_MULTIPLIER_DEC)
                 """
                 alpha_plus = alpha_plus * (1 + yz**HILL_EXP / (yz**HILL_EXP + (HILL_Y0_PLUS_Z0_RATIO*N)**HILL_EXP))
                 alpha_minus = alpha_minus * (HILL_Y0_PLUS_Z0_RATIO*N)**HILL_EXP / (yz**HILL_EXP + (HILL_Y0_PLUS_Z0_RATIO*N)**HILL_EXP)
@@ -165,23 +170,26 @@ class Params(object):
         elif self.numstates == 2:
             if self.system == "feedback_mu_XZ_model":
                 x, z = init_cond
-                mod_params_dict['mu_base'] = self.feedback_shape("mu_base", z, state_ratio=HILL_Z0_RATIO)
+                mod_params_dict['mu_base'] = self.feedback_shape("mu_base", z, state_ratio=SWITCHING_RATIO, mult=FEEDBACK_MULTIPLIER_INC)
         else:
             if self.system == "feedback_XYZZprime":
                 x, y, z, z2 = init_cond
                 zsum = z + z2
-                mod_params_dict['alpha_plus'] = self.feedback_shape("alpha_plus", zsum, state_ratio=HILL_Z0_RATIO)
-                mod_params_dict['alpha_minus'] = self.feedback_shape("alpha_minus", zsum, state_ratio=HILL_Z0_RATIO)
+                mod_params_dict['alpha_plus'] = self.feedback_shape("alpha_plus", zsum, state_ratio=SWITCHING_RATIO, mult=FEEDBACK_MULTIPLIER_INC)
+                mod_params_dict['alpha_minus'] = self.feedback_shape("alpha_minus", zsum, state_ratio=SWITCHING_RATIO, mult=FEEDBACK_MULTIPLIER_DEC)
                 """
-                alpha_plus = alpha_plus * (1 + zsum ** HILL_EXP / (zsum ** HILL_EXP + (HILL_Z0_RATIO * N) ** HILL_EXP))
-                alpha_minus = alpha_minus * (HILL_Z0_RATIO * N) ** HILL_EXP / (zsum ** HILL_EXP + (HILL_Z0_RATIO * N) ** HILL_EXP)
+                alpha_plus = alpha_plus * (1 + zsum ** HILL_EXP / (zsum ** HILL_EXP + (HILLORIG_Z0_RATIO * N) ** HILL_EXP))
+                alpha_minus = alpha_minus * (HILLORIG_Z0_RATIO * N) ** HILL_EXP / (zsum ** HILL_EXP + (HILLORIG_Z0_RATIO * N) ** HILL_EXP)
                 """
         return mod_params_dict
 
     def ode_system_vector(self, init_cond, times):
         fbar = self.fbar(init_cond)
-        mod_params_dict = self.system_variants(init_cond, times)
-        p = self.mod_copy(mod_params_dict)  # TODO optimize, maybe slow, creates new params copy with augmented vals
+        if self.feedback != 'constant':
+            mod_params_dict = self.system_variants(init_cond, times)
+            p = self.mod_copy(mod_params_dict)  # TODO optimize, maybe slow, creates new params copy with augmented vals
+        else:
+            p = self
         if self.numstates == 3:
             x, y, z = init_cond
             dxdt = p.v_x - x * (p.alpha_plus + p.mu_base) + y * p.alpha_minus + (p.a - fbar) * x
@@ -211,8 +219,11 @@ class Params(object):
         if flag_fpt, append rxn_prop with mu*last_state
         """
         fbar = self.fbar(state)  # TODO flag to switch N to x + y + z
-        mod_params_dict = self.system_variants(state, None)
-        p = self.mod_copy(mod_params_dict)  # TODO optimize, maybe slow, creates new params copy with augmented vals
+        if self.feedback != 'constant':
+            mod_params_dict = self.system_variants(state, None)
+            p = self.mod_copy(mod_params_dict)  # TODO optimize, maybe slow, creates new params copy with augmented vals
+        else:
+            p = self
         if self.numstates == 3:
             x_n, y_n, z_n = state
             rxn_prop = [p.a * x_n, fbar * (x_n),  # birth/death events for x  TODO: is it fbar*(x_n - 1)
