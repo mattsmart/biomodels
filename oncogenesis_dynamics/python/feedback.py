@@ -67,10 +67,13 @@ def step_increase(param_to_modify, coord, N, step_ratio=SWITCHING_RATIO, multipl
     coord: state coordinate e.g. z=50
     N: param N e.g. N=10,000
     """
-    feedbackval = param_to_modify
     step_coord = N * step_ratio
     if coord > step_coord:
-        feedbackval = multiplier * feedbackval
+        feedbackval = param_to_modify * multiplier
+    elif coord == step_coord:
+        feedbackval = param_to_modify * (multiplier + 1) / 2  # note this appears to be unnecessary
+    else:
+        feedbackval = param_to_modify
     return feedbackval
 
 
@@ -80,10 +83,13 @@ def step_decrease(param_to_modify, coord, N, step_ratio=SWITCHING_RATIO, multipl
     coord: state coordinate e.g. z=50
     N: param N e.g. N=10,000
     """
-    feedbackval = param_to_modify
     step_coord = N * step_ratio
     if coord > step_coord:
-        feedbackval = feedbackval / multiplier
+        feedbackval = param_to_modify / multiplier
+    elif coord == step_coord:
+        feedbackval = param_to_modify / ((multiplier + 1) / 2)  # note this appears to be unnecessary
+    else:
+        feedbackval = param_to_modify
     return feedbackval
 
 
