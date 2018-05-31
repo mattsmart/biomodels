@@ -117,7 +117,6 @@ class Params(object):
                 feedbackval = hill_orig_increase(self.alpha_plus, state_coordinate, N, hill_exp=1.0, hill_ratio=HILLORIG_Z0_RATIO)
             elif self.feedback == "hill":
                 feedbackval = hill_increase(self.alpha_plus, state_coordinate, N, hill_exp=hill_exp, hill_ratio=state_ratio, multiplier=mult)
-                #feedbackval = self.alpha_plus * (1 + p ** param_hill / (p ** param_hill + (state_ratio * N) ** param_hill))
             elif self.feedback == "step":
                 feedbackval = step_increase(self.alpha_plus, state_coordinate, N, step_ratio=state_ratio, multiplier=mult)
 
@@ -155,18 +154,10 @@ class Params(object):
             if self.system == "feedback_z":
                 mod_params_dict['alpha_plus'] = self.feedback_shape("alpha_plus", z, state_ratio=SWITCHING_RATIO, mult=FEEDBACK_MULTIPLIER_INC)
                 mod_params_dict['alpha_minus'] = self.feedback_shape("alpha_minus", z, state_ratio=SWITCHING_RATIO, mult=FEEDBACK_MULTIPLIER_DEC)
-                """
-                alpha_plus = alpha_plus * (1 + z**HILL_EXP / (z**HILL_EXP + (HILLORIG_Z0_RATIO*N)**HILL_EXP))
-                alpha_minus = alpha_minus * (HILLORIG_Z0_RATIO*N)**HILL_EXP / (z**HILL_EXP + (HILLORIG_Z0_RATIO*N)**HILL_EXP)
-                """
             elif self.system == "feedback_yz":
                 yz = y + z
                 mod_params_dict['alpha_plus'] = self.feedback_shape("alpha_plus", yz, state_ratio=SWITCHING_RATIO, mult=FEEDBACK_MULTIPLIER_INC)
                 mod_params_dict['alpha_minus'] = self.feedback_shape("alpha_minus", yz, state_ratio=SWITCHING_RATIO, mult=FEEDBACK_MULTIPLIER_DEC)
-                """
-                alpha_plus = alpha_plus * (1 + yz**HILL_EXP / (yz**HILL_EXP + (HILL_Y0_PLUS_Z0_RATIO*N)**HILL_EXP))
-                alpha_minus = alpha_minus * (HILL_Y0_PLUS_Z0_RATIO*N)**HILL_EXP / (yz**HILL_EXP + (HILL_Y0_PLUS_Z0_RATIO*N)**HILL_EXP)
-                """
         elif self.numstates == 2:
             if self.system == "feedback_mu_XZ_model":
                 x, z = init_cond
@@ -177,10 +168,7 @@ class Params(object):
                 zsum = z + z2
                 mod_params_dict['alpha_plus'] = self.feedback_shape("alpha_plus", zsum, state_ratio=SWITCHING_RATIO, mult=FEEDBACK_MULTIPLIER_INC)
                 mod_params_dict['alpha_minus'] = self.feedback_shape("alpha_minus", zsum, state_ratio=SWITCHING_RATIO, mult=FEEDBACK_MULTIPLIER_DEC)
-                """
-                alpha_plus = alpha_plus * (1 + zsum ** HILL_EXP / (zsum ** HILL_EXP + (HILLORIG_Z0_RATIO * N) ** HILL_EXP))
-                alpha_minus = alpha_minus * (HILLORIG_Z0_RATIO * N) ** HILL_EXP / (zsum ** HILL_EXP + (HILLORIG_Z0_RATIO * N) ** HILL_EXP)
-                """
+
         return mod_params_dict
 
     def ode_system_vector(self, init_cond, times):
