@@ -287,17 +287,17 @@ def fp_location_sympy_system(params):
     """ OLD METHOD
     if params.system == "feedback_z":
         z = N - sym_x - sym_y
-        alpha_plus = alpha_plus * (1 + z**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL))
-        alpha_minus = alpha_minus * (PARAM_Z0_RATIO*N)**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL)
+        alpha_plus = alpha_plus * (1 + z**HILL_EXP / (z**HILL_EXP + (HILL_Z0_RATIO*N)**HILL_EXP))
+        alpha_minus = alpha_minus * (HILL_Z0_RATIO*N)**HILL_EXP / (z**HILL_EXP + (HILL_Z0_RATIO*N)**HILL_EXP)
     elif params.system == "feedback_yz":
         yz = N - sym_x
-        alpha_plus = alpha_plus * (1 + yz**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL))
-        alpha_minus = alpha_minus * (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL)
+        alpha_plus = alpha_plus * (1 + yz**HILL_EXP / (yz**HILL_EXP + (HILL_Y0_PLUS_Z0_RATIO*N)**HILL_EXP))
+        alpha_minus = alpha_minus * (HILL_Y0_PLUS_Z0_RATIO*N)**HILL_EXP / (yz**HILL_EXP + (HILL_Y0_PLUS_Z0_RATIO*N)**HILL_EXP)
     elif params.system == "feedback_mu_XZ_model":
         z = N - sym_x - sym_y
         alpha_plus = 0.0
         alpha_minus = 0.0
-        mu_base = mu_base * (1 + PARAM_GAMMA * z**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO * N)**PARAM_HILL))
+        mu_base = mu_base * (1 + PARAM_GAMMA * z**HILL_EXP / (z**HILL_EXP + (HILL_Z0_RATIO * N)**HILL_EXP))
     """
 
     VV = (p.v_x + p.v_y + p.v_z) / p.N
@@ -324,17 +324,17 @@ def fp_location_sympy_quartic(params):
     """ OLD METHOD
     if params.system == "feedback_z":
         z = N - sym_x - sym_y
-        alpha_plus = alpha_plus * (1 + z**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL))
-        alpha_minus = alpha_minus * (PARAM_Z0_RATIO*N)**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL)
+        alpha_plus = alpha_plus * (1 + z**HILL_EXP / (z**HILL_EXP + (HILL_Z0_RATIO*N)**HILL_EXP))
+        alpha_minus = alpha_minus * (HILL_Z0_RATIO*N)**HILL_EXP / (z**HILL_EXP + (HILL_Z0_RATIO*N)**HILL_EXP)
     elif params.system == "feedback_yz":
         yz = N - sym_x
-        alpha_plus = alpha_plus * (1 + yz**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL))
-        alpha_minus = alpha_minus * (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL)
+        alpha_plus = alpha_plus * (1 + yz**HILL_EXP / (yz**HILL_EXP + (HILL_Y0_PLUS_Z0_RATIO*N)**HILL_EXP))
+        alpha_minus = alpha_minus * (HILL_Y0_PLUS_Z0_RATIO*N)**HILL_EXP / (yz**HILL_EXP + (HILL_Y0_PLUS_Z0_RATIO*N)**HILL_EXP)
     elif params.system == "feedback_mu_XZ_model":
         z = N - sym_x - sym_y
         alpha_plus = 0.0
         alpha_minus = 0.0
-        mu_base = mu_base * (1 + PARAM_GAMMA * z**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO * N)**PARAM_HILL))
+        mu_base = mu_base * (1 + PARAM_GAMMA * z**HILL_EXP / (z**HILL_EXP + (HILL_Z0_RATIO * N)**HILL_EXP))
     """
     VV = (p.v_x+p.v_y+p.v_z)/p.N
     a0 = (p.c-p.a)/p.N

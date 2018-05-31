@@ -4,23 +4,23 @@ Comments
 - no stability calculation implemented (see matlab code for that)
 
 Conventions
-- params is 7-vector of the form: params[0] -> alpha_plus
-                                  params[1] -> alpha_minus
-                                  params[2] -> mu
-                                  params[3] -> a           (usually normalized to 1)
-                                  params[4] -> b           (b = 1 - delta)
-                                  params[5] -> c           (c = 1 + s)
-                                  params[6] -> N           (float not int)
-                                  params[7] -> v_x
-                                  params[8] -> v_y         (typically 0)
-                                  params[9] -> v_z         (typically 0)
-                                  params[10] -> mu_base    (typically 0)
-                                  params[11] -> c2         (typically 0)
-                                  params[12] -> v_z2       (typically 0)
+- params is 13-vector of the form: params[0] -> alpha_plus
+                                   params[1] -> alpha_minus
+                                   params[2] -> mu
+                                   params[3] -> a           (usually normalized to 1)
+                                   params[4] -> b           (b = 1 - delta)
+                                   params[5] -> c           (c = 1 + s)
+                                   params[6] -> N           (float not int)
+                                   params[7] -> v_x
+                                   params[8] -> v_y         (typically 0)
+                                   params[9] -> v_z         (typically 0)
+                                   params[10] -> mu_base    (typically 0)
+                                   params[11] -> c2         (typically 0)
+                                   params[12] -> v_z2       (typically 0)
 - if an element of params is specified as None then a bifurcation range will be be found and used
 """
 
-# MODEL PARAMETERS NAD LABELS
+# MODEL PARAMETERS AND LABELS
 ODE_SYSTEMS = ["default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"]
 FEEDBACK_SHAPES = ["constant", "hill", "step", "pwlinear"]
 DEFAULT_FEEDBACK_SHAPE = "hill"
@@ -63,10 +63,10 @@ TIME_END = 16000.0  # standard trajectory end time
 NUM_STEPS = 20000  # number of time steps in each trajectory (non-gillespie)
 
 # SYSTEM VARIANT PARAMS
-PARAM_Z0_RATIO = 0.1           # size of z0 relative to N (in feedback_z function)
-PARAM_Y0_PLUS_Z0_RATIO = 0.1   # size of y0 + z0 relative to N (in feedback_yz function)
-PARAM_GAMMA = 9.0              # when z->N, mu_base-> approx (K + 1)*mu_base
-PARAM_HILL = 1                 # (unused currently) hill parameter 'n'
+HILL_Z0_RATIO = 0.1           # size of z0 relative to N (in feedback_z function)
+HILL_Y0_PLUS_Z0_RATIO = 0.1   # size of y0 + z0 relative to N (in feedback_yz function)
+PARAM_GAMMA = 9.0             # when z->N, mu_base-> approx (K + 1)*mu_base
+HILL_EXP = 1                  # (unused currently) hill parameter 'n'
 
 # COLOURS FOR PLOTTING
 # simplex bifurcation diagram colours

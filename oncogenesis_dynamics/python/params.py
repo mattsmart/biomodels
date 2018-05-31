@@ -1,8 +1,9 @@
 import csv
 from os import sep
 
-from constants import ODE_SYSTEMS, PARAMS_ID, PARAMS_ID_INV, PARAM_Z0_RATIO, PARAM_Y0_PLUS_Z0_RATIO, PARAM_HILL, \
+from constants import ODE_SYSTEMS, PARAMS_ID, PARAMS_ID_INV, HILL_Z0_RATIO, HILL_Y0_PLUS_Z0_RATIO, HILL_EXP, \
                       PARAMS_ID_INV, PARAM_GAMMA, DEFAULT_FEEDBACK_SHAPE, FEEDBACK_SHAPES
+from feedback import hill_increase, hill_decrease
 
 
 class Params(object):
@@ -104,7 +105,7 @@ class Params(object):
         assert self.constant_growthandflowrates
         return sum([state[i]*self.growthrates[i] + self.flowrates[i] for i in xrange(self.numstates)]) / self.N
 
-    def feedback_shape(self, param_name, state_coordinate, param_hill=PARAM_HILL, state_ratio=PARAM_Z0_RATIO):
+    def feedback_shape(self, param_name, state_coordinate, param_hill=HILL_EXP, state_ratio=HILL_Z0_RATIO):
         N = self.N
         p = state_coordinate
 
@@ -147,33 +148,33 @@ class Params(object):
         if self.numstates == 3:
             x, y, z = init_cond
             if self.system == "feedback_z":
-                mod_params_dict['alpha_plus'] = self.feedback_shape("alpha_plus", z, state_ratio=PARAM_Z0_RATIO)
-                mod_params_dict['alpha_minus'] = self.feedback_shape("alpha_minus", z, state_ratio=PARAM_Z0_RATIO)
+                mod_params_dict['alpha_plus'] = self.feedback_shape("alpha_plus", z, state_ratio=HILL_Z0_RATIO)
+                mod_params_dict['alpha_minus'] = self.feedback_shape("alpha_minus", z, state_ratio=HILL_Z0_RATIO)
                 """
-                alpha_plus = alpha_plus * (1 + z**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL))
-                alpha_minus = alpha_minus * (PARAM_Z0_RATIO*N)**PARAM_HILL / (z**PARAM_HILL + (PARAM_Z0_RATIO*N)**PARAM_HILL)
+                alpha_plus = alpha_plus * (1 + z**HILL_EXP / (z**HILL_EXP + (HILL_Z0_RATIO*N)**HILL_EXP))
+                alpha_minus = alpha_minus * (HILL_Z0_RATIO*N)**HILL_EXP / (z**HILL_EXP + (HILL_Z0_RATIO*N)**HILL_EXP)
                 """
             elif self.system == "feedback_yz":
                 yz = y + z
-                mod_params_dict['alpha_plus'] = self.feedback_shape("alpha_plus", yz, state_ratio=PARAM_Y0_PLUS_Z0_RATIO)
-                mod_params_dict['alpha_minus'] = self.feedback_shape("alpha_minus", yz, state_ratio=PARAM_Y0_PLUS_Z0_RATIO)
+                mod_params_dict['alpha_plus'] = self.feedback_shape("alpha_plus", yz, state_ratio=HILL_Y0_PLUS_Z0_RATIO)
+                mod_params_dict['alpha_minus'] = self.feedback_shape("alpha_minus", yz, state_ratio=HILL_Y0_PLUS_Z0_RATIO)
                 """
-                alpha_plus = alpha_plus * (1 + yz**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL))
-                alpha_minus = alpha_minus * (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL / (yz**PARAM_HILL + (PARAM_Y0_PLUS_Z0_RATIO*N)**PARAM_HILL)
+                alpha_plus = alpha_plus * (1 + yz**HILL_EXP / (yz**HILL_EXP + (HILL_Y0_PLUS_Z0_RATIO*N)**HILL_EXP))
+                alpha_minus = alpha_minus * (HILL_Y0_PLUS_Z0_RATIO*N)**HILL_EXP / (yz**HILL_EXP + (HILL_Y0_PLUS_Z0_RATIO*N)**HILL_EXP)
                 """
         elif self.numstates == 2:
             if self.system == "feedback_mu_XZ_model":
                 x, z = init_cond
-                mod_params_dict['mu_base'] = self.feedback_shape("mu_base", z, state_ratio=PARAM_Z0_RATIO)
+                mod_params_dict['mu_base'] = self.feedback_shape("mu_base", z, state_ratio=HILL_Z0_RATIO)
         else:
             if self.system == "feedback_XYZZprime":
                 x, y, z, z2 = init_cond
                 zsum = z + z2
-                mod_params_dict['alpha_plus'] = self.feedback_shape("alpha_plus", zsum, state_ratio=PARAM_Z0_RATIO)
-                mod_params_dict['alpha_minus'] = self.feedback_shape("alpha_minus", zsum, state_ratio=PARAM_Z0_RATIO)
+                mod_params_dict['alpha_plus'] = self.feedback_shape("alpha_plus", zsum, state_ratio=HILL_Z0_RATIO)
+                mod_params_dict['alpha_minus'] = self.feedback_shape("alpha_minus", zsum, state_ratio=HILL_Z0_RATIO)
                 """
-                alpha_plus = alpha_plus * (1 + zsum ** PARAM_HILL / (zsum ** PARAM_HILL + (PARAM_Z0_RATIO * N) ** PARAM_HILL))
-                alpha_minus = alpha_minus * (PARAM_Z0_RATIO * N) ** PARAM_HILL / (zsum ** PARAM_HILL + (PARAM_Z0_RATIO * N) ** PARAM_HILL)
+                alpha_plus = alpha_plus * (1 + zsum ** HILL_EXP / (zsum ** HILL_EXP + (HILL_Z0_RATIO * N) ** HILL_EXP))
+                alpha_minus = alpha_minus * (HILL_Z0_RATIO * N) ** HILL_EXP / (zsum ** HILL_EXP + (HILL_Z0_RATIO * N) ** HILL_EXP)
                 """
         return mod_params_dict
 
