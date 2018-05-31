@@ -62,11 +62,14 @@ TIME_START = 0.0  # standard trajectory start time
 TIME_END = 16000.0  # standard trajectory end time
 NUM_STEPS = 20000  # number of time steps in each trajectory (non-gillespie)
 
-# SYSTEM VARIANT PARAMS
-HILL_Z0_RATIO = 0.1           # size of z0 relative to N (in feedback_z function)
-HILL_Y0_PLUS_Z0_RATIO = 0.1   # size of y0 + z0 relative to N (in feedback_yz function)
-PARAM_GAMMA = 9.0             # when z->N, mu_base-> approx (K + 1)*mu_base
-HILL_EXP = 1                  # (unused currently) hill parameter 'n'
+# FEEDBACK CONSTANTS
+HILLORIG_Z0_RATIO = 0.1           # size of z0 relative to N (in feedback_z function)
+HILLORIG_Y0_PLUS_Z0_RATIO = 0.1   # size of y0 + z0 relative to N (in feedback_yz function)
+HILL_EXP = 1                      # (unused currently) hill parameter 'n'
+SWITCHING_RATIO = 0.5             # midpoint of feedback curve
+FEEDBACK_MULTIPLIER_INC = 2.0     # increase params by this factor as e.g. z -> N
+FEEDBACK_MULTIPLIER_DEC = 2.0     # decrease params by this factor as e.g. z -> N
+MUBASE_MULTIPLIER = 9.0           # when z->N, mu_base-> approx (K + 1)*mu_base
 
 # COLOURS FOR PLOTTING
 # simplex bifurcation diagram colours
