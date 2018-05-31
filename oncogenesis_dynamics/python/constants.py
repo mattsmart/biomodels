@@ -67,8 +67,8 @@ HILLORIG_Z0_RATIO = 0.1           # size of z0 relative to N (in feedback_z func
 HILLORIG_Y0_PLUS_Z0_RATIO = 0.1   # size of y0 + z0 relative to N (in feedback_yz function)
 HILL_EXP = 1                      # (unused currently) hill parameter 'n'
 SWITCHING_RATIO = 0.5             # midpoint of feedback curve
-FEEDBACK_MULTIPLIER_INC = 2.0     # increase params by this factor as e.g. z -> N
-FEEDBACK_MULTIPLIER_DEC = 2.0     # decrease params by this factor as e.g. z -> N
+FEEDBACK_MULTIPLIER_INC = 4.0     # increase params by this factor as e.g. z -> N
+FEEDBACK_MULTIPLIER_DEC = 4.0     # decrease params by this factor as e.g. z -> N
 MUBASE_MULTIPLIER = 9.0           # when z->N, mu_base-> approx (K + 1)*mu_base
 
 # COLOURS FOR PLOTTING
