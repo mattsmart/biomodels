@@ -59,7 +59,7 @@ def get_gap_dist(params, axis="z", flag_simple=True):
     fp_list = get_physical_and_stable_fp(params)
     if len(fp_list) > 2:
         print "WARNING: %d phys/stable fixed points at these params:" % len(fp_list)
-        print params, params.system
+        print params.printer()
         print "FPs:", fp_list
         params.write(OUTPUT_DIR, "broken_params.csv")
         val = -1.0
