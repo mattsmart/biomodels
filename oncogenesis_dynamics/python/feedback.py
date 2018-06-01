@@ -4,7 +4,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from constants import HILLORIG_Z0_RATIO, HILL_EXP, FEEDBACK_MULTIPLIER_INC, FEEDBACK_MULTIPLIER_DEC, SWITCHING_RATIO
+from constants import HILLORIG_Z0_RATIO, HILL_EXP, MULT_INC, MULT_DEC, SWITCHING_RATIO
 
 
 def hill_orig_increase(param_to_modify, coord, N, hill_exp=HILL_EXP, hill_ratio=HILLORIG_Z0_RATIO):
@@ -27,7 +27,7 @@ def hill_orig_decrease(param_to_modify, coord, N, hill_exp=HILL_EXP, hill_ratio=
     return feedbackval
 
 
-def hill_increase(param_to_modify, coord, N, hill_exp=HILL_EXP, hill_ratio=SWITCHING_RATIO, multiplier=FEEDBACK_MULTIPLIER_INC):
+def hill_increase(param_to_modify, coord, N, hill_exp=HILL_EXP, hill_ratio=SWITCHING_RATIO, multiplier=MULT_INC):
     """
     param_to_modify: e.g. alpha_plus_0 (value without feedback)
     coord: state coordinate e.g. z=50
@@ -41,7 +41,7 @@ def hill_increase(param_to_modify, coord, N, hill_exp=HILL_EXP, hill_ratio=SWITC
     return feedbackval
 
 
-def hill_decrease(param_to_modify, coord, N, hill_exp=HILL_EXP, hill_ratio=SWITCHING_RATIO, multiplier=FEEDBACK_MULTIPLIER_DEC):
+def hill_decrease(param_to_modify, coord, N, hill_exp=HILL_EXP, hill_ratio=SWITCHING_RATIO, multiplier=MULT_DEC):
     """
     param_to_modify: e.g. alpha_plus_0 (value without feedback)
     coord: state coordinate e.g. z=50
@@ -61,7 +61,7 @@ def hill_decrease(param_to_modify, coord, N, hill_exp=HILL_EXP, hill_ratio=SWITC
     return feedbackval
 
 
-def step_increase(param_to_modify, coord, N, step_ratio=SWITCHING_RATIO, multiplier=FEEDBACK_MULTIPLIER_INC):
+def step_increase(param_to_modify, coord, N, step_ratio=SWITCHING_RATIO, multiplier=MULT_INC):
     """
     param_to_modify: e.g. alpha_plus_0 (value without feedback)
     coord: state coordinate e.g. z=50
@@ -77,7 +77,7 @@ def step_increase(param_to_modify, coord, N, step_ratio=SWITCHING_RATIO, multipl
     return feedbackval
 
 
-def step_decrease(param_to_modify, coord, N, step_ratio=SWITCHING_RATIO, multiplier=FEEDBACK_MULTIPLIER_DEC):
+def step_decrease(param_to_modify, coord, N, step_ratio=SWITCHING_RATIO, multiplier=MULT_DEC):
     """
     param_to_modify: e.g. alpha_plus_0 (value without feedback)
     coord: state coordinate e.g. z=50

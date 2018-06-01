@@ -2,16 +2,14 @@ import csv
 from os import sep
 
 from constants import ODE_SYSTEMS, PARAMS_ID, PARAMS_ID_INV, HILLORIG_Z0_RATIO, HILLORIG_Y0_PLUS_Z0_RATIO, HILL_EXP, \
-                      MUBASE_MULTIPLIER, SWITCHING_RATIO, FEEDBACK_MULTIPLIER_INC, FEEDBACK_MULTIPLIER_DEC, \
+                      MUBASE_MULTIPLIER, SWITCHING_RATIO, MULT_INC, MULT_DEC, \
                       DEFAULT_FEEDBACK_SHAPE, FEEDBACK_SHAPES
 from feedback import hill_increase, hill_decrease, step_increase, step_decrease, hill_orig_increase, hill_orig_decrease
 
 
 class Params(object):
 
-    def __init__(self, params_dict, system, init_cond=None, feedback=DEFAULT_FEEDBACK_SHAPE, hill_exp=HILL_EXP,
-                 feedback_multiplier_inc=FEEDBACK_MULTIPLIER_INC, feedback_multiplier_dec=FEEDBACK_MULTIPLIER_DEC,
-                 switching_ratio=SWITCHING_RATIO):
+    def __init__(self, params_dict, system, init_cond=None, feedback=DEFAULT_FEEDBACK_SHAPE):
         # TODO maybe have attribute self.params_id which is dict int->param_name (diff for diff system)
         # TODO two system params, one if there is feedback, other is feedback type (i.e. hill n=1, step with threshold)
         # TODO have "default params" corresponding to specific models (e.g xyz default with alpha_minus=0 is like 2-hit)
@@ -29,6 +27,11 @@ class Params(object):
         self.v_z = None
         self.v_z2 = None
         self.mu_base = None
+        self.hill_exp = HILL_EXP
+        self.mult_inc = MULT_INC
+        self.mult_dec = MULT_DEC
+        self.switching_ratio = SWITCHING_RATIO
+        self.mult_inc_mubase = MUBASE_MULTIPLIER
         for k, v in params_dict.iteritems():
             setattr(self, k, v)
         # store params_dict as canonical list and add the Nones to self.params_dict
@@ -38,12 +41,6 @@ class Params(object):
         keys_to_add = set(PARAMS_ID.values()) - set(params_dict.keys())
         for key in keys_to_add:
             self.params_dict[key] = getattr(self, key)
-        # feedback parameters
-        self.hill_exp = hill_exp
-        self.feedback_multiplier_inc = feedback_multiplier_inc
-        self.feedback_multiplier_dec = feedback_multiplier_dec
-        self.switching_ratio = switching_ratio
-        self.mubase_multiplier = MUBASE_MULTIPLIER
         # init_cond as x, y, z, etc
         self.init_cond = init_cond  # TODO not fully implemented
         # system as defined in constants.pu (e.g. 'default', 'feedback_z')
@@ -119,9 +116,9 @@ class Params(object):
 
         hill_exp = self.hill_exp
         state_ratio = self.switching_ratio
-        mult_inc = self.feedback_multiplier_inc
-        mult_dec = self.feedback_multiplier_dec
-        mult_inc_mu = self.mubase_multiplier
+        mult_inc = self.mult_inc
+        mult_dec = self.mult_dec
+        mult_inc_mu = self.mult_inc_mubase
 
         if param_name == "alpha_plus":
             if self.feedback == "constant":

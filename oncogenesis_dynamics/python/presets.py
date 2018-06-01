@@ -48,13 +48,12 @@ def presets(preset_label):
             'v_z': 0.0,
             'mu_base': 0.0,
             'c2': 0.0,
-            'v_z2': 0.0
+            'v_z2': 0.0,
+            'switching_ratio': 0.5,
+            'mult_inc': 4.0,
+            'mult_dec': 4.0,
         }
-        switching_ratio = 0.5
-        feedback_multiplier_inc = 4.0
-        feedback_multiplier_dec = 4.0
-        params = Params(params_dict, system, feedback=feedback, switching_ratio=switching_ratio,
-                        feedback_multiplier_inc=feedback_multiplier_inc, feedback_multiplier_dec=feedback_multiplier_dec)
+        params = Params(params_dict, system)
 
     else:
         params = None

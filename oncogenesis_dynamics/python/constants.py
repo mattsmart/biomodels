@@ -17,6 +17,11 @@ Conventions
                                    params[10] -> mu_base    (typically 0)
                                    params[11] -> c2         (typically 0)
                                    params[12] -> v_z2       (typically 0)
+                                   params[13] -> hill_exp
+                                   params[14] -> feedback_multiplier_inc
+                                   params[15] -> feedback_multiplier_dec
+                                   params[16] -> switching_ratio
+                                   params[17] -> mubase_multiplier
 - if an element of params is specified as None then a bifurcation range will be be found and used
 """
 
@@ -36,7 +41,12 @@ PARAMS_ID = {0: "alpha_plus",
              9: "v_z",
              10: "mu_base",
              11: "c2",
-             12: "v_z2"}
+             12: "v_z2",
+             13: "hill_exp",
+             14: "mult_inc",
+             15: "mult_dec",
+             16: "switching_ratio",
+             17: "mult_inc_mubase"}
 PARAMS_ID_INV = {v: k for k, v in PARAMS_ID.iteritems()}
 STATES_ID = {0: "x", 1: "y", 2: "z"}
 STATES_ID_INV = {v: k for k, v in STATES_ID.iteritems()}
@@ -67,8 +77,8 @@ HILLORIG_Z0_RATIO = 0.1           # size of z0 relative to N (in feedback_z func
 HILLORIG_Y0_PLUS_Z0_RATIO = 0.1   # size of y0 + z0 relative to N (in feedback_yz function)
 HILL_EXP = 1                      # (unused currently) hill parameter 'n'
 SWITCHING_RATIO = 0.5             # midpoint of feedback curve
-FEEDBACK_MULTIPLIER_INC = 4.0     # increase params by this factor as e.g. z -> N
-FEEDBACK_MULTIPLIER_DEC = 4.0     # decrease params by this factor as e.g. z -> N
+MULT_INC = 4.0     # increase params by this factor as e.g. z -> N
+MULT_DEC = 4.0     # decrease params by this factor as e.g. z -> N
 MUBASE_MULTIPLIER = 9.0           # when z->N, mu_base-> approx (K + 1)*mu_base
 
 # COLOURS FOR PLOTTING
