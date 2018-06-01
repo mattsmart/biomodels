@@ -60,11 +60,24 @@ def fast_fp_times(ensemble, init_cond, params, num_processes, num_steps='default
 
 
 def map_init_name_to_init_cond(N, init_name):
-    N = int(N)
-    init_map = {"x_all": [N, 0, 0],
-                "z_all": [0, 0, N],
-                "midpoint": [N/3, N/3, N - 2*N/3],
-                "z_close": [int(N*0.05), int(N*0.05), int(N*0.9)]}
+    N = int(params.N)
+    if params.numstates == 3:
+        init_map = {"x_all": [N, 0, 0],
+                    "z_all": [0, 0, N],
+                    "midpoint": [N/3, N/3, N - 2*N/3],
+                    "z_close": [int(N*0.05), int(N*0.05), int(N*0.9)]}
+    elif params.numstates == 2:
+        init_map = {"x_all": [N, 0],
+                    "z_all": [0, N],
+                    "midpoint": [N/2, N/2],
+                    "z_close": [int(N*0.1), int(N*0.9)]}
+    elif params.numstates == 4:
+        init_map = {"x_all": [N, 0, 0, 0],
+                    "z_all": [0, 0, N, 0],
+                    "midpoint": [N/3, N/3, N - 2*N/3, 0],
+                    "z_close": [int(N*0.05), int(N*0.05), int(N*0.9), 0]}
+    else:
+        init_map = None
     return init_map[init_name]
 
 
@@ -75,7 +88,7 @@ def fast_mean_fpt_varying(param_vary_name, param_vary_values, params, num_proces
     for idx, pv in enumerate(param_vary_values):
         params_step = params.mod_copy( {param_vary_name: pv} )
         N = params_step.N
-        init_cond = map_init_name_to_init_cond(N, init_name)
+        init_cond = map_init_name_to_init_cond(params, init_name)
         fp_times = fast_fp_times(samplesize, init_cond, params_step, num_processes)
         mean_fpt_varying[idx] = np.mean(fp_times)
         sd_fpt_varying[idx] = np.std(fp_times)
