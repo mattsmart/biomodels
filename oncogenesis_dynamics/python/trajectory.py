@@ -54,6 +54,9 @@ def trajectory_simulate(params, init_cond=INIT_COND, t0=TIME_START, t1=TIME_END,
     if flag_showplt or flag_saveplt:
         ax_traj = plot_trajectory(r, times, params, flag_show=flag_showplt, flag_save=flag_saveplt, plt_save=plt_save, flag_table=flag_table)
         ax_mono_z = plot_trajectory_mono(r, times, params, flag_showplt, flag_saveplt, plt_save=plt_save + "_mono", flag_table=flag_table)
+        ax_mono_y = plot_trajectory_mono(r, times, params, flag_showplt, flag_saveplt, plt_save=plt_save + "_mono", flag_table=flag_table, mono="y")
+        ax_mono_x = plot_trajectory_mono(r, times, params, flag_showplt, flag_saveplt, plt_save=plt_save + "_mono",
+                                         flag_table=flag_table, mono="x")
     else:
         ax_traj = None
         ax_mono_z = None
@@ -115,27 +118,44 @@ def phase_portrait(params, num_traj=NUM_TRAJ, sim_method=SIM_METHOD, output_dir=
     return plt.gca()
 
 
+def conserved_quantity(state, params):
+    # TODO doesn't seem to be working
+    # did dy/dx = g/f then solve as exact eqn Psi_y = -f, Psi_x = g so Psi dot F = 0
+    x, y, z = state
+    p = params
+    assert p.system == 'default'
+    q1 = (p.c - p.a) / p.N
+    q2 = (p.c - p.b) / p.N
+    xy_factor = p.alpha_plus + p.N * q1
+    val = - (q1 * x**2 * y) - 0.5 * (q2 * x * y ** 2) + x * y * xy_factor + 0.5 * (p.alpha_plus * x ** 2 - p.alpha_minus * y ** 2)
+    return val
+
+
 if __name__ == "__main__":
     # MAIN RUN OPTIONS
     run_singletraj = True
+    run_conserved = False
     run_multitraj = False
-    run_phaseportrait = True
+    run_phaseportrait = False
 
     # PLOTTING OPTIONS
+    sim_method = "libcall"
+    num_steps = NUM_STEPS
+    basins_flag = False
     flag_showplt = True
     flag_table = True
 
     # DYNAMICS PARAMETERS
-    system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
-    feedback = "hill"      # "constant", "hill", "step", "pwlinear"
+    system = "default"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
+    feedback = "constant"      # "constant", "hill", "step", "pwlinear"
     params_dict = {
         'alpha_plus': 0.2,
         'alpha_minus': 0.5,  # 0.5
         'mu': 0.001,  # 0.01
         'a': 1.0,
-        'b': 0.8,
-        'c': 0.85,  # 1.2
-        'N': 10000.0,  # 100.0
+        'b': 1.075,
+        'c': 1.14,  # 1.2
+        'N': 1.0,  # 100.0
         'v_x': 0.0,
         'v_y': 0.0,
         'v_z': 0.0,
@@ -150,16 +170,20 @@ if __name__ == "__main__":
     ic_mixed = [0.8*params.N, 0.1*params.N, 0.1*params.N]  #TODO generalize with init cond builder fn
 
     if run_singletraj:
-        trajectory_simulate(params, init_cond=ic_mixed, t1=2000, plt_save='singletraj', flag_showplt=flag_showplt,
-                            flag_table=flag_table)
+        r, times, _, _, = trajectory_simulate(params, init_cond=ic_mixed, t1=2000, num_steps=num_steps,
+                                              plt_save='singletraj', flag_showplt=flag_showplt, flag_table=flag_table, sim_method=sim_method)
+        if run_conserved:
+            for idx in xrange(r.shape[0]):
+                state = r[idx, :]
+                print times[idx], "state:", state, "and quantity:",  conserved_quantity(state, params)
 
     if run_multitraj:
         param_vary = "c"
-        for pv in [0.81, 0.83, 0.85, 0.87, 0.89, 0.91, 0.93, 0.95, 0.97, 0.99, 1.01, 1.03]:
+        for pv in [0.975, 1.0, 1.01, 1.02, 1.03, 1.04, 1.05, 1.08]:
             params_step = params.mod_copy({param_vary: pv})
             fmname = "trajectory_main_%s=%.3f" % (param_vary, pv)
             trajectory_simulate(params_step, init_cond=ic_mixed, t1=2000, plt_save=fmname, flag_showplt=flag_showplt,
                                 flag_table=flag_table)
 
     if run_phaseportrait:
-        phase_portrait(params, num_traj=140, show_flag=True, basins_flag=True, flag_table=flag_table)
+        phase_portrait(params, num_traj=70, show_flag=True, basins_flag=False, flag_table=flag_table)

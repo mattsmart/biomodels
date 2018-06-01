@@ -109,14 +109,6 @@ def stoch_gillespie(init_cond, num_steps, params, fpt_flag=False):
     r = np.zeros((num_steps, params.numstates))
     times_stoch = np.zeros(num_steps)
     r[0, :] = np.array(init_cond, dtype=int)  # note stochastic sim operates on integer population counts
-    """
-    update_dict = {0: [1, 0, 0], 1: [-1, 0, 0],                  # birth/death events for x
-                   2: [0, 1, 0], 3: [0, -1, 0],                  # birth/death events for y
-                   4: [0, 0, 1], 5: [0, 0, -1],                  # birth/death events for z
-                   6: [-1, 1, 0], 7: [1, -1, 0], 8: [0, -1, 1],  # transition events
-                   9: [1, 0, 0], 10: [0, 1, 0], 11: [0, 0, 1],   # immigration events
-                   12: [-1, 0, 1], 13: [0, 0, -1]}               # special x->z, fpt z1->z2 (z2 untracked) transitions
-    """
     update_dict = params.update_dict
     fpt_rxn_idx = len(update_dict.keys()) - 1  # always use last element as special FPT event
     fpt_event = False
@@ -479,7 +471,7 @@ def get_stable_fp(params):
     return fp_locs_stable
 
 
-def get_physical_and_stable_fp(params):
+def get_physical_and_stable_fp(params, verbose=False):
     fp_locs = fp_location_general(params, solver_fsolve=True)
     fp_locs_physical_and_stable = []
     for fp in fp_locs:
@@ -488,4 +480,24 @@ def get_physical_and_stable_fp(params):
                 fp_locs_physical_and_stable.append(fp)
                 #eigs,V = np.linalg.eig(jacobian_numerical_2d(params, fp[0:2], ode_system))
                 #print fp, eigs
+
+    if verbose:
+        print "\nFP NOTES for b,c", params.b, params.c
+        print "ALL FP: (%d)" % len(fp_locs)
+        for fp in fp_locs:
+            print fp
+        print "PHYS/STABLE FP: (%d)" % len(fp_locs_physical_and_stable)
+        for fp in fp_locs_physical_and_stable:
+            print fp
+        if len(fp_locs_physical_and_stable) == 0:
+            print "WARNING: 0 phys and stable FP"
+            init_cond = INIT_COND
+            times = np.linspace(TIME_START, TIME_END, NUM_STEPS + 1)
+            traj, _ = simulate_dynamics_general(init_cond, times, params, method="libcall")
+            fp_guess = traj[-1][:]
+            print "FP from traj at all-x is:"
+            print fp_guess
+            print "ode_system_vector at possible FP is"
+            print params.ode_system_vector(fp_guess, None)
+
     return fp_locs_physical_and_stable
