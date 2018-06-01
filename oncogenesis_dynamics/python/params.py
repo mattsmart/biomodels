@@ -31,7 +31,7 @@ class Params(object):
         self.mult_inc = MULT_INC
         self.mult_dec = MULT_DEC
         self.switching_ratio = SWITCHING_RATIO
-        self.mult_inc_mubase = MUBASE_MULTIPLIER
+        self.mult_inc_mubase = 0.0
         for k, v in params_dict.iteritems():
             setattr(self, k, v)
         # store params_dict as canonical list and add the Nones to self.params_dict
@@ -66,6 +66,7 @@ class Params(object):
                  12: [-1, 0, 1], 13: [0, 0, -1]}               # special x->z, fpt z1->z2 (z2 untracked) transitions
         elif system in ["feedback_mu_XZ_model"]:
             assert self.mu_base > 0
+            self.mult_inc_mubase = MUBASE_MULTIPLIER
             self.numstates = 2
             self.states = {0: "x", 1: "z"}                   # can also do FPT to a 3rd state z2
             self.growthrates = [self.a, self.c]
