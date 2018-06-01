@@ -102,6 +102,7 @@ def get_gap_data_2d(params_general, param_1_name, param_1_range, param_2_name, p
 
 def plot_gap_data_2d(gap_data_2d, params_general, param_1_name, param_1_range, param_2_name, param_2_range,
                      axis_gap="z", figname_mod="", flag_show=True, colours=Z_TO_COLOUR_BISTABLE_WIDE):
+    fs = 12
     # custom cmap for gap diagram
     xyz_cmap_gradient = LinearSegmentedColormap.from_list('xyz_cmap_gradient', colours, N=100)
     # plot image
@@ -110,6 +111,8 @@ def plot_gap_data_2d(gap_data_2d, params_general, param_1_name, param_1_range, p
     ax = plt.gca()
     ax.grid(which='major', axis='both', linestyle='-')
     plt.title("Gap in %s between FPs, vary %s, %s" % (axis_gap, param_1_name, param_2_name))
+    ax.set_xlabel(param_2_name, fontsize=fs)
+    ax.set_ylabel(param_1_name, fontsize=fs)
     # create table of params
     plot_table_params(ax, params_general, loc='best', bbox=(1.2, 0.2, 0.1, 0.75))
     #plt.subplots_adjust(left=0.2, bottom=0.2)
@@ -118,8 +121,6 @@ def plot_gap_data_2d(gap_data_2d, params_general, param_1_name, param_1_range, p
     """
     plt.locator_params(axis='x', nbins=6)
     plt.locator_params(axis='y', nbins=6)
-    ax.set_xlabel(param_2_name, fontsize=16)
-    ax.set_ylabel(param_1_name, fontsize=16)
     plt.tick_params(axis='both', which='major', labelsize=16)
     cbar.ax.tick_params(labelsize=16)
     """
