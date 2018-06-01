@@ -9,7 +9,9 @@ from feedback import hill_increase, hill_decrease, step_increase, step_decrease,
 
 class Params(object):
 
-    def __init__(self, params_dict, system, init_cond=None, feedback=DEFAULT_FEEDBACK_SHAPE):
+    def __init__(self, params_dict, system, init_cond=None, feedback=DEFAULT_FEEDBACK_SHAPE, hill_exp=HILL_EXP,
+                 feedback_multiplier_inc=FEEDBACK_MULTIPLIER_INC, feedback_multiplier_dec=FEEDBACK_MULTIPLIER_DEC,
+                 switching_ratio=SWITCHING_RATIO):
         # TODO maybe have attribute self.params_id which is dict int->param_name (diff for diff system)
         # TODO two system params, one if there is feedback, other is feedback type (i.e. hill n=1, step with threshold)
         # TODO have "default params" corresponding to specific models (e.g xyz default with alpha_minus=0 is like 2-hit)
@@ -36,6 +38,12 @@ class Params(object):
         keys_to_add = set(PARAMS_ID.values()) - set(params_dict.keys())
         for key in keys_to_add:
             self.params_dict[key] = getattr(self, key)
+        # feedback parameters
+        self.hill_exp = hill_exp
+        self.feedback_multiplier_inc = feedback_multiplier_inc
+        self.feedback_multiplier_dec = feedback_multiplier_dec
+        self.switching_ratio = switching_ratio
+        self.mubase_multiplier = MUBASE_MULTIPLIER
         # init_cond as x, y, z, etc
         self.init_cond = init_cond  # TODO not fully implemented
         # system as defined in constants.pu (e.g. 'default', 'feedback_z')
@@ -96,18 +104,24 @@ class Params(object):
                 17: [0, 0, 0, -1]}                     # special z2->z3 (z3 untracked) first-passage transitions
 
     def __str__(self):
-        return str(self.params)
+        return str(self.params_list)
 
     def __iter__(self):
-        return self.params
+        return self.params_list
 
     def fbar(self, state):
         assert len(state) == self.numstates
         assert self.constant_growthandflowrates
         return sum([state[i]*self.growthrates[i] + self.flowrates[i] for i in xrange(self.numstates)]) / self.N
 
-    def feedback_shape(self, param_name, state_coordinate, hill_exp=HILL_EXP, state_ratio=SWITCHING_RATIO, mult=FEEDBACK_MULTIPLIER_INC):
+    def feedback_shape(self, param_name, state_coordinate):
         N = self.N
+
+        hill_exp = self.hill_exp
+        state_ratio = self.switching_ratio
+        mult_inc = self.feedback_multiplier_inc
+        mult_dec = self.feedback_multiplier_dec
+        mult_inc_mu = self.mubase_multiplier
 
         if param_name == "alpha_plus":
             if self.feedback == "constant":
@@ -116,9 +130,9 @@ class Params(object):
             elif self.feedback == "hillorig":
                 feedbackval = hill_orig_increase(self.alpha_plus, state_coordinate, N, hill_exp=1.0, hill_ratio=HILLORIG_Z0_RATIO)
             elif self.feedback == "hill":
-                feedbackval = hill_increase(self.alpha_plus, state_coordinate, N, hill_exp=hill_exp, hill_ratio=state_ratio, multiplier=mult)
+                feedbackval = hill_increase(self.alpha_plus, state_coordinate, N, hill_exp=hill_exp, hill_ratio=state_ratio, multiplier=mult_inc)
             elif self.feedback == "step":
-                feedbackval = step_increase(self.alpha_plus, state_coordinate, N, step_ratio=state_ratio, multiplier=mult)
+                feedbackval = step_increase(self.alpha_plus, state_coordinate, N, step_ratio=state_ratio, multiplier=mult_inc)
 
         elif param_name == "alpha_minus":
             if self.feedback == "constant":
@@ -127,18 +141,18 @@ class Params(object):
             elif self.feedback == "hillorig":
                 feedbackval = hill_orig_decrease(self.alpha_minus, state_coordinate, N, hill_exp=1.0, hill_ratio=HILLORIG_Z0_RATIO)
             elif self.feedback == "hill":
-                feedbackval = hill_decrease(self.alpha_minus, state_coordinate, N, hill_exp=hill_exp, hill_ratio=state_ratio, multiplier=mult)
+                feedbackval = hill_decrease(self.alpha_minus, state_coordinate, N, hill_exp=hill_exp, hill_ratio=state_ratio, multiplier=mult_dec)
             elif self.feedback == "step":
-                feedbackval = step_decrease(self.alpha_minus, state_coordinate, N, step_ratio=state_ratio, multiplier=mult)
+                feedbackval = step_decrease(self.alpha_minus, state_coordinate, N, step_ratio=state_ratio, multiplier=mult_dec)
 
         elif param_name == "mu_base":
             if self.feedback == "constant":
                 print "Warning, feedback functionality in use for constant feedback setting (waste)"
                 feedbackval = self.mu_base
             elif self.feedback == "hill":
-                feedbackval = hill_increase(self.mu_base, state_coordinate, N, hill_exp=hill_exp, hill_ratio=state_ratio, multiplier=mult)
+                feedbackval = hill_increase(self.mu_base, state_coordinate, N, hill_exp=hill_exp, hill_ratio=state_ratio, multiplier=mult_inc_mu)
             elif self.feedback == "step":
-                feedbackval = step_increase(self.mu_base, state_coordinate, N, step_ratio=state_ratio, multiplier=mult)
+                feedbackval = step_increase(self.mu_base, state_coordinate, N, step_ratio=state_ratio, multiplier=mult_inc_mu)
 
         else:
             print "param_name %s not supported in feedback_shape" % param_name
@@ -152,22 +166,22 @@ class Params(object):
         if self.numstates == 3:
             x, y, z = init_cond
             if self.system == "feedback_z":
-                mod_params_dict['alpha_plus'] = self.feedback_shape("alpha_plus", z, state_ratio=SWITCHING_RATIO, mult=FEEDBACK_MULTIPLIER_INC)
-                mod_params_dict['alpha_minus'] = self.feedback_shape("alpha_minus", z, state_ratio=SWITCHING_RATIO, mult=FEEDBACK_MULTIPLIER_DEC)
+                mod_params_dict['alpha_plus'] = self.feedback_shape("alpha_plus", z)
+                mod_params_dict['alpha_minus'] = self.feedback_shape("alpha_minus", z)
             elif self.system == "feedback_yz":
                 yz = y + z
-                mod_params_dict['alpha_plus'] = self.feedback_shape("alpha_plus", yz, state_ratio=SWITCHING_RATIO, mult=FEEDBACK_MULTIPLIER_INC)
-                mod_params_dict['alpha_minus'] = self.feedback_shape("alpha_minus", yz, state_ratio=SWITCHING_RATIO, mult=FEEDBACK_MULTIPLIER_DEC)
+                mod_params_dict['alpha_plus'] = self.feedback_shape("alpha_plus", yz)
+                mod_params_dict['alpha_minus'] = self.feedback_shape("alpha_minus", yz)
         elif self.numstates == 2:
             if self.system == "feedback_mu_XZ_model":
                 x, z = init_cond
-                mod_params_dict['mu_base'] = self.feedback_shape("mu_base", z, state_ratio=SWITCHING_RATIO, mult=FEEDBACK_MULTIPLIER_INC)
+                mod_params_dict['mu_base'] = self.feedback_shape("mu_base", z)
         else:
             if self.system == "feedback_XYZZprime":
                 x, y, z, z2 = init_cond
                 zsum = z + z2
-                mod_params_dict['alpha_plus'] = self.feedback_shape("alpha_plus", zsum, state_ratio=SWITCHING_RATIO, mult=FEEDBACK_MULTIPLIER_INC)
-                mod_params_dict['alpha_minus'] = self.feedback_shape("alpha_minus", zsum, state_ratio=SWITCHING_RATIO, mult=FEEDBACK_MULTIPLIER_DEC)
+                mod_params_dict['alpha_plus'] = self.feedback_shape("alpha_plus", zsum)
+                mod_params_dict['alpha_minus'] = self.feedback_shape("alpha_minus", zsum)
 
         return mod_params_dict
 
