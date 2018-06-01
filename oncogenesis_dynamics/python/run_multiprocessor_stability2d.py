@@ -6,33 +6,14 @@ from multiprocessing import cpu_count
 from constants import OUTPUT_DIR
 from data_io import write_matrix_data_and_idx_vals
 from params import Params
+from presets import presets
 from stability_diagram import plot_stable_fp_count_2d, get_stable_fp_count_2d, get_gap_data_2d, plot_gap_data_2d
 
 # CONSTANTS
 NUM_PROCESSES = -1 + cpu_count()
 
-# SCRIPT PARAMETERS
-system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
-feedback = "hill"  # "constant", "hill", "step", "pwlinear"
-
 # DYNAMICS PARAMETERS
-params_dict = {
-    'alpha_plus': 0.2,
-    'alpha_minus': 0.5,  # 0.5
-    'mu': 0.001,  # 0.01
-    'a': 1.0,
-    'b': None,
-    'c': None,  # 1.2
-    'N': 100,  # 100.0
-    'v_x': 0.0,
-    'v_y': 0.0,
-    'v_z': 0.0,
-    'mu_base': 0.0,
-    'c2': 0.0,
-    'v_z2': 0.0
-}
-params = Params(params_dict, system, feedback=feedback)
-
+params = presets('preset_xyz_hill')
 
 # ARGS TO PASS
 param_1_name = "b"
