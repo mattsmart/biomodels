@@ -7,7 +7,7 @@ from multiprocessing import Pool, cpu_count
 from constants import OUTPUT_DIR, PARAMS_ID, PARAMS_ID_INV, COLOURS_DARK_BLUE
 from data_io import read_varying_mean_sd_fpt_and_params, collect_fpt_mean_stats_and_params, read_fpt_and_params,\
                     write_fpt_and_params
-from formulae import stoch_gillespie, get_physical_and_stable_fp
+from formulae import stoch_gillespie, get_physical_and_stable_fp, map_init_name_to_init_cond
 from params import Params
 from plotting import plot_table_params
 
@@ -59,35 +59,12 @@ def fast_fp_times(ensemble, init_cond, params, num_processes, num_steps='default
     return fp_times
 
 
-def map_init_name_to_init_cond(N, init_name):
-    N = int(params.N)
-    if params.numstates == 3:
-        init_map = {"x_all": [N, 0, 0],
-                    "z_all": [0, 0, N],
-                    "midpoint": [N/3, N/3, N - 2*N/3],
-                    "z_close": [int(N*0.05), int(N*0.05), int(N*0.9)]}
-    elif params.numstates == 2:
-        init_map = {"x_all": [N, 0],
-                    "z_all": [0, N],
-                    "midpoint": [N/2, N/2],
-                    "z_close": [int(N*0.1), int(N*0.9)]}
-    elif params.numstates == 4:
-        init_map = {"x_all": [N, 0, 0, 0],
-                    "z_all": [0, 0, N, 0],
-                    "midpoint": [N/3, N/3, N - 2*N/3, 0],
-                    "z_close": [int(N*0.05), int(N*0.05), int(N*0.9), 0]}
-    else:
-        init_map = None
-    return init_map[init_name]
-
-
 def fast_mean_fpt_varying(param_vary_name, param_vary_values, params, num_processes, init_name="x_all", samplesize=30):
     assert samplesize % num_processes == 0
     mean_fpt_varying = [0]*len(param_vary_values)
     sd_fpt_varying = [0]*len(param_vary_values)
     for idx, pv in enumerate(param_vary_values):
         params_step = params.mod_copy( {param_vary_name: pv} )
-        N = params_step.N
         init_cond = map_init_name_to_init_cond(params, init_name)
         fp_times = fast_fp_times(samplesize, init_cond, params_step, num_processes)
         mean_fpt_varying[idx] = np.mean(fp_times)

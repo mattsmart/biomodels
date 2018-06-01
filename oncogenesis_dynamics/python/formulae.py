@@ -501,3 +501,25 @@ def get_physical_and_stable_fp(params, verbose=False):
             print params.ode_system_vector(fp_guess, None)
 
     return fp_locs_physical_and_stable
+
+
+def map_init_name_to_init_cond(params, init_name):
+    N = int(params.N)
+    if params.numstates == 3:
+        init_map = {"x_all": [N, 0, 0],
+                    "z_all": [0, 0, N],
+                    "midpoint": [N/3, N/3, N - 2*N/3],
+                    "z_close": [int(N*0.05), int(N*0.05), int(N*0.9)]}
+    elif params.numstates == 2:
+        init_map = {"x_all": [N, 0],
+                    "z_all": [0, N],
+                    "midpoint": [N/2, N/2],
+                    "z_close": [int(N*0.1), int(N*0.9)]}
+    elif params.numstates == 4:
+        init_map = {"x_all": [N, 0, 0, 0],
+                    "z_all": [0, 0, N, 0],
+                    "midpoint": [N/3, N/3, N - 2*N/3, 0],
+                    "z_close": [int(N*0.05), int(N*0.05), int(N*0.9), 0]}
+    else:
+        init_map = None
+    return init_map[init_name]
