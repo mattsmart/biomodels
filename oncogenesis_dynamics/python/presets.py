@@ -4,7 +4,7 @@ import numpy as np
 from params import Params
 
 
-VALID_PRESET_LABELS = ["preset_xyz_constant", "preset_xyz_hill"]
+VALID_PRESET_LABELS = ["preset_xyz_constant", "preset_xyz_hill", "preset_xyz_hill_onlyinc", "preset_xyz_hill_onlydec"]
 
 
 def presets(preset_label):
@@ -54,6 +54,15 @@ def presets(preset_label):
             'mult_dec': 4.0,
         }
         params = Params(params_dict, system)
+
+
+    elif preset_label == "preset_xyz_hill_onlyinc":
+        params = presets("preset_xyz_hill")
+        params = params.mod_copy({'mult_dec': 1.0})  # setting mult params to 1.0 means no feedback
+
+    elif preset_label == "preset_xyz_hill_onlydec":
+        params = presets("preset_xyz_hill")
+        params = params.mod_copy({'mult_inc': 1.0})  # setting mult params to 1.0 means no feedback
 
     else:
         params = None
