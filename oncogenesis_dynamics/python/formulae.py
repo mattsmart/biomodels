@@ -503,23 +503,38 @@ def get_physical_and_stable_fp(params, verbose=False):
     return fp_locs_physical_and_stable
 
 
+def random_init_cond(params):
+    N = float(params.N)
+    init_cond = np.zeros(params.numstates)
+    for idx in xrange(params.numstates - 1):
+        init_cond[idx] = (N - np.sum(init_cond)) * np.random.random_sample()
+    init_cond[-1] = N - np.sum(init_cond)
+    return list(init_cond)
+
+
 def map_init_name_to_init_cond(params, init_name):
     N = int(params.N)
     if params.numstates == 3:
         init_map = {"x_all": [N, 0, 0],
                     "z_all": [0, 0, N],
+                    "mixed": [int(0.7 * N), int(0.2 *N ), int(0.1 * N)],
                     "midpoint": [N/3, N/3, N - 2*N/3],
-                    "z_close": [int(N*0.05), int(N*0.05), int(N*0.9)]}
+                    "z_close": [int(N*0.05), int(N*0.05), int(N*0.9)],
+                    "random": random_init_cond(params)}
     elif params.numstates == 2:
         init_map = {"x_all": [N, 0],
                     "z_all": [0, N],
+                    "mixed": [int(0.8 * N), int(0.2 * N)],
                     "midpoint": [N/2, N/2],
-                    "z_close": [int(N*0.1), int(N*0.9)]}
+                    "z_close": [int(N*0.1), int(N*0.9)],
+                    "random": random_init_cond(params)}
     elif params.numstates == 4:
         init_map = {"x_all": [N, 0, 0, 0],
                     "z_all": [0, 0, N, 0],
+                    "mixed": [int(0.7 * N), int(0.2 * N), int(0.1 * N), 0],
                     "midpoint": [N/3, N/3, N - 2*N/3, 0],
-                    "z_close": [int(N*0.05), int(N*0.05), int(N*0.9), 0]}
+                    "z_close": [int(N*0.05), int(N*0.05), int(N*0.9), 0],
+                    "random": random_init_cond(params)}
     else:
         init_map = None
     return init_map[init_name]
