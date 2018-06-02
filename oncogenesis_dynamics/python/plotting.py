@@ -1,3 +1,4 @@
+import matplotlib as mpl
 import matplotlib.lines as mlines
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
@@ -6,8 +7,78 @@ from matplotlib import colors
 from mpl_toolkits.mplot3d import Axes3D
 from os import sep
 
-from constants import PARAMS_ID_INV, X0_COL, X1_COL, X2_COL, OUTPUT_DIR, STATES_ID_INV, PARAMS_ID, \
+from constants import X0_COL, X1_COL, X2_COL, OUTPUT_DIR, STATES_ID_INV, PARAMS_ID, \
                       DEFAULT_X_COLOUR, DEFAULT_Y_COLOUR, DEFAULT_Z_COLOUR
+
+
+# MATPLOTLIB GLOBAL SETTINGS
+"""
+mpl_params = {'legend.fontsize': 'x-large', 'figure.figsize': (8, 5), 'axes.labelsize': 'x-large',
+         'axes.titlesize':'x-large', 'xtick.labelsize':'x-large', 'ytick.labelsize':'x-large'}
+mpl.rcParams.update(mpl_params)
+"""
+
+# PLOTTING CONSTANTS
+PLT_SAVE = 'default'
+FLAG_SAVE = True
+BBOX_INCHES = None
+FLAG_SHOW = True
+FLAG_TABLE = True
+LOC_TABLE = 'center right'
+BBOX_TABLE = None
+
+
+def plot_options_build(alloff=False, **plot_options):
+    main_keys = ['flag_show', 'flag_save', 'flag_table']
+    plot_options = {'flag_table': plot_options.get('flag_table', FLAG_TABLE),
+                    'loc_table': plot_options.get('loc_table', LOC_TABLE),
+                    'bbox_table': plot_options.get('bbox_table', BBOX_TABLE),
+                    'plt_save': plot_options.get('plt_save', PLT_SAVE),
+                    'flag_save': plot_options.get('flag_save', FLAG_SAVE),
+                    'bbox_inches': plot_options.get('bbox_inches', BBOX_INCHES),
+                    'flag_show': plot_options.get('flag_show', FLAG_SHOW)}
+    if alloff:
+        plot_options = {k: False for k in main_keys}
+    return plot_options
+
+
+def plot_handler(fig, ax, params, plot_options=None):
+    if plot_options is None:
+        plot_options = plot_options_build()
+
+    if plot_options.get('flag_table', FLAG_TABLE):
+        loc = plot_options.get('loc_table', LOC_TABLE)
+        bbox = plot_options.get('bbox_table', BBOX_TABLE)
+        plot_table_params(ax, params, loc=loc, bbox=bbox)
+
+    if plot_options.get('flag_save', FLAG_SAVE):
+        savename = OUTPUT_DIR + sep + plot_options.get('plt_save') + '.pdf'
+        bbox_inches = plot_options.get('bbox_inches', BBOX_INCHES)
+        fig.savefig(savename, bbox_inches=bbox_inches)
+
+    if plot_options.get('flag_show', FLAG_SHOW):
+        plt.show()
+    return fig, ax
+
+
+def plot_table_params(ax, params, loc=LOC_TABLE, bbox=None):
+    """
+    params is Params object
+    loc options 'center right', 'best'
+    bbox is x0, y0, height, width e.g. (1.1, 0.2, 0.1, 0.75)
+    """
+    # create table of params
+    row_labels = ['system', 'feedback']
+    row_labels += [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
+    table_vals = [[params.system], [params.feedback]]
+    table_vals += [[val] for val in params.params_list]  # note weird format
+    # plot table
+    param_table = ax.table(cellText=table_vals,
+                           colWidths=[0.1]*3,
+                           rowLabels=row_labels,
+                           loc=loc, bbox=bbox)
+    #ax.text(12, 3.4, 'Params', size=8)
+    return ax
 
 
 def plot_simplex(N):
@@ -145,7 +216,7 @@ def plot_bifurc_dist(x1_array, bifurcation_search, bifurc_id, N, dist_type, flag
     return fig_dist
 
 
-def plot_trajectory(r, times, params, fig_traj=None, flag_show=False, flag_save=True, plt_save="trajectory",flag_table=False):
+def plot_trajectory(r, times, params, fig_traj=None, **plot_options):
     if fig_traj is None:
         fig_traj = plot_simplex(params.N)
     ax_traj = fig_traj.gca()
@@ -154,16 +225,11 @@ def plot_trajectory(r, times, params, fig_traj=None, flag_show=False, flag_save=
     #ax_traj.plot([x1[0]], [x1[1]], [x1[2]], label='x_weird')
     ax_traj.legend()
     ax_traj.set_title("Trajectory")
-    if flag_table:
-        plot_table_params(ax_traj, params)
-    if flag_show:
-        plt.show()
-    if flag_save:
-        fig_traj.savefig(OUTPUT_DIR + sep + plt_save + '.png')
+    fig_traj, ax_traj = plot_handler(fig_traj, ax_traj, params, plot_options=plot_options)
     return ax_traj
 
 
-def plot_trajectory_mono(r, times, params, flag_show, flag_save, ax_mono=None, mono="z", plt_save="trajectory_mono_", flag_table=False):
+def plot_trajectory_mono(r, times, params, ax_mono=None, mono="z", **plot_options):
     assert mono in STATES_ID_INV.keys()
     axis_idx = STATES_ID_INV[mono]
     if ax_mono is None:
@@ -174,18 +240,11 @@ def plot_trajectory_mono(r, times, params, flag_show, flag_save, ax_mono=None, m
         ax_mono.grid(True)
         ax_mono.set_xlabel("time")
         ax_mono.set_ylabel(mono)
-        if flag_table:
-            plot_table_params(ax_mono, params)
-        if flag_show:
-            plt.show()
-        if flag_save:
-            fig_mono.savefig(OUTPUT_DIR + sep + plt_save + mono + '.png')
+        plot_options['plt_save'] = plot_options.get('plt_save', "traj_mono_") + "_%s" % mono
+        fig_mono, ax_mono = plot_handler(fig_mono, ax_mono, params, plot_options=plot_options)
     else:
         ax_mono.plot(times, r[:, axis_idx], )
-        if flag_table:
-            plot_table_params(ax_mono, params)
-        if flag_show:
-            plt.show()
+        fig_mono, ax_mono = plot_handler(plt.gcf(), ax_mono, params, plot_options=plot_options)
     return ax_mono
 
 
@@ -228,23 +287,3 @@ def plot_endpoint_mono(fp_list, param_list, param_varying_name, params, flag_sho
     if flag_save:
         fig_mono.savefig(OUTPUT_DIR + sep + plt_save + mono + '.pdf')
     return ax_mono
-
-
-def plot_table_params(ax, params, loc='center right', bbox=None):
-    """
-    params is Params object
-    loc options 'center right', 'best'
-    bbox is x0, y0, height, width e.g. (1.1, 0.2, 0.1, 0.75)
-    """
-    # create table of params
-    row_labels = ['system', 'feedback']
-    row_labels += [PARAMS_ID[i] for i in xrange(len(PARAMS_ID))]
-    table_vals = [[params.system], [params.feedback]]
-    table_vals += [[val] for val in params.params_list]  # note weird format
-    # plot table
-    param_table = ax.table(cellText=table_vals,
-                           colWidths=[0.1]*3,
-                           rowLabels=row_labels,
-                           loc=loc, bbox=bbox)
-    #ax.text(12, 3.4, 'Params', size=8)
-    return ax
