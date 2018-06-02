@@ -113,7 +113,6 @@ def stoch_gillespie(init_cond, num_steps, params, fpt_flag=False):
     fpt_rxn_idx = len(update_dict.keys()) - 1  # always use last element as special FPT event
     fpt_event = False
     for step in xrange(num_steps-1):
-        print r[step]
         r1 = random()  # used to determine time of next reaction
         r2 = random()  # used to partition the probabilities of each reaction
         # compute propensity functions (alpha) and the partitions for all 12 transitions

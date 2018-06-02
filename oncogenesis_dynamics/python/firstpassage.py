@@ -17,7 +17,6 @@ def get_fpt(ensemble, init_cond, params, num_steps=100000):
     for i in xrange(ensemble):
         species, times = stoch_gillespie(init_cond, num_steps, params, fpt_flag=True)
         fp_times[i] = times[-1]
-        print i, times[-1]
     return fp_times
 
 
