@@ -3,7 +3,7 @@ import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 from os import sep
 
-from constants import PARAMS_ID, PARAMS_ID_INV, STATES_ID_INV, OUTPUT_DIR, Z_TO_COLOUR_BISTABLE_WIDE
+from constants import PARAMS_ID, PARAMS_ID_INV, STATES_ID_INV, OUTPUT_DIR, Z_TO_COLOUR_BISTABLE_WIDE, Z_TO_COLOUR_ORIG
 from data_io import write_matrix_data_and_idx_vals, read_matrix_data_and_idx_vals, read_params
 from formulae import is_stable, fp_location_general, get_physical_and_stable_fp, get_stable_fp
 from params import Params
@@ -104,6 +104,8 @@ def plot_gap_data_2d(gap_data_2d, params_general, param_1_name, param_1_range, p
                      axis_gap="z", figname_mod="", flag_show=True, colours=Z_TO_COLOUR_BISTABLE_WIDE):
     fs = 12
     # custom cmap for gap diagram
+    if params_general.feedback == 'constant':
+        colours = Z_TO_COLOUR_ORIG
     xyz_cmap_gradient = LinearSegmentedColormap.from_list('xyz_cmap_gradient', colours, N=100)
     # plot image
     plt.imshow(gap_data_2d, cmap=xyz_cmap_gradient, interpolation="none", origin='lower', aspect='auto',
