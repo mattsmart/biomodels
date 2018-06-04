@@ -305,6 +305,10 @@ class Params(object):
             for idx, pair in enumerate(datareader):
                 if pair[0] in params_dict.keys():
                     params_dict[pair[0]] = pair[1]
+                    if pair[1] == 'None':
+                        params_dict[pair[0]] = pair[1]
+                    else:
+                        params_dict[pair[0]] = float(pair[1])
                 else:
                     aux_dict[pair[0]] = pair[1]
         assert aux_dict['system'] in ODE_SYSTEMS
