@@ -1,8 +1,9 @@
 import os
 
 # IO
+DATADIR = "data"
 ZSCORE_DATAFILE_NAME = "mehta_zscore_table.txt"
-ZSCORE_DATAFILE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), ZSCORE_DATAFILE_NAME))
+ZSCORE_DATAFILE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), DATADIR, ZSCORE_DATAFILE_NAME))
 RUNS_FOLDER = "runs" + os.sep             # store timestamped runs here
 
 # SINGLECELL SIMULATION CONSTANTS
