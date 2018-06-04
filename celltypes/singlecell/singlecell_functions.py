@@ -10,8 +10,14 @@ Conventions follow from Lang & Mehta 2014, PLOS Comp. Bio
 """
 
 
-def hamiltonian(state_vec):
-    return -0.5*reduce(np.dot, [state_vec.T, J, state_vec])  # plus some other field terms... do we care for these? ie. "-sum h_i*s_i"
+def hamming(s1, s2):
+    """Calculate the Hamming distance between two bit lists"""
+    assert len(s1) == len(s2)
+    return sum(c1 != c2 for c1, c2 in zip(s1, s2))
+
+
+def hamiltonian(state_vec, intxn_matrix=J):
+    return -0.5*reduce(np.dot, [state_vec.T, intxn_matrix, state_vec])  # plus some other field terms... do we care for these? ie. "-sum h_i*s_i"
 
 
 def internal_field(state, gene_idx, t, intxn_matrix=J):
