@@ -2,14 +2,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from singlecell.singlecell_constants import DATADIR
-from singlecell.singlecell_functions import hamiltonian, hamming, memory_corr_matrix_and_inv, interaction_matrix
+from singlecell_constants import DATADIR
+from singlecell_functions import hamiltonian, hamming
+from singlecell_simsetup import memory_corr_matrix_and_inv, interaction_matrix
 
 # TODO pass metadata to all functions?
-# TODO test and optimize read_exptdata_from_files
+# TODO test and optimize read_exptdata_from_files, build_basin_states
 # TODO build remaining functions
-# TODO change code file structure with expt data IO folder in constants or expt_constants?
-
+# TODO build unit tests pycharm properly
 
 def read_exptdata_from_files(dataname, labelname, datadir=DATADIR, verbose=True):
     """
@@ -135,22 +135,23 @@ def build_basin_states(intxn_matrix, memory_vec,
         - basin_set: dict of {num_flips: SET (not list) of states as Nx1 lists} comprising the basin
     """
     num_genes = intxn_matrix.shape[0]
-    memory_vec_copy = [val for val in memory_vec]
+    memory_vec_copy = np.array(memory_vec[:])
 
     if recurse_basin_set is None:
-        recurse_basin_set = {d: [] for d in xrange(num_genes)}
-        recurse_basin_set = {0: [memory_vec_copy]}
+        recurse_basin_set = {d: set() for d in xrange(num_genes + 1)}
+        recurse_basin_set[0].add(tuple(memory_vec_copy))
         recurse_state_copy = memory_vec_copy
         sites_flipped_already = []
 
-    hamming_dist = 0                                       # hamming distance
-    size_basin_at_dist_d = len(recurse_basin_set[hamming_dist])    # number of states with hamming dist = d in the basin
+    size_basin_at_dist_d = len(recurse_basin_set[recurse_dist_d])    # number of states with hamming dist = d in the basin
 
     for site_idx in [val for val in xrange(num_genes) if val not in sites_flipped_already]:
-        recurse_state_copy = [val for val in recurse_state_copy]
+        print recurse_dist_d, sites_flipped_already, recurse_state_copy, site_idx
+
+        recurse_state_copy = np.array(recurse_state_copy[:])
         recurse_state_copy[site_idx] = -1 * recurse_state_copy[site_idx]
         if is_energy_increase(intxn_matrix, memory_vec, recurse_state_copy):
-            recurse_basin_set[recurse_dist_d].add(recurse_state_copy)
+            recurse_basin_set[recurse_dist_d].add(tuple(recurse_state_copy))
             recurse_dist_d += 1
             recurse_sites_flipped_already = [val for val in sites_flipped_already]
             recurse_sites_flipped_already.append(site_idx)
