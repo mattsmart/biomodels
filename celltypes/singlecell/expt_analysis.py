@@ -114,17 +114,18 @@ def binary_cluster_dict_to_memories(binarized_cluster_dict, metadata, memory_met
     return memory_array
 
 
-def is_energy_increase(intxn_matrix, memory_vec, data_vec):
-    H_data = hamiltonian(data_vec, intxn_matrix=intxn_matrix)
-    H_mem = hamiltonian(memory_vec, intxn_matrix=intxn_matrix)
-    if H_data > H_mem:
+def is_energy_increase(intxn_matrix, data_vec_a, data_vec_b):
+    # state b in basin if the energy from a to b increases AND a is in basin
+    energy_a = hamiltonian(data_vec_a, intxn_matrix=intxn_matrix)
+    energy_b = hamiltonian(data_vec_b, intxn_matrix=intxn_matrix)
+    if energy_b > energy_a:
         return True
     else:
         return False
 
 
 def build_basin_states(intxn_matrix, memory_vec,
-                       recurse_dist_d=0, recurse_basin_set=None, recurse_state_copy=None,
+                       recurse_dist_d=0, recurse_basin_set=None, recurse_state=None,
                        sites_flipped_already=None):
     """
     Args:
@@ -135,33 +136,30 @@ def build_basin_states(intxn_matrix, memory_vec,
         - basin_set: dict of {num_flips: SET (not list) of states as Nx1 lists} comprising the basin
     """
     num_genes = intxn_matrix.shape[0]
-    memory_vec_copy = np.array(memory_vec[:])
 
     if recurse_basin_set is None:
+        memory_vec_copy = np.array(memory_vec[:])
         recurse_basin_set = {d: set() for d in xrange(num_genes + 1)}
         recurse_basin_set[0].add(tuple(memory_vec_copy))
-        recurse_state_copy = memory_vec_copy
+        recurse_state = memory_vec_copy
         sites_flipped_already = []
+        recurse_dist_d = 1
 
-    size_basin_at_dist_d = len(recurse_basin_set[recurse_dist_d])    # number of states with hamming dist = d in the basin
+    #size_basin_at_dist_d = len(recurse_basin_set[recurse_dist_d])    # number of states with hamming dist = d in the basin
 
     for site_idx in [val for val in xrange(num_genes) if val not in sites_flipped_already]:
-        print recurse_dist_d, sites_flipped_already, recurse_state_copy, site_idx
-
-        recurse_state_copy = np.array(recurse_state_copy[:])
-        recurse_state_copy[site_idx] = -1 * recurse_state_copy[site_idx]
-        if is_energy_increase(intxn_matrix, memory_vec, recurse_state_copy):
-            recurse_basin_set[recurse_dist_d].add(tuple(recurse_state_copy))
-            recurse_dist_d += 1
-            recurse_sites_flipped_already = [val for val in sites_flipped_already]
+        recurse_state_flipped = np.array(recurse_state[:])
+        recurse_state_flipped[site_idx] = -1 * recurse_state[site_idx]
+        if is_energy_increase(intxn_matrix, recurse_state, recurse_state_flipped):
+            recurse_basin_set[recurse_dist_d].add(tuple(recurse_state_flipped))
+            recurse_sites_flipped_already = sites_flipped_already[:]
             recurse_sites_flipped_already.append(site_idx)
             build_basin_states(intxn_matrix, memory_vec,
-                               recurse_dist_d=recurse_dist_d,
+                               recurse_dist_d=recurse_dist_d + 1,
                                recurse_basin_set=recurse_basin_set,
-                               recurse_state_copy=recurse_state_copy,
+                               recurse_state=recurse_state_flipped,
                                sites_flipped_already=recurse_sites_flipped_already)
         else:
-            print 'ending recursion branch'
             return recurse_basin_set
 
     return recurse_basin_set
@@ -186,10 +184,11 @@ def get_basins_scores(memory_array, binarized_cluster_dict, metadata, basinscore
         # OPTION 2 -- is cell in basin - some scalar value based on ... ?
         # OPTION 3 -- based on compare if data vec in set of basin states (from aux fn)
         hd = hamming(memory_vector, data_vector)
-        if data_vector in basin_k[hd]:
+        if tuple(data_vector) in basin_k[hd]:
             print "data_vector in basin_k[hd]"
             return 1.0
         else:
+            print "data_vector NOT in basin_k[hd]"
             return 0.0
 
     # 1 is build J_ij from Xi
