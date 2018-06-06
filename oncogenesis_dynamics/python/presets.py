@@ -4,7 +4,8 @@ import numpy as np
 from params import Params
 
 
-VALID_PRESET_LABELS = ["preset_xyz_constant", "preset_xyz_hill", "preset_xyz_hill_onlyinc", "preset_xyz_hill_onlydec"]
+VALID_PRESET_LABELS = ["preset_xyz_constant", "preset_xyz_hill", "preset_xyz_hill_onlyinc", "preset_xyz_hill_onlydec",
+                       "valley_2hit"]
 
 
 def presets(preset_label):
@@ -53,7 +54,7 @@ def presets(preset_label):
             'mult_inc': 4.0,
             'mult_dec': 4.0,
         }
-        params = Params(params_dict, system)
+        params = Params(params_dict, system, feedback=feedback)
 
 
     elif preset_label == "preset_xyz_hill_onlyinc":
@@ -63,6 +64,37 @@ def presets(preset_label):
     elif preset_label == "preset_xyz_hill_onlydec":
         params = presets("preset_xyz_hill")
         params = params.mod_copy({'mult_inc': 1.0})  # setting mult params to 1.0 means no feedback
+
+    elif preset_label == "valley_2hit":
+        # param comparison: Fig 5a fisher 2009 theor pop bio
+        # they use ensemble of 500 runs for each data point
+        mu_0 = 1e-5         # their rate x->y
+        mu_1 = 1e-4         # their rate y->z
+        delta_1 = 2 * 1e-4  # their fitness hit to y state (i.e. b = 1 - delta_1)
+        delta_2 = -0.1      # their fitness hit to z state (i.e. c = 1 - delta_2)
+
+        # DYNAMICS PARAMETERS
+        system = "default"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
+        feedback = "constant"  # "constant", "hill", "step", "pwlinear"
+        params_dict = {
+            'alpha_plus': mu_0,
+            'alpha_minus': 0.0,  # # reversibility of x <-> y
+            'mu': mu_1,  # 0.01
+            'a': 1.0,
+            'b': 1.0 - delta_1,
+            'c': 1.0 - delta_2,  # 1.2
+            'N': 100.0,  # 100.0
+            'v_x': 0.0,
+            'v_y': 0.0,
+            'v_z': 0.0,
+            'mu_base': 0.0,
+            'c2': 0.0,
+            'v_z2': 0.0,
+            'switching_ratio': 0.0,
+            'mult_inc': 0.0,
+            'mult_dec': 0.0,
+        }
+        params = Params(params_dict, system, feedback=feedback)
 
     else:
         params = None
