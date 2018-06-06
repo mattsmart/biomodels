@@ -19,7 +19,7 @@ def fpt_argparser():
     parser.add_argument('-s', '--suffix', metavar='S', type=str,
                         help='output filename modifier', default="")
     parser.add_argument('-c', '--param_to_vary', metavar='C', type=str,
-                        help='param to vary (e.g. "c")', default="c")
+                        help='param to vary (e.g. "c")', default="N")
     parser.add_argument('-i', '--init_name', metavar='I', type=str,
                         help='init name to map to init cond (e.g. "z_close")', default="x_all")
     parser.add_argument('-k', '--size_linspace', metavar='K', type=str,
@@ -52,16 +52,18 @@ if __name__ == "__main__":
     else:
         pv2_idx = int(args.right_idx)
     if args.preset is None:
-        params = presets('preset_xyz_hill')
+        # params = presets('preset_xyz_hill')
+        params = presets('valley_2hit')
     else:
         params = presets(args.preset)
 
     # SCRIPT PARAMETERS
     plot_flag = False
+    establish_switch = True
 
     if param_to_vary == 'N':
         #param_set = [10,20,30,40,50,60,70,80,90,100,200,300,400,500,1000,2000,3000,4000,5000,10000]
-        param_set = np.logspace(1.0, 4.0, num=size_linspace)
+        param_set = np.logspace(1.0, 7.0, num=size_linspace)
         param_set = [np.round(a) for a in param_set]
     elif param_to_vary == 'c':
         param_set = np.linspace(0.75, 1.0, num=size_linspace)
@@ -78,7 +80,8 @@ if __name__ == "__main__":
 
     t0 = time.time()
     mean_fpt_varying, sd_fpt_varying = fast_mean_fpt_varying(param_to_vary, param_set, params,
-                                                             num_processes, init_name=init_name, samplesize=ensemble)
+                                                             num_processes, init_name=init_name, samplesize=ensemble,
+                                                             establish_switch=establish_switch)
     print "Elapsed time:", time.time() - t0
 
     datafile, paramfile = \

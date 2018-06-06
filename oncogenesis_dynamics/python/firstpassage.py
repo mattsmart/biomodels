@@ -9,19 +9,28 @@ from data_io import read_varying_mean_sd_fpt_and_params, collect_fpt_mean_stats_
                     write_fpt_and_params
 from formulae import stoch_gillespie, get_physical_and_stable_fp, map_init_name_to_init_cond
 from params import Params
+from presets import presets
 from plotting import plot_table_params
 
 
-def get_fpt(ensemble, init_cond, params, num_steps=100000):
+def get_fpt(ensemble, init_cond, params, num_steps=100000, establish_switch=False):
+    if establish_switch:
+        fpt_flag = False
+        establish_flag = True
+    else:
+        fpt_flag = True
+        establish_flag = False
     fp_times = np.zeros(ensemble)
     for i in xrange(ensemble):
-        species, times = stoch_gillespie(init_cond, num_steps, params, fpt_flag=True)
+        species, times = stoch_gillespie(init_cond, num_steps, params, fpt_flag=fpt_flag, establish_flag=establish_flag)
         fp_times[i] = times[-1]
+        if establish_switch:
+            print "establish time is", times[-1]
     return fp_times
 
 
-def get_mean_fpt(init_cond, params, samplesize=32):
-    fpt = get_fpt(samplesize, init_cond, params)
+def get_mean_fpt(init_cond, params, samplesize=32, establish_switch=False):
+    fpt = get_fpt(samplesize, init_cond, params, establish_switch=establish_switch)
     return np.mean(fpt)
 
 
@@ -32,11 +41,12 @@ def wrapper_get_fpt(fn_args_dict):
         return get_fpt(*fn_args_dict['args'])
 
 
-def fast_fp_times(ensemble, init_cond, params, num_processes, num_steps='default'):
+def fast_fp_times(ensemble, init_cond, params, num_processes, num_steps='default',establish_switch=False):
     if num_steps == 'default':
-        kwargs_dict = {'num_steps': 100000}
+        kwargs_dict = {'num_steps': 100000, 'establish_switch': establish_switch}
     else:
-        kwargs_dict = {'num_steps': num_steps}
+        kwargs_dict = {'num_steps': num_steps, 'establish_switch': establish_switch}
+
     fn_args_dict = [0]*num_processes
     print "NUM_PROCESSES:", num_processes
     assert ensemble % num_processes == 0
@@ -58,14 +68,14 @@ def fast_fp_times(ensemble, init_cond, params, num_processes, num_steps='default
     return fp_times
 
 
-def fast_mean_fpt_varying(param_vary_name, param_vary_values, params, num_processes, init_name="x_all", samplesize=30):
+def fast_mean_fpt_varying(param_vary_name, param_vary_values, params, num_processes, init_name="x_all", samplesize=30, establish_switch=False):
     assert samplesize % num_processes == 0
     mean_fpt_varying = [0]*len(param_vary_values)
     sd_fpt_varying = [0]*len(param_vary_values)
     for idx, pv in enumerate(param_vary_values):
         params_step = params.mod_copy( {param_vary_name: pv} )
         init_cond = map_init_name_to_init_cond(params, init_name)
-        fp_times = fast_fp_times(samplesize, init_cond, params_step, num_processes)
+        fp_times = fast_fp_times(samplesize, init_cond, params_step, num_processes, establish_switch=establish_switch)
         mean_fpt_varying[idx] = np.mean(fp_times)
         sd_fpt_varying[idx] = np.std(fp_times)
     return mean_fpt_varying, sd_fpt_varying
@@ -200,35 +210,19 @@ if __name__ == "__main__":
     # SCRIPT FLAGS
     run_compute_fpt = True
     run_read_fpt = False
-    run_generate_hist_multi = False
+    run_generate_hist_multi = True
     run_load_hist_multi = False
     run_collect = False
     run_means_read_and_plot = False
     run_means_collect_and_plot = False
 
     # SCRIPT PARAMETERS
+    establish_switch = True
     num_steps = 100000  # default 100000
     ensemble = 5  # default 100
 
     # DYNAMICS PARAMETERS
-    system = "default"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
-    feedback = "constant"              # "constant", "hill", "step", "pwlinear"
-    params_dict = {
-        'alpha_plus': 0.2,
-        'alpha_minus': 0.5,  # 0.5
-        'mu': 0.001,  # 0.01
-        'a': 1.0,
-        'b': 0.8,
-        'c': 0.95,  # 1.2
-        'N': 100.0,  # 100.0
-        'v_x': 0.0,
-        'v_y': 0.0,
-        'v_z': 0.0,
-        'mu_base': 0.0,
-        'c2': 0.0,
-        'v_z2': 0.0
-    }
-    params = Params(params_dict, system, feedback=feedback)
+    params = presets('valley_2hit')
 
     # OTHER PARAMETERS
     init_cond = np.zeros(params.numstates, dtype=int)
@@ -241,7 +235,7 @@ if __name__ == "__main__":
     FIGSIZE=(8,6)
 
     if run_compute_fpt:
-        fp_times = get_fpt(ensemble, init_cond, params)
+        fp_times = get_fpt(ensemble, init_cond, params, establish_switch=establish_switch)
         write_fpt_and_params(fp_times, params)
         fpt_histogram(fp_times, params, flag_show=True, figname_mod="XZ_model_withFeedback_mu1e-1")
 
@@ -253,20 +247,20 @@ if __name__ == "__main__":
         fp_times_xyz_10k, params_b = read_fpt_and_params(dbdir_10k)
 
     if run_generate_hist_multi:
-        ensemble = 14
+        ensemble = 21
         num_proc = cpu_count() - 1
-        param_vary_id = "c"
+        param_vary_id = "N"
         param_idx = PARAMS_ID_INV[param_vary_id]
-        param_vary_values = [0.8, 0.88, 0.95]
-        param_vary_labels = ['Region I','Region IV','Region III']
-        params_ensemble = [params_list[:] for _ in param_vary_values]
+        param_vary_values = [1e2, 1e3, 1e4]
+        param_vary_labels = ['A', 'B', 'C']
+        params_ensemble = [params.params_list[:] for _ in param_vary_values]
         multi_fpt = np.zeros((len(param_vary_values), ensemble))
         multi_fpt_labels = ['label' for _ in param_vary_values]
         for idx, param_val in enumerate(param_vary_values):
             param_val_string = "%s=%.3f" % (param_vary_id, param_val)
             params_step = params.mod_copy({param_vary_id: param_val})
             #fp_times = get_fpt(ensemble, init_cond, params_set[idx], num_steps=num_steps)
-            fp_times = fast_fp_times(ensemble, init_cond, params_step, num_proc, num_steps=num_steps)
+            fp_times = fast_fp_times(ensemble, init_cond, params_step, num_proc, establish_switch=establish_switch)
             write_fpt_and_params(fp_times, params_step, filename="fpt_multi", filename_mod=param_val_string)
             multi_fpt[idx,:] = np.array(fp_times)
             multi_fpt_labels[idx] = "%s (%s)" % (param_vary_labels[idx], param_val_string)

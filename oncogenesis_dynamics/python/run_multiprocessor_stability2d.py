@@ -13,17 +13,17 @@ from stability_diagram import plot_stable_fp_count_2d, get_stable_fp_count_2d, g
 NUM_PROCESSES = -1 + cpu_count()
 
 # DYNAMICS PARAMETERS
-params = presets('preset_xyz_hill')
+params = presets('valley_2hit')
 
 # ARGS TO PASS
 param_1_name = "b"
-param_1_start = 0.5
-param_1_stop = 1.1
+param_1_start = 0.95
+param_1_stop = 1.05
 param_1_steps = 63
 param_1_range = np.linspace(param_1_start, param_1_stop, param_1_steps)
 param_2_name = "c"
-param_2_start = 0.6 #0.7
-param_2_stop = 1.1 #0.95
+param_2_start = 0.95 #0.7
+param_2_stop = 1.05 #0.95
 param_2_steps = 60
 param_2_range = np.linspace(param_2_start, param_2_stop, param_2_steps)
 

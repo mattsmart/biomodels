@@ -94,17 +94,22 @@ def bisecting_rxn_search_recurse(propensities, L, R, T, m=0):
         return bisecting_rxn_search_recurse(propensities, L, m-1, T, m=m)
 
 
-def stoch_gillespie(init_cond, num_steps, params, fpt_flag=False):
-    # There are 12 transitions to consider:
-    # - 6 birth/death of the form x_n -> x_n+1, (x birth, x death, ...), label these 0 to 5
-    # - 3 transitions of the form x_n -> x_n-1, (x->y, y->x, y->z), label these 6 to 8
-    # - 3 transitions associated with immigration (vx, vy, vz), label these 9 to 11
-    # - 1 transitions for x->z (rare), label this 12
-    # Gillespie algorithm has indefinite timestep size so consider total step count as input (times input not used)
-    # Notes on fpt_flag:
-    # - if fpt_flag (first passage time) adds extra rxn propensity for transition from z1->z2
-    # - return r[until fpt], times[until fpt]
-
+def stoch_gillespie(init_cond, num_steps, params, fpt_flag=False, establish_flag=False):
+    """
+    There are 12 transitions to consider:
+    - 6 birth/death of the form x_n -> x_n+1, (x birth, x death, ...), label these 0 to 5
+    - 3 transitions of the form x_n -> x_n-1, (x->y, y->x, y->z), label these 6 to 8
+    - 3 transitions associated with immigration (vx, vy, vz), label these 9 to 11
+    - 1 transitions for x->z (rare), label this 12
+    Gillespie algorithm has indefinite timestep size so consider total step count as input (times input not used)
+    Notes on fpt_flag:
+    - if fpt_flag (first passage time) adds extra rxn propensity for transition from z1->z2
+    - return r[until fpt], times[until fpt]
+    Notes on establish_flag:
+    - can't be on same time as fpt flag
+    - in x,y,z model, return time when first successful z was generated (success = establish)
+    """
+    assert not (fpt_flag and establish_flag)
     time = 0.0
     r = np.zeros((num_steps, params.numstates))
     times_stoch = np.zeros(num_steps)
@@ -112,6 +117,7 @@ def stoch_gillespie(init_cond, num_steps, params, fpt_flag=False):
     update_dict = params.update_dict
     fpt_rxn_idx = len(update_dict.keys()) - 1  # always use last element as special FPT event
     fpt_event = False
+    establish_event = False
     for step in xrange(num_steps-1):
         r1 = random()  # used to determine time of next reaction
         r2 = random()  # used to partition the probabilities of each reaction
@@ -143,12 +149,21 @@ def stoch_gillespie(init_cond, num_steps, params, fpt_flag=False):
 
         time += tau
         times_stoch[step + 1] = time
+
+        if establish_flag and (r[step + 1][-1] >= params.N):
+            establish_event = True
+
         if rxn_idx == fpt_rxn_idx:
-            assert fpt_flag                          # just in case, not much cost
+            assert fpt_flag                             # just in case, not much cost
             return r[:step+2, :], times_stoch[:step+2]  # end sim because fpt achieved
-    if fpt_flag:  # if code gets here should recursively continue the simulation
+
+        if establish_event:
+            assert establish_flag                       # just in case, not much cost
+            return r[:step+2, :], times_stoch[:step+2]  # end sim because fpt achieved
+
+    if fpt_flag or establish_flag:  # if code gets here should recursively continue the simulation
         init_cond = r[-1]
-        r_redo, times_stoch_redo = stoch_gillespie(init_cond, num_steps, params, fpt_flag=fpt_flag)
+        r_redo, times_stoch_redo = stoch_gillespie(init_cond, num_steps, params, fpt_flag=fpt_flag, establish_flag=establish_flag)
         times_stoch_redo_shifted = times_stoch_redo + times_stoch[-1]  # shift start time of new sim by last time
         return np.concatenate((r, r_redo)), np.concatenate((times_stoch, times_stoch_redo_shifted))
     return r, times_stoch
