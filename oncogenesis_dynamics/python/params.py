@@ -64,6 +64,13 @@ class Params(object):
                  6: [-1, 1, 0], 7: [1, -1, 0], 8: [0, -1, 1],  # transition events
                  9: [1, 0, 0], 10: [0, 1, 0], 11: [0, 0, 1],   # immigration events
                  12: [-1, 0, 1], 13: [0, 0, -1]}               # special x->z, fpt z1->z2 (z2 untracked) transitions
+            self.transrates_base = [self.alpha_plus, self.alpha_minus, self.mu]
+            self.transrates_param_to_key = {'alpha_plus':[0], 'alpha_minus':[1], 'mu':[2]}
+            self.transrates_class_to_rxnidx = {0: [0], 1: [1, 2], 2: []}
+            self.transrates_class_to_alloutparams = {0: ['alpha_plus'], 1:['alpha_minus', 'mu'], 2:[]}
+            self.transition_dict = {0: ('alpha_plus', 0, 1),
+                                    1: ('alpha_minus', 1, 0),
+                                    2: ('mu', 1, 2)}
         elif system in ["feedback_mu_XZ_model"]:
             assert self.mu_base > 0
             self.mult_inc_mubase = MUBASE_MULTIPLIER
@@ -82,6 +89,11 @@ class Params(object):
                  4: [-1, 1],                        # transition events (x to z mutation)
                  5: [1, 0], 6: [0, 1],              # immigration events
                  7: [0, -1]}                        # special first-passage event z1->z2 (z2 untracked)
+            self.transrates_base = [self.mu_base]
+            self.transrates_param_to_key = {'mu_base':[0]}
+            self.transrates_class_to_rxnidx = {0: [0], 1: [1, 2], 2: [3], 3: []}
+            self.transrates_class_to_alloutparams = {0: ['mu_base']}
+            self.transition_dict = {0: ('mu_base', 0, 1)}
         elif system in ["feedback_XYZZprime"]:
             assert self.v_z2 is not None
             assert self.c2 is not None
@@ -100,6 +112,14 @@ class Params(object):
                 12: [1, 0, 0, 0], 13: [0, 1, 0, 0], 14: [0, 0, 1, 0], 15: [0, 0, 0, 1],  # immigration events
                 16: [-1, 0, 1, 0],                     # x->z skipping y mutation (i.e. rate mu_base)
                 17: [0, 0, 0, -1]}                     # special z2->z3 (z3 untracked) first-passage transitions
+            self.transrates_base = [self.alpha_plus, self.alpha_minus, self.mu, self.mu]
+            self.transrates_param_to_key = {'alpha_plus': [0], 'alpha_minus':[1], 'mu': [2,3]}  # lists because some shared
+            self.transrates_class_to_rxnidx = {0: [0], 1:[1, 2], 2:[3], 3:[]}
+            self.transrates_class_to_alloutparams = {0: ['alpha_plus'], 1:['alpha_minus', 'mu'], 2:['mu'], 3:[]}
+            self.transition_dict = {0: ('alpha_plus', 0, 1),
+                                    1: ('alpha_minus', 1, 0),
+                                    2: ('mu', 1, 2),
+                                    3: ('mu', 2, 3)}  # first elem each tuple corresponds to class it depends on
 
     def __str__(self):
         return str(self.params_list)
@@ -232,12 +252,14 @@ class Params(object):
                         p.alpha_plus * x_n, p.alpha_minus * y_n, p.mu * y_n,  # transition events
                         p.v_x, p.v_y, p.v_z,      # immigration events  #TODO maybe wrong
                         p.mu_base * x_n]          # special transition events (x->z)
+            transition_prop = [p.alpha_plus * x_n, p.alpha_minus * y_n, p.mu * y_n]
         elif self.numstates == 2:
             x_n, z_n = state
             rxn_prop = [p.a * x_n, fbar * (x_n),    # birth/death events for x  TODO: is it fbar*(x_n - 1)
                         p.c * z_n, fbar * (z_n),    # birth/death events for z  TODO: is it fbar*(z_n - 1)
                         p.mu_base * x_n,            # transition events
                         p.v_x, p.v_z]               # immigration events  #TODO maybe wrong
+            transition_prop = [p.mu_base * x_n]
         else:
             assert self.numstates == 4
             x_n, y_n, z_n, z2_n = state
@@ -249,6 +271,7 @@ class Params(object):
                         p.mu * y_n, p.mu * z_n,                    # transition events yz, zz2
                         p.v_x, p.v_y, p.v_z, p.v_z2,                   # immigration events  #TODO maybe wrong
                         p.mu_base * x_n]                         # special transition events (x->z)
+            transition_prop = [p.alpha_plus * x_n, p.alpha_minus * y_n, p.mu * y_n, p.mu * z_n]
         return rxn_prop
 
     def get(self, param_label):

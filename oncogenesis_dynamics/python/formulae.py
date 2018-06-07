@@ -169,6 +169,182 @@ def stoch_gillespie(init_cond, num_steps, params, fpt_flag=False, establish_flag
     return r, times_stoch
 
 
+def stoch_bnb(init_cond, num_steps, params, fpt_flag=False, establish_flag=False):
+    # uses modified version of BNB algorithm for evolutionary dynamics (2012)
+    # TODO check optimize: less frequent updates in Supp info of paper
+    # TODO fix issue where x rapidly goes extinct, or auto extinct usually on first timestep...
+
+    assert fpt_flag == False  # TODO not implmented, but test once done
+    assert params.numstates == 3  # TODO generalize check
+    assert params.mu_base == 0    # need to modify transition tables to include for xyz case otherwise
+
+    def p_M_of_t(time_var, rate_birth, rate_death, rate_trans):
+        R = np.sqrt((rate_birth - rate_death) ** 2 + rate_trans * (2 * rate_birth + 2 * rate_death + rate_trans))
+        W = rate_birth + rate_death + rate_trans
+        C = np.cosh(R*time_var/2)  # see SI for 2012 paper
+        S = np.sinh(R*time_var/2)
+        num = R*C + 2*rate_death*S - W*S
+        den = R*C - 2*rate_birth*S + W*S
+        return num/den
+
+    def p_E_of_t(time_var, rate_birth, rate_death, rate_trans, p_M_of_t_val):
+        W = rate_birth + rate_death + rate_trans
+        num = rate_death * (1 - p_M_of_t_val)
+        den = W - rate_death - rate_birth * p_M_of_t_val
+        return num/den
+
+    def p_B_of_t(time_var, rate_birth, rate_death, rate_trans, p_E_of_t_val):
+        return rate_birth * p_E_of_t_val / rate_death
+
+
+    def eqn_11(n_class, rate_birth, rate_death, rate_trans):
+        if n_class == 0.0:
+            t_next_class_swap = 1e9  # very big bc not possible
+        else:
+            r = random()
+            R = np.sqrt((rate_birth - rate_death)**2 + rate_trans * (2*rate_birth + 2*rate_death + rate_trans))
+            W = rate_birth + rate_death + rate_trans
+            print "r, R, W, rate_birth, rate_death, rate_trans"
+            print r, R, W, rate_birth, rate_death, rate_trans
+            eqn_12_expr = ((R - W + 2*rate_death) / (R + W - 2*rate_birth)) ** n_class
+            if eqn_12_expr > r:
+                print "WARNING\neqn_12_expr > r", eqn_12_expr, ">", r,"\nWARNING"
+                t_next_class_swap = 1e9
+
+            else:
+                r_scaled = r ** (1/n_class)
+                ln_num = r_scaled * (R - W + 2*rate_birth) - W - R + 2 * rate_death
+                ln_den = r_scaled * (-R - W + 2*rate_birth) - W + R + 2 * rate_death
+                print r, R, W, r_scaled, ln_num, ln_den, np.log(ln_num/ln_den)
+                t_next_class_swap = 1/R * np.log(ln_num/ln_den)
+
+        return t_next_class_swap
+
+    def update_trans_rates_from_state(params, trans_rates, state):
+        mod_dict = params.system_variants(state, None)
+        for k,v in mod_dict.iteritems():
+            for idx in params.transrates_param_to_key[k]:
+                trans_rates[idx] = v
+        return trans_rates
+
+    def trans_rates_to_per_class(params, trans_rates):
+        trans_rates_per_class = np.zeros(params.numstates)
+        for k in xrange(params.numstates):
+            class_alloutparams = params.transrates_class_to_alloutparams[k]
+            for param_name in class_alloutparams:
+                param_idx_as_list = params.transrates_param_to_key[param_name]
+                trans_rates_per_class[k] += trans_rates[param_idx_as_list[0]]  # all idx in list correspond to same param val
+        return trans_rates_per_class
+
+    def choose_transition_event(params, trans_rates, trans_rates_per_class, class_idx):
+        map_class_to_rxn = params.transrates_class_to_rxnidx
+        if len(map_class_to_rxn[class_idx]) == 1:
+            event_idx = map_class_to_rxn[class_idx][0]
+        else:
+            # gillespie-like procedure here
+            associated_rxn_idx = params.transrates_class_to_rxnidx
+            r = random()
+            r_scaled = r * trans_rates_per_class[class_idx]  # TODO assert is sum of [trans rates associated_rxn_idx's]
+            start = 0
+            for rxn_idx in associated_rxn_idx:
+                next = start + trans_rates[rxn_idx]
+                print "start < r_scaled < next:",
+                print start, r_scaled, next
+                if start < r_scaled < next:
+                    event_idx = rxn_idx
+                    break
+                else:
+                    start = next
+        return event_idx
+
+    # build rate info
+    birth_rates = params.growthrates[:]
+    trans_rates = params.transrates_base[:]
+    times_each_transition = np.zeros(params.numstates)
+
+    # time and state vectors for storage
+    time = 0.0
+    state = np.zeros((num_steps, params.numstates))
+    times_stoch = np.zeros(num_steps)
+    state[0, :] = np.array(init_cond, dtype=int)  # note stochastic sim operates on integer population counts
+
+    for step in xrange(num_steps-1):  # each step find time to next mutation (here means class transition)
+
+        current_state = state[step, :]
+        # update transition propensities based on current state
+        trans_rates = update_trans_rates_from_state(params, trans_rates, current_state)
+        trans_rates_per_class = trans_rates_to_per_class(params, trans_rates)
+        fbar = params.fbar(current_state)
+        for k in xrange(params.numstates):
+            times_each_transition[k] = eqn_11(current_state[k], birth_rates[k], fbar, trans_rates_per_class[k])
+        print "current_state", current_state
+        print "trans_rates", trans_rates
+        print "trans_rates_per_class, fbar", trans_rates_per_class, fbar
+        print "times_each_transition", times_each_transition
+
+
+        # identify next transition class
+        class_idx = np.argmin(times_each_transition)
+        time_to_next_transition = times_each_transition[class_idx]
+        print "time_to_next_transition", time_to_next_transition
+        # update time
+        time += time_to_next_transition
+        times_stoch[step+1] = time
+
+        # binomial negative-binomial part
+        bin_n = current_state[class_idx] - 1
+        p_M_at_t = p_M_of_t(time_to_next_transition, birth_rates[class_idx], fbar, trans_rates_per_class[class_idx])
+        p_E_at_t = p_E_of_t(time_to_next_transition, birth_rates[class_idx], fbar, trans_rates_per_class[class_idx], p_M_at_t)
+        bin_p = 1 - p_E_at_t / p_M_at_t
+        print "p_M_at_t, p_E_at_t, bin_p", p_M_at_t, p_E_at_t, bin_p
+        m_binomial = np.random.binomial(bin_n, bin_p)
+
+        negbin_n = m_binomial + 2
+        negbin_p = p_B_of_t(time_to_next_transition, birth_rates[class_idx], fbar, trans_rates_per_class[class_idx], p_E_at_t)
+        updated_class_amount = 1 + m_binomial + np.random.negative_binomial(negbin_n, negbin_p)
+
+        state[step+1, class_idx] = updated_class_amount
+
+        # their step 5 update all other pops according to algo 2
+        for k in xrange(params.numstates):
+            if k != class_idx:
+                bin_n = current_state[k]
+                if bin_n == 0:
+                    updated_class_amount = 0
+                else:
+                    rate_trans = trans_rates_per_class[k]
+                    p_M_at_t = p_M_of_t(time_to_next_transition, birth_rates[k], fbar, rate_trans)
+                    p_E_at_t = p_E_of_t(time_to_next_transition, birth_rates[k], fbar, rate_trans, p_M_at_t)
+                    bin_p = 1 - p_E_at_t / p_M_at_t
+                    m_binomial = np.random.binomial(bin_n, bin_p)
+                    if m_binomial == 0:
+                        print "If m_binomial=0, then the system at time t is in the extinct state n_class_updated=0"
+                        updated_class_amount = 0
+                    else:
+                        negbin_n = m_binomial
+                        negbin_p = p_B_of_t(time_to_next_transition, birth_rates[class_idx], fbar, rate_trans, p_E_at_t)
+                        updated_class_amount = m_binomial + np.random.negative_binomial(negbin_n, negbin_p)
+                state[step + 1, k] = updated_class_amount
+
+        # increment class where transition went to\
+        # TODO: need to pick which reaction occurs from class_allout_rates and update accordingly here somehow
+        trans_event_num = choose_transition_event(params, trans_rates, trans_rates_per_class, class_idx)
+        label, class_idx, class_idx_after = params.transition_dict[trans_event_num]
+        state[step + 1, class_idx_after] += 1
+
+        if establish_flag:
+            if state[step + 1, -1] >= params.N:
+                return state[:step + 2, :], times_stoch[:step + 2]  # end sim because est achieved
+
+    if fpt_flag or establish_flag:  # if code gets here should recursively continue the simulation
+        init_cond = state[-1, :]
+        state_redo, times_stoch_redo = stoch_bnb(init_cond, num_steps, params, fpt_flag=fpt_flag, establish_flag=establish_flag)
+        times_stoch_redo_shifted = times_stoch_redo + times_stoch[-1]  # shift start time of new sim by last time
+        return np.concatenate((state, state_redo)), np.concatenate((times_stoch, times_stoch_redo_shifted))
+
+    return state, times_stoch
+
+
 def simulate_dynamics_general(init_cond, times, params, method="libcall"):
     if method == "libcall":
         return ode_libcall(init_cond, times, params)
@@ -178,6 +354,8 @@ def simulate_dynamics_general(init_cond, times, params, method="libcall"):
         return ode_euler(init_cond, times, params)
     elif method == "gillespie":
         return stoch_gillespie(init_cond, len(times), params)
+    elif method == "bnb":
+        return stoch_bnb(init_cond, len(times), params)
     else:
         raise ValueError("method arg invalid, must be one of %s" % SIM_METHODS_VALID)
 

@@ -7,13 +7,13 @@ from multiprocessing import Pool, cpu_count
 from constants import OUTPUT_DIR, PARAMS_ID, PARAMS_ID_INV, COLOURS_DARK_BLUE
 from data_io import read_varying_mean_sd_fpt_and_params, collect_fpt_mean_stats_and_params, read_fpt_and_params,\
                     write_fpt_and_params
-from formulae import stoch_gillespie, get_physical_and_stable_fp, map_init_name_to_init_cond
+from formulae import stoch_gillespie, stoch_bnb, get_physical_and_stable_fp, map_init_name_to_init_cond
 from params import Params
 from presets import presets
 from plotting import plot_table_params
 
 
-def get_fpt(ensemble, init_cond, params, num_steps=100000, establish_switch=False):
+def get_fpt(ensemble, init_cond, params, num_steps=1000000, establish_switch=False):
     if establish_switch:
         fpt_flag = False
         establish_flag = True
@@ -22,7 +22,9 @@ def get_fpt(ensemble, init_cond, params, num_steps=100000, establish_switch=Fals
         establish_flag = False
     fp_times = np.zeros(ensemble)
     for i in xrange(ensemble):
-        species, times = stoch_gillespie(init_cond, num_steps, params, fpt_flag=fpt_flag, establish_flag=establish_flag)
+        #species, times = stoch_gillespie(init_cond, num_steps, params, fpt_flag=fpt_flag, establish_flag=establish_flag)
+        species, times = stoch_bnb(init_cond, num_steps, params, fpt_flag=fpt_flag, establish_flag=establish_flag)
+
         fp_times[i] = times[-1]
         if establish_switch:
             print "establish time is", times[-1]
@@ -43,7 +45,7 @@ def wrapper_get_fpt(fn_args_dict):
 
 def fast_fp_times(ensemble, init_cond, params, num_processes, num_steps='default',establish_switch=False):
     if num_steps == 'default':
-        kwargs_dict = {'num_steps': 100000, 'establish_switch': establish_switch}
+        kwargs_dict = {'num_steps': 1000000, 'establish_switch': establish_switch}
     else:
         kwargs_dict = {'num_steps': num_steps, 'establish_switch': establish_switch}
 
@@ -210,15 +212,15 @@ if __name__ == "__main__":
     # SCRIPT FLAGS
     run_compute_fpt = True
     run_read_fpt = False
-    run_generate_hist_multi = True
+    run_generate_hist_multi = False
     run_load_hist_multi = False
     run_collect = False
     run_means_read_and_plot = False
-    run_means_collect_and_plot = False
+    run_means_collect_and_plot = True
 
     # SCRIPT PARAMETERS
     establish_switch = True
-    num_steps = 100000  # default 100000
+    num_steps = 1000000  # default 100000
     ensemble = 5  # default 100
 
     # DYNAMICS PARAMETERS
@@ -312,7 +314,7 @@ if __name__ == "__main__":
         """
 
     if run_means_collect_and_plot:
-        dbdir = OUTPUT_DIR + sep + "tocollect" + sep + "runset_nov4_2pm_c6_Nzclose"
+        dbdir = OUTPUT_DIR + sep + "tocollect" + sep + "runset_june6_valley2hit_ens80"
         datafile, paramfile = collect_fpt_mean_stats_and_params(dbdir)
         samplesize=48
         mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params = \
