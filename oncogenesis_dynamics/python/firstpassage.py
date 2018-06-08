@@ -13,7 +13,7 @@ from presets import presets
 from plotting import plot_table_params
 
 
-def get_fpt(ensemble, init_cond, params, num_steps=1000000, establish_switch=False):
+def get_fpt(ensemble, init_cond, params, num_steps=1000000, establish_switch=False, brief=True):
     if establish_switch:
         fpt_flag = False
         establish_flag = True
@@ -23,15 +23,17 @@ def get_fpt(ensemble, init_cond, params, num_steps=1000000, establish_switch=Fal
     fp_times = np.zeros(ensemble)
     for i in xrange(ensemble):
         #species, times = stoch_gillespie(init_cond, num_steps, params, fpt_flag=fpt_flag, establish_flag=establish_flag)
-        species, times = stoch_tauleap(init_cond, num_steps, params, fpt_flag=fpt_flag, establish_flag=establish_flag)
-
-        # plotting
-        #plt.plot(times, species)
-        #plt.show()
-
-        fp_times[i] = times[-1]
+        if brief:
+            species_end, times_end = stoch_tauleap(init_cond, num_steps, params, fpt_flag=fpt_flag, establish_flag=establish_flag, brief=brief)
+        else:
+            species, times = stoch_tauleap(init_cond, num_steps, params, fpt_flag=fpt_flag, establish_flag=establish_flag, brief=brief)
+            times_end = times[-1]
+            # plotting
+            #plt.plot(times, species)
+            #plt.show()
+        fp_times[i] = times_end
         if establish_switch:
-            print "establish time is", times[-1]
+            print "establish time is", fp_times[i]
     return fp_times
 
 
@@ -224,7 +226,8 @@ if __name__ == "__main__":
 
     # SCRIPT PARAMETERS
     establish_switch = True
-    num_steps = 1000000  # default 100000
+    brief=True
+    num_steps = 1000000  # default 1000000
     ensemble = 10  # default 100
 
     # DYNAMICS PARAMETERS
@@ -241,7 +244,7 @@ if __name__ == "__main__":
     FIGSIZE=(8,6)
 
     if run_compute_fpt:
-        fp_times = get_fpt(ensemble, init_cond, params, establish_switch=establish_switch)
+        fp_times = get_fpt(ensemble, init_cond, params, num_steps=num_steps, establish_switch=establish_switch, brief=brief)
         write_fpt_and_params(fp_times, params)
         fpt_histogram(fp_times, params, flag_show=True, figname_mod="XZ_model_withFeedback_mu1e-1")
 

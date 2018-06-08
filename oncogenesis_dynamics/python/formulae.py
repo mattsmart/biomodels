@@ -514,7 +514,7 @@ def stoch_tauleap_adaptive(init_cond, num_steps, params, fpt_flag=False, establi
     return state, times_stoch
 
 
-def stoch_tauleap(init_cond, num_steps, params, fpt_flag=False, establish_flag=False):
+def stoch_tauleap(init_cond, num_steps, params, fpt_flag=False, establish_flag=False, brief=True, recurse=0):
     # TODO NOTE also speedup exact SSA FPT by not tracking whole array just last and next of time and state
     # TODO can also approx tauleap in BNB algo use dt=1e-2 as used in fisher paper
     assert not (fpt_flag and establish_flag)
@@ -552,7 +552,7 @@ def stoch_tauleap(init_cond, num_steps, params, fpt_flag=False, establish_flag=F
     fpt_rxn_idx = len(params.update_dict.keys()) - 1  # always use last element as special FPT event
     fpt_event = False
     establish_event = False
-    recurse_count = 0
+
     for step in xrange(num_steps - 1):
         # compute propensity functions (alpha) and the partitions for all 12 transitions
         alpha = reaction_propensities(state, step, params, fpt_flag=fpt_flag)
@@ -573,19 +573,32 @@ def stoch_tauleap(init_cond, num_steps, params, fpt_flag=False, establish_flag=F
         # fpt and establish exit conditions
         if fpt_event:
             assert fpt_flag                                 # just in case, not much cost
-            return state[:step+2, :], times_stoch[:step+2]  # end sim because fpt achieved
+            if brief:
+                return state[step + 1, :], times_stoch[step + 1]
+            else:
+                return state[:step+2, :], times_stoch[:step+2]  # end sim because fpt achieved
         if establish_flag and state[step+1, -1] >= params.N:
-            return state[:step+2, :], times_stoch[:step+2]  # end sim because fpt achieved
+            if brief:
+                return state[step + 1, :], times_stoch[step + 1]
+            else:
+                return state[:step+2, :], times_stoch[:step+2]
 
     if fpt_flag or establish_flag:  # if code gets here should recursively continue the simulation
-        print "recursing (%d) in tauleap to wait for event flag exit condition" % recurse_count
+        print "recursing (%.2f) in tauleap to wait for event flag exit condition" % recurse
+        recurse += times_stoch[-1]
         init_cond = state[-1, :]
-        state_redo, times_stoch_redo = stoch_tauleap(init_cond, num_steps, params, fpt_flag=fpt_flag, establish_flag=establish_flag)
-        times_stoch_redo_shifted = times_stoch_redo + times_stoch[-1]  # shift start time of new sim by last time
-        return np.concatenate((state, state_redo)), np.concatenate((times_stoch, times_stoch_redo_shifted))
-        recurse_count+=1
-        
-    return state, times_stoch
+        state_redo, times_stoch_redo = stoch_tauleap(init_cond, num_steps, params, fpt_flag=fpt_flag,
+                                                     establish_flag=establish_flag, recurse=recurse, brief=brief)
+        if brief:
+            return state_redo, times_stoch_redo + times_stoch[-1]
+        else:
+            times_stoch_redo_shifted = times_stoch_redo + times_stoch[-1]  # shift start time of new sim by last time
+            return np.concatenate((state, state_redo)), np.concatenate((times_stoch, times_stoch_redo_shifted))
+
+    if brief:
+        return state[-1, :], times_stoch[-1]
+    else:
+        return state, times_stoch
 
 
 def simulate_dynamics_general(init_cond, times, params, method="libcall"):
