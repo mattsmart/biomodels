@@ -57,8 +57,6 @@ class Params(object):
             self.states = {0: "x", 1: "y", 2: "z"}           # can also do FPT to a 4th state z2
             self.growthrates = np.array([self.a, self.b, self.c])
             self.flowrates = np.array([self.v_x, self.v_y, self.v_z])
-            self.fbar_flowpart = np.sum(self.flowrates) / self.N
-            self.fbar_growthpart = np.transpose(self.growthrates) / self.N
             self.constant_growthandflowrates = True
             self.update_dict = {
                  0: [1, 0, 0], 1: [-1, 0, 0],                  # birth/death events for x
@@ -81,8 +79,6 @@ class Params(object):
             self.states = {0: "x", 1: "z"}                   # can also do FPT to a 3rd state z2
             self.growthrates = np.array([self.a, self.c])
             self.flowrates = np.array([self.v_x, self.v_z])
-            self.fbar_flowpart = np.sum(self.flowrates) / self.N
-            self.fbar_growthpart = np.transpose(self.growthrates) / self.N
             self.b = 0.0             # TODO make None and optimize truncated eqns
             self.v_y = 0.0           # TODO make None and optimize truncated eqns
             self.alpha_plus = 0.0    # TODO make None and optimize truncated eqns
@@ -106,9 +102,6 @@ class Params(object):
             self.states = {0: "x", 1: "y", 2: "z", 3: "z2"}  # can also do FPT to a 5th state z3
             self.growthrates = np.array([self.a, self.b, self.c, self.c2])
             self.flowrates = np.array([self.v_x, self.v_y, self.v_z, self.v_z2])
-            self.fbar_flowpart = np.sum(self.flowrates) / self.N
-            self.fbar_growthpart = np.transpose(self.growthrates) / self.N
-
             self.constant_growthandflowrates = True
             self.update_dict = {
                 0: [1, 0, 0, 0], 1: [-1, 0, 0, 0],     # birth/death events for x
@@ -128,6 +121,12 @@ class Params(object):
                                     1: ('alpha_minus', 1, 0),
                                     2: ('mu', 1, 2),
                                     3: ('mu', 2, 3)}  # first elem each tuple corresponds to class it depends on
+        if (self.N is None) or any([v is None for v in self.growthrates]) or any([v is None for v in self.flowrates]):
+            self.fbar_flowpart = None
+            self.fbar_growthpart = None
+        else:
+            self.fbar_flowpart = np.sum(self.flowrates) / self.N
+            self.fbar_growthpart = np.transpose(self.growthrates) / self.N
 
     def __str__(self):
         return str(self.params_list)
@@ -326,7 +325,7 @@ class Params(object):
             csvfile.seek(0)
             # prep dicts for reading
             params_dict = {k:None for k in PARAMS_ID_INV.keys()}
-            aux_dict = {'system': None, 'feedback':None}
+            aux_dict = {'system': None, 'feedback': None}
             if num_params != len(PARAMS_ID_INV.keys()) + len(aux_dict.keys()):
                 print "Warning, unexpected params.csv line count"
             # iterate over contents
@@ -334,7 +333,7 @@ class Params(object):
                 if pair[0] in params_dict.keys():
                     params_dict[pair[0]] = pair[1]
                     if pair[1] == 'None':
-                        params_dict[pair[0]] = pair[1]
+                        params_dict[pair[0]] = None
                     else:
                         params_dict[pair[0]] = float(pair[1])
                 else:
