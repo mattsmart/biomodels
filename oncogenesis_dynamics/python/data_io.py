@@ -1,7 +1,7 @@
 import csv
 import numpy as np
-from os import sep, listdir, mkdir
-from os.path import join, isfile, isdir, basename, dirname
+from os import sep, listdir, mkdir, makedirs
+from os.path import join, isfile, isdir, basename, dirname, exists
 
 from constants import PARAMS_ID, OUTPUT_DIR, CSV_DATA_TYPES, PARAMS_ID_INV, ODE_SYSTEMS
 from params import Params
@@ -193,7 +193,8 @@ def collect_fpt_mean_stats_and_params(filedir, dirbase="means"):
 
     coll_dirname = "collected_stats_%d" % len(fpt_means_collected)
     collected_dir = filedir + sep + coll_dirname
-    mkdir(collected_dir)
+    if not exists(collected_dir):
+        makedirs(collected_dir)
     coll_df, coll_pf = write_varying_mean_sd_fpt_and_params(fpt_means_collected, fpt_sd_collected, param_vary_name, param_vary_collected,
                                                             params_0, filedir=collected_dir, filename_mod="collected")
     return coll_df, coll_pf
