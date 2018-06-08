@@ -23,7 +23,7 @@ def fpt_argparser():
     parser.add_argument('-i', '--init_name', metavar='I', type=str,
                         help='init name to map to init cond (e.g. "z_close")', default="x_all")
     parser.add_argument('-k', '--size_linspace', metavar='K', type=str,
-                        help='search size for np.linspace(L_val,R_val,K))', default=100)
+                        help='search size for np.linspace(L_val,R_val,K))', default=20)
     parser.add_argument('-l', '--left_idx', metavar='L', type=str,
                         help='slice is np.linspace(L_val,R_val,K))[left:right]', default=None)
     parser.add_argument('-r', '--right_idx', metavar='R', type=str,
@@ -63,7 +63,7 @@ if __name__ == "__main__":
 
     if param_to_vary == 'N':
         #param_set = [10,20,30,40,50,60,70,80,90,100,200,300,400,500,1000,2000,3000,4000,5000,10000]
-        param_set = np.logspace(1.0, 7.0, num=size_linspace)
+        param_set = np.logspace(2.0, 7.0, num=size_linspace)
         param_set = [np.round(a) for a in param_set]
     elif param_to_vary == 'c':
         param_set = np.linspace(0.75, 1.0, num=size_linspace)
