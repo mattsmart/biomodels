@@ -150,6 +150,9 @@ def stoch_gillespie(init_cond, num_steps, params, fpt_flag=False, establish_flag
         time += tau
         times_stoch[step + 1] = time
 
+        #if step % 100000 == 0:
+        #    print "step", step, "time", time, ":", r[step,:], "to", r[step+1, :]
+
         if establish_flag and (r[step + 1][-1] >= params.N):
             establish_event = True
 
@@ -171,6 +174,8 @@ def stoch_gillespie(init_cond, num_steps, params, fpt_flag=False, establish_flag
 
 def stoch_bnb(init_cond, num_steps, params, fpt_flag=False, establish_flag=False):
     # uses modified version of BNB algorithm for evolutionary dynamics (2012)
+    # - exact algo assumes constant linear birth and death rates, here our death rates are functions of the state
+    # - approx by using smaller timestep and updating within
     # TODO check optimize: less frequent updates in Supp info of paper
     # TODO fix issue where x rapidly goes extinct, or auto extinct usually on first timestep...
 
@@ -204,19 +209,24 @@ def stoch_bnb(init_cond, num_steps, params, fpt_flag=False, establish_flag=False
             r = random()
             R = np.sqrt((rate_birth - rate_death)**2 + rate_trans * (2*rate_birth + 2*rate_death + rate_trans))
             W = rate_birth + rate_death + rate_trans
-            print "r, R, W, rate_birth, rate_death, rate_trans"
+            print "eqn11: r, R, W, rate_birth, rate_death, rate_trans"
             print r, R, W, rate_birth, rate_death, rate_trans
             eqn_12_expr = ((R - W + 2*rate_death) / (R + W - 2*rate_birth)) ** n_class
             if eqn_12_expr > r:
-                print "WARNING\neqn_12_expr > r", eqn_12_expr, ">", r,"\nWARNING"
+                print "WARNING\neqn_12_expr > r ||", eqn_12_expr, ">", r,"\nWARNING"
                 t_next_class_swap = 1e9
-
             else:
                 r_scaled = r ** (1/n_class)
                 ln_num = r_scaled * (R - W + 2*rate_birth) - W - R + 2 * rate_death
                 ln_den = r_scaled * (-R - W + 2*rate_birth) - W + R + 2 * rate_death
                 print r, R, W, r_scaled, ln_num, ln_den, np.log(ln_num/ln_den)
                 t_next_class_swap = 1/R * np.log(ln_num/ln_den)
+            r_scaled = r ** (1 / n_class)
+            ln_num = r_scaled * (R - W + 2 * rate_birth) - W - R + 2 * rate_death
+            ln_den = r_scaled * (-R - W + 2 * rate_birth) - W + R + 2 * rate_death
+            print "eqn11: r, R, W, r_scaled, ln_num, ln_den, np.log(ln_num / ln_den)"
+            print r, R, W, r_scaled, ln_num, ln_den, np.log(ln_num / ln_den)
+            t_next_class_swap = 1 / R * np.log(ln_num / ln_den)
 
         return t_next_class_swap
 
@@ -277,11 +287,10 @@ def stoch_bnb(init_cond, num_steps, params, fpt_flag=False, establish_flag=False
         fbar = params.fbar(current_state)
         for k in xrange(params.numstates):
             times_each_transition[k] = eqn_11(current_state[k], birth_rates[k], fbar, trans_rates_per_class[k])
-        print "current_state", current_state
+        print "\n\ncurrent_state", current_state
         print "trans_rates", trans_rates
         print "trans_rates_per_class, fbar", trans_rates_per_class, fbar
         print "times_each_transition", times_each_transition
-
 
         # identify next transition class
         class_idx = np.argmin(times_each_transition)
@@ -298,6 +307,7 @@ def stoch_bnb(init_cond, num_steps, params, fpt_flag=False, establish_flag=False
         bin_p = 1 - p_E_at_t / p_M_at_t
         print "p_M_at_t, p_E_at_t, bin_p", p_M_at_t, p_E_at_t, bin_p
         m_binomial = np.random.binomial(bin_n, bin_p)
+        print "for mutating class %d have m %.2f" % (class_idx, m_binomial)
 
         negbin_n = m_binomial + 2
         negbin_p = p_B_of_t(time_to_next_transition, birth_rates[class_idx], fbar, trans_rates_per_class[class_idx], p_E_at_t)
@@ -345,6 +355,239 @@ def stoch_bnb(init_cond, num_steps, params, fpt_flag=False, establish_flag=False
     return state, times_stoch
 
 
+def stoch_tauleap_adaptive(init_cond, num_steps, params, fpt_flag=False, establish_flag=False):
+    assert 1 == 0  # broken
+    # TODO NOTE also speedup exact SSA FPT by not tracking whole array just last and next of time and state
+    # TODO can also approx tauleap in BNB algo use dt=1e-2 as used in fisher paper
+    assert not (fpt_flag and establish_flag)
+    inv_propensity_multiple = 10   # default: 10
+    num_ssa_steps = 100           # default: 100
+
+    # choose tau (eps, nc params from original 2006 paper)
+    tau_override = 1e-2  # used in 2009 fisher
+    flag_tau_override = True
+    if flag_tau_override:
+        flag_normalize_each_step = True
+        print "tau_override with tau %.2f" % tau_override
+    else:
+        flag_normalize_each_step = False
+
+    def normalize_state(current_state, params):
+        scale = params.N / sum(current_state)
+        state_normalized = [int(current_state[k] * scale + 0.5) if current_state[k] >= 0 else 0
+                            for k in xrange(params.numstates)]
+        """
+        #print "quickly normalizing popsize...", current_state, "to", state_normalized
+        if current_state[-1] > 0 and state_normalized[-1] == 0:
+            print "\nWARNING state[k+1, -1]=%d > 0 and state_normalized[-1] == 0 :\n" % current_state[-1]
+            print "quickly normalizing popsize...", current_state, "to", state_normalized
+            assert 1 == 0
+        """
+        return state_normalized
+
+    def calc_rxn_events(delta_t, propensities, update_vec_array_transpose):
+        poisson_params = propensities * delta_t
+        amount_each_rxn_in_step = np.random.poisson(poisson_params)
+        state_increment = np.dot(update_vec_array_transpose, amount_each_rxn_in_step)
+        return state_increment, amount_each_rxn_in_step
+
+    def choose_tau(current_state, params, propensities, num_crit=10, eps=0.1):
+        # identify critical and noncrit rxns
+        crit_rxns = []
+        for rxn_idx in xrange(len(propensities)):
+            alpha_j = propensities[rxn_idx]
+            decrement_idx = np.argmin(params.update_dict[rxn_idx])  # TODO SPEEDUP WARNING assumes only one cell can be decremented in one reaction (check params.update_dict)
+            L_j = current_state[decrement_idx]
+            exhaust_cond = L_j <= num_crit  # exhaustion condition
+            if (alpha_j > 0) and exhaust_cond:
+                crit_rxns.append(rxn_idx)
+        non_crit_rxns = [rxn_idx for rxn_idx in xrange(len(propensities)) if rxn_idx not in crit_rxns]
+
+        # candidate tau selection step
+        tau_candidates = np.zeros(params.numstates)
+        for k in xrange(params.numstates):
+            n_k = current_state[k]
+            g_k = 1  # TODO currently assumes all first order rxns is this true? death rate sorta quadratic but treat as updating linear?
+            mu_k = 0
+            sigma_k = 0
+            pair = [0, 0]
+            for rxn_idx in non_crit_rxns:
+                update_vector_j = params.update_dict[rxn_idx]
+                mu_k += update_vector_j[k] * propensities[rxn_idx]
+                sigma_k += (update_vector_j[k] ** 2) * propensities[rxn_idx]
+            tau_numerator = np.max([1, eps * n_k / g_k])
+            pair[0] = tau_numerator / np.abs(mu_k)
+            pair[1] = (tau_numerator / sigma_k) ** 2
+            tau_candidates[k] = np.min(pair)
+        print "tau_candidates:", tau_candidates
+        tau_candidate = np.min(tau_candidates)
+
+        return tau_candidate
+
+    time = 0.0
+    state = np.zeros((num_steps, params.numstates))
+    times_stoch = np.zeros(num_steps)
+    state[0, :] = np.array(init_cond, dtype=int)  # note stochastic sim operates on integer population counts
+
+    fpt_rxn_idx = len(params.update_dict.keys()) - 1  # always use last element as special FPT event
+    fpt_event = False
+    establish_event = False
+
+    num_rxn = len(params.update_dict.keys()) - 1
+    if fpt_flag:
+        num_rxn = num_rxn + 1
+    update_vec_array = np.array([params.update_dict[key] for key in xrange(num_rxn)])
+    update_vec_array_transpose = np.transpose(update_vec_array)
+
+    for step in xrange(num_steps - 1):
+        current_state = state[step,:]
+
+        # compute propensity functions (alpha) and the partitions for all 12 transitions
+        alpha = np.array(reaction_propensities(state, step, params, fpt_flag=fpt_flag))
+        alpha_sum = np.sum(alpha)
+        tau_cutoff = inv_propensity_multiple / alpha_sum
+
+        # choose tau
+        if flag_tau_override:
+            tau_main_candidate = tau_override
+        else:
+            tau_main_candidate = choose_tau(current_state, params, alpha)  # TODO choose or adaptive fn
+
+        # if tau too small, do some exact steps
+        # exit criterion
+
+        if (not flag_tau_override) and tau_main_candidate < tau_cutoff:  # do some exact steps and restart loop
+            print "WARNING: NOT tau_override, and tau candidate %.5f < tau_cutoff %.5f" % (tau_main_candidate, tau_cutoff)
+            substate, subtimes = stoch_gillespie(current_state, num_ssa_steps, params, fpt_flag=False, establish_flag=False)
+            # update tracking arrays
+            state[step + 1, :] = substate[-1, :]
+            time += subtimes[-1]
+            times_stoch[step + 1] = time
+        else:
+            # TODO implement tau = min tau1 tau2 from second part of algo
+            """
+            scale = 1/alpha_sum
+            tau_alt_candidate = np.random.exponential(scale)
+            if tau_main_candidate < tau_alt_candidate:
+                # tau = tau_main_candidate
+                # only update non crit rxn events num, crit are all 0
+            else:
+                tau = tau_alt_candidate
+                # longer paragraph....
+            """
+
+            # compute poissonian event counts for all j rxn with param lambda = aj(t) * tau
+            state_increment, amount_each_rxn_in_step = calc_rxn_events(tau_main_candidate, alpha, update_vec_array_transpose)
+            if fpt_flag:
+                if amount_each_rxn_in_step[fpt_rxn_idx] > 0:
+                    fpt_event = True
+            #print "amount_each_rxn_in_step"
+            #print amount_each_rxn_in_step
+
+            # update tracking arrays
+            state[step+1, :] = state[step,:] + state_increment
+            if flag_normalize_each_step:
+                state[step + 1, :] = normalize_state(state[step+1, :], params)
+            time += tau_main_candidate
+            times_stoch[step + 1] = time
+
+        if step % 10000 == 0:
+            print "step", step, "time", time, ":", state[step,:], "to", state[step+1, :]
+            if step >= 500000:
+                return None, None
+
+        # fpt and establish exit conditions
+        if fpt_event:
+            assert fpt_flag                                 # just in case, not much cost
+            return state[:step+2, :], times_stoch[:step+2]  # end sim because fpt achieved
+
+        if establish_flag and state[step+1, -1] >= params.N:
+            return state[:step+2, :], times_stoch[:step+2]  # end sim because fpt achieved
+
+    if fpt_flag or establish_flag:  # if code gets here should recursively continue the simulation
+        print "recursing in tauleap to wait for event flag exit condition"
+        init_cond = state[-1, :]
+        state_redo, times_stoch_redo = stoch_tauleap(init_cond, num_steps, params, fpt_flag=fpt_flag, establish_flag=establish_flag)
+        times_stoch_redo_shifted = times_stoch_redo + times_stoch[-1]  # shift start time of new sim by last time
+        return np.concatenate((state, state_redo)), np.concatenate((times_stoch, times_stoch_redo_shifted))
+
+    return state, times_stoch
+
+
+def stoch_tauleap(init_cond, num_steps, params, fpt_flag=False, establish_flag=False):
+    # TODO NOTE also speedup exact SSA FPT by not tracking whole array just last and next of time and state
+    # TODO can also approx tauleap in BNB algo use dt=1e-2 as used in fisher paper
+    assert not (fpt_flag and establish_flag)
+
+    # choose tau (eps, nc params from original 2006 paper)
+    tau_override = 1e-2  # used in 2009 fisher
+    flag_normalize_each_step = True
+
+    def calc_rxn_events(state, step, delta_t, propensities, update_vec_array_transpose):
+        """  OLD, looks nice but slower ~ 30%
+        poisson_params = propensities * delta_t
+        amount_each_rxn_in_step = np.random.poisson(poisson_params)
+        state_increment = np.dot(update_vec_array_transpose, amount_each_rxn_in_step)
+        """
+        fpt_event = False
+        state[step + 1, :] = state[step, :]
+        for rxn_idx in xrange(len(propensities)):
+            if propensities[rxn_idx] > 0.0:
+                poisson_param = propensities[rxn_idx] * delta_t
+                amount_rxn = np.random.poisson(poisson_param)
+                if rxn_idx == fpt_rxn_idx and amount_rxn > 0:
+                    fpt_event = True
+                state[step + 1, :] += update_vec_array_transpose[:, rxn_idx] * amount_rxn
+        return fpt_event
+
+    state = np.zeros((num_steps, params.numstates))
+    times_stoch = np.arange(num_steps) * tau_override
+    state[0, :] = np.array(init_cond, dtype=int)  # note stochastic sim operates on integer population counts
+
+    num_rxn = len(params.update_dict.keys()) - 1
+    if fpt_flag:
+        num_rxn = num_rxn + 1
+    update_vec_array = np.array([params.update_dict[key] for key in xrange(num_rxn)])
+    update_vec_array_transpose = np.transpose(update_vec_array)
+    fpt_rxn_idx = len(params.update_dict.keys()) - 1  # always use last element as special FPT event
+    fpt_event = False
+    establish_event = False
+    recurse_count = 0
+    for step in xrange(num_steps - 1):
+        # compute propensity functions (alpha) and the partitions for all 12 transitions
+        alpha = reaction_propensities(state, step, params, fpt_flag=fpt_flag)
+
+        # compute poissonian event counts for all j rxn with param lambda = aj(t) * tau
+        fpt_event = calc_rxn_events(state, step, tau_override, alpha, update_vec_array_transpose)
+        #print "OUT", state[step, :], state[step+1, :]
+
+        # update tracking arrays
+        if flag_normalize_each_step:
+            state[step + 1, :] = [int(state[step+1, k] + 0.5) if state[step+1, k] >= 0 else 0
+                                  for k in xrange(params.numstates)]
+
+        # temp exit and printing
+        #if step % 100000 == 0:
+        #    print "step", step, "time", times_stoch[step], ":", state[step,:], "to", state[step+1, :]
+
+        # fpt and establish exit conditions
+        if fpt_event:
+            assert fpt_flag                                 # just in case, not much cost
+            return state[:step+2, :], times_stoch[:step+2]  # end sim because fpt achieved
+        if establish_flag and state[step+1, -1] >= params.N:
+            return state[:step+2, :], times_stoch[:step+2]  # end sim because fpt achieved
+
+    if fpt_flag or establish_flag:  # if code gets here should recursively continue the simulation
+        print "recursing (%d) in tauleap to wait for event flag exit condition" % recurse_count
+        init_cond = state[-1, :]
+        state_redo, times_stoch_redo = stoch_tauleap(init_cond, num_steps, params, fpt_flag=fpt_flag, establish_flag=establish_flag)
+        times_stoch_redo_shifted = times_stoch_redo + times_stoch[-1]  # shift start time of new sim by last time
+        return np.concatenate((state, state_redo)), np.concatenate((times_stoch, times_stoch_redo_shifted))
+        recurse_count+=1
+        
+    return state, times_stoch
+
+
 def simulate_dynamics_general(init_cond, times, params, method="libcall"):
     if method == "libcall":
         return ode_libcall(init_cond, times, params)
@@ -356,6 +599,8 @@ def simulate_dynamics_general(init_cond, times, params, method="libcall"):
         return stoch_gillespie(init_cond, len(times), params)
     elif method == "bnb":
         return stoch_bnb(init_cond, len(times), params)
+    elif method == "tauleap":
+        return stoch_tauleap(init_cond, len(times), params)
     else:
         raise ValueError("method arg invalid, must be one of %s" % SIM_METHODS_VALID)
 

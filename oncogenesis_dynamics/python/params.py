@@ -1,4 +1,5 @@
 import csv
+import numpy as np
 from os import sep
 
 from constants import ODE_SYSTEMS, PARAMS_ID, PARAMS_ID_INV, HILLORIG_Z0_RATIO, HILLORIG_Y0_PLUS_Z0_RATIO, HILL_EXP, \
@@ -54,8 +55,10 @@ class Params(object):
         if system in ["default", "feedback_z", "feedback_yz"]:
             self.numstates = 3
             self.states = {0: "x", 1: "y", 2: "z"}           # can also do FPT to a 4th state z2
-            self.growthrates = [self.a, self.b, self.c]
-            self.flowrates = [self.v_x, self.v_y, self.v_z]
+            self.growthrates = np.array([self.a, self.b, self.c])
+            self.flowrates = np.array([self.v_x, self.v_y, self.v_z])
+            self.fbar_flowpart = np.sum(self.flowrates) / self.N
+            self.fbar_growthpart = np.transpose(self.growthrates) / self.N
             self.constant_growthandflowrates = True
             self.update_dict = {
                  0: [1, 0, 0], 1: [-1, 0, 0],                  # birth/death events for x
@@ -76,8 +79,10 @@ class Params(object):
             self.mult_inc_mubase = MUBASE_MULTIPLIER
             self.numstates = 2
             self.states = {0: "x", 1: "z"}                   # can also do FPT to a 3rd state z2
-            self.growthrates = [self.a, self.c]
-            self.flowrates = [self.v_x, self.v_z]
+            self.growthrates = np.array([self.a, self.c])
+            self.flowrates = np.array([self.v_x, self.v_z])
+            self.fbar_flowpart = np.sum(self.flowrates) / self.N
+            self.fbar_growthpart = np.transpose(self.growthrates) / self.N
             self.b = 0.0             # TODO make None and optimize truncated eqns
             self.v_y = 0.0           # TODO make None and optimize truncated eqns
             self.alpha_plus = 0.0    # TODO make None and optimize truncated eqns
@@ -99,8 +104,11 @@ class Params(object):
             assert self.c2 is not None
             self.numstates = 4
             self.states = {0: "x", 1: "y", 2: "z", 3: "z2"}  # can also do FPT to a 5th state z3
-            self.growthrates = [self.a, self.b, self.c, self.c2]
-            self.flowrates = [self.v_x, self.v_y, self.v_z, self.v_z2]
+            self.growthrates = np.array([self.a, self.b, self.c, self.c2])
+            self.flowrates = np.array([self.v_x, self.v_y, self.v_z, self.v_z2])
+            self.fbar_flowpart = np.sum(self.flowrates) / self.N
+            self.fbar_growthpart = np.transpose(self.growthrates) / self.N
+
             self.constant_growthandflowrates = True
             self.update_dict = {
                 0: [1, 0, 0, 0], 1: [-1, 0, 0, 0],     # birth/death events for x
@@ -128,9 +136,9 @@ class Params(object):
         return self.params_list
 
     def fbar(self, state):
-        assert len(state) == self.numstates
+        #assert len(state) == self.numstates
         assert self.constant_growthandflowrates
-        return sum([state[i]*self.growthrates[i] + self.flowrates[i] for i in xrange(self.numstates)]) / self.N
+        return np.dot(state, self.fbar_growthpart) + self.fbar_flowpart
 
     def feedback_shape(self, param_name, state_coordinate):
         N = self.N
@@ -252,14 +260,12 @@ class Params(object):
                         p.alpha_plus * x_n, p.alpha_minus * y_n, p.mu * y_n,  # transition events
                         p.v_x, p.v_y, p.v_z,      # immigration events  #TODO maybe wrong
                         p.mu_base * x_n]          # special transition events (x->z)
-            transition_prop = [p.alpha_plus * x_n, p.alpha_minus * y_n, p.mu * y_n]
         elif self.numstates == 2:
             x_n, z_n = state
             rxn_prop = [p.a * x_n, fbar * (x_n),    # birth/death events for x  TODO: is it fbar*(x_n - 1)
                         p.c * z_n, fbar * (z_n),    # birth/death events for z  TODO: is it fbar*(z_n - 1)
                         p.mu_base * x_n,            # transition events
                         p.v_x, p.v_z]               # immigration events  #TODO maybe wrong
-            transition_prop = [p.mu_base * x_n]
         else:
             assert self.numstates == 4
             x_n, y_n, z_n, z2_n = state
@@ -271,7 +277,6 @@ class Params(object):
                         p.mu * y_n, p.mu * z_n,                    # transition events yz, zz2
                         p.v_x, p.v_y, p.v_z, p.v_z2,                   # immigration events  #TODO maybe wrong
                         p.mu_base * x_n]                         # special transition events (x->z)
-            transition_prop = [p.alpha_plus * x_n, p.alpha_minus * y_n, p.mu * y_n, p.mu * z_n]
         return rxn_prop
 
     def get(self, param_label):
