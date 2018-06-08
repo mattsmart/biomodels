@@ -210,9 +210,10 @@ def plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_vary_name, par
     flag_ylog10 = True
     if flag_xlog10:
         ax.set_xscale("log", nonposx='clip')
+        ax.set_xlim([0.8*1e2, 1*1e7])
     if flag_ylog10:
         ax.set_yscale("log", nonposx='clip')
-        ax.set_ylim([0.5*1e2, 3*1e5])
+        ax.set_ylim([0.8*1e2, 3*1e5])
     # create table of params
     plot_table_params(ax, params)
     plt_save = "mean_fpt_varying" + figname_mod
