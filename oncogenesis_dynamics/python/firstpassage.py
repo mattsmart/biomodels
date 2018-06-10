@@ -14,6 +14,7 @@ from plotting import plot_table_params
 
 
 def get_fpt(ensemble, init_cond, params, num_steps=1000000, establish_switch=False, brief=True):
+    # TODO could pass simmethod tau or gillespie to params and parse here
     if establish_switch:
         fpt_flag = False
         establish_flag = True
@@ -22,7 +23,12 @@ def get_fpt(ensemble, init_cond, params, num_steps=1000000, establish_switch=Fal
         establish_flag = False
     fp_times = np.zeros(ensemble)
     for i in xrange(ensemble):
-        #species, times = stoch_gillespie(init_cond, num_steps, params, fpt_flag=fpt_flag, establish_flag=establish_flag)
+        # GILLESPIE BLOCK
+        species, times = stoch_gillespie(init_cond, num_steps, params, fpt_flag=fpt_flag, establish_flag=establish_flag)
+        times_end = times[-1]
+
+        # TAU LEAP BLOCK
+        """
         if brief:
             species_end, times_end = stoch_tauleap(init_cond, num_steps, params, fpt_flag=fpt_flag, establish_flag=establish_flag, brief=brief)
         else:
@@ -31,6 +37,7 @@ def get_fpt(ensemble, init_cond, params, num_steps=1000000, establish_switch=Fal
             # plotting
             #plt.plot(times, species)
             #plt.show()
+        """
         fp_times[i] = times_end
         if establish_switch:
             print "establish time is", fp_times[i]
@@ -227,22 +234,22 @@ def plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_vary_name, par
 
 if __name__ == "__main__":
     # SCRIPT FLAGS
-    run_compute_fpt = False
+    run_compute_fpt = True
     run_read_fpt = False
     run_generate_hist_multi = False
     run_load_hist_multi = False
     run_collect = False
     run_means_read_and_plot = False
-    run_means_collect_and_plot = True
+    run_means_collect_and_plot = False
 
     # SCRIPT PARAMETERS
     establish_switch = True
     brief=True
     num_steps = 1000000  # default 1000000
-    ensemble = 10  # default 100
+    ensemble = 1  # default 100
 
     # DYNAMICS PARAMETERS
-    params = presets('preset_xyz_constant_fast')  # preset_xyz_constant, preset_xyz_constant_fast, valley_2hit
+    params = presets('preset_xyz_constant')  # preset_xyz_constant, preset_xyz_constant_fast, valley_2hit
 
     # OTHER PARAMETERS
     init_cond = np.zeros(params.numstates, dtype=int)
@@ -339,3 +346,4 @@ if __name__ == "__main__":
             read_varying_mean_sd_fpt_and_params(datafile, paramfile)
         plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, samplesize,
                               SEM_flag=True, show_flag=True, figname_mod="_%s_n%d" % (param_to_vary, samplesize))
+
