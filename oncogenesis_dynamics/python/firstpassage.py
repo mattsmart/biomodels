@@ -49,7 +49,7 @@ def wrapper_get_fpt(fn_args_dict):
         return get_fpt(*fn_args_dict['args'])
 
 
-def fast_fp_times(ensemble, init_cond, params, num_processes, num_steps='default',establish_switch=False):
+def fast_fp_times(ensemble, init_cond, params, num_processes, num_steps='default', establish_switch=False):
     if num_steps == 'default':
         kwargs_dict = {'num_steps': 1000000, 'establish_switch': establish_switch}
     else:
@@ -206,14 +206,16 @@ def plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_vary_name, par
     ax.set_xlabel(param_vary_name)
     ax.set_ylabel('Mean FP time')
     # log options
+    """
     flag_xlog10 = True
     flag_ylog10 = True
     if flag_xlog10:
         ax.set_xscale("log", nonposx='clip')
-        ax.set_xlim([0.8*1e2, 1*1e7])
+        #ax.set_xlim([0.8*1e2, 1*1e7])
     if flag_ylog10:
         ax.set_yscale("log", nonposx='clip')
-        ax.set_ylim([0.8*1e2, 3*1e5])
+        #ax.set_ylim([0.8*1e2, 3*1e5])
+    """
     # create table of params
     plot_table_params(ax, params)
     plt_save = "mean_fpt_varying" + figname_mod
