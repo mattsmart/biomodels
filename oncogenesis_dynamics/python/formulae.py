@@ -74,6 +74,15 @@ def reaction_propensities(r, step, params, fpt_flag=False):
     return rxn_prop
 
 
+def reaction_propensities_lowmem(current_state, params, fpt_flag=False):
+    rxn_prop = params.rxn_prop(current_state)
+    if fpt_flag:
+        laststate_idx = params.numstates - 1
+        laststate = current_state[laststate_idx]
+        rxn_prop.append(params.mu*laststate)  # special transition events for z1->z2 (extra mutation)
+    return rxn_prop
+
+
 def bisecting_rxn_search_iter(propensities, L, R, T, m=0):
     while L<=R:
         m = int(np.floor((L + R) / 2))
@@ -516,7 +525,7 @@ def stoch_tauleap_adaptive(init_cond, num_steps, params, fpt_flag=False, establi
     return state, times_stoch
 
 
-def stoch_tauleap(init_cond, num_steps, params, fpt_flag=False, establish_flag=False, brief=True, recurse=0):
+def stoch_tauleap(init_cond, num_steps, params, fpt_flag=False, establish_flag=False, recurse=0):
     # TODO NOTE also speedup exact SSA FPT by not tracking whole array just last and next of time and state
     # TODO can also approx tauleap in BNB algo use dt=1e-2 as used in fisher paper
     # TODO make 2 diff tau leap fn bc BIG slowdown when doing this brief combo thing, gillespie actually faster
@@ -576,15 +585,9 @@ def stoch_tauleap(init_cond, num_steps, params, fpt_flag=False, establish_flag=F
         # fpt and establish exit conditions
         if fpt_event:
             assert fpt_flag                                 # just in case, not much cost
-            if brief:
-                return state[step + 1, :], times_stoch[step + 1]
-            else:
-                return state[:step+2, :], times_stoch[:step+2]  # end sim because fpt achieved
+            return state[:step+2, :], times_stoch[:step+2]  # end sim because fpt achieved
         if establish_flag and state[step+1, -1] >= params.N:
-            if brief:
-                return state[step + 1, :], times_stoch[step + 1]
-            else:
-                return state[:step+2, :], times_stoch[:step+2]
+            return state[:step+2, :], times_stoch[:step+2]
 
     if fpt_flag or establish_flag:  # if code gets here should recursively continue the simulation
         print "recursing (%.2f) in tauleap to wait for event flag exit condition" % recurse
@@ -592,123 +595,77 @@ def stoch_tauleap(init_cond, num_steps, params, fpt_flag=False, establish_flag=F
         init_cond = state[-1, :]
         state_redo, times_stoch_redo = stoch_tauleap(init_cond, num_steps, params, fpt_flag=fpt_flag,
                                                      establish_flag=establish_flag, recurse=recurse, brief=brief)
-        if brief:
-            return state_redo, times_stoch_redo + times_stoch[-1]
-        else:
-            times_stoch_redo_shifted = times_stoch_redo + times_stoch[-1]  # shift start time of new sim by last time
-            return np.concatenate((state, state_redo)), np.concatenate((times_stoch, times_stoch_redo_shifted))
+        times_stoch_redo_shifted = times_stoch_redo + times_stoch[-1]  # shift start time of new sim by last time
+        return np.concatenate((state, state_redo)), np.concatenate((times_stoch, times_stoch_redo_shifted))
 
-    if brief:
-        return state[-1, :], times_stoch[-1]
-    else:
-        return state, times_stoch
+    return state, times_stoch
 
 
-
-def stoch_tauleap_lowmem(init_cond, num_steps, params, fpt_flag=False, establish_flag=False, brief=True, recurse=0):
-    # TODO NOTE also speedup exact SSA FPT by not tracking whole array just last and next of time and state
-    # TODO can also approx tauleap in BNB algo use dt=1e-2 as used in fisher paper
+def stoch_tauleap_lowmem(init_cond, num_steps, params, fpt_flag=False, establish_flag=False, init_time=0):
     # TODO make 2 diff tau leap fn bc BIG slowdown when doing this brief combo thing, gillespie actually faster
-    assert not (fpt_flag and establish_flag)
 
-    # choose tau (eps, nc params from original 2006 paper)
+    assert not (fpt_flag and establish_flag)
+    assert len(init_cond) == params.numstates
+
+    # choose tau and normalization settings
     tau_override = 1e-2  # used in 2009 fisher
     flag_normalize_each_step = True
 
-    def calc_rxn_events(state, step, delta_t, propensities, update_vec_array_transpose):
-        """  OLD, looks nice but slower ~ 30%
-        poisson_params = propensities * delta_t
-        amount_each_rxn_in_step = np.random.poisson(poisson_params)
-        state_increment = np.dot(update_vec_array_transpose, amount_each_rxn_in_step)
-        """
+    def calc_rxn_events(current_state, delta_t, propensities, update_vec_array_transpose):
+        # TODO annoying optimization is to rewrite rxn prop inside this fn to reduce looping
         fpt_event = False
-        state[step + 1, :] = state[step, :]
-        for rxn_idx in xrange(len(propensities)):
+        for rxn_idx in xrange(len(propensities)):  # TODO check optimization of preprocess prop into (nonzero prop, rxn idx) pairs
             if propensities[rxn_idx] > 0.0:
-                poisson_param = propensities[rxn_idx] * delta_t
+                poisson_param = propensities[rxn_idx] * delta_t  # only non-zero alpha_j rxn can have events
                 amount_rxn = np.random.poisson(poisson_param)
                 if rxn_idx == fpt_rxn_idx and amount_rxn > 0:
                     fpt_event = True
-                state[step + 1, :] += update_vec_array_transpose[:, rxn_idx] * amount_rxn
+                current_state += update_vec_array_transpose[:, rxn_idx] * amount_rxn  # TODO how to optimize?
         return fpt_event
 
-    # TODO FIX NOT DONE
-    if brief:
-        state = np.zeros((2, params.numstates))  # i.e. current and next state vectors
-        times_stoch = np.zeros(2)  # may not need
-        state[0, :] = np.array(init_cond, dtype=int)  # note stochastic sim operates on integer population counts
-        state[1, :] = np.array(init_cond, dtype=int)  # note stochastic sim operates on integer population counts
-    else:
-        state = np.zeros((num_steps, params.numstates))
-        times_stoch = np.arange(num_steps) * tau_override
-        state[0, :] = np.array(init_cond, dtype=int)  # note stochastic sim operates on integer population counts
+    current_time = init_time
+    current_state = np.array([v for v in init_cond])
 
     num_rxn = len(params.update_dict.keys()) - 1
     if fpt_flag:
         num_rxn = num_rxn + 1
     update_vec_array = np.array([params.update_dict[key] for key in xrange(num_rxn)])
     update_vec_array_transpose = np.transpose(update_vec_array)
+
     fpt_rxn_idx = len(params.update_dict.keys()) - 1  # always use last element as special FPT event
     fpt_event = False
-    establish_event = False
 
     for step in xrange(num_steps - 1):
-        if brief:
-            state[0, :] = state[1, :]
-            #state[1, :] = np.zeros(params.numstates)
-            times_stoch[0] = times_stoch[1]
-            times_stoch[1] = times_stoch[0] + tau_override
-            state_step_idx = 0
-        else:
-            state_step_idx = step
-
+        current_time += tau_override
         # compute propensity functions (alpha) and the partitions for all 12 transitions
-        alpha = reaction_propensities(state, state_step_idx, params, fpt_flag=fpt_flag)
+        alpha = reaction_propensities_lowmem(current_state, params, fpt_flag=fpt_flag)
 
         # compute poissonian event counts for all j rxn with param lambda = aj(t) * tau
-        fpt_event = calc_rxn_events(state, state_step_idx, tau_override, alpha, update_vec_array_transpose)
-        #print "OUT", state[step, :], state[step+1, :]
+        fpt_event = calc_rxn_events(current_state, tau_override, alpha, update_vec_array_transpose)
 
         # update tracking arrays
         if flag_normalize_each_step:
-            state[state_step_idx + 1, :] = [int(state[state_step_idx+1, k] + 0.5) if state[state_step_idx+1, k] >= 0 else 0
-                                            for k in xrange(params.numstates)]
-
+            current_state[:] = [int(current_state[k] + 0.5) if current_state[k] >= 0 else 0
+                                for k in xrange(params.numstates)]
         # temp exit and printing
         if step % 10000 == 0:
-            print "step", step, "time", times_stoch[state_step_idx], ":", state[state_step_idx,:], "to", state[state_step_idx+1, :]
+            print "step", step, "time", current_time, ":", current_state
             if step >= 100000:
                 return None, None
-
         # fpt and establish exit conditions
         if fpt_event:
             assert fpt_flag                                 # just in case, not much cost
-            if brief:
-                return state[state_step_idx + 1, :], times_stoch[state_step_idx + 1]
-            else:
-                return state[:state_step_idx+2, :], times_stoch[:state_step_idx+2]  # end sim because fpt achieved
-        if establish_flag and state[state_step_idx+1, -1] >= params.N:
-            if brief:
-                return state[state_step_idx + 1, :], times_stoch[state_step_idx + 1]
-            else:
-                return state[:state_step_idx+2, :], times_stoch[:state_step_idx+2]
+            return current_state, current_time
+        if establish_flag and current_state[-1] >= params.N:
+            return current_state, current_time
 
     if fpt_flag or establish_flag:  # if code gets here should recursively continue the simulation
-        print "recursing (%.2f) in tauleap to wait for event flag exit condition" % recurse
-        recurse += times_stoch[-1]
-        init_cond = state[-1, :]
-        state_redo, times_stoch_redo = stoch_tauleap(init_cond, num_steps, params, fpt_flag=fpt_flag,
-                                                     establish_flag=establish_flag, recurse=recurse, brief=brief)
-        if brief:
-            return state_redo, times_stoch_redo + times_stoch[-1]
-        else:
-            times_stoch_redo_shifted = times_stoch_redo + times_stoch[-1]  # shift start time of new sim by last time
-            return np.concatenate((state, state_redo)), np.concatenate((times_stoch, times_stoch_redo_shifted))
+        print "recursing (%.2f) in tauleap lowmem to wait for event flag exit condition" % current_time
+        state_end, time_end = stoch_tauleap_lowmem(current_state, num_steps, params, fpt_flag=fpt_flag,
+                                                   establish_flag=establish_flag, init_time=current_time)
+        return state_end, time_end
 
-    if brief:
-        return state[-1, :], times_stoch[-1]
-    else:
-        return state, times_stoch
+    return current_state, current_time
 
 
 def simulate_dynamics_general(init_cond, times, params, method="libcall"):
@@ -724,7 +681,7 @@ def simulate_dynamics_general(init_cond, times, params, method="libcall"):
         return stoch_bnb(init_cond, len(times), params)
     elif method == "tauleap":
         return stoch_tauleap(init_cond, len(times), params)
-    # also want tau leap brief here
+    # TODO also want tau leap brief here i.e. low mem fn and all state high mem fn
     else:
         raise ValueError("method arg invalid, must be one of %s" % SIM_METHODS_VALID)
 

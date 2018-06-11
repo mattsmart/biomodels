@@ -7,7 +7,7 @@ from multiprocessing import Pool, cpu_count
 from constants import OUTPUT_DIR, PARAMS_ID, PARAMS_ID_INV, COLOURS_DARK_BLUE
 from data_io import read_varying_mean_sd_fpt_and_params, collect_fpt_mean_stats_and_params, read_fpt_and_params,\
                     write_fpt_and_params
-from formulae import stoch_gillespie, stoch_bnb, stoch_tauleap, get_physical_and_stable_fp, map_init_name_to_init_cond
+from formulae import stoch_gillespie, stoch_tauleap_lowmem, stoch_tauleap, get_physical_and_stable_fp, map_init_name_to_init_cond
 from params import Params
 from presets import presets
 from plotting import plot_table_params
@@ -23,21 +23,17 @@ def get_fpt(ensemble, init_cond, params, num_steps=1000000, establish_switch=Fal
         establish_flag = False
     fp_times = np.zeros(ensemble)
     for i in xrange(ensemble):
-        # GILLESPIE BLOCK
-        species, times = stoch_gillespie(init_cond, num_steps, params, fpt_flag=fpt_flag, establish_flag=establish_flag)
-        times_end = times[-1]
-
-        # TAU LEAP BLOCK
-        """
+        establish_flag=False #TODO remove testing
         if brief:
-            species_end, times_end = stoch_tauleap(init_cond, num_steps, params, fpt_flag=fpt_flag, establish_flag=establish_flag, brief=brief)
+            species_end, times_end = stoch_tauleap_lowmem(init_cond, num_steps, params, fpt_flag=fpt_flag,
+                                                          establish_flag=establish_flag)
         else:
-            species, times = stoch_tauleap(init_cond, num_steps, params, fpt_flag=fpt_flag, establish_flag=establish_flag, brief=brief)
+            species, times = stoch_gillespie(init_cond, num_steps, params, fpt_flag=fpt_flag,
+                                             establish_flag=establish_flag)
             times_end = times[-1]
             # plotting
             #plt.plot(times, species)
             #plt.show()
-        """
         fp_times[i] = times_end
         if establish_switch:
             print "establish time is", fp_times[i]
@@ -244,7 +240,7 @@ if __name__ == "__main__":
 
     # SCRIPT PARAMETERS
     establish_switch = True
-    brief=True
+    brief = True
     num_steps = 1000000  # default 1000000
     ensemble = 1  # default 100
 
