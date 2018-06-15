@@ -23,7 +23,6 @@ def get_fpt(ensemble, init_cond, params, num_steps=1000000, establish_switch=Fal
         establish_flag = False
     fp_times = np.zeros(ensemble)
     for i in xrange(ensemble):
-        establish_flag=False #TODO remove testing
         if brief:
             species_end, times_end = stoch_tauleap_lowmem(init_cond, num_steps, params, fpt_flag=fpt_flag,
                                                           establish_flag=establish_flag)

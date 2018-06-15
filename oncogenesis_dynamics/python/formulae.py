@@ -159,10 +159,12 @@ def stoch_gillespie(init_cond, num_steps, params, fpt_flag=False, establish_flag
         time += tau
         times_stoch[step + 1] = time
 
+        """
         if step % 10000 == 0:
             print "step", step, "time", time, ":", r[step,:], "to", r[step+1, :]
             if step >= 100000:
                 return None, None
+        """
 
         if establish_flag and (r[step + 1][-1] >= params.N):
             establish_event = True
@@ -648,10 +650,12 @@ def stoch_tauleap_lowmem(init_cond, num_steps, params, fpt_flag=False, establish
             current_state[:] = [int(current_state[k] + 0.5) if current_state[k] >= 0 else 0
                                 for k in xrange(params.numstates)]
         # temp exit and printing
+        """
         if step % 10000 == 0:
             print "step", step, "time", current_time, ":", current_state
             if step >= 100000:
                 return None, None
+        """
         # fpt and establish exit conditions
         if fpt_event:
             assert fpt_flag                                 # just in case, not much cost
