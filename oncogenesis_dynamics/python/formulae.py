@@ -140,7 +140,7 @@ def stoch_gillespie(init_cond, num_steps, params, fpt_flag=False, establish_flag
         #alpha_partitions = alpha_partitions / alpha_sum  #rescale r2 instead to save cycles
 
         # find time to first reaction
-        tau = np.log(1 / r1) / alpha_sum
+        tau = np.log(1 / r1) / alpha_sum  # remove divison to neg? faster?
 
         # BISECTING SEARCH METHOD (slower for small number of reactions)
         #r2_scaled = alpha_sum * r2
