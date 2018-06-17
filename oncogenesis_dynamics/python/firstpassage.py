@@ -45,6 +45,7 @@ def get_mean_fpt(init_cond, params, samplesize=32, establish_switch=False):
 
 
 def wrapper_get_fpt(fn_args_dict):
+    np.random.seed()  # TODO double check that this fixes cluster RNG issues
     if fn_args_dict['kwargs'] is not None:
         return get_fpt(*fn_args_dict['args'], **fn_args_dict['kwargs'])
     else:
@@ -207,8 +208,10 @@ def plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_vary_name, par
     ax = plt.gca()
     ax.set_xlabel(param_vary_name)
     ax.set_ylabel('Mean FP time')
+
     # log options
-    """
+    for i in xrange(len(mean_fpt_varying)):
+        print i, param_set[i], mean_fpt_varying[i], sd_fpt_varying[i]
     flag_xlog10 = True
     flag_ylog10 = True
     if flag_xlog10:
@@ -217,7 +220,7 @@ def plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_vary_name, par
     if flag_ylog10:
         ax.set_yscale("log", nonposx='clip')
         #ax.set_ylim([0.8*1e2, 3*1e5])
-    """
+
     # create table of params
     plot_table_params(ax, params)
     plt_save = "mean_fpt_varying" + figname_mod
@@ -229,13 +232,13 @@ def plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_vary_name, par
 
 if __name__ == "__main__":
     # SCRIPT FLAGS
-    run_compute_fpt = True
+    run_compute_fpt = False
     run_read_fpt = False
     run_generate_hist_multi = False
     run_load_hist_multi = False
     run_collect = False
     run_means_read_and_plot = False
-    run_means_collect_and_plot = False
+    run_means_collect_and_plot = True
 
     # SCRIPT PARAMETERS
     establish_switch = True
@@ -334,9 +337,9 @@ if __name__ == "__main__":
         """
 
     if run_means_collect_and_plot:
-        dbdir = OUTPUT_DIR + sep + "tocollect" + sep + "runset_june8_valley2hit_ens80"
+        dbdir = OUTPUT_DIR + sep + "tocollect" + sep + "runset_june14_valley2hit_ens240"
         datafile, paramfile = collect_fpt_mean_stats_and_params(dbdir)
-        samplesize=48
+        samplesize=240
         mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params = \
             read_varying_mean_sd_fpt_and_params(datafile, paramfile)
         plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params, samplesize,

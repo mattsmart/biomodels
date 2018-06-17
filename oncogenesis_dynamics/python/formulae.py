@@ -518,7 +518,7 @@ def stoch_tauleap_adaptive(init_cond, num_steps, params, fpt_flag=False, establi
             return state[:step+2, :], times_stoch[:step+2]  # end sim because fpt achieved
 
     if fpt_flag or establish_flag:  # if code gets here should recursively continue the simulation
-        print "recursing in tauleap to wait for event flag exit condition"
+        #print "recursing in tauleap to wait for event flag exit condition"
         init_cond = state[-1, :]
         state_redo, times_stoch_redo = stoch_tauleap(init_cond, num_steps, params, fpt_flag=fpt_flag, establish_flag=establish_flag)
         times_stoch_redo_shifted = times_stoch_redo + times_stoch[-1]  # shift start time of new sim by last time
@@ -592,7 +592,7 @@ def stoch_tauleap(init_cond, num_steps, params, fpt_flag=False, establish_flag=F
             return state[:step+2, :], times_stoch[:step+2]
 
     if fpt_flag or establish_flag:  # if code gets here should recursively continue the simulation
-        print "recursing (%.2f) in tauleap to wait for event flag exit condition" % recurse
+        #print "recursing (%.2f) in tauleap to wait for event flag exit condition" % recurse
         recurse += times_stoch[-1]
         init_cond = state[-1, :]
         state_redo, times_stoch_redo = stoch_tauleap(init_cond, num_steps, params, fpt_flag=fpt_flag,
@@ -664,7 +664,7 @@ def stoch_tauleap_lowmem(init_cond, num_steps, params, fpt_flag=False, establish
             return current_state, current_time
 
     if fpt_flag or establish_flag:  # if code gets here should recursively continue the simulation
-        print "recursing (%.2f) in tauleap lowmem to wait for event flag exit condition" % current_time
+        #print "recursing (%.2f) in tauleap lowmem to wait for event flag exit condition" % current_time
         state_end, time_end = stoch_tauleap_lowmem(current_state, num_steps, params, fpt_flag=fpt_flag,
                                                    establish_flag=establish_flag, init_time=current_time)
         return state_end, time_end
