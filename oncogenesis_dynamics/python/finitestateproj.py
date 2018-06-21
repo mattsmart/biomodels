@@ -14,41 +14,39 @@ def fsp_statespace(params, fpt_flag=False):
     # TODO may be waste to store the state_to_int dict in memory
     assert params.N <= 100.0  # only works for small pop size bc memory issues
     assert params.numstates <= 3
-    pop_buffer = params.N * 0.1 + 10  # TOO tune this
-    statespace = int((params.N + pop_buffer) * params.numstates)
+    pop_buffer = int(params.N * 0.1 + 1)  # TODO tune this, need buffer at least +1 for pop indexing
+    statespace_length = int(params.N + pop_buffer)
+    statespace_volume = statespace_length ** params.numstates
     if fpt_flag:  # Note: could alternatively add extra state index to the tuple (more expensive though)
-        statespace += 1
-    return statespace
+        statespace_volume += 1
+    return statespace_volume, statespace_length
 
 
 def fsp_statespace_map(params, fpt_flag=False):
-    # TODO cleanup
-    statespace = fsp_statespace(params, fpt_flag=fpt_flag)
-    statespace_length = statespace / params.numstates
+    statespace_volume, statespace_length = fsp_statespace(params, fpt_flag=fpt_flag)
     state_to_int = {}
     count = 0
 
     def recloop(state_to_int, state_list, level, counter):
+        # loop to encode state as L-ary representation of integer (i.e. L is side length of hypercube)
         if level == 0:
-            state_to_int[tuple(state_list)] = counter
+            state_to_int[tuple(state_list)] = counter  # could do vol - counter?
             return
         else:
             for idx in xrange(statespace_length):
                 state_list_new = state_list + [idx]  # may be faster to preallocate and assign idx to level slot
-                recloop(state_to_int, state_list_new, level - 1, counter + idx*level)  # TODO fix broken (change buffer)
+                recloop(state_to_int, state_list_new, level - 1, counter + idx*statespace_length**(level-1))  # TODO fix broken (change buffer)
 
-    recloop(state_to_int, [], params.numstates, count)  # TODO tricky function, cleanup
-    """
-    for class_idx in xrange(params.numstates):  # hold one axis fixed, fill rest
-        for idx in xrange(statespace):
-            state = ()
-            state = [i, j, k, l]
-            state_to_idx[state] = count
-            count += 1
-    """
+    recloop(state_to_int, [], params.numstates, count)  # TODO tricky function, maybe unit test ith binary case
 
     if fpt_flag:  # Note: could alternatively add extra state index to the tuple (more expensive though)
-        state_to_int["firstpassage"] = statespace + 1
+        state_to_int["firstpassage"] = statespace_volume - 1  # i.e. last socket is for fpt absorb state
+
+    for i in xrange(statespace_length):
+        for j in xrange(statespace_length):
+            for k in xrange(statespace_length):
+                print i,j,k, "to", state_to_int[(i,j,k)]
+    print "firstpassage idx", state_to_int["firstpassage"]
 
     return state_to_int
 
@@ -63,6 +61,13 @@ def fsp_matrix(params, fpt_flag=False):
 
     # build FSP (truncated CME) matrix
     fsp = None  # TODO todo the hard part, use csc format?
+    # given state i j k, what are transitions?
+    # in general all can increment by one so we must populate accordingly
+    # care for edge cases
+    # care for not re assigning same elements as iterating cross matrix
+    for state in states:
+        fsp = fsp + sparse(......) # fsp add states from stoich dict sparsely
+    # TODO use stoich matrix from params somehow, only add nonzero elements to A, dont re-add elements?
 
     print "done building FSP step generator"
     return fsp
@@ -118,12 +123,10 @@ if __name__ == "__main__":
     # DYNAMICS PARAMETERS
     params = presets('preset_xyz_constant')  # preset_xyz_constant, preset_xyz_constant_fast, valley_2hit
     params.N = 3
-    print params.N
     # INITIAL PROBABILITY VECTOR
-    statespace = fsp_statespace(params, fpt_flag=True)
+    statespace_vol, statespace_length = fsp_statespace(params, fpt_flag=True)
     state_to_int = fsp_statespace_map(params, fpt_flag=True)
-    print state_to_int
-    init_prob = np.zeros(statespace)
+    init_prob = np.zeros(statespace_vol)
     init_state = tuple(map_init_name_to_init_cond(params, "x_all"))
     init_prob[state_to_int[init_state]] = 1.0
     assert np.sum(init_prob) == 1.0
