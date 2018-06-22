@@ -163,7 +163,7 @@ def plot_distr(distr, domain):
 if __name__ == "__main__":
     # DYNAMICS PARAMETERS
     params = presets('preset_xyz_constant')  # preset_xyz_constant, preset_xyz_constant_fast, valley_2hit
-    params.N = 10
+    params.N = 15  # TODO had memory error with N = 50 once it got to expm call, had delayed memory error for N = 20
     # INITIAL PROBABILITY VECTOR
     statespace_vol, statespace_length = fsp_statespace(params, fpt_flag=True)
     state_to_int, int_to_state = fsp_statespace_map(params, fpt_flag=True)
