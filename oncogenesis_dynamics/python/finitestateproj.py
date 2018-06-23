@@ -1,7 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.sparse as sp_sparse
+from os import sep
 
+from constants import OUTPUT_DIR
+from data_io import write_matrix_data_and_idx_vals, read_matrix_data_and_idx_vals
+from expv import expv
 from formulae import map_init_name_to_init_cond, reaction_propensities_lowmem
 from presets import presets
 
@@ -106,11 +110,11 @@ def fsp_matrix(params, fpt_flag=False):
     diag = sp_sparse.diags(column_sum, offsets=0, shape=(statespace_volume, statespace_volume))
     fsp = fsp + diag
 
-    print "done setup"
+    print "done setup: %d nonzero elems (and %d diag)" % (count, statespace_volume)
     return fsp
 
 
-def fsp_dtmc_step(fsp, step_dt):
+def fsp_dtmc_step_explicit(fsp, step_dt):
     # take matrix exp
     print "Start: matrix exp"
     dtmc_step = sp_sparse.linalg.expm(fsp*step_dt)
@@ -118,29 +122,39 @@ def fsp_dtmc_step(fsp, step_dt):
     return dtmc_step
 
 
-def prob_at_t_oneshot(fsp, init_prob, t):
-    dtmc_step = fsp_dtmc_step(fsp, t)
-    prob_at_t = dtmc_step.dot(init_prob)
+def prob_at_t_oneshot(fsp, init_prob, t, explicit=False):
+    if explicit:
+        dtmc_step = fsp_dtmc_step_explicit(fsp, t)
+        prob_at_t = dtmc_step.dot(init_prob)
+    else:
+        prob_at_t = expv(t, fsp, init_prob)[0]
     return prob_at_t
 
 
-def prob_at_t_timeseries(params, init_prob, t0=0.0, t1=1000.0, dt=1.0, fpt_flag=False):
+def prob_at_t_timeseries(params, init_prob, t0=0.0, t1=1000.0, dt=1.0, fpt_flag=False, explicit=False, save=True):
     trange = np.arange(t0,t1,dt)
     fsp = fsp_matrix(params, fpt_flag=fpt_flag)
-    dtmc_step = fsp_dtmc_step(fsp, dt)
-    print "here", type(init_prob), type(trange), init_prob.shape, trange.shape
-    print len(init_prob), len(trange)
     p_of_t = np.zeros( (len(init_prob), len(trange)) )
     p_of_t[:,0] = init_prob
-    for idx, t in enumerate(trange[:-1]):
-        p_of_t[:,idx+1] = dtmc_step.dot(p_of_t[:, idx])  # TODO is this right and faster then re-exponent
+    if explicit:
+        print "here", type(init_prob), type(trange), init_prob.shape, trange.shape
+        print len(init_prob), len(trange)
+        dtmc_step = fsp_dtmc_step_explicit(fsp, dt)
+        for idx, t in enumerate(trange[:-1]):
+            p_of_t[:,idx+1] = dtmc_step.dot(p_of_t[:, idx])  # TODO is this right and faster then re-exponent
+    else:
+        for idx, t in enumerate(trange[:-1]):
+            print "Start: expv", t
+            p_of_t[:, idx + 1] = expv(dt, fsp, p_of_t[:, idx])[0]
+    if save:
+        write_matrix_data_and_idx_vals(p_of_t, [], trange, 'p_of_t', 'idx', 'times', binary=True)
     return p_of_t, trange
 
 
-def fsp_fpt_cdf(params, init_prob, fpt_idx=-1):
-    p_of_t, trange = prob_at_t_timeseries(params, init_prob, fpt_flag=True)
-    fpt_cdf = p_of_t[fpt_idx,:]  # TODO what is genric location of the FPT index? last? second last? use state_id["firstpassage"]
-    return fpt_cdf, trange       # TODO check that it should be cdf, been using pdf though
+def fsp_fpt_cdf(p_of_t, fpt_idx=-1):
+    #p_of_t, trange = prob_at_t_timeseries(params, init_prob, t1=t1, dt=dt, fpt_flag=True)
+    fpt_cdf = p_of_t[fpt_idx,:]  # TODO what is generic location of the FPT index? last? second last? use state_id["firstpassage"]
+    return fpt_cdf
 
 
 def conv_cdf_to_pdf(cdf, domain):
@@ -152,8 +166,9 @@ def conv_cdf_to_pdf(cdf, domain):
     return pdf
 
 
-def plot_distr(distr, domain):
+def plot_distr(distr, domain, title):
     plt.plot(domain, distr)
+    plt.title(title)
     plt.xlabel('t')
     plt.ylabel('prob')
     plt.show()
@@ -161,9 +176,18 @@ def plot_distr(distr, domain):
 
 
 if __name__ == "__main__":
+    # SCRIPT PARAMETERS
+    switch_generate = True
+    default_path_p_of_t = OUTPUT_DIR + sep + 'p_of_t.npy'
+    default_path_p_of_t_idx = OUTPUT_DIR + sep + 'p_of_t_idx.npy'
+    default_path_p_of_t_times = OUTPUT_DIR + sep + 'p_of_t_times.npy'
+
     # DYNAMICS PARAMETERS
     params = presets('preset_xyz_constant')  # preset_xyz_constant, preset_xyz_constant_fast, valley_2hit
-    params.N = 15  # TODO had memory error with N = 50 once it got to expm call, had delayed memory error for N = 20
+    params = params.mod_copy({'N': 20})  # TODO had memory error with N = 50 once it got to expm call, had delayed memory error for N = 20
+    t1 = 0.4 * 1e5
+    dt = 10 * 1e2
+
     # INITIAL PROBABILITY VECTOR
     statespace_vol, statespace_length = fsp_statespace(params, fpt_flag=True)
     state_to_int, int_to_state = fsp_statespace_map(params, fpt_flag=True)
@@ -172,10 +196,20 @@ if __name__ == "__main__":
     init_prob[state_to_int[init_state]] = 1.0
     assert np.sum(init_prob) == 1.0
 
+    # get p_of_t data
+    if switch_generate:
+        p_of_t, trange = prob_at_t_timeseries(params, init_prob, t1=t1, dt=dt, fpt_flag=True)
+    else:
+        path_p_of_t = default_path_p_of_t
+        path_p_of_t_idx = default_path_p_of_t_idx
+        path_p_of_t_times = default_path_p_of_t_times
+        p_of_t, _, trange = read_matrix_data_and_idx_vals(path_p_of_t, path_p_of_t_idx, path_p_of_t_times, binary=True)
+
     # get fpt distribution
-    fpt_cdf, trange = fsp_fpt_cdf(params, init_prob, fpt_idx=-1)
+    fpt_cdf = fsp_fpt_cdf(p_of_t, fpt_idx=-1)
     fpt_pdf = conv_cdf_to_pdf(fpt_cdf, trange)
 
     # plot
-    plot_distr(fpt_cdf, trange)
-    plot_distr(fpt_pdf, trange)
+    plot_distr(fpt_cdf, trange, 'FPT cdf')
+    plot_distr(fpt_pdf, trange, 'FPT pdf')
+
