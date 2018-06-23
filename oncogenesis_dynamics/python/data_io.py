@@ -200,18 +200,28 @@ def collect_fpt_mean_stats_and_params(filedir, dirbase="means"):
     return coll_df, coll_pf
 
 
-def write_matrix_data_and_idx_vals(arr, row_vals, col_vals, dataname, rowname, colname, output_dir=OUTPUT_DIR):
-    datapath = output_dir + sep + dataname + ".txt"
-    rowpath = output_dir + sep + dataname + '_' + rowname + ".txt"
-    colpath = output_dir + sep + dataname + '_' + colname + ".txt"
-    np.savetxt(datapath, np.array(arr), delimiter=",")
-    np.savetxt(rowpath, np.array(row_vals), delimiter=",")
-    np.savetxt(colpath, np.array(col_vals), delimiter=",")
+def write_matrix_data_and_idx_vals(arr, row_vals, col_vals, dataname, rowname, colname, output_dir=OUTPUT_DIR, binary=False):
+    datapath = output_dir + sep + dataname
+    rowpath = output_dir + sep + dataname + '_' + rowname
+    colpath = output_dir + sep + dataname + '_' + colname
+    if binary:
+        np.save(datapath, np.array(arr))
+        np.save(rowpath, np.array(row_vals))
+        np.save(colpath, np.array(col_vals))
+    else:
+        np.savetxt(datapath + '.txt', np.array(arr), delimiter=",")
+        np.savetxt(rowpath + '.txt', np.array(row_vals), delimiter=",")
+        np.savetxt(colpath + '.txt', np.array(col_vals), delimiter=",")
     return datapath, rowpath, colpath
 
 
-def read_matrix_data_and_idx_vals(datapath, rowpath, colpath):
-    arr = np.loadtxt(datapath, delimiter=",", dtype=float)
-    row = np.loadtxt(rowpath, delimiter=",", dtype=float)
-    col = np.loadtxt(colpath, delimiter=",", dtype=float)
+def read_matrix_data_and_idx_vals(datapath, rowpath, colpath, binary=False):
+    if binary:
+        arr = np.load(datapath)
+        row = np.load(rowpath)
+        col = np.load(colpath)
+    else:
+        arr = np.loadtxt(datapath, delimiter=",", dtype=float)
+        row = np.loadtxt(rowpath, delimiter=",", dtype=float)
+        col = np.loadtxt(colpath, delimiter=",", dtype=float)
     return arr, row, col
