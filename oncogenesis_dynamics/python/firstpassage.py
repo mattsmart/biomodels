@@ -94,7 +94,8 @@ def fast_mean_fpt_varying(param_vary_name, param_vary_values, params, num_proces
 
 def fpt_histogram(fpt_list, params, figname_mod="", flag_show=False, flag_norm=True, flag_xlog10=False, flag_ylog10=False, fs=12):
     ensemble_size = len(fpt_list)
-    bins = np.linspace(np.min(fpt_list), np.max(fpt_list), 50)
+    bins = np.linspace(np.min(fpt_list), np.max(fpt_list), 50) #50)
+    #bins = np.arange(0, 3*1e4, 50)  # to plot against FSP
 
     # normalize
     if flag_norm:
@@ -138,6 +139,7 @@ def fpt_histogram(fpt_list, params, figname_mod="", flag_show=False, flag_norm=T
     plt.savefig(OUTPUT_DIR + sep + plt_save + '.pdf', bbox_inches='tight')
     if flag_show:
         plt.show()
+    return ax
 
 
 def fpt_histogram_multi(multi_fpt_list, labels, figname_mod="", fs=12, bin_linspace=80, colours=COLOURS_DARK_BLUE,
@@ -337,7 +339,7 @@ if __name__ == "__main__":
         """
 
     if run_means_collect_and_plot:
-        dbdir = OUTPUT_DIR + sep + "tocollect" + sep + "runset_june14_valley2hit_ens240"
+        dbdir = OUTPUT_DIR + sep + "tocollect" + sep + "runset_june17_FPT_cvary_44_ens240"
         datafile, paramfile = collect_fpt_mean_stats_and_params(dbdir)
         samplesize=240
         mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params = \

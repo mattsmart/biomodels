@@ -5,6 +5,7 @@ from multiprocessing import cpu_count
 from data_io import write_fpt_and_params
 from firstpassage import fast_fp_times, fpt_histogram
 from params import Params
+from presets import presets
 
 
 def fpt_argparser():
@@ -25,11 +26,12 @@ if __name__ == "__main__":
     suffix = args.suffix
 
     # SCRIPT PARAMETERS
-    system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
-    feedback = "hill"      # "constant", "hill", "step", "pwlinear"
-    plot_flag = False
+    plot_flag = True
 
     # DYNAMICS PARAMETERS
+    """
+    system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
+    feedback = "hill"      # "constant", "hill", "step", "pwlinear"
     params_dict = {
         'alpha_plus': 0.2,
         'alpha_minus': 0.5,  # 0.5
@@ -46,8 +48,11 @@ if __name__ == "__main__":
         'v_z2': 0.0
     }
     params = Params(params_dict, system, feedback=feedback)
+    """
+    params = presets('preset_xyz_constant')  # TODO generalize preset in main args
+    params = params.mod_copy({'N': 20})
 
-    init_cond = np.zeros(params.numstates, dtype=int)
+    init_cond = np.zeros(params.numstates, dtype=int)  # TODO init cond from formulae builder
     init_cond[0] = int(params.N)
 
     fp_times = fast_fp_times(ensemble, init_cond, params, num_processes)

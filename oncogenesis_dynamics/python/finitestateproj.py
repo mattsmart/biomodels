@@ -4,8 +4,9 @@ import scipy.sparse as sp_sparse
 from os import sep
 
 from constants import OUTPUT_DIR
-from data_io import write_matrix_data_and_idx_vals, read_matrix_data_and_idx_vals
+from data_io import write_matrix_data_and_idx_vals, read_matrix_data_and_idx_vals, read_fpt_and_params
 from expv import expv
+from firstpassage import fpt_histogram
 from formulae import map_init_name_to_init_cond, reaction_propensities_lowmem
 from presets import presets
 
@@ -158,11 +159,12 @@ def fsp_fpt_cdf(p_of_t, fpt_idx=-1):
 
 
 def conv_cdf_to_pdf(cdf, domain):
-    dt = domain[1] - domain[0]
+    #dt = domain[1] - domain[0]
     pdf = np.zeros(len(cdf))
     pdf[0] = cdf[0]                              # TODO adjust
     for idx in xrange(1,len(domain)):
-        pdf[idx] = (cdf[idx] - cdf[idx-1]) / dt  # TODO check form
+        pdf[idx] = cdf[idx] - cdf[idx-1]       # TODO check form
+    print "SUM", np.sum(pdf)
     return pdf
 
 
@@ -177,7 +179,8 @@ def plot_distr(distr, domain, title):
 
 if __name__ == "__main__":
     # SCRIPT PARAMETERS
-    switch_generate = True
+    switch_generate = False
+    plot_vs_histogram = True
     default_path_p_of_t = OUTPUT_DIR + sep + 'p_of_t.npy'
     default_path_p_of_t_idx = OUTPUT_DIR + sep + 'p_of_t_idx.npy'
     default_path_p_of_t_times = OUTPUT_DIR + sep + 'p_of_t_times.npy'
@@ -185,8 +188,8 @@ if __name__ == "__main__":
     # DYNAMICS PARAMETERS
     params = presets('preset_xyz_constant')  # preset_xyz_constant, preset_xyz_constant_fast, valley_2hit
     params = params.mod_copy({'N': 20})  # TODO had memory error with N = 50 once it got to expm call, had delayed memory error for N = 20
-    t1 = 0.4 * 1e5
-    dt = 10 * 1e2
+    t1 = 0.3 * 1e5
+    dt = 0.5 * 1e2
 
     # INITIAL PROBABILITY VECTOR
     statespace_vol, statespace_length = fsp_statespace(params, fpt_flag=True)
@@ -213,3 +216,14 @@ if __name__ == "__main__":
     plot_distr(fpt_cdf, trange, 'FPT cdf')
     plot_distr(fpt_pdf, trange, 'FPT pdf')
 
+    # plot over histogram
+    if plot_vs_histogram:
+        fpt_data = "fpt_default_ens1500_main_data.txt"  # or try 300
+        fpt_params = "fpt_default_ens1500_main_params.csv"
+        fp_times, fp_times_params = read_fpt_and_params(OUTPUT_DIR, filename_data=fpt_data, filename_params=fpt_params)
+        hist_ax = fpt_histogram(fp_times, fp_times_params, figname_mod="", flag_show=False, flag_norm=True,
+                                flag_xlog10=False, flag_ylog10=False, fs=12)
+        #plt.show()
+        hist_ax.plot(trange, fpt_pdf, 'k--', lw=2)  # could have chunkier pdf by taking sum of chunks and replotting for wider bins
+        plt.savefig('test.pdf')
+        plt.show()
