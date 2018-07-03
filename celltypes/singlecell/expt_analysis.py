@@ -11,6 +11,14 @@ from singlecell_simsetup import memory_corr_matrix_and_inv, interaction_matrix
 # TODO build remaining functions
 # TODO build unit tests pycharm properly
 
+
+def read_datafile_simple(datapath, verbose=True):
+    arr = np.load(datapath)
+    if verbose:
+        print "Loaded dim %s data at %s" % (arr.shape, datapath)
+    return arr
+
+
 def read_exptdata_from_files(dataname, labelname, datadir=DATADIR, verbose=True):
     """
     Args:
@@ -230,21 +238,35 @@ def plot_basins_scores(score_dict):
 
 
 if __name__ == '__main__':
-    # settings
-    dataname = None
-    labelname = None
-    datadir = DATADIR
-    datapath = DATADIR + os.sep + dataname
-    labelpath = DATADIR + os.sep + labelname
-    # methods
+    # run flags
+    flag_basinscore = False
+    flag_load_simple = True
+
+    # options
     verbose = True
     binarize_method = "default"  # in ['columnwise_midpt', 'clusterwise_midpt', 'global_midpt', ????more????]
     memory_method = "default"
     basinscore_method = "default"
-    # analysis
-    cluster_dict, metadata = read_exptdata_from_files(dataname, labelname, datadir=datadir, verbose=verbose)
-    binarized_cluster_dict = binarize_cluster_dict(cluster_dict, metadata, binarize_method=binarize_method)
-    memory_array = binary_cluster_dict_to_memories(binarized_cluster_dict, metadata, memory_method=memory_method)
-    basin_scores = get_basins_scores(memory_array, binarized_cluster_dict, metadata, basinscore_method=basinscore_method)
-    # plotting
-    plot_basins_scores(basin_scores)
+
+
+    if flag_basinscore:
+        # settings
+        dataname = None
+        labelname = None
+        datadir = DATADIR
+        #datapath = DATADIR + os.sep + dataname
+        #labelpath = DATADIR + os.sep + labelname
+
+        # analysis
+        cluster_dict, metadata = read_exptdata_from_files(dataname, labelname, datadir=datadir, verbose=verbose)
+        binarized_cluster_dict = binarize_cluster_dict(cluster_dict, metadata, binarize_method=binarize_method)
+        memory_array = binary_cluster_dict_to_memories(binarized_cluster_dict, metadata, memory_method=memory_method)
+        basin_scores = get_basins_scores(memory_array, binarized_cluster_dict, metadata, basinscore_method=basinscore_method)
+
+        # plotting
+        plot_basins_scores(basin_scores)
+
+    # simple data load
+    if flag_load_simple:
+        datapath = DATADIR + os.sep + "PCAw1000components.npy"
+        arr = read_datafile_simple(datapath, verbose=True)
