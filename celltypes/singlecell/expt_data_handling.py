@@ -165,6 +165,7 @@ def parse_exptdata(states_raw, gene_labels, verbose=True):
     if verbose:
         print "cluster_indices collected; building cluster arrays..."
     for k in xrange(num_clusters):
+        print k
         cluster_dict[k] = states_truncated.take(cluster_indices[k], axis=1)
 
     # fill metatadata dict
