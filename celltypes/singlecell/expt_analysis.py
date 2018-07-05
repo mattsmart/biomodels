@@ -2,87 +2,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
+from expt_data_handling import parse_exptdata, load_npz_of_arr_genes_cells
 from singlecell_constants import DATADIR
 from singlecell_functions import hamiltonian, hamming
 from singlecell_simsetup import memory_corr_matrix_and_inv, interaction_matrix
 
 # TODO pass metadata to all functions?
-# TODO test and optimize read_exptdata_from_files, build_basin_states
+# TODO test and optimize build_basin_states
 # TODO build remaining functions
 # TODO build unit tests pycharm properly
-
-
-def read_datafile_simple(datapath, verbose=True):
-    arr = np.load(datapath)
-    if verbose:
-        print "Loaded dim %s data at %s" % (arr.shape, datapath)
-    return arr
-
-
-def read_exptdata_from_files(dataname, labelname, datadir=DATADIR, verbose=True):
-    """
-    Args:
-        - datapath: stores array of state data and cluster labels for each cell state (column)
-        - labelpath: stores row names i.e. gene or PCA labels
-        - datadir: dataname and labelname must be in same data directory
-    Notes: data format may change with time
-        - convention is first row stores cluster index, from 0 to np.max(row 0) == K - 1
-        - future convention may be to store unique integer ID for each column corresponding to earlier in  pipeline
-        - maybe also extract and pass metadata_dict info (i.e. K, N, M, filename information on pipeline)
-    Returns:
-        - cluster_dict: {cluster_idx: N x M array of raw cell states in the cluster (i.e. not binarized)}
-        - metadata: dict, mainly stores N x 1 array of 'gene_labels' for each row
-    """
-    datapath = datadir + os.sep + dataname
-    labelpath = datadir + os.sep + labelname
-    # load data
-    states_raw = np.loadtxt(datapath, delimiter=",", dtype=float)
-    states_row0 = states_raw[0, :]
-    states_truncated = states_raw[1:, :]
-    num_genes, num_cells = states_truncated.shape  # aka N, M
-    num_clusters = np.max(states_raw[0, :]) + 1
-    if verbose:
-        print "loading data from %s..." % datapath
-        print "raw data dimension: %d x %d" % (states_raw.shape)
-        print "cleaned data dimension: %d x %d" % (num_genes, num_genes)
-        print "num_clusters is %d" % num_clusters
-
-    # load labels
-    gene_labels = np.loadtxt(labelpath, delimiter=",")
-    assert gene_labels.shape[0] == num_genes
-    assert gene_labels.shape[1] == 1
-    if verbose:
-        print "loading labels from %s..." % labelpath
-
-    # prep cluster_dict
-    cluster_dict = {}
-    cluster_indices = {k: [] for k in xrange(num_clusters)}
-    # TODO optimize this chunk if needed
-    for cell in xrange(num_cells):
-        for k in xrange(num_clusters):
-            cluster_indices[k].append(cell)
-            break
-    if verbose:
-        print "cluster_indices...\n", cluster_indices
-
-    # build cluster dict
-    for k in xrange(num_clusters):
-        cluster_dict[k] = states_truncated.take(cluster_indices[k], axis=1)
-
-    # fill metatadata dict
-    metadata = {}
-    metadata['gene_labels'] = gene_labels
-    metadata['num_clusters'] = num_clusters
-    metadata['K'] = num_clusters
-    metadata['num_genes'] = num_genes
-    metadata['N'] = num_genes
-    metadata['num_cells'] = num_cells
-    metadata['M'] = num_cells
-    metadata['datapath'] = datapath
-    metadata['labelpath'] = labelpath
-    metadata['dataname'] = dataname
-    metadata['labelname'] = labelname
-    return cluster_dict, metadata
 
 
 def binarize_cluster_dict(cluster_dict, metadata, binarize_method="default"):
@@ -95,7 +23,7 @@ def binarize_cluster_dict(cluster_dict, metadata, binarize_method="default"):
     """
     num_clusters = metadata['num_clusters']
     binarize_cluster_dict = {}
-    for x in xrange(num_clusters):
+    for k in xrange(num_clusters):
         cluster_data = cluster_dict[k]
         min_val = np.min(cluster_data)
         max_val = np.max(cluster_data)
@@ -239,8 +167,9 @@ def plot_basins_scores(score_dict):
 
 if __name__ == '__main__':
     # run flags
-    flag_basinscore = False
-    flag_load_simple = True
+    datadir = DATADIR + os.sep + "scMCA"
+    flag_load_compressed = True
+    flag_basinscore = True
 
     # options
     verbose = True
@@ -248,25 +177,17 @@ if __name__ == '__main__':
     memory_method = "default"
     basinscore_method = "default"
 
+    if flag_load_compressed:
+        npzpath = datadir + os.sep + 'arr_genes_cells_withcluster_compressed.npz'
+        arr, genes, cells = load_npz_of_arr_genes_cells(npzpath)
+        print arr.shape, genes.shape, cells.shape
 
     if flag_basinscore:
-        # settings
-        dataname = None
-        labelname = None
-        datadir = DATADIR
-        #datapath = DATADIR + os.sep + dataname
-        #labelpath = DATADIR + os.sep + labelname
-
         # analysis
-        cluster_dict, metadata = read_exptdata_from_files(dataname, labelname, datadir=datadir, verbose=verbose)
+        cluster_dict, metadata = parse_exptdata(arr, genes, verbose=verbose)
         binarized_cluster_dict = binarize_cluster_dict(cluster_dict, metadata, binarize_method=binarize_method)
         memory_array = binary_cluster_dict_to_memories(binarized_cluster_dict, metadata, memory_method=memory_method)
         basin_scores = get_basins_scores(memory_array, binarized_cluster_dict, metadata, basinscore_method=basinscore_method)
 
         # plotting
         plot_basins_scores(basin_scores)
-
-    # simple data load
-    if flag_load_simple:
-        datapath = DATADIR + os.sep + "PCAw1000components.npy"
-        arr = read_datafile_simple(datapath, verbose=True)
