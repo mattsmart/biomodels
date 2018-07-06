@@ -54,7 +54,7 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_STEPS, beta=BET
 
     # Simulate
     for step in xrange(iterations-1):
-        print "cell steps:", singlecell.steps, " H(state) =", singlecell.get_energy()  # TODO need general intxn_matrix parent class
+        print "cell steps:", singlecell.steps, " H(state) =", singlecell.get_energy(intxn_matrix=intxn_matrix)  # TODO need general intxn_matrix parent class
         # apply burst errors
         if flag_burst_error and step % BURST_ERROR_PERIOD == 0:
             singlecell.apply_burst_errors()

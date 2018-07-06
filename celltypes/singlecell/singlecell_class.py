@@ -46,8 +46,8 @@ class Cell(object):
     def get_state_array(self):
         return self.state_array
 
-    def get_energy(self):
-        return hamiltonian(self.state)
+    def get_energy(self, intxn_matrix=J):
+        return hamiltonian(self.state, intxn_matrix=intxn_matrix)
 
     def get_memories_overlap(self):
         return state_memory_overlap(self.state_array, self.steps)
