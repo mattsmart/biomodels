@@ -2,10 +2,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from expt_data_handling import parse_exptdata, load_npz_of_arr_genes_cells
+from expt_data_handling import parse_exptdata, load_npz_of_arr_genes_cells, save_npz_of_arr_genes_cells, \
+                               load_npz_of_arr_genes_cells, load_cluster_labels, prune_boring_rows
 from singlecell_constants import DATADIR
-from singlecell_functions import hamiltonian, hamming
-from singlecell_simsetup import memory_corr_matrix_and_inv, interaction_matrix
+from singlecell_functions import hamiltonian, hamming, state_memory_projection_single
+from singlecell_simsetup import memory_corr_matrix_and_inv, interaction_matrix, predictivity_matrix
+from singlecell_simulate import singlecell_sim
 
 # TODO pass metadata to all functions?
 # TODO test and optimize build_basin_states
@@ -13,27 +15,42 @@ from singlecell_simsetup import memory_corr_matrix_and_inv, interaction_matrix
 # TODO build unit tests pycharm properly
 
 
-def binarize_cluster_dict(cluster_dict, metadata, binarize_method="default"):
+def binarize_cluster_dict(cluster_dict, metadata, binarize_method="by_gene"):
     """
     Args:
         - cluster_dict: {k: N x M array for k in 0 ... K-1 (i.e. cluster index)}
-        - binarize_method: options for different binarization methods
+        - binarize_method: options for different binarization methods: by_cluster or by_gene (default)
     Returns:
         - binarized_cluster_dict: {k: N x M array for k in 0 ... K-1 (i.e. cluster index)}
     """
+    assert binarize_method in ['by_cluster', 'by_gene']
     num_clusters = metadata['num_clusters']
     binarize_cluster_dict = {}
-    for k in xrange(num_clusters):
-        cluster_data = cluster_dict[k]
-        min_val = np.min(cluster_data)
-        max_val = np.max(cluster_data)
-        mid = 0.5 * (max_val - min_val)  # TODO implement column wise process of this too, compare
-        binarized_cluster = 1.0 * np.where(cluster_data > mid, 1, -1)  # mult by 1.0 to cast as float
-        binarize_cluster_dict[k] = binarized_cluster
+    if binarize_method == 'by_gene':
+        for k in xrange(num_clusters):
+            cluster_data = cluster_dict[k]
+            min_gene_vals = np.amin(cluster_data, axis=1)  # min value each gene has over all cells in the cluster
+            max_gene_vals = np.amax(cluster_data, axis=1)
+            mids = 0.5 * (min_gene_vals - max_gene_vals)
+            # TODO vectorize this
+            binarized_cluster = np.zeros(cluster_data.shape)
+            for idx in xrange(cluster_data.shape[1]):
+                binarized_cluster[idx,:] = np.where(cluster_data[idx,:] > mids[idx], 1.0, -1.0)  # mult by 1.0 to cast as float
+            binarize_cluster_dict[k] = binarized_cluster
+    else:
+        print "WARNING: binarize_method by_cluster is not stable (data too sparse)"
+        for k in xrange(num_clusters):
+            cluster_data = cluster_dict[k]
+            min_val = np.min(cluster_data)
+            max_val = np.max(cluster_data)
+            mid = 0.5 * (max_val - min_val)
+            binarized_cluster = 1.0 * np.where(cluster_data > mid, 1, -1)  # mult by 1.0 to cast as float
+            binarize_cluster_dict[k] = binarized_cluster
+
     return binarize_cluster_dict
 
 
-def binary_cluster_dict_to_memories(binarized_cluster_dict, metadata, memory_method="default"):
+def binary_cluster_dict_to_memories(binarized_cluster_dict, metadata, memory_method="default", save=True):
     """
     Args:
         - binarized_cluster_dict: {k: N x M array for k in 0 ... K-1 (i.e. cluster index)}
@@ -43,11 +60,45 @@ def binary_cluster_dict_to_memories(binarized_cluster_dict, metadata, memory_met
         - memory_array: i.e. xi matrix, will be N x K (one memory from each cluster)
     """
     num_genes = metadata['num_genes']
-    num_cells = metadata['num_cells']
+    #num_cells = metadata['num_cells']
     num_clusters = metadata['num_clusters']
-    memory_array = 0
 
+    eps = 1e-4  # used to bias the np.sign(call) to be either 1 or -1 (breaks ties towards on state)
+    memory_array = np.zeros((num_genes, num_clusters))
+    for k in xrange(num_clusters):
+        cluster_arr = binarized_cluster_dict[k]
+        cluster_arr_rowsum = np.sum(cluster_arr, axis=1)
+        memory_vec = np.sign(cluster_arr_rowsum + eps)
+        memory_array[:,k] = memory_vec
+    if save:
+        npzpath = DATADIR + os.sep + 'mem_gene_cluster_initial.npz'
+        store_memories_genes_clusters(npzpath, memory_array, np.array(metadata['gene_labels']))
     return memory_array
+
+
+def store_memories_genes_clusters(npzpath, mem_arr, genes):
+    cluster_id = load_cluster_labels(DATADIR + os.sep + 'scMCA' + os.sep + 'SI_cluster_labels.csv')
+    clusters = np.array([cluster_id[idx] for idx in xrange(len(cluster_id.keys()))])
+    save_npz_of_arr_genes_cells(npzpath, mem_arr, genes, clusters)
+    return
+
+
+def load_memories_genes_clusters(npzpath):
+    mem_arr, genes, clusters = load_npz_of_arr_genes_cells(npzpath, verbose=False)
+    return mem_arr, genes, clusters
+
+
+def prune_memories_genes(npzpath, save=True):
+    rows_to_delete, mem_arr, genes, clusters = prune_boring_rows(npzpath, save=save)
+    return rows_to_delete, mem_arr, genes, clusters
+
+
+def prune_cluster_dict(cluster_dict, rows_to_delete):
+    pruned_cluster_dict = {k: 0 for k in cluster_dict.keys()}
+    for k in xrange(len(cluster_dict.keys())):
+        cluster_data = cluster_dict[k]
+        pruned_cluster_dict[k] = np.delete(cluster_data, rows_to_delete, axis=0)
+    return pruned_cluster_dict
 
 
 def is_energy_increase(intxn_matrix, data_vec_a, data_vec_b):
@@ -101,6 +152,36 @@ def build_basin_states(intxn_matrix, memory_vec,
     return recurse_basin_set
 
 
+def basin_projection_timeseries(k, memory_array, intxn_matrix, eta, basin_data_k, plot=True):
+
+    def get_memory_proj_timeseries(state_array, memory_idx):
+        num_steps = np.shape(state_array)[1]
+        timeseries = np.zeros(num_steps)
+        for time_idx in xrange(num_steps):
+            timeseries[time_idx] = state_memory_projection_single(state_array, time_idx, memory_idx, eta=eta)
+        return timeseries
+
+    TEMP = 1e-2
+    num_steps = 100
+    analysis_subdir = "basinscores"
+    proj_timeseries_array = np.zeros((num_steps, basin_data_k.shape[1]))
+
+    for idx in xrange(basin_data_k.shape[1]):
+        init_cond = basin_data_k[:, idx]
+        cellstate_array, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = singlecell_sim(
+            init_state=init_cond, iterations=num_steps, beta=1/TEMP, xi=memory_array, intxn_matrix=intxn_matrix,
+            memory_labels=range(memory_array.shape[1]), gene_labels=range(memory_array.shape[0]),
+            flag_write=False, analysis_subdir=analysis_subdir, plot_period=num_steps * 2)
+        proj_timeseries_array[:, idx] = get_memory_proj_timeseries(cellstate_array, k)[:]
+    if plot:
+        plt.plot(xrange(num_steps), proj_timeseries_array, color='blue', linewidth=0.75)
+        plt.title('Test memory %d projection for all cluster memeber' % k)
+        plt.ylabel('proj on memory %d' % (k))
+        plt.xlabel('Time (%d updates, all spins)' % num_steps)
+        plt.savefig(DATADIR + os.sep + analysis_subdir + os.sep + 'cluster_%d.png' % k)
+    return proj_timeseries_array
+
+
 def get_basins_scores(memory_array, binarized_cluster_dict, metadata, basinscore_method="default"):
     """
     Args:
@@ -108,14 +189,16 @@ def get_basins_scores(memory_array, binarized_cluster_dict, metadata, basinscore
         - binarized_cluster_dict: {k: N x M array for k in 0 ... K-1 (i.e. cluster index)}
         - metadata: dict, mainly stores N x 1 array of 'gene_labels' for each row
         - basinscore_method: options for different basin scoring algos
+                             (one based on crawling the basin exactly, other via low temp dynamics)
     Returns:
         - score_dict: {k: M x 1 array for k in 0 ... K-1 (i.e. cluster index)}
     """
+    assert basinscore_method in ['crawler', 'trajectories']
     num_genes = metadata['num_genes']
     num_cells = metadata['num_cells']
     num_clusters = metadata['num_clusters']
 
-    def basin_score_pairwise(basin_k, memory_vector, data_vector, basinscore_method=basinscore_method):
+    def basin_score_pairwise(basin_k, memory_vector, data_vector):
         # OPTION 1 -- is cell in basin yes/no
         # OPTION 2 -- is cell in basin - some scalar value based on ... ?
         # OPTION 3 -- based on compare if data vec in set of basin states (from aux fn)
@@ -128,20 +211,30 @@ def get_basins_scores(memory_array, binarized_cluster_dict, metadata, basinscore
             return 0.0
 
     # 1 is build J_ij from Xi
-    _, a_inv_arr = memory_corr_matrix_and_inv()
+    np.savetxt(DATADIR + os.sep + 'xi.csv', memory_array)
+    _, a_inv_arr = memory_corr_matrix_and_inv(memory_array, check_invertible=True)
+    eta = predictivity_matrix(memory_array, a_inv_arr)
     intxn_matrix = interaction_matrix(memory_array, a_inv_arr, "projection")
 
     # 2 is score each cell in each cluster based on method
     score_dict = {k: 0 for k in xrange(num_clusters)}
-    for k in xrange(num_clusters):
-        binary_cluster_data = binarized_cluster_dict[k]
-        memory_k = memory_array[:,k]
-        basin_k = build_basin_states(intxn_matrix, memory_k)
 
-        for cell_data in binary_cluster_data.T:  # TODO make sure his gives columns (len is N)
-            print len(cell_data), num_genes, cell_data.shape
-            score_dict[k] += basin_score_pairwise(basin_k, memory_k, cell_data, basinscore_method=basinscore_method)
-        print score_dict
+    if basinscore_method == 'crawler':
+        for k in xrange(num_clusters):
+            print "Scoring basin for cluster", k
+            binary_cluster_data = binarized_cluster_dict[k]
+            memory_k = memory_array[:,k]
+            basin_k = build_basin_states(intxn_matrix, memory_k)
+            for cell_data in binary_cluster_data.T:  # TODO make sure his gives columns (len is N)
+                print len(cell_data), num_genes, cell_data.shape
+                score_dict[k] += basin_score_pairwise(basin_k, memory_k, cell_data)
+            print score_dict
+    else:
+        assert basinscore_method == 'trajectories'
+        for k in xrange(num_clusters):
+            init_conds = binarized_cluster_dict[k]
+            trajectories = basin_projection_timeseries(k, memory_array, intxn_matrix, eta, init_conds)
+            score_dict[k] = np.mean(trajectories[-1,:])
     return score_dict
 
 
@@ -169,25 +262,33 @@ if __name__ == '__main__':
     # run flags
     datadir = DATADIR + os.sep + "scMCA"
     flag_load_compressed = True
+    flag_prune_mems = True
     flag_basinscore = True
 
     # options
     verbose = True
-    binarize_method = "default"  # in ['columnwise_midpt', 'clusterwise_midpt', 'global_midpt', ????more????]
+    binarize_method = "by_gene"  # in ['columnwise_midpt', assert binarize_method in ['by_cluster', 'by_gene']
     memory_method = "default"
-    basinscore_method = "default"
+    basinscore_method = "trajectories"
 
     if flag_load_compressed:
         npzpath = datadir + os.sep + 'arr_genes_cells_withcluster_compressed.npz'
         arr, genes, cells = load_npz_of_arr_genes_cells(npzpath)
         print arr.shape, genes.shape, cells.shape
 
-    if flag_basinscore:
-        # analysis
-        cluster_dict, metadata = parse_exptdata(arr, genes, verbose=verbose)
-        binarized_cluster_dict = binarize_cluster_dict(cluster_dict, metadata, binarize_method=binarize_method)
-        memory_array = binary_cluster_dict_to_memories(binarized_cluster_dict, metadata, memory_method=memory_method)
-        basin_scores = get_basins_scores(memory_array, binarized_cluster_dict, metadata, basinscore_method=basinscore_method)
 
+    cluster_dict, metadata = parse_exptdata(arr, genes, verbose=verbose)
+    binarized_cluster_dict = binarize_cluster_dict(cluster_dict, metadata, binarize_method=binarize_method)
+    memory_array = binary_cluster_dict_to_memories(binarized_cluster_dict, metadata, memory_method=memory_method)
+    if flag_prune_mems:
+        npzpath = DATADIR + os.sep + 'mem_gene_cluster_initial.npz'
+        rows_to_delete, memory_array, genes, clusters = prune_memories_genes(npzpath, save=True)  # TODO prune cluster dict based on this pruning...
+        binarized_cluster_dict = prune_cluster_dict(binarized_cluster_dict, rows_to_delete)
+        metadata['gene_labels'] = genes
+        metadata['num_genes'] = len(genes)
+        metadata['N'] = len(genes)
+    if flag_basinscore:
+        basin_scores = get_basins_scores(memory_array, binarized_cluster_dict, metadata,
+                                         basinscore_method=basinscore_method)
         # plotting
         plot_basins_scores(basin_scores)
