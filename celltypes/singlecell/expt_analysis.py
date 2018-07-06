@@ -261,7 +261,6 @@ def plot_basins_scores(score_dict):
 if __name__ == '__main__':
     # run flags
     datadir = DATADIR + os.sep + "scMCA"
-    flag_load_compressed = True
     flag_prune_mems = True
     flag_basinscore = True
 
@@ -271,15 +270,14 @@ if __name__ == '__main__':
     memory_method = "default"
     basinscore_method = "trajectories"
 
-    if flag_load_compressed:
-        npzpath = datadir + os.sep + 'arr_genes_cells_withcluster_compressed.npz'
-        arr, genes, cells = load_npz_of_arr_genes_cells(npzpath)
-        print arr.shape, genes.shape, cells.shape
-
+    npzpath = datadir + os.sep + 'arr_genes_cells_withcluster_compressed.npz'
+    arr, genes, cells = load_npz_of_arr_genes_cells(npzpath)
+    print arr.shape, genes.shape, cells.shape
 
     cluster_dict, metadata = parse_exptdata(arr, genes, verbose=verbose)
     binarized_cluster_dict = binarize_cluster_dict(cluster_dict, metadata, binarize_method=binarize_method)
     memory_array = binary_cluster_dict_to_memories(binarized_cluster_dict, metadata, memory_method=memory_method)
+
     if flag_prune_mems:
         npzpath = DATADIR + os.sep + 'mem_gene_cluster_initial.npz'
         rows_to_delete, memory_array, genes, clusters = prune_memories_genes(npzpath, save=True)  # TODO prune cluster dict based on this pruning...
@@ -287,6 +285,7 @@ if __name__ == '__main__':
         metadata['gene_labels'] = genes
         metadata['num_genes'] = len(genes)
         metadata['N'] = len(genes)
+
     if flag_basinscore:
         basin_scores = get_basins_scores(memory_array, binarized_cluster_dict, metadata,
                                          basinscore_method=basinscore_method)
