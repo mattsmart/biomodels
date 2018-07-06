@@ -50,7 +50,11 @@ def reduce_gene_set(xi, gene_labels):  # TODO: my removal ends with 1339 left bu
     return reduced_gene_labels, reduced_xi
 
 
-def memory_corr_matrix_and_inv(xi):
+def memory_corr_matrix_and_inv(xi, check_invertible=False):
+
+    if check_invertible:
+        print xi.shape, np.linalg.matrix_rank(xi)  # expect rank = p (num memories) for invertibility
+
     corr_matrix = np.dot(xi.T, xi) / len(xi)
     return corr_matrix, np.linalg.inv(corr_matrix)
 

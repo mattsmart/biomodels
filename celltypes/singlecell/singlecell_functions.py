@@ -100,10 +100,10 @@ def state_memory_projection(state_arr, time):
     return np.dot(A_INV, state_memory_overlap(state_arr, time))
 
 
-def state_memory_projection_single(state_arr, time, memory_idx):
+def state_memory_projection_single(state_arr, time, memory_idx, eta=ETA):
     #a = np.dot(ETA[memory_idx,:], state_arr[:,time])
     #b = state_memory_projection(state_arr, time)[memory_idx]
-    return np.dot(ETA[memory_idx,:], state_arr[:,time])
+    return np.dot(eta[memory_idx,:], state_arr[:,time])
 
 
 def check_memory_energies():

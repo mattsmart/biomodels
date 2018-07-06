@@ -1,9 +1,9 @@
 import numpy as np
 
 from singlecell_class import Cell
-from singlecell_constants import NUM_STEPS, BURST_ERROR_PERIOD, APP_FIELD_STRENGTH
+from singlecell_constants import NUM_STEPS, BURST_ERROR_PERIOD, APP_FIELD_STRENGTH, BETA
 from singlecell_data_io import run_subdir_setup
-from singlecell_simsetup import N, XI, CELLTYPE_ID
+from singlecell_simsetup import N, XI, J, CELLTYPE_ID, CELLTYPE_LABELS, GENE_LABELS
 
 """
 NOTES:
@@ -13,7 +13,10 @@ NOTES:
 """
 
 
-def singlecell_sim(init_state=None, init_id=None, iterations=NUM_STEPS, app_field=None, app_field_strength=APP_FIELD_STRENGTH, flag_burst_error=False, flag_write=True, analysis_subdir=None, plot_period=10):
+def singlecell_sim(init_state=None, init_id=None, iterations=NUM_STEPS, beta=BETA, xi=XI, intxn_matrix=J,
+                   celltype_id=CELLTYPE_ID, memory_labels=CELLTYPE_LABELS, gene_labels=GENE_LABELS,
+                   app_field=None, app_field_strength=APP_FIELD_STRENGTH, flag_burst_error=False, flag_write=True,
+                   analysis_subdir=None, plot_period=10):
     """
     init_state: N x 1
     init_id: None, or memory label like 'esc', or arbitrary label (e.g. 'All on')
@@ -33,13 +36,14 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_STEPS, app_fiel
         current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = run_subdir_setup(run_subfolder=analysis_subdir)
 
     # Cell setup
+    N = xi.shape[0]
     if init_state is None:
         if init_id is None:
             init_id = "All_on"
             init_state = 1 + np.zeros(N)  # start with all genes on
         else:
-            init_state = XI[:, CELLTYPE_ID[init_id]]
-    singlecell = Cell(init_state, init_id)
+            init_state = xi[:, celltype_id[init_id]]
+    singlecell = Cell(init_state, init_id, memories_list=memory_labels, gene_list=gene_labels)
 
     # Input checks
     if app_field is not None:
@@ -50,7 +54,7 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_STEPS, app_fiel
 
     # Simulate
     for step in xrange(iterations-1):
-        print "cell steps:", singlecell.steps, " H(state) =", singlecell.get_energy()
+        print "cell steps:", singlecell.steps, " H(state) =", singlecell.get_energy()  # TODO need general intxn_matrix parent class
         # apply burst errors
         if flag_burst_error and step % BURST_ERROR_PERIOD == 0:
             singlecell.apply_burst_errors()
@@ -59,7 +63,8 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_STEPS, app_fiel
             app_field_timestep = app_field[:, step]
         if singlecell.steps % plot_period == 0:
             fig, ax, proj = singlecell.plot_projection(use_radar=True, pltdir=plot_lattice_folder)
-        singlecell.update_state(app_field=app_field_timestep, app_field_strength=app_field_strength, randomize=False)
+        singlecell.update_state(beta=beta, intxn_matrix=intxn_matrix, app_field=app_field_timestep,
+                                app_field_strength=app_field_strength, randomize=False)
 
     # Write
     print "Writing state to file.."
