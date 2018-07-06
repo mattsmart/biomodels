@@ -66,6 +66,9 @@ def read_datafile_manual(datapath, verbose=True, save_as_sep_npy=False):
 
 
 def load_npz_of_arr_genes_cells(npzpath, verbose=True):
+    """
+    Can also use for memory array, gene labels, and cell cluster names!
+    """
     if verbose:
         print "loading npz of arr genes cells at", npzpath, "..."
     loaded = np.load(npzpath)
@@ -75,6 +78,11 @@ def load_npz_of_arr_genes_cells(npzpath, verbose=True):
     if verbose:
         print "loaded arr, genes, cells:", arr.shape, genes.shape, cells.shape
     return arr, genes, cells
+
+
+def save_npz_of_arr_genes_cells(npzpath, arr, genes, cells):
+    np.savez_compressed(npzpath, arr=arr, genes=genes, cells=cells)
+    return
 
 
 def attach_cluster_id_arr_manual(npzpath, clusterpath, save=True, one_indexed=True):
@@ -106,7 +114,35 @@ def attach_cluster_id_arr_manual(npzpath, clusterpath, save=True, one_indexed=Tr
     return arr, genes, cells
 
 
-def load_cluster_labels(labelpath, one_indexed=True):
+def prune_boring_rows(npzpath, save=True):
+    """
+    Delete rows from array and corresponding genes that are self-duplicates
+    """
+    arr, genes, cells = load_npz_of_arr_genes_cells(npzpath)
+    # collect rows to delete
+    rows_duplicates = np.all(arr.T == arr.T[0,:], axis=0)
+    rows_to_delete = np.array([idx for idx, val in enumerate(rows_duplicates) if val])
+    # note pruned rows
+    print "number of self-duplicate rows:", len(rows_to_delete)
+    print rows_to_delete
+    print rows_to_delete[0:10]
+    # adjust genes and arr contents
+    print "Orig shape arr, genes, cells:", arr.shape, genes.shape, cells.shape
+    arr = np.delete(arr, rows_to_delete, axis=0)
+    genes = np.delete(genes, rows_to_delete)  # TODO should have global constant for this mock gene label
+    print "New shape arr, genes, cells:", arr.shape, genes.shape, cells.shape  # TODO not operating as expected
+    # save and return data
+    if save:
+        print "saving pruned arrays..."
+        datadir = os.path.abspath(os.path.join(npzpath, os.pardir))
+        base = os.path.basename(npzpath)
+        basestr = os.path.splitext(base)[0]
+        savestr = basestr + '_pruned.npz'
+        np.savez_compressed(datadir + os.sep + savestr, arr=arr, genes=genes, cells=cells)
+    return rows_to_delete, arr, genes, cells
+
+
+def load_cluster_labels(clusterpath, one_indexed=True):
     """
     one_indexed: if true, assume cluster index starts at 1 (as in scMCA)
     """
@@ -120,12 +156,12 @@ def load_cluster_labels(labelpath, one_indexed=True):
         for idx, line in enumerate(f):
             line = line.rstrip()
             line = line.split(',')
+            print line
             cluster_labels[int(line[0])-dec] = line[1]
     return cluster_labels
 
 
 def parse_exptdata(states_raw, gene_labels, verbose=True):
-    #TODO modify so pass it list of gene labels and array of data instead of paths?
     """
     Args:
         - states_raw: stores array of state data and cluster labels for each cell state (column)
@@ -187,7 +223,8 @@ if __name__ == '__main__':
     flag_process_manual = False
     flag_load_sep_npy = False
     flag_load_compressed_npz = False
-    flag_attach_clusters_resave = True
+    flag_attach_clusters_resave = False
+    flag_prune_boring_rows = True
 
     # simple data load
     if flag_load_simple:
@@ -214,3 +251,7 @@ if __name__ == '__main__':
         compressed_file = datadir + os.sep + "arr_genes_cells_raw_compressed.npz"
         clusterpath = datadir + os.sep + "SI_cells_to_clusters.csv"
         arr, genes, cells = attach_cluster_id_arr_manual(compressed_file, clusterpath, save=True)
+
+    if flag_prune_boring_rows:
+        compressed_file = datadir + os.sep + "arr_genes_cells_raw_compressed.npz"
+        prune_boring_rows(compressed_file)
