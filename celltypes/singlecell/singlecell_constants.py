@@ -2,8 +2,8 @@ import os
 
 # IO
 DATADIR = "data"
-ZSCORE_DATAFILE_NAME = "mehta_zscore_table.txt"
-ZSCORE_DATAFILE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), DATADIR, ZSCORE_DATAFILE_NAME))
+DEFAULT_MEMORIES_NPZPATH = DATADIR + os.sep + "2014_mehta" + os.sep + "mehta_mems_genes_clusters_boolean_compressed_pruned.npz"
+MEHTA_ZSCORE_DATAFILE_PATH = DATADIR + os.sep + "2014_mehta" + os.sep + "SI_mehta_zscore_table.txt"
 RUNS_FOLDER = "runs" + os.sep             # store timestamped runs here
 
 # SINGLECELL SIMULATION CONSTANTS
