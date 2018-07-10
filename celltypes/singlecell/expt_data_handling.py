@@ -1,7 +1,8 @@
 import numpy as np
 import os
+import re
 
-from singlecell_constants import DATADIR
+from singlecell_constants import DATADIR, MEHTA_ZSCORE_DATAFILE_PATH
 
 # TODO pass metadata to all functions?
 # TODO test and optimize read_exptdata_from_files
@@ -65,6 +66,37 @@ def read_datafile_manual(datapath, verbose=True, save_as_sep_npy=False):
     return arr, gene_names, cell_names
 
 
+def load_singlecell_data(zscore_datafile=MEHTA_ZSCORE_DATAFILE_PATH, savenpz='mems_genes_clusters_raw_compressed'):
+    """
+    Returns list of cell types (size p), list of TFs (size N), and xi array where xi_ij is ith TF value in cell type j
+    Note the Mehta SI file has odd formatting (use regex to parse); array text file is read in as single line:
+    http://journals.plos.org/ploscompbiol/article/file?id=10.1371/journal.pcbi.1003734.s005&type=supplementary
+    """
+    gene_labels = []
+    with open(zscore_datafile) as f:
+        origline = f.readline()
+        filelines = origline.split('\r')
+        for idx_row, row in enumerate(filelines):
+            row_split = re.split(r'\t', row)
+            if idx_row == 0:  # celltypes line, first row
+                celltype_labels = row_split[1:]
+            else:
+                gene_labels.append(row_split[0])
+    # reloop to get data without excessive append calls
+    expression_data = np.zeros((len(gene_labels), len(celltype_labels)))
+    with open(zscore_datafile) as f:
+        origline = f.readline()
+        filelines_dataonly = origline.split('\r')[1:]
+        for idx_row, row in enumerate(filelines_dataonly):
+            row_split_dataonly = re.split(r'\t', row)[1:]
+            expression_data[idx_row,:] = [float(val) for val in row_split_dataonly]
+    if savenpz is not None:
+        datadir = os.path.abspath(os.path.join(zscore_datafile, os.pardir))
+        npzpath = datadir + os.sep + savenpz
+        save_npz_of_arr_genes_cells(npzpath, expression_data, gene_labels, celltype_labels)
+    return expression_data, gene_labels, celltype_labels
+
+
 def load_npz_of_arr_genes_cells(npzpath, verbose=True):
     """
     Can also use for memory array, gene labels, and cell cluster names!
@@ -78,6 +110,10 @@ def load_npz_of_arr_genes_cells(npzpath, verbose=True):
     if verbose:
         print "loaded arr, genes, cells:", arr.shape, genes.shape, cells.shape
     return arr, genes, cells
+
+
+def binarize_data(xi):
+    return 1.0 * np.where(xi > 0, 1, -1)  # mult by 1.0 to cast as float
 
 
 def save_npz_of_arr_genes_cells(npzpath, arr, genes, cells):
@@ -117,7 +153,9 @@ def attach_cluster_id_arr_manual(npzpath, clusterpath, save=True, one_indexed=Tr
 def prune_boring_rows(npzpath, save=True):
     """
     Delete rows from array and corresponding genes that are self-duplicates
+    NOTE: very similar to reduce_gene_set(xi, gene_labels)
     """
+
     arr, genes, cells = load_npz_of_arr_genes_cells(npzpath)
     # collect rows to delete
     rows_duplicates = np.all(arr.T == arr.T[0,:], axis=0)
@@ -140,6 +178,19 @@ def prune_boring_rows(npzpath, save=True):
         savestr = basestr + '_pruned.npz'
         np.savez_compressed(datadir + os.sep + savestr, arr=arr, genes=genes, cells=cells)
     return rows_to_delete, arr, genes, cells
+
+
+def reduce_gene_set(xi, gene_labels):  # TODO: my removal ends with 1339 left but theirs with 1337 why?
+    """
+    NOTE: very similar to prune_boring_rows(...)
+    """
+    genes_to_remove = []
+    for row_idx, row in enumerate(xi):
+        if all(map(lambda x: x == row[0], row)):
+            genes_to_remove.append(row_idx)
+    reduced_gene_labels = [gene_labels[idx] for idx in xrange(len(xi)) if idx not in genes_to_remove]
+    reduced_xi = np.array([row for idx, row in enumerate(xi) if idx not in genes_to_remove])
+    return reduced_gene_labels, reduced_xi
 
 
 def load_cluster_labels(clusterpath, one_indexed=True):
@@ -218,13 +269,14 @@ def parse_exptdata(states_raw, gene_labels, verbose=True):
 
 if __name__ == '__main__':
     # run flags
-    datadir = DATADIR + os.sep + "scMCA"
+    datadir = DATADIR + os.sep + "2018_scMCA"
     flag_load_simple = False
     flag_process_manual = False
     flag_load_sep_npy = False
     flag_load_compressed_npz = False
     flag_attach_clusters_resave = False
-    flag_prune_boring_rows = True
+    flag_prune_boring_rows = False
+    flag_process_data_mehta = False
 
     # simple data load
     if flag_load_simple:
@@ -255,3 +307,16 @@ if __name__ == '__main__':
     if flag_prune_boring_rows:
         compressed_file = datadir + os.sep + "arr_genes_cells_raw_compressed.npz"
         prune_boring_rows(compressed_file)
+
+    if flag_process_data_mehta:
+        # part 1: load their zscore textfile, save in standard npz format
+        expression_data, genes, celltypes = load_singlecell_data(zscore_datafile=MEHTA_ZSCORE_DATAFILE_PATH,
+                                                                 savenpz='mehta_mems_genes_clusters_zscore_compressed.npz')
+        # part 2: load npz, binarize, save
+        npzpath = DATADIR + os.sep + "2014_mehta" + os.sep + 'mehta_mems_genes_clusters_zscore_compressed.npz'
+        expression_data, genes, celltypes = load_npz_of_arr_genes_cells(npzpath, verbose=True)
+        xi = binarize_data(expression_data)
+        compressed_boolean = datadir + os.sep + "mehta_mems_genes_clusters_boolean_compressed.npz"
+        save_npz_of_arr_genes_cells(compressed_boolean, xi, genes, celltypes)
+        # part 3: load npz, prune, save
+        rows_to_delete, xi, genes, celltypes = prune_boring_rows(compressed_boolean)
