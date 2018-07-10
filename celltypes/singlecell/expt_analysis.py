@@ -71,7 +71,7 @@ def binary_cluster_dict_to_memories(binarized_cluster_dict, metadata, memory_met
         memory_vec = np.sign(cluster_arr_rowsum + eps)
         memory_array[:,k] = memory_vec
     if save:
-        npzpath = DATADIR + os.sep + 'mem_gene_cluster_initial.npz'
+        npzpath = DATADIR + os.sep + 'mems_genes_clusters_initial.npz'
         store_memories_genes_clusters(npzpath, memory_array, np.array(metadata['gene_labels']))
     return memory_array
 
@@ -279,9 +279,9 @@ if __name__ == '__main__':
     memory_array = binary_cluster_dict_to_memories(binarized_cluster_dict, metadata, memory_method=memory_method)
 
     if flag_prune_mems:
-        npzpath = DATADIR + os.sep + 'mem_gene_cluster_initial.npz'
+        npzpath = DATADIR + os.sep + 'mems_genes_clusters_initial.npz'
         rows_to_delete, memory_array, genes, clusters = prune_memories_genes(npzpath, save=True)  # TODO prune cluster dict based on this pruning...
-        binarized_cluster_dict = prune_cluster_dict(binarized_cluster_dict, rows_to_delete)
+        binarized_cluster_dict = prune_cluster_dict(binarized_cluster_dict, rows_to_delete)  # TODO make sure to save pruned cluster dict as "mem genes clusters pruned"
         metadata['gene_labels'] = genes
         metadata['num_genes'] = len(genes)
         metadata['N'] = len(genes)
