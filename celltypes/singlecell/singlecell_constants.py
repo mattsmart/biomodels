@@ -2,7 +2,9 @@ import os
 
 # IO
 DATADIR = "data"
-DEFAULT_MEMORIES_NPZPATH = DATADIR + os.sep + "2014_mehta" + os.sep + "mehta_mems_genes_clusters_boolean_compressed_pruned.npz"
+MEMS_MEHTA = DATADIR + os.sep + "2014_mehta" + os.sep + "mehta_mems_genes_types_boolean_compressed_pruned.npz"
+MEMS_SCMCA = DATADIR + os.sep + "2018_scMCA" + os.sep + "mems_genes_types_compressed_pruned.npz"
+DEFAULT_MEMORIES_NPZPATH = MEMS_SCMCA
 MEHTA_ZSCORE_DATAFILE_PATH = DATADIR + os.sep + "2014_mehta" + os.sep + "SI_mehta_zscore_table.txt"
 RUNS_FOLDER = "runs" + os.sep             # store timestamped runs here
 
