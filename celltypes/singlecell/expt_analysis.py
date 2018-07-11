@@ -6,7 +6,7 @@ from expt_data_handling import parse_exptdata, load_npz_of_arr_genes_cells, save
                                load_npz_of_arr_genes_cells, load_cluster_labels, prune_boring_rows
 from singlecell_constants import DATADIR
 from singlecell_functions import hamiltonian, hamming, state_memory_projection_single
-from singlecell_simsetup import memory_corr_matrix_and_inv, interaction_matrix, predictivity_matrix
+from singlecell_linalg import memory_corr_matrix_and_inv, interaction_matrix, predictivity_matrix
 from singlecell_simulate import singlecell_sim
 
 # TODO pass metadata to all functions?
@@ -71,13 +71,13 @@ def binary_cluster_dict_to_memories(binarized_cluster_dict, metadata, memory_met
         memory_vec = np.sign(cluster_arr_rowsum + eps)
         memory_array[:,k] = memory_vec
     if save:
-        npzpath = DATADIR + os.sep + 'mems_genes_clusters_initial.npz'
+        npzpath = DATADIR + os.sep + 'mems_genes_types_compressed.npz'
         store_memories_genes_clusters(npzpath, memory_array, np.array(metadata['gene_labels']))
     return memory_array
 
 
 def store_memories_genes_clusters(npzpath, mem_arr, genes):
-    cluster_id = load_cluster_labels(DATADIR + os.sep + 'scMCA' + os.sep + 'SI_cluster_labels.csv')
+    cluster_id = load_cluster_labels(DATADIR + os.sep + '2018_scMCA' + os.sep + 'SI_cluster_labels.csv')
     clusters = np.array([cluster_id[idx] for idx in xrange(len(cluster_id.keys()))])
     save_npz_of_arr_genes_cells(npzpath, mem_arr, genes, clusters)
     return
@@ -260,33 +260,44 @@ def plot_basins_scores(score_dict):
 
 if __name__ == '__main__':
     # run flags
-    datadir = DATADIR + os.sep + "scMCA"
-    flag_prune_mems = True
+    datadir = DATADIR + os.sep + "2018_scMCA"
+    flag_load_raw = False
+    flag_prune_mems = False
+    flag_prune_rawdata = True
     flag_basinscore = True
 
     # options
     verbose = True
-    binarize_method = "by_gene"  # in ['columnwise_midpt', assert binarize_method in ['by_cluster', 'by_gene']
+    binarize_method = "by_gene"  # either 'by_cluster', 'by_gene'
     memory_method = "default"
-    basinscore_method = "trajectories"
+    basinscore_method = "trajectories"  # either 'trajectories', 'crawler'
 
-    npzpath = datadir + os.sep + 'arr_genes_cells_withcluster_compressed.npz'
-    arr, genes, cells = load_npz_of_arr_genes_cells(npzpath)
-    print arr.shape, genes.shape, cells.shape
+    rawdata_npzpath = datadir + os.sep + 'arr_genes_cells_withcluster_compressed.npz'
 
-    cluster_dict, metadata = parse_exptdata(arr, genes, verbose=verbose)
-    binarized_cluster_dict = binarize_cluster_dict(cluster_dict, metadata, binarize_method=binarize_method)
-    memory_array = binary_cluster_dict_to_memories(binarized_cluster_dict, metadata, memory_method=memory_method)
+    if flag_load_raw:
+        arr, genes, cells = load_npz_of_arr_genes_cells(rawdata_npzpath)
+        cluster_dict, metadata = parse_exptdata(arr, genes, verbose=verbose)
+        binarized_cluster_dict = binarize_cluster_dict(cluster_dict, metadata, binarize_method=binarize_method)
+        memory_array = binary_cluster_dict_to_memories(binarized_cluster_dict, metadata, memory_method=memory_method)
 
     if flag_prune_mems:
-        npzpath = DATADIR + os.sep + 'mems_genes_clusters_initial.npz'
-        rows_to_delete, memory_array, genes, clusters = prune_memories_genes(npzpath, save=True)  # TODO prune cluster dict based on this pruning...
-        binarized_cluster_dict = prune_cluster_dict(binarized_cluster_dict, rows_to_delete)  # TODO make sure to save pruned cluster dict as "mem genes clusters pruned"
-        metadata['gene_labels'] = genes
-        metadata['num_genes'] = len(genes)
-        metadata['N'] = len(genes)
+        rawmems_npzpath = DATADIR + os.sep + 'mems_genes_types_compressed.npz'
+        rows_to_delete, memory_array, genes, clusters = prune_memories_genes(rawmems_npzpath, save=True)  # TODO prune cluster dict based on this pruning...
+        np.savetxt(DATADIR + os.sep + 'rows_to_delete.txt', np.array(rows_to_delete), delimiter=",", fmt="%d")  # note these are indexed with 0 a gene not 'cluster_id'
+        binarized_cluster_dict = prune_cluster_dict(binarized_cluster_dict, rows_to_delete)
+
+    if flag_prune_rawdata:
+        rows_to_delete = np.loadtxt(DATADIR + os.sep + 'rows_to_delete.txt')  # note these are indexed with 0 a gene not 'cluster_id'
+        rows_to_delete_increment_for_clusterrow = [i+1 for i in rows_to_delete]
+        _, arr, genes, cells = prune_boring_rows(rawdata_npzpath, specified_rows=rows_to_delete_increment_for_clusterrow)
 
     if flag_basinscore:
+        # load pruned raw data
+        # run         cluster_dict, metadata = parse_exptdata(arr, genes, verbose=verbose)
+        # load pruned mems
+        # assert gene lists same for example as QC check
+        # do scoring below...
+
         basin_scores = get_basins_scores(memory_array, binarized_cluster_dict, metadata,
                                          basinscore_method=basinscore_method)
         # plotting
