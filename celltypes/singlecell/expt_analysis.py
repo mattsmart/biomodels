@@ -11,8 +11,7 @@ from singlecell_simulate import singlecell_sim
 
 # TODO pass metadata to all functions?
 # TODO test and optimize build_basin_states
-# TODO build remaining functions
-# TODO build unit tests pycharm properly
+# TODO build remaining functions + unit tests
 
 
 def binarize_cluster_dict(cluster_dict, metadata, binarize_method="by_gene"):
