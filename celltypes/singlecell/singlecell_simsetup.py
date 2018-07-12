@@ -15,6 +15,8 @@ def singlecell_simsetup(flag_prune_intxn_matrix=False, npzpath=DEFAULT_MEMORIES_
     gene_labels, celltype_labels, xi = load_singlecell_data()
     """
     xi, gene_labels, celltype_labels = load_npz_of_arr_genes_cells(npzpath, verbose=True)
+    gene_labels = gene_labels.tolist()
+    celltype_labels = celltype_labels.tolist()
     if FLAG_REMOVE_DUPES:
         assert FLAG_BOOL
         print "FLAG REMOVE DUPES before:", xi.shape
