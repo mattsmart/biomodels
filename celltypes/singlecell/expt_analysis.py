@@ -24,6 +24,9 @@ def binarize_cluster_dict(cluster_dict, metadata, binarize_method="by_gene"):
     """
     assert binarize_method in ['by_cluster', 'by_gene']
     num_clusters = metadata['num_clusters']
+
+    print num_clusters, np.max(cluster_dict.keys()), cluster_dict[0].shape
+
     binarize_cluster_dict = {}
     if binarize_method == 'by_gene':
         for k in xrange(num_clusters):
@@ -33,7 +36,7 @@ def binarize_cluster_dict(cluster_dict, metadata, binarize_method="by_gene"):
             mids = 0.5 * (min_gene_vals - max_gene_vals)
             # TODO vectorize this
             binarized_cluster = np.zeros(cluster_data.shape)
-            for idx in xrange(cluster_data.shape[1]):
+            for idx in xrange(cluster_data.shape[0]):
                 binarized_cluster[idx,:] = np.where(cluster_data[idx,:] > mids[idx], 1.0, -1.0)  # mult by 1.0 to cast as float
             binarize_cluster_dict[k] = binarized_cluster
     else:
@@ -282,22 +285,33 @@ if __name__ == '__main__':
     if flag_prune_mems:
         rawmems_npzpath = DATADIR + os.sep + 'mems_genes_types_compressed.npz'
         rows_to_delete, memory_array, genes, clusters = prune_memories_genes(rawmems_npzpath, save=True)  # TODO prune cluster dict based on this pruning...
-        np.savetxt(DATADIR + os.sep + 'rows_to_delete.txt', np.array(rows_to_delete), delimiter=",", fmt="%d")  # note these are indexed with 0 a gene not 'cluster_id'
+        np.savetxt(DATADIR + os.sep + 'rows_to_delete_A.txt', np.array(rows_to_delete), delimiter=",", fmt="%d")  # note these are indexed with 0 a gene not 'cluster_id'
+        binarized_cluster_dict = prune_cluster_dict(binarized_cluster_dict, rows_to_delete)
+
+        prunedmems_npzpath = DATADIR + os.sep + 'mems_genes_types_compressed_pruned.npz'
+        rows_to_delete, memory_array, genes, clusters = prune_memories_genes(prunedmems_npzpath, save=True)  # TODO prune cluster dict based on this pruning...
+        np.savetxt(DATADIR + os.sep + 'rows_to_delete_AB.txt', np.array(rows_to_delete), delimiter=",", fmt="%d")  # note these are indexed with 0 a gene not 'cluster_id'
         binarized_cluster_dict = prune_cluster_dict(binarized_cluster_dict, rows_to_delete)
 
     if flag_prune_rawdata:
-        rows_to_delete = np.loadtxt(DATADIR + os.sep + 'rows_to_delete.txt')  # note these are indexed with 0 a gene not 'cluster_id'
+        #TODO fix pruning so its all done at once (boring all off/on and dupes, then save single pruned rows file
+        rows_to_delete = np.loadtxt(DATADIR + os.sep + 'rows_to_delete_AB.txt')  # note these are indexed with 0 a gene not 'cluster_id'
         rows_to_delete_increment_for_clusterrow = [i+1 for i in rows_to_delete]
         _, arr, genes, cells = prune_boring_rows(rawdata_npzpath, specified_rows=rows_to_delete_increment_for_clusterrow)
 
     if flag_basinscore:
-        # load pruned raw data
-        # run         cluster_dict, metadata = parse_exptdata(arr, genes, verbose=verbose)
-        # load pruned mems
-        # assert gene lists same for example as QC check
-        # do scoring below...
-
+        # (1) load pruned raw data
+        rawpruned_path = datadir + os.sep + 'arr_genes_cells_withcluster_compressed_pruned.npz'
+        arr, genes, cells = load_npz_of_arr_genes_cells(rawpruned_path, verbose=True)
+        # (2) create pruned cluster dict
+        cluster_dict, metadata = parse_exptdata(arr, genes, verbose=verbose)
+        # (3) binarize cluster dict
+        binarized_cluster_dict = binarize_cluster_dict(cluster_dict, metadata, binarize_method=binarize_method)
+        # (4) create memory matrix
+        #     - alternative: load memory array from file and assert gene lists same for example as QC check
+        memory_array = binary_cluster_dict_to_memories(binarized_cluster_dict, metadata, memory_method=memory_method)
+        # (5) basin scores
         basin_scores = get_basins_scores(memory_array, binarized_cluster_dict, metadata,
                                          basinscore_method=basinscore_method)
-        # plotting
+        # (6) plotting
         plot_basins_scores(basin_scores)

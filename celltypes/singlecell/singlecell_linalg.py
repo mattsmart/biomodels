@@ -1,5 +1,7 @@
 import numpy as np
 
+from singlecell_constants import J_RANDOM_DELETE_RATIO
+
 
 def memory_corr_matrix_and_inv(xi, check_invertible=False):
 
