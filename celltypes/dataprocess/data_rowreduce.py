@@ -1,8 +1,8 @@
 import numpy as np
 import os
 
+from data_settings import DATADIR
 from data_standardize import load_npz_of_arr_genes_cells
-from singlecell.singlecell_constants import DATADIR
 
 """
 Script to reduce row count (number of genes) in single-cell RNA expression data (N genes x M cells)
