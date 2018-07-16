@@ -31,3 +31,6 @@ celltypes/stored/
 nonequilibrium/runs/
 celltypes/singlecell/data/scMCA/
 celltypes/singlecell/data/2018_scMCA/
+celltypes/cytokine/runs/cytokines/2018-07-16 11.21.28AM/data/sc_state_model_B.txt
+celltypes/multicell/runs/
+celltypes/cytokine/runs/
