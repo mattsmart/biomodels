@@ -134,66 +134,6 @@ def save_npz_of_arr_genes_cells(npzpath, arr, genes, cells):
     return
 
 
-def parse_exptdata(states_raw, gene_labels, verbose=True):
-    """
-    Args:
-        - states_raw: stores array of state data and cluster labels for each cell state (column)
-        - gene_labels: stores row names i.e. gene or PCA labels (expect list or numpy array)
-    Notes: data format may change with time
-        - (ASSUMED) convention is first row stores cluster index, from 0 to np.max(row 0) == K - 1
-        - future convention may be to store unique integer ID for each column corresponding to earlier in pipeline
-        - maybe also extract and pass metadata_dict info (i.e. K, N, M, filename information on pipeline)
-    Returns:
-        - cluster_dict: {cluster_idx: N x M array of raw cell states in the cluster (i.e. not binarized)}
-        - metadata: dict, mainly stores N x 1 array of 'gene_labels' for each row
-    """
-    if type(gene_labels) is np.ndarray:
-        gene_labels = gene_labels.tolist()
-    else:
-        assert type(gene_labels) is list
-
-    states_row0 = states_raw[0, :]
-    states_truncated = states_raw[1:, :]
-    num_genes, num_cells = states_truncated.shape  # aka N, M
-    num_clusters = np.max(states_raw[0, :]) + 1
-    if verbose:
-        print "raw data dimension: %d x %d" % (states_raw.shape)
-        print "cleaned data dimension: %d x %d" % (states_truncated.shape)
-        print "num_clusters is %d" % num_clusters
-
-    # process gene labels
-    assert len(gene_labels) == num_genes or len(gene_labels) == num_genes + 1
-    if len(gene_labels) == num_genes + 1:
-        assert 'cluster' in gene_labels[0]
-        gene_labels = gene_labels[1:]
-
-    # prep cluster_dict
-    cluster_dict = {}
-    cluster_indices = {k: [] for k in xrange(num_clusters)}
-    # TODO optimize this chunk if needed
-    for cell_idx in xrange(num_cells):
-        cluster_idx = states_row0[cell_idx]
-        cluster_indices[cluster_idx].append(cell_idx)
-
-    # build cluster dict
-    if verbose:
-        print "cluster_indices collected; building cluster arrays..."
-    for k in xrange(num_clusters):
-        print k
-        cluster_dict[k] = states_truncated.take(cluster_indices[k], axis=1)
-
-    # fill metatadata dict
-    metadata = {}
-    metadata['gene_labels'] = gene_labels
-    metadata['num_clusters'] = num_clusters
-    metadata['K'] = num_clusters
-    metadata['num_genes'] = num_genes
-    metadata['N'] = num_genes
-    metadata['num_cells'] = num_cells
-    metadata['M'] = num_cells
-    return cluster_dict, metadata
-
-
 if __name__ == '__main__':
 
     # choose pipeline from PIPELINES_VALID
