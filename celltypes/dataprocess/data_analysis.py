@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from data_io import parse_exptdata, load_npz_of_arr_genes_cells
+from data_standardize import parse_exptdata, load_npz_of_arr_genes_cells
 from data_process import binarize_cluster_dict, binary_cluster_dict_to_memories
 from singlecell.singlecell_constants import DATADIR
 from singlecell.singlecell_functions import hamiltonian, hamming, state_memory_projection_single
