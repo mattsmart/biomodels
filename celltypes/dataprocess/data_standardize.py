@@ -2,7 +2,7 @@ import numpy as np
 import os
 import re
 
-from singlecell.singlecell_constants import DATADIR
+from data_settings import DATADIR, RAWDATA_2014MEHTA, RAWDATA_2018SCMCA
 
 """
 Standardize: convert different formats of scRNA expression data into local standard
@@ -22,13 +22,13 @@ Standardize: convert different formats of scRNA expression data into local stand
 # TODO unit tests for pruning and clustering (e.g. augment SI_mehta_zscore file to 10x10 size or so)
 
 
-MEHTA_ZSCORE_DATAFILE_PATH = DATADIR + os.sep + "2014_mehta" + os.sep + "SI_mehta_zscore_table.txt"
-
-
 def read_datafile_simple(datapath, verbose=True, txt=False):
+    """
+    Loads file at datapath, which is either a txt file or npy file
+    """
     if txt:
         assert datapath[-4:] == '.txt'
-        arr = np.loadtxt(datapath, skiprows=1, usecols=(1,3,4))
+        arr = np.loadtxt(datapath)
     else:
         arr = np.load(datapath)
     if verbose:
@@ -83,7 +83,7 @@ def read_datafile_manual(datapath, verbose=True, save_as_sep_npy=False):
     return arr, gene_names, cell_names
 
 
-def load_singlecell_data(zscore_datafile=MEHTA_ZSCORE_DATAFILE_PATH, savenpz='mems_genes_clusters_raw_compressed'):
+def load_singlecell_data(zscore_datafile=RAWDATA_2014MEHTA, savenpz='mems_genes_clusters_raw_compressed'):
     """
     Returns list of cell types (size p), list of TFs (size N), and xi array where xi_ij is ith TF value in cell type j
     Note the Mehta SI file has odd formatting (use regex to parse); array text file is read in as single line:
@@ -136,54 +136,6 @@ def save_npz_of_arr_genes_cells(npzpath, arr, genes, cells):
 
 def binarize_data(xi):
     return 1.0 * np.where(xi > 0, 1, -1)  # mult by 1.0 to cast as float
-
-
-def attach_cluster_id_arr_manual(npzpath, clusterpath, save=True, one_indexed=True):
-    """
-    one_indexed: if true, assume cluster index starts at 1 (as in scMCA)
-    """
-    arr, genes, cells = load_npz_of_arr_genes_cells(npzpath)
-    # generate cell_to_cluster_idx mapping
-    cluster_info = {}
-    # expected format of csv file is "cell name, cluster idx, tissue origin"
-    with open(clusterpath) as f:
-        for idx, line in enumerate(f):
-            line = line.rstrip()
-            line = line.split(',')
-            cluster_info[line[0]] = int(line[1])
-    # adjust genes and arr contents
-    arr = np.insert(arr, 0, 0, axis=0)
-    genes = np.insert(genes, 0, 'cluster_id')  # TODO should have global constant for this mock gene label
-    if one_indexed:
-        for idx in xrange(len(cells)):
-            arr[0,idx] = cluster_info[cells[idx]] - 1
-    else:
-        for idx in xrange(len(cells)):
-            arr[0,idx] = cluster_info[cells[idx]]
-    # save and return data
-    if save:
-        print "saving cluster-appended arrays..."
-        np.savez_compressed(datadir + os.sep + "arr_genes_cells_withcluster_compressed.npz", arr=arr, genes=genes, cells=cells)
-    return arr, genes, cells
-
-
-def load_cluster_labels(clusterpath, one_indexed=True):
-    """
-    one_indexed: if true, assume cluster index starts at 1 (as in scMCA)
-    """
-    cluster_labels = {}
-    if one_indexed:
-        dec = 1
-    else:
-        dec = 0
-    # expected format of csv file is "cluster number, name"
-    with open(clusterpath) as f:
-        for idx, line in enumerate(f):
-            line = line.rstrip()
-            line = line.split(',')
-            print line
-            cluster_labels[int(line[0])-dec] = line[1]
-    return cluster_labels
 
 
 def parse_exptdata(states_raw, gene_labels, verbose=True):
@@ -250,41 +202,25 @@ if __name__ == '__main__':
     datadir = DATADIR
     # run flags
     flag_load_simple = False
-    flag_process_manual = False
-    flag_load_sep_npy = False
     flag_load_compressed_npz = False
-    flag_attach_clusters_resave = False
     flag_standardize_2018scMCA = False
     flag_standardize_2014mehta = False
 
     # simple data load
     if flag_load_simple:
-        datapath = datadir + os.sep + "SI_Figure2-batch-removed.txt"
-        arr = read_datafile_simple(datapath, verbose=True, txt=True)
-
-    if flag_process_manual:
-        datapath = datadir + os.sep + "SI_Figure2-batch-removed.txt"
-        arr, genes, cells = read_datafile_manual(datapath, verbose=True)
-
-    if flag_load_sep_npy:
-        arrpath = datadir + os.sep + "raw_arr.npy"
-        genespath = datadir + os.sep + "raw_genes.npy"
-        cellspath = datadir + os.sep + "raw_cells.npy"
-        arr = read_datafile_simple(arrpath, verbose=True)
-        genes = read_datafile_simple(genespath, verbose=True)
-        cells = read_datafile_simple(cellspath, verbose=True)
+        datapath = "insert path"
+        is_txtfile = False
+        arr = read_datafile_simple(datapath, verbose=True, txt=is_txtfile)
 
     if flag_load_compressed_npz:
-        compressed_file = datadir + os.sep + "mems_genes_types_compressed.npz"
+        compressed_file = "insert path"
         arr, genes, cells = load_npz_of_arr_genes_cells(compressed_file)
-        np.savetxt('mems.csv', arr)
 
-    if flag_attach_clusters_resave:
-        compressed_file = datadir + os.sep + "arr_genes_cells_raw_compressed.npz"
-        clusterpath = datadir + os.sep + "SI_cells_to_clusters.csv"
-        arr, genes, cells = attach_cluster_id_arr_manual(compressed_file, clusterpath, save=True)
+    if flag_standardize_2018scMCA:
+        datapath = RAWDATA_2018SCMCA
+        arr, genes, cells = read_datafile_manual(datapath, verbose=True)
 
     if flag_standardize_2014mehta:
         # part 1: load their zscore textfile, save in standard npz format
-        expression_data, genes, celltypes = load_singlecell_data(zscore_datafile=MEHTA_ZSCORE_DATAFILE_PATH,
+        expression_data, genes, celltypes = load_singlecell_data(zscore_datafile=RAWDATA_2014MEHTA,
                                                                  savenpz='mehta_mems_genes_types_zscore_compressed.npz')
