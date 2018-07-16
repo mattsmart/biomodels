@@ -2,9 +2,9 @@ import numpy as np
 import os
 
 from data_rowreduce import prune_boring_rows
+from data_settings import DATADIR
 from data_standardize import parse_exptdata, save_npz_of_arr_genes_cells, load_npz_of_arr_genes_cells, \
                              load_cluster_labels
-from singlecell.singlecell_constants import DATADIR
 
 """
 Purpose: process standardized expression data (i.e. converted to npz of arr, genes, cells)
