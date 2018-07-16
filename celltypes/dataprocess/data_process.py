@@ -1,10 +1,12 @@
 import numpy as np
 import os
 
-from data_rowreduce import prune_boring_rows
-from data_settings import DATADIR
-from data_standardize import parse_exptdata, save_npz_of_arr_genes_cells, load_npz_of_arr_genes_cells, \
-                             load_cluster_labels
+from data_cluster import load_cluster_labels, attach_cluster_id_arr_manual
+from data_rowreduce import prune_rows
+from data_settings import DATADIR, PIPELINES_VALID, WITHCLUSTERS_2018SCMCA, NPZ_2018SCMCA_MEMS, NPZ_2018SCMCA_ORIG, \
+                          NPZ_2018SCMCA_ORIG_WITHCLUSTER, NPZ_2014MEHTA_ORIG
+from data_standardize import parse_exptdata, save_npz_of_arr_genes_cells, load_npz_of_arr_genes_cells
+
 
 """
 Purpose: process standardized expression data (i.e. converted to npz of arr, genes, cells)
@@ -31,6 +33,10 @@ Main output:
 # TODO have report script which stores all processing flags/choices/order
 # TODO maybe have rundir for results of each proc run
 # TODO how to save cluster dict? as npz?
+
+
+def binarize_data(xi):
+    return 1.0 * np.where(xi > 0, 1, -1)  # mult by 1.0 to cast as float
 
 
 def binarize_cluster_dict(cluster_dict, metadata, binarize_method="by_gene"):
@@ -109,8 +115,8 @@ def load_memories_genes_clusters(npzpath):
     return mem_arr, genes, clusters
 
 
-def prune_memories_genes(npzpath, save=True):
-    rows_to_delete, mem_arr, genes, clusters = prune_boring_rows(npzpath, save=save)
+def prune_memories_genes(npzpath):
+    rows_to_delete, mem_arr, genes, clusters = prune_rows(npzpath, save_pruned=True, save_rows=True)
     return rows_to_delete, mem_arr, genes, clusters
 
 
@@ -123,51 +129,85 @@ def prune_cluster_dict(cluster_dict, rows_to_delete):
 
 
 if __name__ == '__main__':
-    # run flags
-    datadir = DATADIR + os.sep + "2018_scMCA"
-    flag_load_raw = False
-    flag_prune_mems = False
-    flag_prune_rawdata = True
-    flag_process_data_2018scMCA = False
-    flag_process_data_2014mehta = False
-    # options
-    verbose = True
-    binarize_method = "by_gene"  # either 'by_cluster', 'by_gene'
-    memory_method = "default"
-    basinscore_method = "trajectories"  # either 'trajectories', 'crawler'
 
-    rawdata_npzpath = datadir + os.sep + 'arr_genes_cells_withcluster_compressed.npz'
+    # choose pipeline from PIPELINES_VALID
+    pipeline = "2018_scMCA"
+    assert pipeline in PIPELINES_VALID
+    datadir = DATADIR + os.sep + pipeline
 
-    if flag_load_raw:
-        arr, genes, cells = load_npz_of_arr_genes_cells(rawdata_npzpath)
-        cluster_dict, metadata = parse_exptdata(arr, genes, verbose=verbose)
-        binarized_cluster_dict = binarize_cluster_dict(cluster_dict, metadata, binarize_method=binarize_method)
-        memory_array = binary_cluster_dict_to_memories(binarized_cluster_dict, metadata, memory_method=memory_method)
+    if pipeline == "2014_mehta":
+        flag_load_raw = True
+        flag_prune_mems = True
+        flag_prune_rawdata = True
+        # options
+        verbose = True
 
-    if flag_prune_mems:
-        rawmems_npzpath = DATADIR + os.sep + 'mems_genes_types_compressed.npz'
-        rows_to_delete, memory_array, genes, clusters = prune_memories_genes(rawmems_npzpath, save=True)  # TODO prune cluster dict based on this pruning...
-        np.savetxt(DATADIR + os.sep + 'rows_to_delete_A.txt', np.array(rows_to_delete), delimiter=",", fmt="%d")  # note these are indexed with 0 a gene not 'cluster_id'
-        binarized_cluster_dict = prune_cluster_dict(binarized_cluster_dict, rows_to_delete)
-
-        prunedmems_npzpath = DATADIR + os.sep + 'mems_genes_types_compressed_pruned.npz'
-        rows_to_delete, memory_array, genes, clusters = prune_memories_genes(prunedmems_npzpath, save=True)  # TODO prune cluster dict based on this pruning...
-        np.savetxt(DATADIR + os.sep + 'rows_to_delete_AB.txt', np.array(rows_to_delete), delimiter=",", fmt="%d")  # note these are indexed with 0 a gene not 'cluster_id'
-        binarized_cluster_dict = prune_cluster_dict(binarized_cluster_dict, rows_to_delete)
-
-    if flag_prune_rawdata:
-        #TODO fix pruning so its all done at once (boring all off/on and dupes, then save single pruned rows file
-        rows_to_delete = np.loadtxt(DATADIR + os.sep + 'rows_to_delete_AB.txt')  # note these are indexed with 0 a gene not 'cluster_id'
-        rows_to_delete_increment_for_clusterrow = [i+1 for i in rows_to_delete]
-        _, arr, genes, cells = prune_boring_rows(rawdata_npzpath, specified_rows=rows_to_delete_increment_for_clusterrow)
-
-
-    if flag_process_data_2014mehta:
-        # part 2: load npz, binarize, save
-        npzpath = DATADIR + os.sep + "2014_mehta" + os.sep + 'mehta_mems_genes_types_zscore_compressed.npz'
+        # part 1: binarize standardized npz zscore data
+        npzpath = NPZ_2014MEHTA_ORIG
         expression_data, genes, celltypes = load_npz_of_arr_genes_cells(npzpath, verbose=True)
         xi = binarize_data(expression_data)
-        compressed_boolean = datadir + os.sep + "mehta_mems_genes_types_boolean_compressed.npz"
+        compressed_boolean = datadir + os.sep + "mems_genes_types_boolean_compressed.npz"
         save_npz_of_arr_genes_cells(compressed_boolean, xi, genes, celltypes)
         # part 3: load npz, prune, save
-        rows_to_delete, xi, genes, celltypes = prune_boring_rows(compressed_boolean)
+        rows_to_delete, xi, genes, celltypes = prune_rows(compressed_boolean, save_pruned=True, save_rows=True)
+
+    elif pipeline == "2018_scMCA":
+        flag_add_cluster_to_raw = True
+        flag_build_cluster_dict_metadata = True
+        flag_binarize_clusters = True
+        flag_gen_memory_matrix = True
+        flag_prune_mems = True
+        flag_prune_raw = True
+        # options
+        verbose = True
+        binarize_method = "by_gene"  # either 'by_cluster', 'by_gene'
+        memory_method = "default"
+
+        # (1) ensure raw data npz created (using data_standardize.npz)
+        # (2) cluster raw data npz (add known clusters)  -> raw npz wth cluster row
+        if flag_add_cluster_to_raw:
+            clusterpath = WITHCLUSTERS_2018SCMCA
+            arr, genes, cells = attach_cluster_id_arr_manual(NPZ_2018SCMCA_ORIG, clusterpath, save=True, one_indexed=True)
+        # (3) process npz of raw data with clusters  -> cluster_dict, metadata
+        if flag_build_cluster_dict_metadata:
+            if not flag_add_cluster_to_raw:
+                arr, genes, cells = load_npz_of_arr_genes_cells(WITHCLUSTERS_2018SCMCA)
+            cluster_dict, metadata = parse_exptdata(arr, genes, verbose=verbose)
+        # (4) binarize cluster dct -> binarized_cluster_dict
+        if flag_binarize_clusters:
+            if not flag_build_cluster_dict_metadata:
+                arr, genes, cells = load_npz_of_arr_genes_cells(WITHCLUSTERS_2018SCMCA)
+                cluster_dict, metadata = parse_exptdata(arr, genes, verbose=verbose)
+            binarized_cluster_dict = binarize_cluster_dict(cluster_dict, metadata, binarize_method=binarize_method)
+        # (5) -> boolean memory matrix, mem genes types npz
+        if flag_gen_memory_matrix:
+            if not flag_binarize_clusters:
+                arr, genes, cells = load_npz_of_arr_genes_cells(WITHCLUSTERS_2018SCMCA)
+                cluster_dict, metadata = parse_exptdata(arr, genes, verbose=verbose)
+                binarized_cluster_dict = binarize_cluster_dict(cluster_dict, metadata, binarize_method=binarize_method)
+            _ = binary_cluster_dict_to_memories(binarized_cluster_dict, metadata, memory_method=memory_method)
+        # (6) prune mems -> boolean memory matrix (pruned), mem genes types npz
+        if flag_prune_mems:
+            rawmems_npzpath = NPZ_2018SCMCA_MEMS
+            rows_to_delete, memory_array, genes, clusters = prune_memories_genes(rawmems_npzpath)  # TODO prune cluster dict based on this pruning...
+        # (7) prune raw data -> boolean memory matrix (pruned), mem genes types npz
+        if flag_prune_raw:
+            if not flag_prune_mems:
+                rows_to_delete = np.loadtxt(datadir + os.sep + "rows_to_delete.txt", delimiter=',')
+            binarized_cluster_dict = prune_cluster_dict(binarized_cluster_dict, rows_to_delete)
+            rows_to_delete = np.loadtxt(datadir + os.sep + 'rows_to_delete.txt')
+            rows_to_delete_increment_for_clusterrow = [i+1 for i in rows_to_delete]
+            _, _, _, _ = prune_rows(NPZ_2018SCMCA_ORIG, specified_rows=rows_to_delete, save_pruned=True, save_rows=False)
+            _, _, _, _ = prune_rows(NPZ_2018SCMCA_ORIG_WITHCLUSTER, specified_rows=rows_to_delete_increment_for_clusterrow,
+                                    save_pruned=True, save_rows=False)
+
+    else:
+        # TODO
+        flag_load_raw = True
+        flag_prune_mems = True
+        flag_prune_rawdata = True
+        # options
+        verbose = True
+        binarize_method = "by_gene"  # either 'by_cluster', 'by_gene'
+        memory_method = "default"
+        print "No misc processing implemented"

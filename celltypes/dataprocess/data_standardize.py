@@ -2,7 +2,7 @@ import numpy as np
 import os
 import re
 
-from data_settings import DATADIR, RAWDATA_2014MEHTA, RAWDATA_2018SCMCA
+from data_settings import DATADIR, RAWDATA_2014MEHTA, RAWDATA_2018SCMCA, PIPELINES_VALID
 
 """
 Standardize: convert different formats of scRNA expression data into local standard
@@ -134,17 +134,13 @@ def save_npz_of_arr_genes_cells(npzpath, arr, genes, cells):
     return
 
 
-def binarize_data(xi):
-    return 1.0 * np.where(xi > 0, 1, -1)  # mult by 1.0 to cast as float
-
-
 def parse_exptdata(states_raw, gene_labels, verbose=True):
     """
     Args:
         - states_raw: stores array of state data and cluster labels for each cell state (column)
         - gene_labels: stores row names i.e. gene or PCA labels (expect list or numpy array)
     Notes: data format may change with time
-        - convention is first row stores cluster index, from 0 to np.max(row 0) == K - 1
+        - (ASSUMED) convention is first row stores cluster index, from 0 to np.max(row 0) == K - 1
         - future convention may be to store unique integer ID for each column corresponding to earlier in pipeline
         - maybe also extract and pass metadata_dict info (i.e. K, N, M, filename information on pipeline)
     Returns:
@@ -199,28 +195,30 @@ def parse_exptdata(states_raw, gene_labels, verbose=True):
 
 
 if __name__ == '__main__':
-    datadir = DATADIR
-    # run flags
-    flag_load_simple = False
-    flag_load_compressed_npz = False
-    flag_standardize_2018scMCA = False
-    flag_standardize_2014mehta = False
 
-    # simple data load
-    if flag_load_simple:
-        datapath = "insert path"
-        is_txtfile = False
-        arr = read_datafile_simple(datapath, verbose=True, txt=is_txtfile)
+    # choose pipeline from PIPELINES_VALID
+    pipeline = "2018_scMCA"
+    assert pipeline in PIPELINES_VALID
+    datadir = DATADIR + os.sep + pipeline
 
-    if flag_load_compressed_npz:
-        compressed_file = "insert path"
-        arr, genes, cells = load_npz_of_arr_genes_cells(compressed_file)
-
-    if flag_standardize_2018scMCA:
+    if pipeline == "2018_scMCA":
         datapath = RAWDATA_2018SCMCA
         arr, genes, cells = read_datafile_manual(datapath, verbose=True)
-
-    if flag_standardize_2014mehta:
+    elif pipeline == "2014_mehta":
         # part 1: load their zscore textfile, save in standard npz format
         expression_data, genes, celltypes = load_singlecell_data(zscore_datafile=RAWDATA_2014MEHTA,
-                                                                 savenpz='mehta_mems_genes_types_zscore_compressed.npz')
+                                                                 savenpz='mems_genes_types_zscore_compressed.npz')
+    else:
+        # run flags
+        flag_load_simple = False
+        flag_load_compressed_npz = False
+
+        # simple data load
+        if flag_load_simple:
+            datapath = "insert path"
+            is_txtfile = False
+            arr = read_datafile_simple(datapath, verbose=True, txt=is_txtfile)
+
+        if flag_load_compressed_npz:
+            compressed_file = "insert path"
+            arr, genes, cells = load_npz_of_arr_genes_cells(compressed_file)
