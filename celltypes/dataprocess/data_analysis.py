@@ -2,9 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from data_standardize import parse_exptdata, load_npz_of_arr_genes_cells
 from data_process import binarize_cluster_dict, binary_cluster_dict_to_memories
-from singlecell.singlecell_constants import DATADIR
+from data_settings import DATADIR
+from data_standardize import parse_exptdata, load_npz_of_arr_genes_cells
 from singlecell.singlecell_functions import hamiltonian, hamming, state_memory_projection_single
 from singlecell.singlecell_linalg import memory_corr_matrix_and_inv, interaction_matrix, predictivity_matrix
 from singlecell.singlecell_simulate import singlecell_sim
