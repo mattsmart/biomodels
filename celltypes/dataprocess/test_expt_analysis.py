@@ -1,7 +1,7 @@
 import numpy as np
 import unittest
 
-from expt_analysis import build_basin_states
+from data_analysis import build_basin_states
 from singlecell_functions import hamiltonian, hamming, label_to_state
 
 

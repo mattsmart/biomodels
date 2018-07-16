@@ -2,7 +2,9 @@ import numpy as np
 import os
 import re
 
-from singlecell_constants import DATADIR, MEHTA_ZSCORE_DATAFILE_PATH
+from singlecell.singlecell_constants import DATADIR
+
+MEHTA_ZSCORE_DATAFILE_PATH = DATADIR + os.sep + "2014_mehta" + os.sep + "SI_mehta_zscore_table.txt"
 
 # TODO pass metadata to all functions?
 # TODO test and optimize read_exptdata_from_files
