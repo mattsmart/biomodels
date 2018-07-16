@@ -1,13 +1,36 @@
 import numpy as np
 import os
 
-from data_standardize import parse_exptdata, load_npz_of_arr_genes_cells, save_npz_of_arr_genes_cells, \
-                               load_npz_of_arr_genes_cells, load_cluster_labels, prune_boring_rows
+from data_rowreduce import prune_boring_rows
+from data_standardize import parse_exptdata, save_npz_of_arr_genes_cells, load_npz_of_arr_genes_cells, \
+                             load_cluster_labels
 from singlecell.singlecell_constants import DATADIR
+
+"""
+Purpose: process standardized expression data (i.e. converted to npz of arr, genes, cells)
+ - cluster data, or load in clustered results and attach it to first row of gene, expression in the npz
+ - save clustered raw data in standard npz format (npz of arr, genes, cells)
+ - convert raw data into "cluster dict": dictionary that maps cluster data to submatrix of genes x cells
+ - binarize data within each cluster dict
+ - create binarized cluster dict
+ - from binarized cluster dict: create "memory" / "cell type" matrix (get representative column from each cluster)
+ - save memory matrix in standard npz format (npz of mems, genes, types)
+ - reduce row number with various pruning techniques
+ - save total row reduction in file "removed_rows.txt"
+ - save reduced memory matrix in standard npz format (npz of mems, genes, types)
+ - use "removed_rows.txt" to delete rows of original raw data 
+ - save reduced clustered raw data in standard npz format (npz of arr, genes, cells)
+ - save reduced unclustered raw data in standard npz format (npz of arr, genes, cells)
+Main output:
+ - reduced memory matrix is used as input to singlecell module
+"""
 
 # TODO pass metadata to all functions?
 # TODO test and optimize build_basin_states
 # TODO build remaining functions + unit tests
+# TODO have report script which stores all processing flags/choices/order
+# TODO maybe have rundir for results of each proc run
+# TODO how to save cluster dict? as npz?
 
 
 def binarize_cluster_dict(cluster_dict, metadata, binarize_method="by_gene"):
@@ -105,7 +128,8 @@ if __name__ == '__main__':
     flag_load_raw = False
     flag_prune_mems = False
     flag_prune_rawdata = True
-
+    flag_process_data_2018scMCA = False
+    flag_process_data_2014mehta = False
     # options
     verbose = True
     binarize_method = "by_gene"  # either 'by_cluster', 'by_gene'
@@ -136,3 +160,14 @@ if __name__ == '__main__':
         rows_to_delete = np.loadtxt(DATADIR + os.sep + 'rows_to_delete_AB.txt')  # note these are indexed with 0 a gene not 'cluster_id'
         rows_to_delete_increment_for_clusterrow = [i+1 for i in rows_to_delete]
         _, arr, genes, cells = prune_boring_rows(rawdata_npzpath, specified_rows=rows_to_delete_increment_for_clusterrow)
+
+
+    if flag_process_data_2014mehta:
+        # part 2: load npz, binarize, save
+        npzpath = DATADIR + os.sep + "2014_mehta" + os.sep + 'mehta_mems_genes_types_zscore_compressed.npz'
+        expression_data, genes, celltypes = load_npz_of_arr_genes_cells(npzpath, verbose=True)
+        xi = binarize_data(expression_data)
+        compressed_boolean = datadir + os.sep + "mehta_mems_genes_types_boolean_compressed.npz"
+        save_npz_of_arr_genes_cells(compressed_boolean, xi, genes, celltypes)
+        # part 3: load npz, prune, save
+        rows_to_delete, xi, genes, celltypes = prune_boring_rows(compressed_boolean)

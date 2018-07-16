@@ -4,11 +4,25 @@ import re
 
 from singlecell.singlecell_constants import DATADIR
 
-MEHTA_ZSCORE_DATAFILE_PATH = DATADIR + os.sep + "2014_mehta" + os.sep + "SI_mehta_zscore_table.txt"
-
+"""
+Standardize: convert different formats of scRNA expression data into local standard
+    - store row labels (genes), column labels (cell ID), and data (expression levels) in one format
+    - this format is compressed ".npz" files 
+    - save via: save_npz_of_arr_genes_cells(...) calls numpy's savez_compressed(...)
+      i.e. np.savez_compressed(npzpath, arr=arr, genes=genes, cells=cells) -- all as numpy arrays
+    - load via: load_npz_of_arr_genes_cells(...) calls numpy's load(...)
+    - loaded npz acts similar to dictionary
+        loaded = np.load(npzpath)
+        arr = loaded['arr']
+        genes = loaded['genes']
+        cells = loaded['cells']
+"""
 # TODO pass metadata to all functions?
 # TODO test and optimize read_exptdata_from_files
 # TODO unit tests for pruning and clustering (e.g. augment SI_mehta_zscore file to 10x10 size or so)
+
+
+MEHTA_ZSCORE_DATAFILE_PATH = DATADIR + os.sep + "2014_mehta" + os.sep + "SI_mehta_zscore_table.txt"
 
 
 def read_datafile_simple(datapath, verbose=True, txt=False):
@@ -115,13 +129,13 @@ def load_npz_of_arr_genes_cells(npzpath, verbose=True):
     return arr, genes, cells
 
 
-def binarize_data(xi):
-    return 1.0 * np.where(xi > 0, 1, -1)  # mult by 1.0 to cast as float
-
-
 def save_npz_of_arr_genes_cells(npzpath, arr, genes, cells):
     np.savez_compressed(npzpath, arr=arr, genes=genes, cells=cells)
     return
+
+
+def binarize_data(xi):
+    return 1.0 * np.where(xi > 0, 1, -1)  # mult by 1.0 to cast as float
 
 
 def attach_cluster_id_arr_manual(npzpath, clusterpath, save=True, one_indexed=True):
@@ -151,87 +165,6 @@ def attach_cluster_id_arr_manual(npzpath, clusterpath, save=True, one_indexed=Tr
         print "saving cluster-appended arrays..."
         np.savez_compressed(datadir + os.sep + "arr_genes_cells_withcluster_compressed.npz", arr=arr, genes=genes, cells=cells)
     return arr, genes, cells
-
-
-def prune_boring_rows(npzpath, specified_rows=None, save=True):
-    """
-    Delete rows from array and corresponding genes that are self-duplicates
-    NOTE: very similar to reduce_gene_set(xi, gene_labels)
-    """
-    arr, genes, cells = load_npz_of_arr_genes_cells(npzpath)
-    print "CHECK FIRST ROW NOT CLUSTER ROW:", genes[0]
-    if specified_rows is None:
-        # collect rows to delete
-        rows_duplicates = np.all(arr.T == arr.T[0,:], axis=0)
-        rows_to_delete = np.array([idx for idx, val in enumerate(rows_duplicates) if val])
-        # note pruned rows
-        print "number of self-duplicate rows:", len(rows_to_delete)
-        print rows_to_delete
-        print rows_to_delete[0:10]
-    else:
-        rows_to_delete = np.array(specified_rows)
-    # adjust genes and arr contents
-    print "Orig shape arr, genes, cells:", arr.shape, genes.shape, cells.shape
-    arr = np.delete(arr, rows_to_delete, axis=0)
-    genes = np.delete(genes, rows_to_delete)  # TODO should have global constant for this mock gene label
-    print "New shape arr, genes, cells:", arr.shape, genes.shape, cells.shape
-    # save and return data
-    if save:
-        print "saving pruned arrays..."
-        datadir = os.path.abspath(os.path.join(npzpath, os.pardir))
-        base = os.path.basename(npzpath)
-        basestr = os.path.splitext(base)[0]
-        savestr = basestr + '_pruned.npz'
-        np.savez_compressed(datadir + os.sep + savestr, arr=arr, genes=genes, cells=cells)
-    return rows_to_delete, arr, genes, cells
-
-
-def prune_duplicate_rows(npzpath, specified_rows=None, save=True):
-    """
-    Find duplicate rows (i.e. row i and row j are the same)
-    Retain only one copy of each duplicate row (the last one, via np.unique())
-    """
-    arr, genes, cells = load_npz_of_arr_genes_cells(npzpath)
-    num_rows, num_cols = arr.shape
-    print "CHECK FIRST ROW NOT CLUSTER ROW:", genes[0]
-
-    if specified_rows is None:
-        # collect rows to delete
-        _, unique_indices = np.unique(arr, return_index=True, axis=0)
-        rows_to_delete = np.array(list(set(range(num_rows)) - set(unique_indices)))
-        # note pruned rows
-        print "number of duplicated rows (num to delete):", len(rows_to_delete)
-        print rows_to_delete
-        print rows_to_delete[0:10]
-    else:
-        rows_to_delete = np.array(specified_rows)
-    # adjust genes and arr contents
-    print "Orig shape arr, genes, cells:", arr.shape, genes.shape, cells.shape
-    arr = np.delete(arr, rows_to_delete, axis=0)
-    genes = np.delete(genes, rows_to_delete)  # TODO should have global constant for this mock gene label
-    print "New shape arr, genes, cells:", arr.shape, genes.shape, cells.shape
-    # save and return data
-    if save:
-        print "saving (no dupes) pruned arrays..."
-        datadir = os.path.abspath(os.path.join(npzpath, os.pardir))
-        base = os.path.basename(npzpath)
-        basestr = os.path.splitext(base)[0]
-        savestr = basestr + '_nodupes.npz'
-        np.savez_compressed(datadir + os.sep + savestr, arr=arr, genes=genes, cells=cells)
-    return rows_to_delete, arr, genes, cells
-
-
-def reduce_gene_set(xi, gene_labels):  # TODO: my removal ends with 1339 left but theirs with 1337 why?
-    """
-    NOTE: very similar to prune_boring_rows(...)
-    """
-    genes_to_remove = []
-    for row_idx, row in enumerate(xi):
-        if all(map(lambda x: x == row[0], row)):
-            genes_to_remove.append(row_idx)
-    reduced_gene_labels = [gene_labels[idx] for idx in xrange(len(xi)) if idx not in genes_to_remove]
-    reduced_xi = np.array([row for idx, row in enumerate(xi) if idx not in genes_to_remove])
-    return reduced_gene_labels, reduced_xi
 
 
 def load_cluster_labels(clusterpath, one_indexed=True):
@@ -314,16 +247,15 @@ def parse_exptdata(states_raw, gene_labels, verbose=True):
 
 
 if __name__ == '__main__':
-    # run flags
     datadir = DATADIR
+    # run flags
     flag_load_simple = False
     flag_process_manual = False
     flag_load_sep_npy = False
-    flag_load_compressed_npz = True
+    flag_load_compressed_npz = False
     flag_attach_clusters_resave = False
-    flag_prune_boring_rows = False
-    flag_prune_duplicate_rows = True
-    flag_process_data_mehta = False
+    flag_standardize_2018scMCA = False
+    flag_standardize_2014mehta = False
 
     # simple data load
     if flag_load_simple:
@@ -352,23 +284,7 @@ if __name__ == '__main__':
         clusterpath = datadir + os.sep + "SI_cells_to_clusters.csv"
         arr, genes, cells = attach_cluster_id_arr_manual(compressed_file, clusterpath, save=True)
 
-    if flag_prune_boring_rows:
-        compressed_file = datadir + os.sep + "arr_genes_cells_raw_compressed.npz"
-        prune_boring_rows(compressed_file)
-
-    if flag_prune_duplicate_rows:
-        compressed_file = datadir + os.sep + "mems_genes_types_compressed_pruned.npz"
-        prune_duplicate_rows(compressed_file)
-
-    if flag_process_data_mehta:
+    if flag_standardize_2014mehta:
         # part 1: load their zscore textfile, save in standard npz format
         expression_data, genes, celltypes = load_singlecell_data(zscore_datafile=MEHTA_ZSCORE_DATAFILE_PATH,
                                                                  savenpz='mehta_mems_genes_types_zscore_compressed.npz')
-        # part 2: load npz, binarize, save
-        npzpath = DATADIR + os.sep + "2014_mehta" + os.sep + 'mehta_mems_genes_types_zscore_compressed.npz'
-        expression_data, genes, celltypes = load_npz_of_arr_genes_cells(npzpath, verbose=True)
-        xi = binarize_data(expression_data)
-        compressed_boolean = datadir + os.sep + "mehta_mems_genes_types_boolean_compressed.npz"
-        save_npz_of_arr_genes_cells(compressed_boolean, xi, genes, celltypes)
-        # part 3: load npz, prune, save
-        rows_to_delete, xi, genes, celltypes = prune_boring_rows(compressed_boolean)

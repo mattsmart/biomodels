@@ -9,7 +9,14 @@ from singlecell.singlecell_functions import hamiltonian, hamming, state_memory_p
 from singlecell.singlecell_linalg import memory_corr_matrix_and_inv, interaction_matrix, predictivity_matrix
 from singlecell.singlecell_simulate import singlecell_sim
 
-# TODO pass metadata to all functions?
+"""
+Script to check whether each cluster is representative of the basin of attraction in hopfield/projection model
+ - build interaction matrix from reduced memory matrix
+ - load reduced cluster data
+ - get basin score for each cluster by checking if all cells (in that cluster) stay within that basin dynamically
+ - plot scores 
+"""
+
 # TODO test and optimize build_basin_states
 # TODO build remaining functions + unit tests
 
