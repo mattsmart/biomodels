@@ -1,7 +1,8 @@
 # MATLAB .asv files
 *.asv
 
-# MATLAB plot images
+# Various plot images
+*.pdf
 *.jpg
 
 # Python compiled scripts
@@ -17,20 +18,25 @@ differential_equations/pde/plots/
 agent_based_models/abm_conjugation_simple/runs/
 agent_based_models/abm_conjugation_krone/runs/
 agent_based_models/abm_allelopathy/runs/
+
 biophysics_meanfield/data/
-*.pdf
+
 population_genetics/simulate - time - testing.py
 population_genetics/simulate - time.py
+
 oncogenesis_dynamics/python/output/
+
 transcriptome_clustering/rawdata/
 transcriptome_clustering/documentation/
-celltypes/abm_celltypes/runs/
+
+nonequilibrium/runs/
+
+# Celltypes IO
+celltypes/multicell/runs/
+celltypes/cytokine/runs/
 celltypes/singlecell/runs/
 celltypes/runs/
 celltypes/stored/
-nonequilibrium/runs/
-celltypes/singlecell/data/scMCA/
-celltypes/singlecell/data/2018_scMCA/
-celltypes/cytokine/runs/cytokines/2018-07-16 11.21.28AM/data/sc_state_model_B.txt
-celltypes/multicell/runs/
-celltypes/cytokine/runs/
+celltypes/input/2018_scMCA/SI_Figure2-batch-removed.7z
+celltypes/input/2018_scMCA/SI_MCA_Figure2_Cell.Info.xlsx
+celltypes/input/2018_scMCA/SI_cells_to_clusters.csv

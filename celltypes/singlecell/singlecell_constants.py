@@ -5,7 +5,6 @@ DATADIR = ".." + os.sep + "input"
 MEMORIESDIR = DATADIR + os.sep + "memories"
 MEMS_MEHTA = MEMORIESDIR + os.sep + "2014_mehta_mems_genes_types_boolean_compressed_pruned.npz"
 MEMS_SCMCA = MEMORIESDIR + os.sep + "2018_scmca_mems_genes_types_boolean_compressed_pruned.npz"
-MEHTA_ZSCORE_DATAFILE_PATH = DATADIR + os.sep + "2014_mehta" + os.sep + "SI_mehta_zscore_table.txt"
 DEFAULT_MEMORIES_NPZPATH = MEMS_MEHTA
 RUNS_FOLDER = "runs" + os.sep             # store timestamped runs here
 
@@ -24,5 +23,6 @@ FLAG_REMOVE_DUPES = True                  # remove genes that have same binarize
 NUM_STEPS = 100                           # number of full TF grid updates in the single cell simulation
 BURST_ERROR_PERIOD = 5                    # val 5 = apply every 5 full spin updates (~5000 individual spin updates)
 
+# TODO generalize, this is for 2014_MEHTA only
 IPSC_CORE_GENES = ['Sox2', 'Pou5f1', 'Klf4', 'Mycbp']  # "yamanaka" factors to make iPSC (labels for mehta dataset)
 IPSC_EXTENDED_GENES = IPSC_CORE_GENES + ['Nanog']
