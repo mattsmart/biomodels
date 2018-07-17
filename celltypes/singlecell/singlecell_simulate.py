@@ -30,10 +30,17 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_STEPS, beta=BET
     """
     # TODO: if dirs is None then do run subdir setup (just current run dir?)
     # IO setup
-    if analysis_subdir is None:
-        current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = run_subdir_setup()
+    if flag_write:
+        if analysis_subdir is None:
+            current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = run_subdir_setup()
+        else:
+            current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = run_subdir_setup(run_subfolder=analysis_subdir)
     else:
-        current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = run_subdir_setup(run_subfolder=analysis_subdir)
+        print "Warning: flag_write set to False -- nothing will be saved"
+        current_run_folder = None
+        data_folder = None
+        plot_lattice_folder = None
+        plot_data_folder = None
 
     # Cell setup
     N = xi.shape[0]
@@ -61,20 +68,22 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_STEPS, beta=BET
         # prep applied field TODO see if better speed to pass array of zeros and ditch all these if not None checks...
         if app_field is not None:
             app_field_timestep = app_field[:, step]
-        if singlecell.steps % plot_period == 0:
-            fig, ax, proj = singlecell.plot_projection(use_radar=True, pltdir=plot_lattice_folder)
+        if flag_write:
+            if singlecell.steps % plot_period == 0:
+                fig, ax, proj = singlecell.plot_projection(use_radar=True, pltdir=plot_lattice_folder)
         singlecell.update_state(beta=beta, intxn_matrix=intxn_matrix, app_field=app_field_timestep,
                                 app_field_strength=app_field_strength, randomize=False)
 
     # Write
-    print "Writing state to file.."
     print singlecell.get_current_state()
     if flag_write:
+        print "Writing state to file.."
         singlecell.write_state(data_folder)
     print "Done"
     return singlecell.get_state_array(), current_run_folder, data_folder, plot_lattice_folder, plot_data_folder
 
 
 if __name__ == '__main__':
+    flag_write = False
     app_field = np.zeros((N, NUM_STEPS))
-    singlecell_sim(plot_period=10, app_field=app_field)
+    singlecell_sim(plot_period=10, app_field=app_field, flag_write=flag_write)
