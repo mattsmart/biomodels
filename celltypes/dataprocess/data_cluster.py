@@ -55,6 +55,7 @@ def attach_cluster_id_arr_manual(npzpath, clusterpath, save=True, one_indexed=Tr
     # save and return data
     if save:
         print "saving cluster-appended arrays..."
+        datadir = os.path.abspath(os.path.join(npzpath, os.pardir))
         np.savez_compressed(datadir + os.sep + "arr_genes_cells_withcluster_compressed.npz", arr=arr, genes=genes, cells=cells)
     return arr, genes, cells
 
