@@ -19,8 +19,6 @@ def plot_as_bar(projection_vec, memory_labels=CELLTYPE_LABELS):
     return fig, plt.gca()
 
 
-
-
 def plot_as_radar(projection_vec, memory_labels=CELLTYPE_LABELS, rotate_labels=True):
     """
     # radar plots not built-in to matplotlib
