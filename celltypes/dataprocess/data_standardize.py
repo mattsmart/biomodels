@@ -17,9 +17,8 @@ Standardize: convert different formats of scRNA expression data into local stand
         genes = loaded['genes']
         cells = loaded['cells']
 """
-# TODO pass metadata to all functions?
 # TODO test and optimize read_exptdata_from_files
-# TODO unit tests for pruning and clustering (e.g. augment SI_mehta_zscore file to 10x10 size or so)
+# TODO unit tests for data loading
 
 
 def read_datafile_simple(datapath, verbose=True, txt=False):
@@ -79,11 +78,11 @@ def read_datafile_manual(datapath, verbose=True, save_as_sep_npy=False):
     else:
         genes = np.array(gene_names)
         cells = np.array(cell_names)
-        np.savez_compressed(datadir + os.sep + "arr_genes_cells_raw_compressed.npz", arr=arr, genes=genes, cells=cells)
+        np.savez_compressed(datadir + os.sep + "arr_genes_cells_compressed.npz", arr=arr, genes=genes, cells=cells)
     return arr, gene_names, cell_names
 
 
-def load_singlecell_data(zscore_datafile=RAWDATA_2014MEHTA, savenpz='mems_genes_clusters_raw_compressed'):
+def load_singlecell_data(zscore_datafile=RAWDATA_2014MEHTA, savenpz='mems_genes_types_compressed'):
     """
     Returns list of cell types (size p), list of TFs (size N), and xi array where xi_ij is ith TF value in cell type j
     Note the Mehta SI file has odd formatting (use regex to parse); array text file is read in as single line:
