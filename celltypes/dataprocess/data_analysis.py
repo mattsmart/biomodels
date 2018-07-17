@@ -92,10 +92,10 @@ def basin_projection_timeseries(k, memory_array, intxn_matrix, eta, basin_data_k
 
     for idx in xrange(basin_data_k.shape[1]):
         init_cond = basin_data_k[:, idx]
-        cellstate_array, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = singlecell_sim(
+        cellstate_array, _, _, _, _ = singlecell_sim(
             init_state=init_cond, iterations=num_steps, beta=1/TEMP, xi=memory_array, intxn_matrix=intxn_matrix,
             memory_labels=range(memory_array.shape[1]), gene_labels=range(memory_array.shape[0]),
-            flag_write=flag_write, analysis_subdir=analysis_subdir, plot_period=num_steps * 2)
+            flag_write=flag_write, analysis_subdir=analysis_subdir, plot_period=num_steps * 2, verbose=False)
         proj_timeseries_array[:, idx] = get_memory_proj_timeseries(cellstate_array, k)[:]
     if plot:
         plt.plot(xrange(num_steps), proj_timeseries_array, color='blue', linewidth=0.75)

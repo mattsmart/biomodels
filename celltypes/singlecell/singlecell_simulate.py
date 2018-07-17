@@ -16,7 +16,7 @@ NOTES:
 def singlecell_sim(init_state=None, init_id=None, iterations=NUM_STEPS, beta=BETA, xi=XI, intxn_matrix=J,
                    celltype_id=CELLTYPE_ID, memory_labels=CELLTYPE_LABELS, gene_labels=GENE_LABELS,
                    app_field=None, app_field_strength=APP_FIELD_STRENGTH, flag_burst_error=False, flag_write=True,
-                   analysis_subdir=None, plot_period=10):
+                   analysis_subdir=None, plot_period=10, verbose=True):
     """
     init_state: N x 1
     init_id: None, or memory label like 'esc', or arbitrary label (e.g. 'All on')
@@ -36,7 +36,8 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_STEPS, beta=BET
         else:
             current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = run_subdir_setup(run_subfolder=analysis_subdir)
     else:
-        print "Warning: flag_write set to False -- nothing will be saved"
+        if verbose:
+            print "Warning: flag_write set to False -- nothing will be saved"
         current_run_folder = None
         data_folder = None
         plot_lattice_folder = None
@@ -61,7 +62,8 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_STEPS, beta=BET
 
     # Simulate
     for step in xrange(iterations-1):
-        print "cell steps:", singlecell.steps, " H(state) =", singlecell.get_energy(intxn_matrix=intxn_matrix)  # TODO need general intxn_matrix parent class
+        if verbose:
+            print "cell steps:", singlecell.steps, " H(state) =", singlecell.get_energy(intxn_matrix=intxn_matrix)  # TODO need general intxn_matrix parent class
         # apply burst errors
         if flag_burst_error and step % BURST_ERROR_PERIOD == 0:
             singlecell.apply_burst_errors()
@@ -75,11 +77,14 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_STEPS, beta=BET
                                 app_field_strength=app_field_strength, randomize=False)
 
     # Write
-    print singlecell.get_current_state()
+    if verbose:
+        print singlecell.get_current_state()
     if flag_write:
-        print "Writing state to file.."
+        if verbose:
+            print "Writing state to file.."
         singlecell.write_state(data_folder)
-    print "Done"
+    if verbose:
+        print "Done"
     return singlecell.get_state_array(), current_run_folder, data_folder, plot_lattice_folder, plot_data_folder
 
 
