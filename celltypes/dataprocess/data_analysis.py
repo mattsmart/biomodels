@@ -4,7 +4,7 @@ import os
 
 from data_process import binarize_cluster_dict, binary_cluster_dict_to_memories, parse_exptdata, load_cluster_dict, \
                          load_memories_genes_clusters
-from data_settings import DATADIR
+from data_settings import DATADIR, OUTPUTDIR
 from data_standardize import load_npz_of_arr_genes_cells
 from singlecell.singlecell_data_io import run_subdir_setup
 from singlecell.singlecell_functions import hamiltonian, hamming, state_memory_projection_single
@@ -21,6 +21,8 @@ Script to check whether each cluster is representative of the basin of attractio
 
 # TODO test and optimize build_basin_states
 # TODO build remaining functions + unit tests
+
+ANALYSIS_SUBDIR = "basinscores"
 
 
 def is_energy_increase(intxn_matrix, data_vec_a, data_vec_b):
@@ -74,7 +76,8 @@ def build_basin_states(intxn_matrix, memory_vec,
     return recurse_basin_set
 
 
-def basin_projection_timeseries(k, memory_array, intxn_matrix, eta, basin_data_k, num_steps=100, plot=True, flag_write=False):
+def basin_projection_timeseries(k, memory_array, intxn_matrix, eta, basin_data_k, plot_data_folder,
+                                num_steps=100, plot=True, flag_write=False):
 
     def get_memory_proj_timeseries(state_array, memory_idx):
         num_steps = np.shape(state_array)[1]
@@ -84,9 +87,6 @@ def basin_projection_timeseries(k, memory_array, intxn_matrix, eta, basin_data_k
         return timeseries
 
     TEMP = 1e-2
-    analysis_subdir = "basinscores"
-    current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = \
-        run_subdir_setup(run_subfolder=analysis_subdir)
 
     proj_timeseries_array = np.zeros((num_steps, basin_data_k.shape[1]))
 
@@ -95,7 +95,7 @@ def basin_projection_timeseries(k, memory_array, intxn_matrix, eta, basin_data_k
         cellstate_array, _, _, _, _ = singlecell_sim(
             init_state=init_cond, iterations=num_steps, beta=1/TEMP, xi=memory_array, intxn_matrix=intxn_matrix,
             memory_labels=range(memory_array.shape[1]), gene_labels=range(memory_array.shape[0]),
-            flag_write=flag_write, analysis_subdir=analysis_subdir, plot_period=num_steps * 2, verbose=False)
+            flag_write=flag_write, analysis_subdir=ANALYSIS_SUBDIR, plot_period=num_steps * 2, verbose=False)
         proj_timeseries_array[:, idx] = get_memory_proj_timeseries(cellstate_array, k)[:]
     if plot:
         plt.plot(xrange(num_steps), proj_timeseries_array, color='blue', linewidth=0.75)
@@ -103,6 +103,7 @@ def basin_projection_timeseries(k, memory_array, intxn_matrix, eta, basin_data_k
         plt.ylabel('proj on memory %d' % (k))
         plt.xlabel('Time (%d updates, all spins)' % num_steps)
         plt.savefig(plot_data_folder + os.sep + 'cluster_%d.png' % k)
+        plt.clf()
     return proj_timeseries_array
 
 
@@ -142,9 +143,13 @@ def get_basins_scores(memory_array, binarized_cluster_dict, basinscore_method="d
     # 2 is score each cell in each cluster based on method
     score_dict = {k: 0 for k in xrange(num_clusters)}
 
+    # setup io
+    current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = \
+        run_subdir_setup(run_subfolder=ANALYSIS_SUBDIR)
+
     if basinscore_method == 'crawler':
         for k in xrange(num_clusters):
-            print "Scoring basin for cluster", k
+            print "Scoring basin for cluster:", k
             binary_cluster_data = binarized_cluster_dict[k]
             memory_k = memory_array[:,k]
             basin_k = build_basin_states(intxn_matrix, memory_k)
@@ -155,15 +160,21 @@ def get_basins_scores(memory_array, binarized_cluster_dict, basinscore_method="d
     else:
         assert basinscore_method == 'trajectories'
         for k in xrange(num_clusters):
+            print "Scoring basin for cluster:", k
             #init_conds = binarized_cluster_dict[k]
-            init_conds = binarized_cluster_dict[k][:,0:5]
-            trajectories = basin_projection_timeseries(k, memory_array, intxn_matrix, eta, init_conds, num_steps=10,
-                                                       plot=True, flag_write=False)
+            print "WARNING: only looking at first 10 cells in each cluster"
+            init_conds = binarized_cluster_dict[k][:,0:10]
+            trajectories = basin_projection_timeseries(k, memory_array, intxn_matrix, eta, init_conds, plot_data_folder,
+                                                       num_steps=3, plot=True, flag_write=False)
+            print trajectories
             score_dict[k] = np.mean(trajectories[-1,:])
-    return score_dict
+    # save to file
+    scores = [score_dict[k] for k in xrange(num_clusters)]
+    np.savetxt(data_folder + os.sep + "scores.txt", scores)
+    return score_dict, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder
 
 
-def plot_basins_scores(score_dict):
+def plot_basins_scores(score_dict, savedir=None):
     """
     Args:
         - score_dict: {k: M x 1 array for k in 0 ... K-1 (i.e. cluster index)}
@@ -176,29 +187,34 @@ def plot_basins_scores(score_dict):
     num_clusters = np.max(score_dict.keys())
     x_axis = range(num_clusters)
     y_axis = [score_dict[k] for k in xrange(num_clusters)]
-    plt.bar(x_axis, y_axis)
+    plt.bar(x_axis, y_axis, width=0.5)
     plt.title('Basin scores for each cluster')
     plt.xlabel('cluster idx')
     plt.ylabel('basin score')
+    if savedir is not None:
+        plt.savefig(savedir + os.sep + 'basin_scores.pdf')
+    else:
+        plt.show()
     return plt.gca()
 
 
 if __name__ == '__main__':
-    # run flags
     datadir = DATADIR + os.sep + "2018_scMCA"
-    flag_basinscore = True
+
+    # run flags
+    flag_gen_basinscore = False
+    flag_plot_basinscore = True
     switch_generate_from_orig_npz = False  # False is default
 
     # options
-    verbose = True
-    binarize_method = "by_gene"  # either 'by_cluster', 'by_gene'
-    memory_method = "default"
     basinscore_method = "trajectories"  # either 'trajectories', 'crawler'
 
-    rawdata_npzpath = datadir + os.sep + 'arr_genes_cells_withcluster_compressed.npz'
-
-    if flag_basinscore:
+    if flag_gen_basinscore:
         if switch_generate_from_orig_npz:
+            # generation options
+            verbose = True
+            binarize_method = "by_gene"  # either 'by_cluster', 'by_gene'
+            memory_method = "default"
             # (1) load pruned raw data
             rawpruned_path = datadir + os.sep + 'arr_genes_cells_withcluster_compressed_pruned.npz'
             arr, genes, cells = load_npz_of_arr_genes_cells(rawpruned_path, verbose=True)
@@ -220,7 +236,13 @@ if __name__ == '__main__':
             assert len(clusters) == len(binarized_cluster_dict.keys())
             assert memory_array.shape[0] == binarized_cluster_dict[0].shape[0]
         # basin scores
-        basin_scores = get_basins_scores(memory_array, binarized_cluster_dict,
-                                         basinscore_method=basinscore_method)
-        # (6) plotting
-        plot_basins_scores(basin_scores)
+        basin_scores, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = \
+            get_basins_scores(memory_array, binarized_cluster_dict, basinscore_method=basinscore_method)
+
+    if flag_plot_basinscore:
+        if not flag_gen_basinscore:
+            scorepath = OUTPUTDIR + os.sep + "scores.txt"
+            basin_score_txt = np.loadtxt(scorepath)
+            basin_scores = {k:float(basin_score_txt[k]) for k in xrange(len(basin_score_txt))}
+            data_folder = OUTPUTDIR
+        plot_basins_scores(basin_scores, data_folder)

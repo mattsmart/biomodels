@@ -5,6 +5,7 @@ Store constants and default parameters here
 """
 
 # io locations
+OUTPUTDIR = "runs"
 DATADIR = ".." + os.sep + "input"
 
 PIPELINES_VALID = ["2014_mehta", "2018_scMCA", "misc"]
