@@ -1,8 +1,8 @@
 import numpy as np
 
-from singlecell_constants import METHOD, FLAG_BOOL, FLAG_REMOVE_DUPES, DEFAULT_MEMORIES_NPZPATH, J_RANDOM_DELETE_RATIO, FLAG_PRUNE_INTXN_MATRIX
+from singlecell_constants import METHOD, FLAG_BOOL, DEFAULT_MEMORIES_NPZPATH, J_RANDOM_DELETE_RATIO, FLAG_PRUNE_INTXN_MATRIX
 from singlecell_linalg import memory_corr_matrix_and_inv, interaction_matrix, predictivity_matrix
-from expt_data_handling import load_npz_of_arr_genes_cells, reduce_gene_set
+from dataprocess.data_standardize import load_npz_of_arr_genes_cells
 
 """
 Conventions follow from Lang & Mehta 2014, PLOS Comp. Bio
@@ -17,11 +17,6 @@ def singlecell_simsetup(flag_prune_intxn_matrix=False, npzpath=DEFAULT_MEMORIES_
     xi, gene_labels, celltype_labels = load_npz_of_arr_genes_cells(npzpath, verbose=True)
     gene_labels = gene_labels.tolist()
     celltype_labels = celltype_labels.tolist()
-    if FLAG_REMOVE_DUPES:
-        assert FLAG_BOOL
-        print "FLAG REMOVE DUPES before:", xi.shape
-        gene_labels, xi = reduce_gene_set(xi, gene_labels)
-        print "FLAG REMOVE DUPES after:", xi.shape
     a, a_inv = memory_corr_matrix_and_inv(xi)
     j = interaction_matrix(xi, a_inv, method=METHOD, flag_prune_intxn_matrix=flag_prune_intxn_matrix)
     eta = predictivity_matrix(xi, a_inv)
