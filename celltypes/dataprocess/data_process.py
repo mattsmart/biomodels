@@ -39,11 +39,12 @@ def binarize_data(xi):
     return 1.0 * np.where(xi > 0, 1, -1)  # mult by 1.0 to cast as float
 
 
-def binarize_cluster_dict(cluster_dict, metadata, binarize_method="by_gene"):
+def binarize_cluster_dict(cluster_dict, metadata, binarize_method="by_gene", savedir=None):
     """
     Args:
         - cluster_dict: {k: N x M array for k in 0 ... K-1 (i.e. cluster index)}
         - binarize_method: options for different binarization methods: by_cluster or by_gene (default)
+        - savedir: dir to save cluster_dict
     Returns:
         - binarized_cluster_dict: {k: N x M array for k in 0 ... K-1 (i.e. cluster index)}
     """
@@ -60,7 +61,7 @@ def binarize_cluster_dict(cluster_dict, metadata, binarize_method="by_gene"):
             max_gene_vals = np.amax(cluster_data, axis=1)
             mids = 0.5 * (min_gene_vals - max_gene_vals)
             # TODO vectorize this
-            binarized_cluster = np.zeros(cluster_data.shape)
+            binarized_cluster = np.zeros(cluster_data.shape, dtype=np.int8)
             for idx in xrange(cluster_data.shape[0]):
                 binarized_cluster[idx,:] = np.where(cluster_data[idx,:] > mids[idx], 1.0, -1.0)  # mult by 1.0 to cast as float
             binarize_cluster_dict[k] = binarized_cluster
@@ -72,24 +73,29 @@ def binarize_cluster_dict(cluster_dict, metadata, binarize_method="by_gene"):
             max_val = np.max(cluster_data)
             mid = 0.5 * (max_val - min_val)
             binarized_cluster = 1.0 * np.where(cluster_data > mid, 1, -1)  # mult by 1.0 to cast as float
+            binarized_cluster.astype(np.int8)
             binarize_cluster_dict[k] = binarized_cluster
 
+    # save cluster_dict
+    if savedir is not None:
+        cdnpz = savedir + os.sep + 'clusterdict_boolean_compressed.npz'
+        save_cluster_dict(cdnpz, binarize_cluster_dict)
     return binarize_cluster_dict
 
 
-def binary_cluster_dict_to_memories(binarized_cluster_dict, metadata, memory_method="default", savedir=None):
+def binary_cluster_dict_to_memories(binarized_cluster_dict, gene_labels, memory_method="default", savedir=None):
     """
     Args:
         - binarized_cluster_dict: {k: N x M array for k in 0 ... K-1 (i.e. cluster index)}
-        - metadata: dict, mainly stores N x 1 array of 'gene_labels' for each row
+        - gene_labels: N x 1 array of 'gene_labels' for each row
         - memory_method: options for different memory processing algos
         - savedir: where to save the memory file (None -> don't save)
     Returns:
         - memory_array: i.e. xi matrix, will be N x K (one memory from each cluster)
     """
-    num_genes = metadata['num_genes']
-    #num_cells = metadata['num_cells']
-    num_clusters = metadata['num_clusters']
+    num_genes = len(gene_labels)
+    num_clusters = len(binarized_cluster_dict.keys())
+    print "num_genes", num_genes
 
     eps = 1e-4  # used to bias the np.sign(call) to be either 1 or -1 (breaks ties towards on state)
     memory_array = np.zeros((num_genes, num_clusters))
@@ -100,7 +106,7 @@ def binary_cluster_dict_to_memories(binarized_cluster_dict, metadata, memory_met
         memory_array[:,k] = memory_vec
     if savedir is not None:
         npzpath = savedir + os.sep + 'mems_genes_types_compressed.npz'
-        store_memories_genes_clusters(npzpath, memory_array, np.array(metadata['gene_labels']))
+        store_memories_genes_clusters(npzpath, memory_array, np.array(gene_labels))
     return memory_array
 
 
@@ -122,19 +128,49 @@ def prune_memories_genes(npzpath):
     return rows_to_delete, mem_arr, genes, clusters
 
 
-def prune_cluster_dict(cluster_dict, rows_to_delete):
+def prune_cluster_dict(cluster_dict, rows_to_delete, savedir=None):
+    """
+    Args:
+        - cluster_dict: {k: N x M array for k in 0 ... K-1 (i.e. cluster index)}
+        - rows_to_delete: rows to delete from each array (val) in cluster_dict
+        - savedir: where to save the memory file (None -> don't save)
+    """
     pruned_cluster_dict = {k: 0 for k in cluster_dict.keys()}
     for k in xrange(len(cluster_dict.keys())):
         cluster_data = cluster_dict[k]
         pruned_cluster_dict[k] = np.delete(cluster_data, rows_to_delete, axis=0)
+    # save pruned_cluster_dict
+    if savedir is not None:
+        cdnpz = savedir + os.sep + 'clusterdict_boolean_compressed_pruned.npz'
+        save_cluster_dict(cdnpz, pruned_cluster_dict)
     return pruned_cluster_dict
 
 
-def parse_exptdata(states_raw, gene_labels, verbose=True):
+def save_cluster_dict(npzpath, cluster_dict):
+    # convert int keys to str (and deconvert on loading)
+    print "saving cluster dict at %s..." % npzpath
+    cluster_dict = {str(k):v for k,v in cluster_dict.iteritems()}
+    np.savez_compressed(npzpath, **cluster_dict)
+    print "done saving cluster dict"
+    return
+
+
+def load_cluster_dict(npzpath):
+    print "loading cluster dict at %s..." % npzpath
+    cluster_dict = np.load(npzpath)
+    # convert str keys back to int
+    cluster_dict = {int(k):v for k,v in cluster_dict.iteritems()}
+    print "done loading cluster dict"
+    return cluster_dict
+
+
+def parse_exptdata(states_raw, gene_labels, verbose=True, savedir=None):
+    #TODO metadata not really used, maybe omit and rename function? else use it
     """
     Args:
         - states_raw: stores array of state data and cluster labels for each cell state (column)
         - gene_labels: stores row names i.e. gene or PCA labels (expect list or numpy array)
+        - savedir: dir to save npz of clusterdict in
     Notes: data format may change with time
         - ***ASSUMED*** convention is first row stores cluster index, from 0 to np.max(row 0) == K - 1
         - future convention may be to store unique integer ID for each column corresponding to earlier in pipeline
@@ -187,6 +223,11 @@ def parse_exptdata(states_raw, gene_labels, verbose=True):
     metadata['N'] = num_genes
     metadata['num_cells'] = num_cells
     metadata['M'] = num_cells
+
+    # save cluster_dict
+    if savedir is not None:
+        cdnpz = savedir + os.sep + 'clusterdict_compressed.npz'
+        save_cluster_dict(cdnpz, cluster_dict)
     return cluster_dict, metadata
 
 
@@ -217,9 +258,10 @@ if __name__ == '__main__':
         flag_add_cluster_to_raw = False
         flag_build_cluster_dict_metadata = False
         flag_binarize_clusters = False
-        flag_gen_memory_matrix = False
+        flag_gen_memory_matrix = True
         flag_prune_mems = False
-        flag_prune_raw = True
+        flag_prune_raw = False
+        flag_prune_binary_cluster_dict = True
         # options
         verbose = True
         binarize_method = "by_gene"  # either 'by_cluster', 'by_gene'
@@ -234,20 +276,23 @@ if __name__ == '__main__':
         if flag_build_cluster_dict_metadata:
             if not flag_add_cluster_to_raw:
                 arr, genes, cells = load_npz_of_arr_genes_cells(NPZ_2018SCMCA_ORIG_WITHCLUSTER)
-            cluster_dict, metadata = parse_exptdata(arr, genes, verbose=verbose)
+            cluster_dict, metadata = parse_exptdata(arr, genes, verbose=verbose, savedir=datadir)
+
         # (4) binarize cluster dct -> binarized_cluster_dict
         if flag_binarize_clusters:
             if not flag_build_cluster_dict_metadata:
                 arr, genes, cells = load_npz_of_arr_genes_cells(NPZ_2018SCMCA_ORIG_WITHCLUSTER)
-                cluster_dict, metadata = parse_exptdata(arr, genes, verbose=verbose)
-            binarized_cluster_dict = binarize_cluster_dict(cluster_dict, metadata, binarize_method=binarize_method)
+                cluster_dict, metadata = parse_exptdata(arr, genes, verbose=verbose, savedir=datadir)
+            binarized_cluster_dict = binarize_cluster_dict(cluster_dict, metadata, binarize_method=binarize_method,
+                                                           savedir=datadir)
         # (5) -> boolean memory matrix, mem genes types npz
         if flag_gen_memory_matrix:
             if not flag_binarize_clusters:
                 arr, genes, cells = load_npz_of_arr_genes_cells(NPZ_2018SCMCA_ORIG_WITHCLUSTER)
-                cluster_dict, metadata = parse_exptdata(arr, genes, verbose=verbose)
-                binarized_cluster_dict = binarize_cluster_dict(cluster_dict, metadata, binarize_method=binarize_method)
-            _ = binary_cluster_dict_to_memories(binarized_cluster_dict, metadata, memory_method=memory_method,
+                cluster_dict, metadata = parse_exptdata(arr, genes, verbose=verbose, savedir=datadir)
+                binarized_cluster_dict = binarize_cluster_dict(cluster_dict, metadata, binarize_method=binarize_method,
+                                                               savedir=datadir)
+            _ = binary_cluster_dict_to_memories(binarized_cluster_dict, genes, memory_method=memory_method,
                                                 savedir=datadir)
         # (6) prune mems -> boolean memory matrix (pruned), mem genes types npz
         if flag_prune_mems:
@@ -261,6 +306,12 @@ if __name__ == '__main__':
             _, _, _, _ = prune_rows(NPZ_2018SCMCA_ORIG, specified_rows=rows_to_delete, save_pruned=True, save_rows=False)
             _, _, _, _ = prune_rows(NPZ_2018SCMCA_ORIG_WITHCLUSTER, specified_rows=rows_to_delete_increment_for_clusterrow,
                                     save_pruned=True, save_rows=False)
+        if flag_prune_binary_cluster_dict:
+            if not flag_prune_mems:
+                rows_to_delete = np.loadtxt(datadir + os.sep + "rows_to_delete.txt", delimiter=',')
+            cdnpz = datadir + os.sep + 'clusterdict_boolean_compressed.npz'
+            binarized_cluster_dict = load_cluster_dict(cdnpz)
+            _ = prune_cluster_dict(binarized_cluster_dict, rows_to_delete, savedir=datadir)
     else:
         # TODO
         flag_load_raw = True
