@@ -52,7 +52,17 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_steps=100, beta=BETA
         print "Simulating cell:", cell_idx
         cell = Cell(init_state, init_id)
         for step in xrange(num_steps):
-            proj_timeseries_array[:, step] += cell.get_memories_projection()
+            #proj_timeseries_array[:, step] += cell.get_memories_projection()
+
+            # report on each mem proj ranked
+            projvec = cell.get_memories_projection()
+            proj_timeseries_array[:, step] += projvec
+            absprojvec = np.abs(projvec)
+            sortedmems = np.argsort(absprojvec)
+            print "\nstep", step:
+            for idx in xrange(1,10):
+                print idx, sortedmems[-idx], projvec[sortedmems[-idx]], absprojvec[sortedmems[-idx]]
+
             cell.update_state(beta=beta, app_field=None)  # TODO alternate update random site at a time scheme
     proj_timeseries_array = proj_timeseries_array / ensemble  # want ensemble average
 
@@ -135,6 +145,6 @@ if __name__ == '__main__':
     # simple analysis
     init_cond = 'HSC'  # index is 6
     ensemble = 100
-    ensemble_projection_timeseries(init_cond, ensemble, num_steps=100, beta=0.5, plot=True)
+    ensemble_projection_timeseries(init_cond, ensemble, num_steps=100, beta=1.4, plot=True)
     # less simple analysis
     #basin_transitions()
