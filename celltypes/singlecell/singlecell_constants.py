@@ -5,7 +5,7 @@ DATADIR = ".." + os.sep + "input"
 MEMORIESDIR = DATADIR + os.sep + "memories"
 MEMS_MEHTA = MEMORIESDIR + os.sep + "2014_mehta_mems_genes_types_boolean_compressed_pruned.npz"
 MEMS_SCMCA = MEMORIESDIR + os.sep + "2018_scmca_mems_genes_types_boolean_compressed_pruned.npz"
-DEFAULT_MEMORIES_NPZPATH = MEMS_SCMCA
+DEFAULT_MEMORIES_NPZPATH = MEMS_MEHTA
 RUNS_FOLDER = "runs" + os.sep             # store timestamped runs here
 
 # SINGLECELL SIMULATION CONSTANTS
