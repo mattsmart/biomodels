@@ -38,13 +38,19 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_steps=100, beta=BETA
         init_id = 'specific'
     else:
         assert isinstance(init_cond, str)
-        print CELLTYPE_ID
         init_state = XI[:, CELLTYPE_ID[init_cond]]
         init_id = init_cond
 
     # prep applied field TODO: how to include applied field neatly
     # app_field = construct_app_field_from_genes(IPSC_CORE_GENES, num_steps)
     app_field = None
+
+    # prep temp timeseries (local annealing)
+    if np.isscalar(beta):
+        print "NOTE: fixed temperature provided -- no annealing"
+        beta_series = [beta for _ in xrange(num_steps)]
+    else:
+        print "NOTE: fixed temperature provided -- no annealing"
 
     # simulate ensemble
     proj_timeseries_array = np.zeros((len(CELLTYPE_LABELS), num_steps))
@@ -59,9 +65,9 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_steps=100, beta=BETA
             proj_timeseries_array[:, step] += projvec
             absprojvec = np.abs(projvec)
             sortedmems = np.argsort(absprojvec)
-            print "\nstep", step:
+            print "\ncell %d step %d" % (cell_idx, step)
             for idx in xrange(1,10):
-                print idx, sortedmems[-idx], projvec[sortedmems[-idx]], absprojvec[sortedmems[-idx]]
+                print idx, sortedmems[-idx], CELLTYPE_LABELS[sortedmems[-idx]], projvec[sortedmems[-idx]], absprojvec[sortedmems[-idx]]
 
             cell.update_state(beta=beta, app_field=None)  # TODO alternate update random site at a time scheme
     proj_timeseries_array = proj_timeseries_array / ensemble  # want ensemble average
@@ -145,6 +151,6 @@ if __name__ == '__main__':
     # simple analysis
     init_cond = 'HSC'  # index is 6
     ensemble = 100
-    ensemble_projection_timeseries(init_cond, ensemble, num_steps=100, beta=1.4, plot=True)
+    ensemble_projection_timeseries(init_cond, ensemble, num_steps=100, beta=1.6, plot=True)
     # less simple analysis
     #basin_transitions()
