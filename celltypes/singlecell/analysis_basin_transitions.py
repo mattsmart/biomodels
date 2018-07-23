@@ -2,13 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
+from singlecell_class import Cell
 from singlecell_constants import RUNS_FOLDER, IPSC_CORE_GENES, BETA
 from singlecell_data_io import run_subdir_setup
-from singlecell_functions import state_burst_errors, state_memory_projection_single, construct_app_field_from_genes, \
-                                 state_memory_projection
 from singlecell_simsetup import N, P, XI, CELLTYPE_ID, A_INV, J, GENE_ID, GENE_LABELS, CELLTYPE_LABELS
-from singlecell_simulate import singlecell_sim
-from singlecell_class import Cell
 
 
 ANALYSIS_SUBDIR = "basin_transitions"
@@ -46,15 +43,6 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_steps=100, beta=BETA
     app_field = None
 
     # prep temp timeseries (local annealing)
-    # TODO: implement annealing -- either pre-plan temperature or use in-loop conditionals
-    """
-    if np.isscalar(beta):
-        print "NOTE: fixed temperature provided -- no annealing"
-        beta_series = [beta for _ in xrange(num_steps)]
-    else:
-        print "NOTE: fixed temperature provided -- no annealing"
-        beta_series = [beta for _ in xrange(num_steps)]
-    """
     if anneal:
         beta_start = beta
         beta_end = 2.0
@@ -62,6 +50,9 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_steps=100, beta=BETA
         wandering = False
 
     # simulate ensemble
+    endpoint_dict = {}
+    transfer_dict = {}
+
     proj_timeseries_array = np.zeros((len(CELLTYPE_LABELS), num_steps))
     for cell_idx in xrange(ensemble):
         print "Simulating cell:", cell_idx
@@ -79,11 +70,21 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_steps=100, beta=BETA
             absprojvec = np.abs(projvec)
             sortedmems_smalltobig = np.argsort(absprojvec)
             sortedmems_bigtosmall = sortedmems_smalltobig[::-1]
+            topranked = sortedmems_bigtosmall[0]
             print "\ncell %d step %d" % (cell_idx, step)
+
+            # print some timestep proj ranking info
             for rank in xrange(10):
                 ranked_mem_idx = sortedmems_bigtosmall[rank]
                 ranked_mem = CELLTYPE_LABELS[ranked_mem_idx]
                 print rank, ranked_mem_idx, ranked_mem, projvec[ranked_mem_idx], absprojvec[ranked_mem_idx]
+
+            if topranked != CELLTYPE_ID[init_cond] and projvec[topranked] > 0.75:
+                if cell_idx not in transfer_dict:
+                    transfer_dict[cell_idx] = {topranked: (step, projvec[topranked])}
+                else:
+                    if topranked not in transfer_dict[cell_idx]:
+                        transfer_dict[cell_idx] = {topranked: (step, projvec[topranked])}
 
             # annealing block
             if projvec[CELLTYPE_ID[init_cond]] < 0.6:
@@ -97,7 +98,14 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_steps=100, beta=BETA
                 beta = beta + beta_step
 
             # main call to update
-            cell.update_state(beta=beta, app_field=None)  # TODO alternate update random site at a time scheme
+            if step < num_steps:
+                cell.update_state(beta=beta, app_field=None)  # TODO alternate update random site at a time scheme
+
+        # update endpoints for each cell
+        if topranked > projvec[topranked] > 0.7:
+            endpoint_dict[cell_idx] = (CELLTYPE_LABELS[topranked], projvec[topranked])
+        else:
+            endpoint_dict[cell_idx] = ('mixed', projvec[topranked])
 
     proj_timeseries_array = proj_timeseries_array / ensemble  # want ensemble average
 
@@ -106,30 +114,76 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_steps=100, beta=BETA
     np.savetxt(proj_timeseries_data, proj_timeseries_array, delimiter=',')
 
     # plot output
+    for idx in xrange(ensemble):
+        if idx in transfer_dict:
+            print idx, transfer_dict[idx], [CELLTYPE_LABELS[a] for a in transfer_dict[idx].keys()], endpoint_dict[idx]
+        else:
+            print idx, "no transfer dict entry", endpoint_dict[idx]
     if plot:
-        proj_timeseries_plot = plot_data_folder + os.sep + 'proj_timeseries.pdf'
-        proj_timeseries_plot(proj_timeseries_array, num_steps, ensemble, proj_timeseries_plot)
+        highlights_CLPside = {6:'k', 8: 'blue', 7: 'red', 16: 'deeppink', 11: 'darkorchid'}
+        savepath = plot_data_folder + os.sep + 'proj_timeseries.pdf'
+        plot_proj_timeseries(proj_timeseries_array, num_steps, ensemble, savepath, highlights=highlights_CLPside)
+
+        savepath_endpt = plot_data_folder + os.sep + 'endpt_stats.pdf'
+        plot_basin_endpoints(endpoint_dict, num_steps, ensemble, savepath_endpt, highlights=highlights_CLPside)
 
     return proj_timeseries_array
 
 
-def proj_timeseries_plot(proj_timeseries_array, num_steps, ensemble, savepath, highlights=None):
+def plot_proj_timeseries(proj_timeseries_array, num_steps, ensemble, savepath, highlights=None):
     """
     proj_timeseries_array is expected dim p x time
-    highlights: either None or a list of tuples: (idx, color) for certain memory projections to highlight
+    highlights: either None or a dict of idx: color for certain memory projections to highlight
     """
     assert proj_timeseries_array.shape[0] == len(CELLTYPE_LABELS)
     if highlights is None:
         plt.plot(xrange(num_steps), proj_timeseries_array.T, color='blue', linewidth=0.75)
     else:
         plt.plot(xrange(num_steps), proj_timeseries_array.T, color='grey', linewidth=0.55, linestyle='dashed')
-        for pair in highlights:
-            plt.plot(xrange(num_steps), proj_timeseries_array[pair[0],:], color=pair[1], linewidth=0.75, label=CELLTYPE_LABELS[pair[0]])
+        for key in highlights.keys():
+            plt.plot(xrange(num_steps), proj_timeseries_array[key,:], color=highlights[key], linewidth=0.75, label=CELLTYPE_LABELS[key])
         plt.legend()
     plt.title('Ensemble mean (n=%d) projection timeseries' % ensemble)
     plt.ylabel('Mean projection onto each memory')
     plt.xlabel('Steps (%d updates, all spins)' % num_steps)
     plt.savefig(savepath)
+    return
+
+
+def plot_basin_endpoints(endpoint_dict, num_steps, ensemble, savepath, highlights=None):
+    """
+    endpoint_dict: dict where cell endstates stored via endpoint_dict[idx] = (endpoint_label, projval)
+    highlights: either None or a dict of idx: color for certain memory projections to highlight
+    """
+    # data prep
+    occupancies = {}
+    for idx in xrange(len(endpoint_dict.keys())):
+        endppoint_id, projval = endpoint_dict[idx]
+        if endppoint_id in occupancies:
+            occupancies[endppoint_id] += 1
+        else:
+            occupancies[endppoint_id] = 1
+    memory_labels = occupancies.keys()
+    memory_occupancies = [occupancies[a] for a in memory_labels]
+    memory_colors = ['grey' if label not in [CELLTYPE_LABELS[a] for a in highlights.keys()]
+                     else highlights[CELLTYPE_ID[label]]
+                     for label in memory_labels]
+    # plotting
+    import matplotlib as mpl
+    mpl.rcParams.update({'font.size': 12})
+
+    plt.clf()
+    fig = plt.figure(1)
+    fig.set_size_inches(18.5, 10.5)
+    h = plt.bar(xrange(len(memory_labels)), memory_occupancies, color=memory_colors, label=memory_labels)
+    plt.subplots_adjust(bottom=0.3)
+    xticks_pos = [0.65 * patch.get_width() + patch.get_xy()[0] for patch in h]
+    plt.xticks(xticks_pos, memory_labels, ha='right', rotation=45, size=12)
+    plt.gca().yaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
+    plt.title('Cell endpoints (%d steps, %d cells)' % (num_steps, ensemble))
+    plt.ylabel('Basin occupancy count')
+    plt.xlabel('Basin labels')
+    fig.savefig(savepath)
     return
 
 
@@ -193,15 +247,14 @@ def basin_transitions(init_cond, ensemble, num_steps, beta):
 
 
 if __name__ == '__main__':
-
-    gen_basin_data = False
-    plot_isolated_data = True
+    gen_basin_data = True
+    plot_isolated_data = False
 
     if gen_basin_data:
         # simple analysis
         init_cond = 'HSC'  # index is 6
         ensemble = 100
-        ensemble_projection_timeseries(init_cond, ensemble, num_steps=100, beta=1.3, plot=True, anneal=True)
+        ensemble_projection_timeseries(init_cond, ensemble, num_steps=25, beta=1.3, plot=True, anneal=True)
         # less simple analysis
         #basin_transitions()
 
@@ -209,7 +262,7 @@ if __name__ == '__main__':
     if plot_isolated_data:
         loaddata = np.loadtxt('proj_timeseries.txt', delimiter=',')
         ensemble = 100
-        highlights_simple = [(8, 'blue'), (10, 'steelblue')]
-        highlights_CLPside = [(8, 'blue'), (7, 'red'), (16, 'deeppink'), (11, 'darkorchid')]
-        highlights_both = [(8, 'blue'), (10, 'steelblue'), (9, 'forestgreen'), (7, 'red'), (16, 'deeppink'), (11, 'darkorchid')]
-        proj_timeseries_plot(loaddata, loaddata.shape[1], ensemble, 'proj_timeseries.pdf', highlights=highlights_CLPside)
+        highlights_simple = {6:'k', 8: 'blue', 10: 'steelblue'}
+        highlights_CLPside = {6:'k', 8: 'blue', 7: 'red', 16: 'deeppink', 11: 'darkorchid'}
+        highlights_both = {6:'k', 8: 'blue', 10: 'steelblue', 9: 'forestgreen', 7: 'red', 16: 'deeppink', 11: 'darkorchid'}
+        plot_proj_timeseries(loaddata, loaddata.shape[1], ensemble, 'proj_timeseries.pdf', highlights=highlights_CLPside)
