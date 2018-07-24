@@ -4,7 +4,6 @@ import os
 import time
 from multiprocessing import Pool, cpu_count
 
-
 from singlecell_class import Cell
 from singlecell_constants import RUNS_FOLDER, IPSC_CORE_GENES, BETA
 from singlecell_data_io import run_subdir_setup
