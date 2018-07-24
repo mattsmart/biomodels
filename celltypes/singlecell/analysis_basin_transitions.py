@@ -1,6 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import time
+from multiprocessing import Pool, cpu_count
+
 
 from singlecell_class import Cell
 from singlecell_constants import RUNS_FOLDER, IPSC_CORE_GENES, BETA
@@ -9,6 +12,121 @@ from singlecell_simsetup import N, P, XI, CELLTYPE_ID, A_INV, J, GENE_ID, GENE_L
 
 
 ANALYSIS_SUBDIR = "basin_transitions"
+
+
+def wrapper_get_basin_stats(fn_args_dict):
+    np.random.seed()
+    if fn_args_dict['kwargs'] is not None:
+        return get_basin_stats(*fn_args_dict['args'], **fn_args_dict['kwargs'])
+    else:
+        return get_basin_stats(*fn_args_dict['args'])
+
+
+def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, num_steps=100, beta=BETA, anneal=True, verbose=False):
+
+    # prep applied field TODO: how to include applied field neatly
+    # app_field = construct_app_field_from_genes(IPSC_CORE_GENES, num_steps)
+    app_field = None
+
+    endpoint_dict = {}
+    transfer_dict = {}
+    proj_timeseries_array = np.zeros((len(CELLTYPE_LABELS), num_steps))
+
+    if anneal:
+        beta_start = beta
+        beta_end = 2.0
+        beta_step = 0.1
+        wandering = False
+
+    for cell_idx in xrange(ensemble_idx, ensemble_idx + ensemble):
+        print "Simulating cell:", cell_idx
+        cell = Cell(init_state, init_id)
+
+        if anneal:
+            beta = beta_start  # reset beta to use in each trajectory
+
+        for step in xrange(num_steps):
+
+            # report on each mem proj ranked
+            projvec = cell.get_memories_projection()
+            proj_timeseries_array[:, step] += projvec
+            absprojvec = np.abs(projvec)
+            topranked = np.argmax(absprojvec)
+            if verbose:
+                print "\ncell %d step %d" % (cell_idx, step)
+
+            # print some timestep proj ranking info
+            if verbose:
+                for rank in xrange(10):
+                    sortedmems_smalltobig = np.argsort(absprojvec)
+                    sortedmems_bigtosmall = sortedmems_smalltobig[::-1]
+                    topranked = sortedmems_bigtosmall[0]
+                    ranked_mem_idx = sortedmems_bigtosmall[rank]
+                    ranked_mem = CELLTYPE_LABELS[ranked_mem_idx]
+                    print rank, ranked_mem_idx, ranked_mem, projvec[ranked_mem_idx], absprojvec[ranked_mem_idx]
+
+            if topranked != CELLTYPE_ID[init_cond] and projvec[topranked] > 0.75:
+                if cell_idx not in transfer_dict:
+                    transfer_dict[cell_idx] = {topranked: (step, projvec[topranked])}
+                else:
+                    if topranked not in transfer_dict[cell_idx]:
+                        transfer_dict[cell_idx] = {topranked: (step, projvec[topranked])}
+
+            # annealing block
+            if projvec[CELLTYPE_ID[init_cond]] < 0.6:
+                if verbose:
+                    print "+++++++++++++++++++++++++++++++++ Wandering condition passed at step %d" % step
+                wandering = True
+            elif wandering:
+                if verbose:
+                    print "+++++++++++++++++++++++++++++++++ Re-entered orig basin after wandering at step %d" % step
+                wandering = False
+                beta = beta_start
+            if anneal and wandering and beta < beta_end:
+                beta = beta + beta_step
+
+            # main call to update
+            if step < num_steps:
+                cell.update_state(beta=beta, app_field=None)  # TODO alternate update random site at a time scheme
+
+        # update endpoints for each cell
+        if topranked > projvec[topranked] > 0.7:
+            endpoint_dict[cell_idx] = (CELLTYPE_LABELS[topranked], projvec[topranked])
+        else:
+            endpoint_dict[cell_idx] = ('mixed', projvec[topranked])
+
+    return endpoint_dict, transfer_dict, proj_timeseries_array
+
+
+def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, num_steps=100, beta=BETA, anneal=True, verbose=False):
+    # prepare fn args and kwargs for wrapper
+    kwargs_dict = {'num_steps': 100, 'beta': beta, 'anneal': anneal, 'verbose': False}
+    fn_args_dict = [0]*num_processes
+    print "NUM_PROCESSES:", num_processes
+    assert ensemble % num_processes == 0
+    for i in xrange(num_processes):
+        subensemble = ensemble / num_processes
+        cell_startidx = i * subensemble
+        print "process:", i, "job size:", subensemble, "runs"
+        fn_args_dict[i] = {'args': (init_cond, init_state, init_id, subensemble, cell_startidx),
+                           'kwargs': kwargs_dict}
+    # generate results list over workers
+    t0 = time.time()
+    pool = Pool(num_processes)
+    results = pool.map(wrapper_get_basin_stats, fn_args_dict)
+    pool.close()
+    pool.join()
+    print "TIMER:", time.time() - t0
+    # collect pooled results
+    summed_endpoint_dict = {}
+    summed_transfer_dict = {}
+    summed_proj_timeseries_array = np.zeros((len(CELLTYPE_LABELS), num_steps))
+    for i, result in enumerate(results):
+        endpoint_dict, transfer_dict, proj_timeseries_array = result
+        summed_endpoint_dict.update(endpoint_dict)  # TODO check
+        summed_transfer_dict.update(transfer_dict)  # TODO check
+        summed_proj_timeseries_array += proj_timeseries_array
+    return summed_endpoint_dict, summed_transfer_dict, summed_proj_timeseries_array
 
 
 def ensemble_projection_timeseries(init_cond, ensemble, num_steps=100, beta=BETA, anneal=True, plot=True):
@@ -38,75 +156,12 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_steps=100, beta=BETA
         init_state = XI[:, CELLTYPE_ID[init_cond]]
         init_id = init_cond
 
-    # prep applied field TODO: how to include applied field neatly
-    # app_field = construct_app_field_from_genes(IPSC_CORE_GENES, num_steps)
-    app_field = None
+    # simulate ensemble - pooled wrapper call
+    num_processes = cpu_count() / 2  # seems best to use only physical core count (1 core ~ 3x slower than 4)
+    endpoint_dict, transfer_dict, proj_timeseries_array = \
+        fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, num_steps=100, beta=beta, anneal=True, verbose=False)
 
-    # prep temp timeseries (local annealing)
-    if anneal:
-        beta_start = beta
-        beta_end = 2.0
-        beta_step = 0.1
-        wandering = False
-
-    # simulate ensemble
-    endpoint_dict = {}
-    transfer_dict = {}
-
-    proj_timeseries_array = np.zeros((len(CELLTYPE_LABELS), num_steps))
-    for cell_idx in xrange(ensemble):
-        print "Simulating cell:", cell_idx
-        cell = Cell(init_state, init_id)
-
-        if anneal:
-            beta = beta_start  # reset beta to use in each trajectory
-
-        for step in xrange(num_steps):
-            #proj_timeseries_array[:, step] += cell.get_memories_projection()
-
-            # report on each mem proj ranked
-            projvec = cell.get_memories_projection()
-            proj_timeseries_array[:, step] += projvec
-            absprojvec = np.abs(projvec)
-            sortedmems_smalltobig = np.argsort(absprojvec)
-            sortedmems_bigtosmall = sortedmems_smalltobig[::-1]
-            topranked = sortedmems_bigtosmall[0]
-            print "\ncell %d step %d" % (cell_idx, step)
-
-            # print some timestep proj ranking info
-            for rank in xrange(10):
-                ranked_mem_idx = sortedmems_bigtosmall[rank]
-                ranked_mem = CELLTYPE_LABELS[ranked_mem_idx]
-                print rank, ranked_mem_idx, ranked_mem, projvec[ranked_mem_idx], absprojvec[ranked_mem_idx]
-
-            if topranked != CELLTYPE_ID[init_cond] and projvec[topranked] > 0.75:
-                if cell_idx not in transfer_dict:
-                    transfer_dict[cell_idx] = {topranked: (step, projvec[topranked])}
-                else:
-                    if topranked not in transfer_dict[cell_idx]:
-                        transfer_dict[cell_idx] = {topranked: (step, projvec[topranked])}
-
-            # annealing block
-            if projvec[CELLTYPE_ID[init_cond]] < 0.6:
-                print "+++++++++++++++++++++++++++++++++ Wandering condition passed at step %d" % step
-                wandering = True
-            elif wandering:
-                print "+++++++++++++++++++++++++++++++++ Re-entered orig basin after wandering at step %d" % step
-                wandering = False
-                beta = beta_start
-            if anneal and wandering and beta < beta_end:
-                beta = beta + beta_step
-
-            # main call to update
-            if step < num_steps:
-                cell.update_state(beta=beta, app_field=None)  # TODO alternate update random site at a time scheme
-
-        # update endpoints for each cell
-        if topranked > projvec[topranked] > 0.7:
-            endpoint_dict[cell_idx] = (CELLTYPE_LABELS[topranked], projvec[topranked])
-        else:
-            endpoint_dict[cell_idx] = ('mixed', projvec[topranked])
-
+    # normalize proj timeseries
     proj_timeseries_array = proj_timeseries_array / ensemble  # want ensemble average
 
     # save transition array and run info to file
@@ -253,8 +308,8 @@ if __name__ == '__main__':
     if gen_basin_data:
         # simple analysis
         init_cond = 'HSC'  # index is 6
-        ensemble = 100
-        ensemble_projection_timeseries(init_cond, ensemble, num_steps=25, beta=1.3, plot=True, anneal=True)
+        ensemble = 1000
+        ensemble_projection_timeseries(init_cond, ensemble, num_steps=100, beta=1.3, plot=True, anneal=True)
         # less simple analysis
         #basin_transitions()
 
