@@ -90,7 +90,7 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, num_
                 cell.update_state(beta=beta, app_field=None)  # TODO alternate update random site at a time scheme
 
         # update endpoints for each cell
-        if topranked > projvec[topranked] > 0.7:
+        if projvec[topranked] > 0.7:
             endpoint_dict[cell_idx] = (CELLTYPE_LABELS[topranked], projvec[topranked])
         else:
             endpoint_dict[cell_idx] = ('mixed', projvec[topranked])
@@ -100,7 +100,7 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, num_
 
 def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, num_steps=100, beta=BETA, anneal=True, verbose=False):
     # prepare fn args and kwargs for wrapper
-    kwargs_dict = {'num_steps': 100, 'beta': beta, 'anneal': anneal, 'verbose': False}
+    kwargs_dict = {'num_steps': num_steps, 'beta': beta, 'anneal': anneal, 'verbose': False}
     fn_args_dict = [0]*num_processes
     print "NUM_PROCESSES:", num_processes
     assert ensemble % num_processes == 0
@@ -129,7 +129,7 @@ def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, nu
     return summed_endpoint_dict, summed_transfer_dict, summed_proj_timeseries_array
 
 
-def ensemble_projection_timeseries(init_cond, ensemble, num_steps=100, beta=BETA, anneal=True, plot=True):
+def ensemble_projection_timeseries(init_cond, ensemble, num_processes, num_steps=100, beta=BETA, anneal=True, plot=True):
     """
     Args:
     - init_cond: np array of init state OR string memory label
@@ -157,9 +157,9 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_steps=100, beta=BETA
         init_id = init_cond
 
     # simulate ensemble - pooled wrapper call
-    num_processes = cpu_count() / 2  # seems best to use only physical core count (1 core ~ 3x slower than 4)
     endpoint_dict, transfer_dict, proj_timeseries_array = \
-        fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, num_steps=100, beta=beta, anneal=True, verbose=False)
+        fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes,
+                         num_steps=num_steps, beta=beta, anneal=True, verbose=False)
 
     # normalize proj timeseries
     proj_timeseries_array = proj_timeseries_array / ensemble  # want ensemble average
@@ -307,17 +307,29 @@ if __name__ == '__main__':
 
     if gen_basin_data:
         # simple analysis
-        init_cond = 'HSC'  # index is 6
+        # common: 'HSC'
+        # common: 'Common Lymphoid Progenitor (CLP)'
+        # common: 'Common Myeloid Progenitor (CMP)'
+        # common: 'Megakaryocyte-Erythroid Progenitor (MEP)'
+        # common: 'Granulocyte-Monocyte Progenitor (GMP)'
+        # common: 'thymocyte DN'
+        # common: 'thymocyte - DP'
+        # common: 'neutrophils'
+        # common: 'monocytes - classical'
+        init_cond = 'neutrophils'  # note HSC index is 6
         ensemble = 1000
-        ensemble_projection_timeseries(init_cond, ensemble, num_steps=100, beta=1.3, plot=True, anneal=True)
+        num_steps = 400
+        num_proc = cpu_count() / 2  # seems best to use only physical core count (1 core ~ 3x slower than 4)
+        ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps, beta=1.3, plot=True, anneal=True)
         # less simple analysis
         #basin_transitions()
 
     # direct data plotting
     if plot_isolated_data:
-        loaddata = np.loadtxt('proj_timeseries.txt', delimiter=',')
+        loaddata = np.loadtxt(RUNS_FOLDER +os.sep + 'proj_timeseries.txt', delimiter=',')
         ensemble = 100
         highlights_simple = {6:'k', 8: 'blue', 10: 'steelblue'}
         highlights_CLPside = {6:'k', 8: 'blue', 7: 'red', 16: 'deeppink', 11: 'darkorchid'}
         highlights_both = {6:'k', 8: 'blue', 10: 'steelblue', 9: 'forestgreen', 7: 'red', 16: 'deeppink', 11: 'darkorchid'}
-        plot_proj_timeseries(loaddata, loaddata.shape[1], ensemble, 'proj_timeseries.pdf', highlights=highlights_CLPside)
+        plot_proj_timeseries(loaddata, loaddata.shape[1], ensemble, RUNS_FOLDER + os.sep + 'proj_timeseries.pdf',
+                             highlights=highlights_CLPside)
