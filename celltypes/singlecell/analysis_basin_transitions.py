@@ -21,7 +21,8 @@ def wrapper_get_basin_stats(fn_args_dict):
         return get_basin_stats(*fn_args_dict['args'])
 
 
-def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, num_steps=100, beta=BETA, anneal=True, verbose=False):
+def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, num_steps=100, beta=BETA, anneal=True,
+                    verbose=False, occ_threshold=0.7):
 
     # prep applied field TODO: how to include applied field neatly
     # app_field = construct_app_field_from_genes(IPSC_CORE_GENES, num_steps)
@@ -30,6 +31,8 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, num_
     endpoint_dict = {}
     transfer_dict = {}
     proj_timeseries_array = np.zeros((len(CELLTYPE_LABELS), num_steps))
+    basin_occupancy_timeseries = np.zeros((len(CELLTYPE_LABELS) + 1, num_steps), dtype=int)  # could have some spurious here too? not just last as mixed
+    mixed_index = len(CELLTYPE_LABELS)  # i.e. last elem
 
     if anneal:
         beta_start = beta
@@ -64,7 +67,12 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, num_
                     ranked_mem = CELLTYPE_LABELS[ranked_mem_idx]
                     print rank, ranked_mem_idx, ranked_mem, projvec[ranked_mem_idx], absprojvec[ranked_mem_idx]
 
-            if topranked != CELLTYPE_ID[init_cond] and projvec[topranked] > 0.75:
+            if projvec[topranked] > occ_threshold:
+                basin_occupancy_timeseries[topranked, step] += 1
+            else:
+                basin_occupancy_timeseries[mixed_index, step] += 1
+
+            if topranked != CELLTYPE_ID[init_cond] and projvec[topranked] > occ_threshold:
                 if cell_idx not in transfer_dict:
                     transfer_dict[cell_idx] = {topranked: (step, projvec[topranked])}
                 else:
@@ -94,12 +102,13 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, num_
         else:
             endpoint_dict[cell_idx] = ('mixed', projvec[topranked])
 
-    return endpoint_dict, transfer_dict, proj_timeseries_array
+    return endpoint_dict, transfer_dict, proj_timeseries_array, basin_occupancy_timeseries
 
 
-def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, num_steps=100, beta=BETA, anneal=True, verbose=False):
+def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, num_steps=100, beta=BETA, anneal=True,
+                     verbose=False, occ_threshold=0.7):
     # prepare fn args and kwargs for wrapper
-    kwargs_dict = {'num_steps': num_steps, 'beta': beta, 'anneal': anneal, 'verbose': False}
+    kwargs_dict = {'num_steps': num_steps, 'beta': beta, 'anneal': anneal, 'verbose': verbose, 'occ_threshold': occ_threshold}
     fn_args_dict = [0]*num_processes
     print "NUM_PROCESSES:", num_processes
     assert ensemble % num_processes == 0
@@ -120,21 +129,29 @@ def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, nu
     summed_endpoint_dict = {}
     summed_transfer_dict = {}
     summed_proj_timeseries_array = np.zeros((len(CELLTYPE_LABELS), num_steps))
+    summed_basin_occupancy_timeseries = np.zeros((len(CELLTYPE_LABELS) + 1, num_steps), dtype=int)  # could have some spurious here too? not just last as mixed
     for i, result in enumerate(results):
-        endpoint_dict, transfer_dict, proj_timeseries_array = result
+        endpoint_dict, transfer_dict, proj_timeseries_array, basin_occupancy_timeseries = result
         summed_endpoint_dict.update(endpoint_dict)  # TODO check
         summed_transfer_dict.update(transfer_dict)  # TODO check
         summed_proj_timeseries_array += proj_timeseries_array
-    return summed_endpoint_dict, summed_transfer_dict, summed_proj_timeseries_array
+        summed_basin_occupancy_timeseries += basin_occupancy_timeseries
+    check2 = np.sum(summed_basin_occupancy_timeseries, axis=0)
+    print "check2", num_steps, len(check2)
+    print check2
+
+    return summed_endpoint_dict, summed_transfer_dict, summed_proj_timeseries_array, summed_basin_occupancy_timeseries
 
 
-def ensemble_projection_timeseries(init_cond, ensemble, num_processes, num_steps=100, beta=BETA, anneal=True, plot=True):
+def ensemble_projection_timeseries(init_cond, ensemble, num_processes, num_steps=100, beta=BETA, anneal=True,
+                                   occ_threshold=0.7, plot=True):
     """
     Args:
     - init_cond: np array of init state OR string memory label
     - ensemble: ensemble of particles beginning at init_cond
     - num_steps: how many steps to iterate (each step updates every spin once)
     - beta: simulation temperature parameter
+    - occ_threshold: projection value cutoff to say state is in a basin (default: 0.7)
     What:
     - Track a timeseries of: ensemble mean projection onto each memory
     - Optionally plot
@@ -156,16 +173,18 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_processes, num_steps
         init_id = init_cond
 
     # simulate ensemble - pooled wrapper call
-    endpoint_dict, transfer_dict, proj_timeseries_array = \
+    endpoint_dict, transfer_dict, proj_timeseries_array, basin_occupancy_timeseries = \
         fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes,
-                         num_steps=num_steps, beta=beta, anneal=True, verbose=False)
+                         num_steps=num_steps, beta=beta, anneal=True, verbose=False, occ_threshold=occ_threshold)
 
     # normalize proj timeseries
     proj_timeseries_array = proj_timeseries_array / ensemble  # want ensemble average
 
     # save transition array and run info to file
-    proj_timeseries_data = data_folder + os.sep + 'proj_timeseries.txt'
+    proj_timeseries_data = data_folder + os.sep + 'proj_proj_timeseries.txt'
     np.savetxt(proj_timeseries_data, proj_timeseries_array, delimiter=',')
+    basin_occupancy_timeseries_data = data_folder + os.sep + 'proj_occupancy_timeseries.txt'
+    np.savetxt(basin_occupancy_timeseries_data, basin_occupancy_timeseries, delimiter=',', fmt='%i')
 
     # plot output
     for idx in xrange(ensemble):
@@ -175,13 +194,13 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_processes, num_steps
             print idx, "no transfer dict entry", endpoint_dict[idx]
     if plot:
         highlights_CLPside = {6:'k', 8: 'blue', 7: 'red', 16: 'deeppink', 11: 'darkorchid'}
-        savepath = plot_data_folder + os.sep + 'proj_timeseries.pdf'
-        plot_proj_timeseries(proj_timeseries_array, num_steps, ensemble, savepath, highlights=highlights_CLPside)
-
+        savepath_proj = plot_data_folder + os.sep + 'proj_proj_timeseries.pdf'
+        plot_proj_timeseries(proj_timeseries_array, num_steps, ensemble, savepath_proj, highlights=highlights_CLPside)
+        savepath_occ = plot_data_folder + os.sep + 'proj_occupancy_timeseries.pdf'
+        plot_basin_occupancy_timeseries(basin_occupancy_timeseries, num_steps, ensemble, occ_threshold, savepath_occ, highlights=highlights_CLPside)
         savepath_endpt = plot_data_folder + os.sep + 'endpt_stats.pdf'
         plot_basin_endpoints(endpoint_dict, num_steps, ensemble, savepath_endpt, highlights=highlights_CLPside)
-
-    return proj_timeseries_array
+    return proj_timeseries_array, basin_occupancy_timeseries
 
 
 def plot_proj_timeseries(proj_timeseries_array, num_steps, ensemble, savepath, highlights=None):
@@ -190,6 +209,7 @@ def plot_proj_timeseries(proj_timeseries_array, num_steps, ensemble, savepath, h
     highlights: either None or a dict of idx: color for certain memory projections to highlight
     """
     assert proj_timeseries_array.shape[0] == len(CELLTYPE_LABELS)
+    plt.clf()
     if highlights is None:
         plt.plot(xrange(num_steps), proj_timeseries_array.T, color='blue', linewidth=0.75)
     else:
@@ -204,11 +224,38 @@ def plot_proj_timeseries(proj_timeseries_array, num_steps, ensemble, savepath, h
     return
 
 
+def plot_basin_occupancy_timeseries(basin_occupancy_timeseries, num_steps, ensemble, threshold, savepath, highlights=None):
+    """
+    basin_occupancy_timeseries: is expected dim (p + spurious tracked) x time  note spurious tracked default is 'mixed'
+    highlights: either None or a dict of idx: color for certain memory projections to highlight
+    """
+    assert basin_occupancy_timeseries.shape[0] == len(CELLTYPE_LABELS) + 1  # note spurious tracked default is 'mixed'
+    plt.clf()
+    if highlights is None:
+        plt.plot(xrange(num_steps), basin_occupancy_timeseries.T, color='blue', linewidth=0.75)
+    else:
+        plt.plot(xrange(num_steps), basin_occupancy_timeseries.T, color='grey', linewidth=0.55, linestyle='dashed')
+        for key in highlights.keys():
+            plt.plot(xrange(num_steps), basin_occupancy_timeseries[key,:], color=highlights[key], linewidth=0.75, label=CELLTYPE_LABELS[key])
+        if len(CELLTYPE_LABELS) not in highlights.keys():
+            plt.plot(xrange(num_steps), basin_occupancy_timeseries[len(CELLTYPE_LABELS), :], color='orange',
+                     linewidth=0.75, label='mixed')
+        plt.legend()
+    plt.title('Occupancy timeseries (ensemble %d)' % ensemble)
+    plt.ylabel('Occupancy in each memory (threshold proj=%.2f)' % threshold)
+    plt.xlabel('Steps (%d updates, all spins)' % num_steps)
+    plt.savefig(savepath)
+    return
+
+
 def plot_basin_endpoints(endpoint_dict, num_steps, ensemble, savepath, highlights=None):
     """
     endpoint_dict: dict where cell endstates stored via endpoint_dict[idx] = (endpoint_label, projval)
     highlights: either None or a dict of idx: color for certain memory projections to highlight
     """
+
+    # TODO: remove endpoint object maybe and just pass basin occupancy timeseries with a step to this fn?
+
     # data prep
     occupancies = {}
     for idx in xrange(len(endpoint_dict.keys())):
@@ -315,9 +362,9 @@ if __name__ == '__main__':
         # common: 'thymocyte - DP'
         # common: 'neutrophils'
         # common: 'monocytes - classical'
-        init_cond = 'neutrophils'  # note HSC index is 6
-        ensemble = 1000
-        num_steps = 400
+        init_cond = 'HSC'  # note HSC index is 6
+        ensemble = 100
+        num_steps = 100
         num_proc = cpu_count() / 2  # seems best to use only physical core count (1 core ~ 3x slower than 4)
         ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps, beta=1.3, plot=True, anneal=True)
         # less simple analysis
