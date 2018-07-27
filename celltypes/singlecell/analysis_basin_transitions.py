@@ -352,6 +352,9 @@ if __name__ == '__main__':
     plot_isolated_data = False
 
     if gen_basin_data:
+
+        # TODO: store run settings
+
         # simple analysis
         # common: 'HSC'
         # common: 'Common Lymphoid Progenitor (CLP)'
@@ -363,10 +366,11 @@ if __name__ == '__main__':
         # common: 'neutrophils'
         # common: 'monocytes - classical'
         init_cond = 'HSC'  # note HSC index is 6
-        ensemble = 100
+        ensemble = 1000
         num_steps = 100
         num_proc = cpu_count() / 2  # seems best to use only physical core count (1 core ~ 3x slower than 4)
-        ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps, beta=1.3, plot=True, anneal=True)
+        ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps, beta=1.3, occ_threshold=0.7,
+                                       plot=True, anneal=True)
         # less simple analysis
         #basin_transitions()
 
