@@ -159,5 +159,11 @@ if __name__ == '__main__':
             arr = read_datafile_simple(datapath, verbose=True, txt=is_txtfile)
 
         if flag_load_compressed_npz:
-            compressed_file = datadir + os.sep + "arr_genes_cells_compressed_pruned.npz"
+            compressed_file = datadir + os.sep + "2014_mehta_mems_genes_types_boolean_compressed.npz"
             arr, genes, cells = load_npz_of_arr_genes_cells(compressed_file)
+
+            rowfile = datadir + os.sep + "rows_to_delete.txt"
+            rows_to_delete = read_datafile_simple(rowfile, verbose=True, txt=True)
+            rows_to_delete = rows_to_delete.astype(int)
+            for idx, row in enumerate(rows_to_delete):
+                print row, genes[row]
