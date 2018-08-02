@@ -11,7 +11,8 @@ from singlecell_simsetup import N, P, XI, CELLTYPE_ID, A_INV, J, GENE_ID, GENE_L
 
 
 ANALYSIS_SUBDIR = "basin_transitions"
-
+ANNEAL_BETA = 1.3
+OCC_THRESHOLD = 0.7
 
 def wrapper_get_basin_stats(fn_args_dict):
     np.random.seed()
@@ -21,8 +22,8 @@ def wrapper_get_basin_stats(fn_args_dict):
         return get_basin_stats(*fn_args_dict['args'])
 
 
-def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, num_steps=100, beta=BETA, anneal=True,
-                    verbose=False, occ_threshold=0.7):
+def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, num_steps=100, beta=ANNEAL_BETA, anneal=True,
+                    verbose=False, occ_threshold=OCC_THRESHOLD):
 
     # prep applied field TODO: how to include applied field neatly
     # app_field = construct_app_field_from_genes(IPSC_CORE_GENES, num_steps)
@@ -105,7 +106,7 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, num_
     return endpoint_dict, transfer_dict, proj_timeseries_array, basin_occupancy_timeseries
 
 
-def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, num_steps=100, beta=BETA, anneal=True,
+def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, num_steps=100, beta=ANNEAL_BETA, anneal=True,
                      verbose=False, occ_threshold=0.7):
     # prepare fn args and kwargs for wrapper
     kwargs_dict = {'num_steps': num_steps, 'beta': beta, 'anneal': anneal, 'verbose': verbose, 'occ_threshold': occ_threshold}
@@ -143,7 +144,24 @@ def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, nu
     return summed_endpoint_dict, summed_transfer_dict, summed_proj_timeseries_array, summed_basin_occupancy_timeseries
 
 
-def ensemble_projection_timeseries(init_cond, ensemble, num_processes, num_steps=100, beta=BETA, anneal=True,
+def get_init_info(init_cond):
+    """
+    Args:
+    - init_cond: np array of init state OR string memory label
+    Return:
+    - init state (Nx1 array) and init_id (str)
+    """
+    if isinstance(init_cond, np.ndarray):
+        init_state = init_cond
+        init_id = 'specific'
+    else:
+        assert isinstance(init_cond, str)
+        init_state = XI[:, CELLTYPE_ID[init_cond]]
+        init_id = init_cond
+    return init_state, init_id
+
+
+def ensemble_projection_timeseries(init_cond, ensemble, num_processes, num_steps=100, beta=ANNEAL_BETA, anneal=True,
                                    occ_threshold=0.7, plot=True):
     """
     Args:
@@ -164,13 +182,7 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_processes, num_steps
         run_subdir_setup(run_subfolder=ANALYSIS_SUBDIR)
 
     # generate initial state
-    if isinstance(init_cond, np.ndarray):
-        init_state = init_cond
-        init_id = 'specific'
-    else:
-        assert isinstance(init_cond, str)
-        init_state = XI[:, CELLTYPE_ID[init_cond]]
-        init_id = init_cond
+    init_state, init_id = get_init_info(init_cond)
 
     # simulate ensemble - pooled wrapper call
     endpoint_dict, transfer_dict, proj_timeseries_array, basin_occupancy_timeseries = \
@@ -194,11 +206,11 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_processes, num_steps
             print idx, "no transfer dict entry", endpoint_dict[idx]
     if plot:
         highlights_CLPside = {6:'k', 8: 'blue', 7: 'red', 16: 'deeppink', 11: 'darkorchid'}
-        savepath_proj = plot_data_folder + os.sep + 'proj_proj_timeseries.pdf'
+        savepath_proj = plot_data_folder + os.sep + 'proj_proj_timeseries.png'
         plot_proj_timeseries(proj_timeseries_array, num_steps, ensemble, savepath_proj, highlights=highlights_CLPside)
-        savepath_occ = plot_data_folder + os.sep + 'proj_occupancy_timeseries.pdf'
+        savepath_occ = plot_data_folder + os.sep + 'proj_occupancy_timeseries.png'
         plot_basin_occupancy_timeseries(basin_occupancy_timeseries, num_steps, ensemble, occ_threshold, savepath_occ, highlights=highlights_CLPside)
-        savepath_endpt = plot_data_folder + os.sep + 'endpt_stats.pdf'
+        savepath_endpt = plot_data_folder + os.sep + 'endpt_stats.png'
         plot_basin_endpoints(endpoint_dict, num_steps, ensemble, savepath_endpt, highlights=highlights_CLPside)
     return proj_timeseries_array, basin_occupancy_timeseries
 
@@ -369,7 +381,7 @@ if __name__ == '__main__':
         ensemble = 1000
         num_steps = 100
         num_proc = cpu_count() / 2  # seems best to use only physical core count (1 core ~ 3x slower than 4)
-        ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps, beta=1.3, occ_threshold=0.7,
+        ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps, beta=ANNEAL_BETA, occ_threshold=0.7,
                                        plot=True, anneal=True)
         # less simple analysis
         #basin_transitions()
@@ -381,5 +393,5 @@ if __name__ == '__main__':
         highlights_simple = {6:'k', 8: 'blue', 10: 'steelblue'}
         highlights_CLPside = {6:'k', 8: 'blue', 7: 'red', 16: 'deeppink', 11: 'darkorchid'}
         highlights_both = {6:'k', 8: 'blue', 10: 'steelblue', 9: 'forestgreen', 7: 'red', 16: 'deeppink', 11: 'darkorchid'}
-        plot_proj_timeseries(loaddata, loaddata.shape[1], ensemble, RUNS_FOLDER + os.sep + 'proj_timeseries.pdf',
+        plot_proj_timeseries(loaddata, loaddata.shape[1], ensemble, RUNS_FOLDER + os.sep + 'proj_timeseries.png',
                              highlights=highlights_CLPside)
