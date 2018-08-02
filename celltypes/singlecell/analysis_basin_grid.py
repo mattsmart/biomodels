@@ -23,7 +23,7 @@ def gen_basin_grid(ensemble, num_processes, num_steps=100, beta=ANNEAL_BETA, occ
     for idx, celltype in enumerate(CELLTYPE_LABELS):
         if saveall:
             proj_timeseries_array, basin_occupancy_timeseries = \
-                ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps, beta=beta,
+                ensemble_projection_timeseries(celltype, ensemble, num_proc, num_steps=num_steps, beta=beta,
                                                occ_threshold=occ_threshold, plot=True, anneal=True)
         else:
             init_state, init_id = get_init_info(celltype)
@@ -75,7 +75,7 @@ def plot_basin_grid(grid_data, ensemble, steps, k=1, ax=None, normalize=True, fs
     cbar.ax.set_ylabel(cbarlabel, rotation=-90, va="bottom", fontsize=fs)
 
     # hack title too bottom
-    plt.text(0.5, 1.3, 'Basin grid transition data (%d cells, %d steps, fs=fs)' % (ensemble, steps),
+    plt.text(0.5, 1.3, 'Basin grid transition data (%d cells, %d steps)' % (ensemble, steps),
              horizontalalignment='center', transform=ax.transAxes, fontsize=fs+4)
     # axis labels
     plt.xlabel('Ensemble fraction after %d steps' % steps, fontsize=fs)
@@ -95,7 +95,9 @@ def plot_basin_grid(grid_data, ensemble, steps, k=1, ax=None, normalize=True, fs
              rotation_mode="anchor")
 
     # add gridlines
-    ax.grid(which='major', color='grey', linestyle='--', linewidth=1)
+    ax.set_xticks(np.arange(-.5, grid_data.shape[1], 1), minor=True)
+    ax.set_yticks(np.arange(-.5, grid_data.shape[0], 1), minor=True)
+    ax.grid(which='minor', color='grey', linestyle='-', linewidth=1)  # grey good to split, white looks nice though
 
     plt.savefig(RUNS_FOLDER + os.sep + 'plot_basin_grid.pdf', dpi=100, bbox_inches='tight')
     return plt.gca()
