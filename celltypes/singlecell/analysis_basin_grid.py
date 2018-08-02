@@ -5,7 +5,6 @@ import time
 from multiprocessing import Pool, cpu_count
 
 from analysis_basin_transitions import ensemble_projection_timeseries, fast_basin_stats, get_init_info, OCC_THRESHOLD, ANNEAL_BETA
-from singlecell_class import Cell
 from singlecell_constants import RUNS_FOLDER, IPSC_CORE_GENES, BETA
 from singlecell_data_io import run_subdir_setup
 from singlecell_simsetup import N, P, XI, CELLTYPE_ID, A_INV, J, GENE_ID, GENE_LABELS, CELLTYPE_LABELS
@@ -34,7 +33,7 @@ def gen_basin_grid(ensemble, num_processes, num_steps=100, beta=ANNEAL_BETA, occ
         # fill in row of grid data from eah celltype simulation
         basin_grid[idx, :] = basin_occupancy_timeseries[:,-1]
     if save:
-        np.savetxt(RUNS_FOLDER + os.sep + 'gen_basin_grid.txt', basin_grid, delimiter=',')
+        np.savetxt(RUNS_FOLDER + os.sep + 'gen_basin_grid.txt', basin_grid, delimiter=',', fmt='%.4f')
     if plot:
         plot_basin_grid(basin_grid, ensemble, num_steps, k=k)
     return basin_grid
@@ -47,7 +46,7 @@ def load_basin_grid(filestr_data):
     return basin_grid
 
 
-def plot_basin_grid(grid_data, ensemble, steps, k=1, ax=None):
+def plot_basin_grid(grid_data, ensemble, steps, k=1, ax=None, normalize=True, fs=10):
     """
     plot matrix G_ij of size p x (p + k): grid of data between 0 and 1
     each row represents one of the p encoded basins as an initial condition
@@ -57,29 +56,48 @@ def plot_basin_grid(grid_data, ensemble, steps, k=1, ax=None):
     """
     assert grid_data.shape == (len(CELLTYPE_LABELS), len(CELLTYPE_LABELS) + k)
 
+    assert normalize
+    datamax = np.max(grid_data)
+    if np.max(grid_data) > 1.0:
+        grid_data = grid_data / ensemble
+        datamax = datamax / ensemble
+
     if not ax:
         ax = plt.gca()
+        plt.gcf().set_size_inches(18.5, 12.5)
     # plot the heatmap
-    imshow_kw = {'cmap': 'YlGnBu', 'vmin': 0.0, 'vmax': 1.0}
+    imshow_kw = {'cmap': 'YlGnBu', 'vmin': 0.0, 'vmax': datamax}
     im = ax.imshow(grid_data, **imshow_kw)
     # create colorbar
     cbar_kw = {}
     cbarlabel = 'Basin occupancy fraction'
     cbar = ax.figure.colorbar(im, ax=ax, **cbar_kw)
-    cbar.ax.set_ylabel(cbarlabel, rotation=-90, va="bottom")
+    cbar.ax.set_ylabel(cbarlabel, rotation=-90, va="bottom", fontsize=fs)
 
-    plt.title('Basin grid transition data (%d cells, %d steps)' % (ensemble, steps))
-    plt.ylabel(CELLTYPE_LABELS)
-    # TODO col labels as string types + k mixed etc
-    assert k == 1
-    plt.xlabel(CELLTYPE_LABELS + ['mixed'])
+    # hack title too bottom
+    plt.text(0.5, 1.3, 'Basin grid transition data (%d cells, %d steps, fs=fs)' % (ensemble, steps),
+             horizontalalignment='center', transform=ax.transAxes, fontsize=fs+4)
+    # axis labels
+    plt.xlabel('Ensemble fraction after %d steps' % steps, fontsize=fs)
+    ax.xaxis.set_label_position('top')
+    plt.ylabel('Ensemble initial condition (%d cells)' % ensemble, fontsize=fs)
+    # show all ticks
+    ax.set_xticks(np.arange(grid_data.shape[1]))
+    ax.set_yticks(np.arange(grid_data.shape[0]))
+    # label them with the respective list entries.
+    assert k == 1  # TODO col labels as string types + k mixed etc
+    ax.set_xticklabels(CELLTYPE_LABELS + ['mixed'], fontsize=fs)
+    ax.set_yticklabels(CELLTYPE_LABELS, fontsize=fs)
     # Rotate the tick labels and set their alignment.
     ax.tick_params(top=True, bottom=False,
                    labeltop=True, labelbottom=False)
-    plt.setp(ax.get_xticklabels(), rotation=-30, ha="right",
+    plt.setp(ax.get_xticklabels(), rotation=-45, ha="right",
              rotation_mode="anchor")
 
-    plt.savefig(RUNS_FOLDER + os.sep + 'plot_basin_grid.png')
+    # add gridlines
+    ax.grid(which='major', color='grey', linestyle='--', linewidth=1)
+
+    plt.savefig(RUNS_FOLDER + os.sep + 'plot_basin_grid.pdf', dpi=100, bbox_inches='tight')
     return plt.gca()
 
 
@@ -89,8 +107,9 @@ if __name__ == '__main__':
 
     if flag_gen_basin_grid:
         # TODO: store run settings
+        # TODO: find way to prevent reloading the interaction info from singlcell_simsetup
         ensemble = 10
-        timesteps = 10
+        timesteps = 20
         num_proc = cpu_count() / 2
         plot = True
         basin_grid = gen_basin_grid(ensemble, num_proc, num_steps=timesteps, plot=plot)
@@ -99,6 +118,6 @@ if __name__ == '__main__':
     if flag_plot_basin_grid_data:
         filestr_data = RUNS_FOLDER + os.sep + 'gen_basin_grid.txt'
         basin_grid_data = load_basin_grid(filestr_data)
-        ensemble = 0
-        num_steps = 0
+        ensemble = 10
+        num_steps = 20
         plot_basin_grid(basin_grid_data, ensemble, num_steps, k=1)
