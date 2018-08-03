@@ -55,27 +55,38 @@ def load_basin_grid(filestr_data):
     return basin_grid
 
 
-def plot_basin_grid(grid_data, ensemble, steps, k=1, ax=None, normalize=True, fs=10):
+def plot_basin_grid(grid_data, ensemble, steps, k=1, ax=None, normalize=True, fs=10, relmax=True):
     """
     plot matrix G_ij of size p x (p + k): grid of data between 0 and 1
     each row represents one of the p encoded basins as an initial condition
     each column represents an endpoint of the simulation starting at a given basin (row)
     G_ij would represent: starting in cell type i, G_ij of the ensemble transitioned to cell type j
-    k represents the number of extra tracked states, by default this is 1 (i.e. mixed state, not in any basin)
+    Args:
+    - relmax means max of color scale will be data max
+    - k represents the number of extra tracked states, by default this is 1 (i.e. mixed state, not in any basin)
     """
     assert grid_data.shape == (len(CELLTYPE_LABELS), len(CELLTYPE_LABELS) + k)
 
     assert normalize
     datamax = np.max(grid_data)
-    if np.max(grid_data) > 1.0:
+
+    if np.max(grid_data) > 1.0 and normalize:
         grid_data = grid_data / ensemble
         datamax = datamax / ensemble
+
+    if relmax:
+        vmax = datamax
+    else:
+        if normalize:
+            vmax = 1.0
+        else:
+            vmax = ensemble
 
     if not ax:
         ax = plt.gca()
         plt.gcf().set_size_inches(18.5, 12.5)
     # plot the heatmap
-    imshow_kw = {'cmap': 'YlGnBu', 'vmin': 0.0, 'vmax': datamax}
+    imshow_kw = {'cmap': 'YlGnBu', 'vmin': 0.0, 'vmax': vmax}  # note: fix at 0.5 of max works nice
     im = ax.imshow(grid_data, **imshow_kw)
     # create colorbar
     cbar_kw = {'aspect': 30, 'pad': 0.02}   # larger aspect, thinner bar
@@ -131,6 +142,6 @@ if __name__ == '__main__':
     if flag_plot_basin_grid_data:
         filestr_data = RUNS_FOLDER + os.sep + 'gen_basin_grid.txt'
         basin_grid_data = load_basin_grid(filestr_data)
-        ensemble = 10
-        num_steps = 20
+        ensemble = 960
+        num_steps = 100
         plot_basin_grid(basin_grid_data, ensemble, num_steps, k=1)
