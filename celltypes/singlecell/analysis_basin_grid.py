@@ -19,6 +19,9 @@ def gen_basin_grid(ensemble, num_processes, num_steps=100, beta=ANNEAL_BETA, occ
     G_ij would represent: starting in cell type i, G_ij of the ensemble transitioned to cell type j
     k represents the number of extra tracked states, by default this is 1 (i.e. mixed state, not in any basin)
     """
+
+    #TODO store output of each basin sim in own dir using override dir arg passed to ensemble fn
+
     basin_grid = np.zeros((len(CELLTYPE_LABELS), len(CELLTYPE_LABELS)+k))
     for idx, celltype in enumerate(CELLTYPE_LABELS):
         if saveall:
@@ -110,11 +113,13 @@ if __name__ == '__main__':
     if flag_gen_basin_grid:
         # TODO: store run settings
         # TODO: find way to prevent reloading the interaction info from singlcell_simsetup
-        ensemble = 10
+        ensemble = 16
         timesteps = 20
         num_proc = cpu_count() / 2
         plot = True
+        t0 = time.time()
         basin_grid = gen_basin_grid(ensemble, num_proc, num_steps=timesteps, plot=plot)
+        print "GRID TIMER:", time.time() - t0
 
     # direct data plotting
     if flag_plot_basin_grid_data:

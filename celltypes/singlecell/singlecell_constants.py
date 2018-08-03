@@ -6,12 +6,13 @@ sys.path.append(CELLTYPES)
 print "Appended to sys path", CELLTYPES
 
 # IO
+SINGLECELL = CELLTYPES + os.sep + "singlecell"
 DATADIR = CELLTYPES + os.sep + "input"
 MEMORIESDIR = DATADIR + os.sep + "memories"
 MEMS_MEHTA = MEMORIESDIR + os.sep + "2014_mehta_mems_genes_types_boolean_compressed_pruned.npz"
 MEMS_SCMCA = MEMORIESDIR + os.sep + "2018_scmca_mems_genes_types_boolean_compressed_pruned.npz"
 DEFAULT_MEMORIES_NPZPATH = MEMS_MEHTA
-RUNS_FOLDER = "runs" + os.sep             # store timestamped runs here
+RUNS_FOLDER = SINGLECELL + os.sep + "runs"                      # store timestamped runs here
 
 # SINGLECELL SIMULATION CONSTANTS
 BETA = 2.2                                # value used in Mehta 2014
