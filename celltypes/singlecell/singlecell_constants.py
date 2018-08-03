@@ -1,7 +1,12 @@
 import os
+import sys
+
+CELLTYPES = os.path.dirname(os.path.dirname(__file__))
+sys.path.append(CELLTYPES)
+print "Appended to sys path", CELLTYPES
 
 # IO
-DATADIR = ".." + os.sep + "input"
+DATADIR = CELLTYPES + os.sep + "input"
 MEMORIESDIR = DATADIR + os.sep + "memories"
 MEMS_MEHTA = MEMORIESDIR + os.sep + "2014_mehta_mems_genes_types_boolean_compressed_pruned.npz"
 MEMS_SCMCA = MEMORIESDIR + os.sep + "2018_scmca_mems_genes_types_boolean_compressed_pruned.npz"
