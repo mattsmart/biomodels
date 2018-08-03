@@ -69,18 +69,18 @@ def plot_basin_grid(grid_data, ensemble, steps, k=1, ax=None, normalize=True, fs
     imshow_kw = {'cmap': 'YlGnBu', 'vmin': 0.0, 'vmax': datamax}
     im = ax.imshow(grid_data, **imshow_kw)
     # create colorbar
-    cbar_kw = {}
+    cbar_kw = {'aspect': 30, 'pad': 0.02}   # larger aspect, thinner bar
     cbarlabel = 'Basin occupancy fraction'
     cbar = ax.figure.colorbar(im, ax=ax, **cbar_kw)
-    cbar.ax.set_ylabel(cbarlabel, rotation=-90, va="bottom", fontsize=fs)
+    cbar.ax.set_ylabel(cbarlabel, rotation=-90, va="bottom", fontsize=fs+2, labelpad=20)
 
-    # hack title too bottom
-    plt.text(0.5, 1.3, 'Basin grid transition data (%d cells, %d steps)' % (ensemble, steps),
+    # hack title to bottom
+    plt.text(0.5, 1.3, 'Basin grid transition data (%d cells per basin, %d steps)' % (ensemble, steps),
              horizontalalignment='center', transform=ax.transAxes, fontsize=fs+4)
     # axis labels
-    plt.xlabel('Ensemble fraction after %d steps' % steps, fontsize=fs)
+    plt.xlabel('Ensemble fraction after %d steps' % steps, fontsize=fs+2)
     ax.xaxis.set_label_position('top')
-    plt.ylabel('Ensemble initial condition (%d cells)' % ensemble, fontsize=fs)
+    plt.ylabel('Ensemble initial condition (%d cells per basin)' % ensemble, fontsize=fs+2)
     # show all ticks
     ax.set_xticks(np.arange(grid_data.shape[1]))
     ax.set_yticks(np.arange(grid_data.shape[0]))
