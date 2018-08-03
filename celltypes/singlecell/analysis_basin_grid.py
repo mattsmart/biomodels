@@ -4,7 +4,7 @@ import os
 import time
 from multiprocessing import Pool, cpu_count
 
-from analysis_basin_transitions import ensemble_projection_timeseries, fast_basin_stats, get_init_info, OCC_THRESHOLD, ANNEAL_BETA
+from analysis_basin_transitions import ensemble_projection_timeseries, fast_basin_stats, get_init_info, OCC_THRESHOLD, ANNEAL_BETA, get_basin_stats
 from singlecell_constants import RUNS_FOLDER, IPSC_CORE_GENES, BETA
 from singlecell_data_io import run_subdir_setup
 from singlecell_simsetup import N, P, XI, CELLTYPE_ID, A_INV, J, GENE_ID, GENE_LABELS, CELLTYPE_LABELS
@@ -33,6 +33,12 @@ def gen_basin_grid(ensemble, num_processes, num_steps=100, beta=ANNEAL_BETA, occ
             endpoint_dict, transfer_dict, proj_timeseries_array, basin_occupancy_timeseries = \
                 fast_basin_stats(celltype, init_state, init_id, ensemble, num_processes,
                                  num_steps=num_steps, beta=beta, anneal=True, verbose=False, occ_threshold=occ_threshold)
+            """
+            endpoint_dict, transfer_dict, proj_timeseries_array, basin_occupancy_timeseries = \
+                get_basin_stats(celltype, init_state, init_id, ensemble, 0, num_steps=20, beta=ANNEAL_BETA,
+                                anneal=True,
+                                verbose=False, occ_threshold=OCC_THRESHOLD)
+            """
         # fill in row of grid data from eah celltype simulation
         basin_grid[idx, :] = basin_occupancy_timeseries[:,-1]
     if save:
