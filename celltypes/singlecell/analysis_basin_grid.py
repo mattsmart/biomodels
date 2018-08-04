@@ -137,7 +137,7 @@ def plot_basin_grid(grid_data, ensemble, steps, k=1, ax=None, normalize=True, fs
 
 
 if __name__ == '__main__':
-    switch_gen_basin_grid = False
+    switch_gen_basin_grid = True
 
     if switch_gen_basin_grid:
         # TODO: store run settings
@@ -145,7 +145,7 @@ if __name__ == '__main__':
         ensemble = 16
         timesteps = 20
         num_proc = cpu_count() / 2
-        plot = False
+        plot = True
         t0 = time.time()
         basin_grid = gen_basin_grid(ensemble, num_proc, num_steps=timesteps, plot=plot)
         print "GRID TIMER:", time.time() - t0
