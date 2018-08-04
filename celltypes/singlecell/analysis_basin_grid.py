@@ -55,7 +55,7 @@ def load_basin_grid(filestr_data):
     return basin_grid
 
 
-def plot_basin_grid(grid_data, ensemble, steps, k=1, ax=None, normalize=True, fs=10, relmax=True):
+def plot_basin_grid(grid_data, ensemble, steps, k=1, ax=None, normalize=True, fs=10, relmax=True, rotate_standard=True):
     """
     plot matrix G_ij of size p x (p + k): grid of data between 0 and 1
     each row represents one of the p encoded basins as an initial condition
@@ -64,6 +64,7 @@ def plot_basin_grid(grid_data, ensemble, steps, k=1, ax=None, normalize=True, fs
     Args:
     - relmax means max of color scale will be data max
     - k represents the number of extra tracked states, by default this is 1 (i.e. mixed state, not in any basin)
+    - rotate_standard: determine xlabel orientation
     """
     assert grid_data.shape == (len(CELLTYPE_LABELS), len(CELLTYPE_LABELS) + k)
 
@@ -111,35 +112,37 @@ def plot_basin_grid(grid_data, ensemble, steps, k=1, ax=None, normalize=True, fs
     # Rotate the tick labels and set their alignment.
     ax.tick_params(top=True, bottom=False,
                    labeltop=True, labelbottom=False)
-    plt.setp(ax.get_xticklabels(), rotation=-45, ha="right",
-             rotation_mode="anchor")
+    if rotate_standard:
+        plt.setp(ax.get_xticklabels(), rotation=45, ha='left')
+    else:
+        plt.setp(ax.get_xticklabels(), rotation=-45, ha="right",
+                 rotation_mode="anchor")
 
     # add gridlines
     ax.set_xticks(np.arange(-.5, grid_data.shape[1], 1), minor=True)
     ax.set_yticks(np.arange(-.5, grid_data.shape[0], 1), minor=True)
-    ax.grid(which='minor', color='grey', linestyle='-', linewidth=1)  # grey good to split, white looks nice though
+    ax.grid(which='minor', color='w', linestyle='-', linewidth=1)  # grey good to split, white looks nice though
 
     plt.savefig(RUNS_FOLDER + os.sep + 'plot_basin_grid.pdf', dpi=100, bbox_inches='tight')
     return plt.gca()
 
 
 if __name__ == '__main__':
-    flag_gen_basin_grid = False
-    flag_plot_basin_grid_data = True
+    switch_gen_basin_grid = False
 
-    if flag_gen_basin_grid:
+    if switch_gen_basin_grid:
         # TODO: store run settings
         # TODO: find way to prevent reloading the interaction info from singlcell_simsetup
         ensemble = 16
         timesteps = 20
         num_proc = cpu_count() / 2
-        plot = True
+        plot = False
         t0 = time.time()
         basin_grid = gen_basin_grid(ensemble, num_proc, num_steps=timesteps, plot=plot)
         print "GRID TIMER:", time.time() - t0
 
     # direct data plotting
-    if flag_plot_basin_grid_data:
+    else:
         filestr_data = RUNS_FOLDER + os.sep + 'gen_basin_grid.txt'
         basin_grid_data = load_basin_grid(filestr_data)
         ensemble = 960
