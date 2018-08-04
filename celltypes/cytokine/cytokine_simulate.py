@@ -38,7 +38,7 @@ def cytokine_sim(model_name=DEFAULT_CYTOKINE_MODEL, iterations=NUM_STEPS, beta=B
         #if singlecell.steps % plot_period == 0:
         #    fig, ax, proj = singlecell.plot_projection(use_radar=True, pltdir=plot_lattice_folder)
 
-        cell.update_state(intxn_matrix=intxn_matrix, beta=beta, app_field=applied_field_const, app_field_strength=applied_field_strength, randomize=False)
+        cell.update_state(intxn_matrix=intxn_matrix, beta=beta, app_field=applied_field_const, app_field_strength=applied_field_strength)
 
     # end state
     if flag_print:

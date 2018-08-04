@@ -74,7 +74,7 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_STEPS, beta=BET
             if singlecell.steps % plot_period == 0:
                 fig, ax, proj = singlecell.plot_projection(use_radar=True, pltdir=plot_lattice_folder)
         singlecell.update_state(beta=beta, intxn_matrix=intxn_matrix, app_field=app_field_timestep,
-                                app_field_strength=app_field_strength, randomize=False)
+                                app_field_strength=app_field_strength)
 
     # Write
     if verbose:

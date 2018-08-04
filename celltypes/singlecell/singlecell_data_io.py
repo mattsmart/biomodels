@@ -8,11 +8,11 @@ from singlecell_constants import RUNS_FOLDER
 
 def run_subdir_setup(run_subfolder=None):
     current_time = datetime.datetime.now().strftime("%Y-%m-%d %I.%M.%S%p")
-    time_folder = current_time + os.sep
+    time_folder = current_time
     if run_subfolder is None:
-        current_run_folder = RUNS_FOLDER + time_folder
+        current_run_folder = RUNS_FOLDER + os.sep + time_folder
     else:
-        current_run_folder = RUNS_FOLDER + run_subfolder + os.sep + time_folder
+        current_run_folder = RUNS_FOLDER + os.sep + run_subfolder + os.sep + time_folder
 
     # subfolders in the timestamped run directory:
     data_folder = os.path.join(current_run_folder, "data")

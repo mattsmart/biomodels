@@ -95,7 +95,7 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, num_
 
             # main call to update
             if step < num_steps:
-                cell.update_state(beta=beta, app_field=None)  # TODO alternate update random site at a time scheme
+                cell.update_state(beta=beta, app_field=None, fullstep_chunk=True)
 
         # update endpoints for each cell
         if projvec[topranked] > 0.7:
@@ -378,8 +378,8 @@ if __name__ == '__main__':
         # common: 'neutrophils'
         # common: 'monocytes - classical'
         init_cond = 'HSC'  # note HSC index is 6
-        ensemble = 1000
-        num_steps = 100
+        ensemble = 100
+        num_steps = 500
         num_proc = cpu_count() / 2  # seems best to use only physical core count (1 core ~ 3x slower than 4)
         ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps, beta=ANNEAL_BETA, occ_threshold=0.7,
                                        plot=True, anneal=True)

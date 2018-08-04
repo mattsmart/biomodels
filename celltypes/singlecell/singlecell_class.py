@@ -86,16 +86,23 @@ class Cell(object):
         return burst_errors
 
     def update_state(self, intxn_matrix=J, beta=BETA, ext_field=None, ext_field_strength=EXT_FIELD_STRENGTH, app_field=None,
-                     app_field_strength=APP_FIELD_STRENGTH, randomize=False):
+                     app_field_strength=APP_FIELD_STRENGTH, fullstep_chunk=True):
         """
+        fullstep_chunk: if True, sample from 0 to N with replacement, else each step will be 'fully random'
+                        i.e. can update same site twice in a row, vs time gap of at least N substeps
+                        these produce different short term behaviour, but should reach same steady state
         ext_field - N x 1 - field external to the cell in a signalling sense; exosome field in multicell sym
         ext_field_strength  - scaling factor for ext_field
         app_field - N x 1 - unnatural external field (e.g. force TF on for some time period experimentally)
         app_field_strength - scaling factor for appt_field
         """
         sites = range(self.N)
-        if randomize:
+        if fullstep_chunk:
             shuffle(sites)  # randomize site ordering each timestep updates
+        else:
+            #sites = np.random.choice(self.N, self.N, replace=True)
+            sites = [int(self.N*np.random.random()) for _ in xrange(self.N)]
+
         state_array_ext = np.zeros((self.N, np.shape(self.state_array)[1] + 1))
         state_array_ext[:, :-1] = self.state_array  # TODO: make sure don't need array copy
         state_array_ext[:,-1] = self.state_array[:,-1]
