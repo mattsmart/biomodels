@@ -55,7 +55,7 @@ def load_basin_grid(filestr_data):
     return basin_grid
 
 
-def plot_basin_grid(grid_data, ensemble, steps, k=1, ax=None, normalize=True, fs=10, relmax=True, rotate_standard=True):
+def plot_basin_grid(grid_data, ensemble, steps, k=1, ax=None, normalize=True, fs=9, relmax=True, rotate_standard=True):
     """
     plot matrix G_ij of size p x (p + k): grid of data between 0 and 1
     each row represents one of the p encoded basins as an initial condition
@@ -87,7 +87,9 @@ def plot_basin_grid(grid_data, ensemble, steps, k=1, ax=None, normalize=True, fs
         ax = plt.gca()
         plt.gcf().set_size_inches(18.5, 12.5)
     # plot the heatmap
-    imshow_kw = {'cmap': 'YlGnBu', 'vmin': 0.0, 'vmax': vmax}  # note: fix at 0.5 of max works nice
+    # note: fix vmax at 0.5 of max works nice
+    # note: aspect None, 'auto', scalar, or 'equal'
+    imshow_kw = {'cmap': 'YlGnBu', 'aspect': None, 'vmin': 0.0, 'vmax': vmax}  # note: fix at 0.5 of max works nice
     im = ax.imshow(grid_data, **imshow_kw)
     # create colorbar
     cbar_kw = {'aspect': 30, 'pad': 0.02}   # larger aspect, thinner bar
@@ -123,7 +125,14 @@ def plot_basin_grid(grid_data, ensemble, steps, k=1, ax=None, normalize=True, fs
     ax.set_yticks(np.arange(-.5, grid_data.shape[0], 1), minor=True)
     ax.grid(which='minor', color='w', linestyle='-', linewidth=1)  # grey good to split, white looks nice though
 
+    # hack to add extra gridlines (not clear how to have more than minor and major on one axis)
+    for xcoord in np.arange(-.5, grid_data.shape[1], 8):
+        ax.axvline(x=xcoord, ls='--', color='grey', linewidth=1)
+    for ycoord in np.arange(-.5, grid_data.shape[0], 8):
+        ax.axhline(y=ycoord, ls='--', color='grey', linewidth=1)
+
     plt.savefig(RUNS_FOLDER + os.sep + 'plot_basin_grid.pdf', dpi=100, bbox_inches='tight')
+
     return plt.gca()
 
 
