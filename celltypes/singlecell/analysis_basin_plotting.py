@@ -26,12 +26,13 @@ def plot_proj_timeseries(proj_timeseries_array, num_steps, ensemble, savepath, h
     return
 
 
-def plot_basin_occupancy_timeseries(basin_occupancy_timeseries, num_steps, ensemble, threshold, savepath, highlights=None):
+def plot_basin_occupancy_timeseries(basin_occupancy_timeseries, num_steps, ensemble, threshold, spurious_list, savepath, highlights=None):
     """
     basin_occupancy_timeseries: is expected dim (p + spurious tracked) x time  note spurious tracked default is 'mixed'
     highlights: either None or a dict of idx: color for certain memory projections to highlight
     """
-    assert basin_occupancy_timeseries.shape[0] == len(CELLTYPE_LABELS) + 1  # note spurious tracked default is 'mixed'
+    assert basin_occupancy_timeseries.shape[0] == len(CELLTYPE_LABELS) + len(spurious_list)  # note spurious tracked default is 'mixed'
+    assert spurious_list[0] == 'mixed'
     plt.clf()
     if highlights is None:
         plt.plot(xrange(num_steps), basin_occupancy_timeseries.T, color='blue', linewidth=0.75)
@@ -50,44 +51,38 @@ def plot_basin_occupancy_timeseries(basin_occupancy_timeseries, num_steps, ensem
     return
 
 
-def plot_basin_endpoints(endpoint_dict, num_steps, ensemble, savepath, highlights=None):
+def plot_basin_step(basin_step_data, step, ensemble, spurious_list, savepath, highlights={}):
     """
-    endpoint_dict: dict where cell endstates stored via endpoint_dict[idx] = (endpoint_label, projval)
-    highlights: either None or a dict of idx: color for certain memory projections to highlight
+    basin_step_data: of length p or p + k where k tracks spurious states, p is encoded memories length
+    highlights: dict of idx: color for certain memory projections to highlight
     """
-
-    # TODO: remove endpoint object maybe and just pass basin occupancy timeseries with a step to this fn?
-
-    # data prep
-    occupancies = {}
-    for idx in xrange(len(endpoint_dict.keys())):
-        endppoint_id, projval = endpoint_dict[idx]
-        if endppoint_id in occupancies:
-            occupancies[endppoint_id] += 1
-        else:
-            occupancies[endppoint_id] = 1
-    memory_labels = occupancies.keys()
-    memory_occupancies = [occupancies[a] for a in memory_labels]
-    memory_colors = ['grey' if label not in [CELLTYPE_LABELS[a] for a in highlights.keys()]
-                     else highlights[CELLTYPE_ID[label]]
-                     for label in memory_labels]
+    assert len(basin_step_data) in [len(CELLTYPE_LABELS), len(CELLTYPE_LABELS) + len(spurious_list)]
+    if len(basin_step_data) == len(CELLTYPE_LABELS):
+        xticks = CELLTYPE_LABELS
+        bar_colors = ['grey' if label not in [CELLTYPE_LABELS[a] for a in highlights.keys()]
+                      else highlights[CELLTYPE_ID[label]]
+                      for label in xticks]
+    else:
+        xticks = CELLTYPE_LABELS + spurious_list
+        bar_colors = ['grey' if label not in [CELLTYPE_LABELS[a] for a in highlights.keys()]
+                      else highlights[CELLTYPE_ID[label]]
+                      for label in xticks]
     # plotting
     import matplotlib as mpl
     mpl.rcParams.update({'font.size': 12})
-
     plt.clf()
     fig = plt.figure(1)
     fig.set_size_inches(18.5, 10.5)
-    h = plt.bar(xrange(len(memory_labels)), memory_occupancies, color=memory_colors, label=memory_labels)
+    h = plt.bar(xrange(len(xticks)), basin_step_data, color=bar_colors)
     plt.subplots_adjust(bottom=0.3)
     xticks_pos = [0.65 * patch.get_width() + patch.get_xy()[0] for patch in h]
-    plt.xticks(xticks_pos, memory_labels, ha='right', rotation=45, size=12)
+    plt.xticks(xticks_pos, xticks, ha='right', rotation=45, size=11)
     plt.gca().yaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
-    plt.title('Cell endpoints (%d steps, %d cells)' % (num_steps, ensemble))
-    plt.ylabel('Basin occupancy count')
-    plt.xlabel('Basin labels')
+    plt.title('Ensemble coordinate at step %d (%d cells)' % (step, ensemble))
+    plt.ylabel('Class occupancy count')
+    plt.xlabel('Class labels')
     fig.savefig(savepath)
-    return
+    return plt.gca()
 
 
 def plot_basin_grid(grid_data, ensemble, steps, plotdir, k=1, ax=None, normalize=True, fs=9, relmax=True,
