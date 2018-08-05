@@ -6,7 +6,7 @@ from data_process import binarize_cluster_dict, binary_cluster_dict_to_memories,
                          load_memories_genes_clusters
 from data_settings import DATADIR, OUTPUTDIR
 from data_standardize import load_npz_of_arr_genes_cells
-from singlecell.singlecell_data_io import run_subdir_setup
+from singlecell.singlecell_data_io import run_subdir_setup, settings_append
 from singlecell.singlecell_functions import hamiltonian, hamming, state_memory_projection_single
 from singlecell.singlecell_linalg import memory_corr_matrix_and_inv, interaction_matrix, predictivity_matrix
 from singlecell.singlecell_simulate import singlecell_sim
@@ -78,7 +78,7 @@ def build_basin_states(intxn_matrix, memory_vec,
 
 def basin_projection_timeseries(k, memory_array, intxn_matrix, eta, basin_data_k, plot_data_folder,
                                 num_steps=100, plot=True, flag_write=False):
-
+    # TODO check vs analysis basin grid functions, possible overlap
     def get_memory_proj_timeseries(state_array, memory_idx):
         num_steps = np.shape(state_array)[1]
         timeseries = np.zeros(num_steps)
@@ -92,7 +92,7 @@ def basin_projection_timeseries(k, memory_array, intxn_matrix, eta, basin_data_k
 
     for idx in xrange(basin_data_k.shape[1]):
         init_cond = basin_data_k[:, idx]
-        cellstate_array, _, _, _, _ = singlecell_sim(
+        cellstate_array, io_dict = singlecell_sim(
             init_state=init_cond, iterations=num_steps, beta=1/TEMP, xi=memory_array, intxn_matrix=intxn_matrix,
             memory_labels=range(memory_array.shape[1]), gene_labels=range(memory_array.shape[0]),
             flag_write=flag_write, analysis_subdir=ANALYSIS_SUBDIR, plot_period=num_steps * 2, verbose=False)
@@ -144,8 +144,7 @@ def get_basins_scores(memory_array, binarized_cluster_dict, basinscore_method="d
     score_dict = {k: 0 for k in xrange(num_clusters)}
 
     # setup io
-    current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = \
-        run_subdir_setup(run_subfolder=ANALYSIS_SUBDIR)
+    io_dict = run_subdir_setup(run_subfolder=ANALYSIS_SUBDIR)
 
     if basinscore_method == 'crawler':
         for k in xrange(num_clusters):
@@ -164,14 +163,14 @@ def get_basins_scores(memory_array, binarized_cluster_dict, basinscore_method="d
             #init_conds = binarized_cluster_dict[k]
             print "WARNING: only looking at first 10 cells in each cluster"
             init_conds = binarized_cluster_dict[k][:,0:10]
-            trajectories = basin_projection_timeseries(k, memory_array, intxn_matrix, eta, init_conds, plot_data_folder,
+            trajectories = basin_projection_timeseries(k, memory_array, intxn_matrix, eta, init_conds, io_dict['plotdir'],
                                                        num_steps=3, plot=True, flag_write=False)
             print trajectories
             score_dict[k] = np.mean(trajectories[-1,:])
     # save to file
     scores = [score_dict[k] for k in xrange(num_clusters)]
     np.savetxt(data_folder + os.sep + "scores.txt", scores)
-    return score_dict, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder
+    return score_dict, io_dict
 
 
 def plot_basins_scores(score_dict, savedir=None):
@@ -236,8 +235,7 @@ if __name__ == '__main__':
             assert len(clusters) == len(binarized_cluster_dict.keys())
             assert memory_array.shape[0] == binarized_cluster_dict[0].shape[0]
         # basin scores
-        basin_scores, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = \
-            get_basins_scores(memory_array, binarized_cluster_dict, basinscore_method=basinscore_method)
+        basin_scores, io_dict = get_basins_scores(memory_array, binarized_cluster_dict, basinscore_method=basinscore_method)
 
     if flag_plot_basinscore:
         if not flag_gen_basinscore:

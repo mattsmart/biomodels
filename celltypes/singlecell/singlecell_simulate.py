@@ -2,7 +2,7 @@ import numpy as np
 
 from singlecell_class import Cell
 from singlecell_constants import NUM_STEPS, BURST_ERROR_PERIOD, APP_FIELD_STRENGTH, BETA
-from singlecell_data_io import run_subdir_setup
+from singlecell_data_io import run_subdir_setup, settings_append
 from singlecell_simsetup import N, XI, J, CELLTYPE_ID, CELLTYPE_LABELS, GENE_LABELS
 
 """
@@ -31,17 +31,11 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_STEPS, beta=BET
     # TODO: if dirs is None then do run subdir setup (just current run dir?)
     # IO setup
     if flag_write:
-        if analysis_subdir is None:
-            current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = run_subdir_setup()
-        else:
-            current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = run_subdir_setup(run_subfolder=analysis_subdir)
+        io_dict = run_subdir_setup(run_subfolder=analysis_subdir)
     else:
         if verbose:
             print "Warning: flag_write set to False -- nothing will be saved"
-        current_run_folder = None
-        data_folder = None
-        plot_lattice_folder = None
-        plot_data_folder = None
+        io_dict = None
 
     # Cell setup
     N = xi.shape[0]
@@ -72,7 +66,7 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_STEPS, beta=BET
             app_field_timestep = app_field[:, step]
         if flag_write:
             if singlecell.steps % plot_period == 0:
-                fig, ax, proj = singlecell.plot_projection(use_radar=True, pltdir=plot_lattice_folder)
+                fig, ax, proj = singlecell.plot_projection(use_radar=True, pltdir=io_dict['latticedir'])
         singlecell.update_state(beta=beta, intxn_matrix=intxn_matrix, app_field=app_field_timestep,
                                 app_field_strength=app_field_strength)
 
@@ -82,10 +76,10 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_STEPS, beta=BET
     if flag_write:
         if verbose:
             print "Writing state to file.."
-        singlecell.write_state(data_folder)
+        singlecell.write_state(io_dict['datadir'])
     if verbose:
         print "Done"
-    return singlecell.get_state_array(), current_run_folder, data_folder, plot_lattice_folder, plot_data_folder
+    return singlecell.get_state_array(), io_dict
 
 
 if __name__ == '__main__':

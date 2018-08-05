@@ -7,7 +7,7 @@ from multicell_constants import GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS,
 from multicell_lattice import build_lattice_main, get_cell_locations, prep_lattice_data_dict, write_state_all_cells
 from multicell_visualize import lattice_uniplotter, reference_overlap_plotter, lattice_projection_composite
 from singlecell.singlecell_constants import EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, IPSC_CORE_GENES, IPSC_EXTENDED_GENES
-from singlecell.singlecell_data_io import run_subdir_setup
+from singlecell.singlecell_data_io import run_subdir_setup, settings_append
 from singlecell.singlecell_functions import construct_app_field_from_genes
 from singlecell.singlecell_simsetup import N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS
 
@@ -34,7 +34,7 @@ def run_sim(lattice, num_lattice_steps, data_dict, exosome_string=EXOSTRING, fie
     else:
         app_field_timestep = None
 
-    current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = run_subdir_setup()
+    io_dict = run_subdir_setup()
     cell_locations = get_cell_locations(lattice, n)
     loc_to_idx = {pair: idx for idx, pair in enumerate(cell_locations)}
     memory_idx_list = data_dict['memory_proj_arr'].keys()
@@ -42,18 +42,18 @@ def run_sim(lattice, num_lattice_steps, data_dict, exosome_string=EXOSTRING, fie
     # plot initial state of the lattice
     if flag_uniplots:
         for mem_idx in memory_idx_list:
-            lattice_uniplotter(lattice, 0, n, plot_lattice_folder, mem_idx)
+            lattice_uniplotter(lattice, 0, n, io_dict['latticedir'], mem_idx)
     # get data for initial state of the lattice
     for loc in cell_locations:
         for mem_idx in memory_idx_list:
             proj = lattice[loc[0]][loc[1]].get_memories_projection()
             data_dict['memory_proj_arr'][mem_idx][loc_to_idx[loc], 0] = proj[mem_idx]
     # initial condition plot
-    lattice_projection_composite(lattice, 0, n, plot_lattice_folder)
-    reference_overlap_plotter(lattice, 0, n, plot_lattice_folder)
+    lattice_projection_composite(lattice, 0, n, io_dict['latticedir'])
+    reference_overlap_plotter(lattice, 0, n, io_dict['latticedir'])
     if flag_uniplots:
         for mem_idx in memory_idx_list:
-            lattice_uniplotter(lattice, 0, n, plot_lattice_folder, mem_idx)
+            lattice_uniplotter(lattice, 0, n, io_dict['latticedir'], mem_idx)
 
 
     for turn in xrange(1, num_lattice_steps):
@@ -67,15 +67,15 @@ def run_sim(lattice, num_lattice_steps, data_dict, exosome_string=EXOSTRING, fie
             for mem_idx in memory_idx_list:
                 data_dict['memory_proj_arr'][mem_idx][loc_to_idx[loc], turn] = proj[mem_idx]
             if turn % (40*plot_period) == 0:  # plot proj visualization of each cell (takes a while; every k lat plots)
-                fig, ax, proj = cell.plot_projection(use_radar=False, pltdir=plot_lattice_folder)
+                fig, ax, proj = cell.plot_projection(use_radar=False, pltdir=io_dict['latticedir'])
         if turn % plot_period == 0:  # plot the lattice
-            lattice_projection_composite(lattice, turn, n, plot_lattice_folder)
-            reference_overlap_plotter(lattice, turn, n, plot_lattice_folder)
+            lattice_projection_composite(lattice, turn, n, io_dict['latticedir'])
+            reference_overlap_plotter(lattice, turn, n, io_dict['latticedir'])
             if flag_uniplots:
                 for mem_idx in memory_idx_list:
-                    lattice_uniplotter(lattice, turn, n, plot_lattice_folder, mem_idx)
+                    lattice_uniplotter(lattice, turn, n, io_dict['latticedir'], mem_idx)
 
-    return lattice, data_dict, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder
+    return lattice, data_dict, io_dict
 
 
 def main(gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING, exosome_string=EXOSTRING,
@@ -111,7 +111,7 @@ def main(gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING
     data_dict = prep_lattice_data_dict(gridsize, num_steps, list_of_type_idx, buildstring, data_dict)
 
     # run the simulation
-    lattice, data_dict, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = \
+    lattice, data_dict, io_dict = \
         run_sim(lattice, num_steps, data_dict, exosome_string=exosome_string, field_remove_ratio=field_remove_ratio,
                 ext_field_strength=ext_field_strength, app_field=app_field, app_field_strength=app_field_strength,
                 plot_period=plot_period, flag_uniplots=flag_uniplots)
@@ -122,15 +122,15 @@ def main(gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING
         plt.plot(data_dict['memory_proj_arr'][memory_idx].T)
         plt.ylabel('Projection of all cells onto type: %s' % CELLTYPE_LABELS[memory_idx])
         plt.xlabel('Time (full lattice steps)')
-        plt.savefig(plot_data_folder + os.sep + '%s_%s_n%d_t%d_proj%d_remove%.2f_exo%.2f.png' %
+        plt.savefig(io_dict['plotdir'] + os.sep + '%s_%s_n%d_t%d_proj%d_remove%.2f_exo%.2f.png' %
                     (exosome_string, buildstring, gridsize, num_steps, memory_idx, field_remove_ratio, ext_field_strength))
         plt.clf()  #plt.show()
 
     # write cell state TODO: and data_dict to file
-    write_state_all_cells(lattice, data_folder)
+    write_state_all_cells(lattice, io_dict['datadir'])
 
-    print "\nMulticell simulation complete - output in %s" % current_run_folder
-    return lattice, data_dict, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder
+    print "\nMulticell simulation complete - output in %s" % io_dict['baseedir']
+    return lattice, data_dict, io_dict
 
 
 if __name__ == '__main__':

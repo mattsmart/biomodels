@@ -35,9 +35,9 @@ def gen_projection_timeseries(figname='figure1_20.png'):
 
     for idx, memory_label in enumerate(CELLTYPE_LABELS):
         print idx, memory_label
-        cellstate_array, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = singlecell_sim(init_id=memory_label, iterations=num_steps, app_field=app_field, app_field_strength=10.0,
-                                                                                                                 flag_burst_error=FLAG_BURST_ERRORS, flag_write=False, analysis_subdir=analysis_subdir,
-                                                                                                                 plot_period=num_steps*2)
+        cellstate_array, io_dict = singlecell_sim(init_id=memory_label, iterations=num_steps, app_field=app_field, app_field_strength=10.0,
+                                                  flag_burst_error=FLAG_BURST_ERRORS, flag_write=False, analysis_subdir=analysis_subdir,
+                                                  plot_period=num_steps*2)
         proj_timeseries_array[:, idx] = get_memory_proj_timeseries(cellstate_array, esc_idx)[:]
 
     # cleanup output folders from main()
