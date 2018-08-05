@@ -65,7 +65,6 @@ def runinfo_init(io_dict):
     return
 
 
-
 def runinfo_append(io_dict, info_list, multi=False):
     # multi: list of list flag
     if multi:
