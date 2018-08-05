@@ -11,8 +11,8 @@ DATADIR = CELLTYPES + os.sep + "input"
 MEMORIESDIR = DATADIR + os.sep + "memories"
 MEMS_MEHTA = MEMORIESDIR + os.sep + "2014_mehta_mems_genes_types_boolean_compressed_pruned.npz"
 MEMS_SCMCA = MEMORIESDIR + os.sep + "2018_scmca_mems_genes_types_boolean_compressed_pruned.npz"
-DEFAULT_MEMORIES_NPZPATH = MEMS_MEHTA
 RUNS_FOLDER = SINGLECELL + os.sep + "runs"                      # store timestamped runs here
+SETTINGS_FILE = "run_info.txt"
 
 # SINGLECELL SIMULATION CONSTANTS
 BETA = 2.2                                # value used in Mehta 2014
@@ -22,6 +22,7 @@ APP_FIELD_STRENGTH = 1.0                  # relative strength of artificial appl
 FLAG_PRUNE_INTXN_MATRIX = False           # flag for non-eq dilution of the symmetric J
 J_RANDOM_DELETE_RATIO = 0.2               # this ratio of elements randomly pruned from J
 
+DEFAULT_MEMORIES_NPZPATH = MEMS_MEHTA     # choose which memories to embed
 METHOD = "projection"                     # 'projection' or 'hopfield'
 FLAG_BOOL = True                          # use binarized states (up/down vs continuous)
 

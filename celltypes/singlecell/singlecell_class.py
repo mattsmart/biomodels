@@ -101,7 +101,7 @@ class Cell(object):
             shuffle(sites)  # randomize site ordering each timestep updates
         else:
             #sites = np.random.choice(self.N, self.N, replace=True)
-            sites = [int(self.N*np.random.random()) for _ in xrange(self.N)]
+            sites = [int(self.N*np.random.random()) for _ in xrange(self.N)]  # this should be same and faster
 
         state_array_ext = np.zeros((self.N, np.shape(self.state_array)[1] + 1))
         state_array_ext[:, :-1] = self.state_array  # TODO: make sure don't need array copy
