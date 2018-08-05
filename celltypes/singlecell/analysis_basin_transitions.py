@@ -394,7 +394,7 @@ if __name__ == '__main__':
                      ['occ_threshold', OCC_THRESHOLD],
                      ['applied_field', applied_field],
                      ['time', t1]]
-        runinfo_append(io_dict, info_list, lol=True)
+        runinfo_append(io_dict, info_list, multi=True)
 
         # less simple analysis
         # basin_transitions()

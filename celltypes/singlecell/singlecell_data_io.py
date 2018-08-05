@@ -66,9 +66,9 @@ def runinfo_init(io_dict):
 
 
 
-def runinfo_append(io_dict, info_list, lol=False):
-    # lol: list of list flag
-    if lol:
+def runinfo_append(io_dict, info_list, multi=False):
+    # multi: list of list flag
+    if multi:
         with open(io_dict['runinfo'], 'a') as runinfo:
             for line in info_list:
                 runinfo.write(','.join(str(s) for s in line) + '\n')
