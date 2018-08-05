@@ -15,7 +15,7 @@ RUNS_FOLDER = SINGLECELL + os.sep + "runs"                      # store timestam
 SETTINGS_FILE = "run_info.txt"
 
 # SINGLECELL SIMULATION CONSTANTS
-BETA = 2.2                                # value used in Mehta 2014
+BETA = 2.2                                # value used in Mehta 2014 (low temperature)
 EXT_FIELD_STRENGTH = 0.30                 # relative strength of exosome local field effect
 APP_FIELD_STRENGTH = 1.0                  # relative strength of artificial applied fields
 
@@ -24,7 +24,7 @@ J_RANDOM_DELETE_RATIO = 0.2               # this ratio of elements randomly prun
 
 DEFAULT_MEMORIES_NPZPATH = MEMS_MEHTA     # choose which memories to embed
 METHOD = "projection"                     # 'projection' or 'hopfield'
-FLAG_BOOL = True                          # use binarized states (up/down vs continuous)
+FLAG_BOOL = True                          # use binarized states (up/down vs continuous)  # TODO unused... remove or adjust
 
 NUM_STEPS = 100                           # number of full TF grid updates in the single cell simulation
 BURST_ERROR_PERIOD = 5                    # val 5 = apply every 5 full spin updates (~5000 individual spin updates)
