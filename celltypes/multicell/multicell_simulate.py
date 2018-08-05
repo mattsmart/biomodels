@@ -7,7 +7,7 @@ from multicell_constants import GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS,
 from multicell_lattice import build_lattice_main, get_cell_locations, prep_lattice_data_dict, write_state_all_cells
 from multicell_visualize import lattice_uniplotter, reference_overlap_plotter, lattice_projection_composite
 from singlecell.singlecell_constants import EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, IPSC_CORE_GENES, IPSC_EXTENDED_GENES
-from singlecell.singlecell_data_io import run_subdir_setup, settings_append
+from singlecell.singlecell_data_io import run_subdir_setup, runinfo_append
 from singlecell.singlecell_functions import construct_app_field_from_genes
 from singlecell.singlecell_simsetup import N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS
 

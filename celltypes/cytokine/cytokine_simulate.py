@@ -3,7 +3,7 @@ import numpy as np
 from cytokine_settings import build_intracell_model, DEFAULT_CYTOKINE_MODEL, APP_FIELD_STRENGTH, RUNS_SUBDIR_CYTOKINES, BETA_CYTOKINE
 from singlecell.singlecell_class import Cell
 from singlecell.singlecell_constants import NUM_STEPS
-from singlecell.singlecell_data_io import run_subdir_setup, settings_append
+from singlecell.singlecell_data_io import run_subdir_setup, runinfo_append
 
 
 def cytokine_sim(model_name=DEFAULT_CYTOKINE_MODEL, iterations=NUM_STEPS, beta=BETA_CYTOKINE, applied_field_strength=APP_FIELD_STRENGTH,

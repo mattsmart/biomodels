@@ -5,7 +5,7 @@ from cytokine_simulate import cytokine_sim
 
 from singlecell.singlecell_class import Cell
 from singlecell.singlecell_constants import NUM_STEPS, BETA
-from singlecell.singlecell_data_io import run_subdir_setup, settings_append
+from singlecell.singlecell_data_io import run_subdir_setup, runinfo_append
 from singlecell.singlecell_functions import state_to_label, label_to_state
 
 

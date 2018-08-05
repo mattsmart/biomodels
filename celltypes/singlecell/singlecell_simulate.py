@@ -2,7 +2,7 @@ import numpy as np
 
 from singlecell_class import Cell
 from singlecell_constants import NUM_STEPS, BURST_ERROR_PERIOD, APP_FIELD_STRENGTH, BETA
-from singlecell_data_io import run_subdir_setup, settings_append
+from singlecell_data_io import run_subdir_setup, runinfo_append
 from singlecell_simsetup import N, XI, J, CELLTYPE_ID, CELLTYPE_LABELS, GENE_LABELS
 
 """

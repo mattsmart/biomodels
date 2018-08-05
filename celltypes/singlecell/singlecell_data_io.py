@@ -27,10 +27,10 @@ def run_subdir_setup(run_subfolder=None):
                'datadir': data_folder,
                'latticedir': plot_lattice_folder,
                'plotdir': plot_data_folder,
-               'settingspath': current_run_folder + os.sep + SETTINGS_FILE}
+               'runinfo': current_run_folder + os.sep + SETTINGS_FILE}
 
     # make base settings file with first line as the base output dir
-    settings_append(io_dict, ('basedir', current_run_folder))
+    runinfo_append(io_dict, ('basedir', current_run_folder))
 
     #return current_run_folder, data_folder, plot_lattice_folder, plot_data_folder
     return io_dict
@@ -55,18 +55,18 @@ def state_read(datapath, rowpath, colpath):
     return state, row, col
 
 
-def settings_init(io_dict):
+def runinfo_init(io_dict):
     # TODO implement settings file initialization
     """
     info_list = ..........
-    with open(io_dict['settingspath'], 'a') as settings:
-        settings.write(','.join(str(s) for s in info_list) + '\n')
+    with open(io_dict['runinfo'], 'a') as runinfo:
+        runinfo.write(','.join(str(s) for s in info_list) + '\n')
     """
     return
 
 
 
-def settings_append(io_dict, info_list):
-    with open(io_dict['settingspath'], 'a') as settings:
-        settings.write(','.join(str(s) for s in info_list) + '\n')
+def runinfo_append(io_dict, info_list):
+    with open(io_dict['runinfo'], 'a') as runinfo:
+        runinfo.write(','.join(str(s) for s in info_list) + '\n')
     return
