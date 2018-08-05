@@ -6,7 +6,7 @@ from multiprocessing import Pool, cpu_count
 
 from analysis_basin_transitions import ensemble_projection_timeseries, fast_basin_stats, get_init_info, OCC_THRESHOLD, ANNEAL_BETA, get_basin_stats
 from singlecell_constants import RUNS_FOLDER, IPSC_CORE_GENES, BETA
-from singlecell_data_io import run_subdir_setup
+from singlecell_data_io import run_subdir_setup, settings_append
 from singlecell_simsetup import N, P, XI, CELLTYPE_ID, A_INV, J, GENE_ID, GENE_LABELS, CELLTYPE_LABELS
 
 
@@ -137,6 +137,9 @@ def plot_basin_grid(grid_data, ensemble, steps, k=1, ax=None, normalize=True, fs
 
 
 if __name__ == '__main__':
+
+    # TODO io settings propogate
+
     switch_gen_basin_grid = True
 
     if switch_gen_basin_grid:

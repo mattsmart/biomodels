@@ -6,13 +6,14 @@ from multiprocessing import Pool, cpu_count
 
 from singlecell_class import Cell
 from singlecell_constants import RUNS_FOLDER, IPSC_CORE_GENES, BETA
-from singlecell_data_io import run_subdir_setup
+from singlecell_data_io import run_subdir_setup, settings_append  # TODO propogate settings_append
 from singlecell_simsetup import N, P, XI, CELLTYPE_ID, A_INV, J, GENE_ID, GENE_LABELS, CELLTYPE_LABELS
 
 
 ANALYSIS_SUBDIR = "basin_transitions"
 ANNEAL_BETA = 1.3
 OCC_THRESHOLD = 0.7
+
 
 def wrapper_get_basin_stats(fn_args_dict):
     np.random.seed()
@@ -178,8 +179,7 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_processes, num_steps
     """
 
     # prep io
-    current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = \
-        run_subdir_setup(run_subfolder=ANALYSIS_SUBDIR)
+    io_dict = run_subdir_setup(run_subfolder=ANALYSIS_SUBDIR)
 
     # generate initial state
     init_state, init_id = get_init_info(init_cond)
@@ -193,9 +193,9 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_processes, num_steps
     proj_timeseries_array = proj_timeseries_array / ensemble  # want ensemble average
 
     # save transition array and run info to file
-    proj_timeseries_data = data_folder + os.sep + 'proj_proj_timeseries.txt'
+    proj_timeseries_data = io_dict['datadir'] + os.sep + 'proj_proj_timeseries.txt'
     np.savetxt(proj_timeseries_data, proj_timeseries_array, delimiter=',')
-    basin_occupancy_timeseries_data = data_folder + os.sep + 'proj_occupancy_timeseries.txt'
+    basin_occupancy_timeseries_data = io_dict['datadir'] + os.sep + 'proj_occupancy_timeseries.txt'
     np.savetxt(basin_occupancy_timeseries_data, basin_occupancy_timeseries, delimiter=',', fmt='%i')
 
     # plot output
@@ -206,11 +206,11 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_processes, num_steps
             print idx, "no transfer dict entry", endpoint_dict[idx]
     if plot:
         highlights_CLPside = {6:'k', 8: 'blue', 7: 'red', 16: 'deeppink', 11: 'darkorchid'}
-        savepath_proj = plot_data_folder + os.sep + 'proj_proj_timeseries.png'
+        savepath_proj = io_dict['plotdir'] + os.sep + 'proj_proj_timeseries.png'
         plot_proj_timeseries(proj_timeseries_array, num_steps, ensemble, savepath_proj, highlights=highlights_CLPside)
-        savepath_occ = plot_data_folder + os.sep + 'proj_occupancy_timeseries.png'
+        savepath_occ = io_dict['plotdir'] + os.sep + 'proj_occupancy_timeseries.png'
         plot_basin_occupancy_timeseries(basin_occupancy_timeseries, num_steps, ensemble, occ_threshold, savepath_occ, highlights=highlights_CLPside)
-        savepath_endpt = plot_data_folder + os.sep + 'endpt_stats.png'
+        savepath_endpt = io_dict['plotdir'] + os.sep + 'endpt_stats.png'
         plot_basin_endpoints(endpoint_dict, num_steps, ensemble, savepath_endpt, highlights=highlights_CLPside)
     return proj_timeseries_array, basin_occupancy_timeseries
 
@@ -360,6 +360,9 @@ def basin_transitions(init_cond, ensemble, num_steps, beta):
 
 
 if __name__ == '__main__':
+
+    # TODO io settings propogate
+
     gen_basin_data = True
     plot_isolated_data = False
 
