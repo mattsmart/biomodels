@@ -6,7 +6,7 @@ from multiprocessing import Pool, cpu_count
 
 from singlecell_class import Cell
 from singlecell_constants import RUNS_FOLDER, IPSC_CORE_GENES, BETA
-from singlecell_data_io import run_subdir_setup, settings_append  # TODO propogate settings_append
+from singlecell_data_io import run_subdir_setup, runinfo_append  # TODO propogate settings_append
 from singlecell_simsetup import N, P, XI, CELLTYPE_ID, A_INV, J, GENE_ID, GENE_LABELS, CELLTYPE_LABELS
 
 
@@ -212,7 +212,7 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_processes, num_steps
         plot_basin_occupancy_timeseries(basin_occupancy_timeseries, num_steps, ensemble, occ_threshold, savepath_occ, highlights=highlights_CLPside)
         savepath_endpt = io_dict['plotdir'] + os.sep + 'endpt_stats.png'
         plot_basin_endpoints(endpoint_dict, num_steps, ensemble, savepath_endpt, highlights=highlights_CLPside)
-    return proj_timeseries_array, basin_occupancy_timeseries
+    return proj_timeseries_array, basin_occupancy_timeseries, io_dict
 
 
 def plot_proj_timeseries(proj_timeseries_array, num_steps, ensemble, savepath, highlights=None):
@@ -301,6 +301,7 @@ def plot_basin_endpoints(endpoint_dict, num_steps, ensemble, savepath, highlight
 
 
 def basin_transitions(init_cond, ensemble, num_steps, beta):
+    # TODO note analysis basin grid fulfills this functionality, not great spurious handling though
     """
     Track jumps from basin 'i' to basin 'j' for all 'i'
 
@@ -361,8 +362,6 @@ def basin_transitions(init_cond, ensemble, num_steps, beta):
 
 if __name__ == '__main__':
 
-    # TODO io settings propogate
-
     gen_basin_data = True
     plot_isolated_data = False
 
@@ -371,23 +370,34 @@ if __name__ == '__main__':
         # TODO: store run settings
 
         # simple analysis
-        # common: 'HSC'
-        # common: 'Common Lymphoid Progenitor (CLP)'
-        # common: 'Common Myeloid Progenitor (CMP)'
-        # common: 'Megakaryocyte-Erythroid Progenitor (MEP)'
-        # common: 'Granulocyte-Monocyte Progenitor (GMP)'
-        # common: 'thymocyte DN'
-        # common: 'thymocyte - DP'
-        # common: 'neutrophils'
-        # common: 'monocytes - classical'
-        init_cond = 'HSC'  # note HSC index is 6
-        ensemble = 100
-        num_steps = 500
+        # common: 'HSC' / 'Common Lymphoid Progenitor (CLP)' / 'Common Myeloid Progenitor (CMP)' /
+        #         'Megakaryocyte-Erythroid Progenitor (MEP)' / 'Granulocyte-Monocyte Progenitor (GMP)' / 'thymocyte DN'
+        #         'thymocyte - DP' / 'neutrophils' / 'monocytes - classical'
+        init_cond = 'HSC'  # note HSC index is 6 in mehta mems
+        ensemble = 8
+        num_steps = 100
         num_proc = cpu_count() / 2  # seems best to use only physical core count (1 core ~ 3x slower than 4)
-        ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps, beta=ANNEAL_BETA, occ_threshold=0.7,
-                                       plot=True, anneal=True)
+        applied_field = None
+
+        t0 = time.time()
+        _, _, io_dict = ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps, beta=ANNEAL_BETA,
+                                                       occ_threshold=OCC_THRESHOLD, plot=True, anneal=True)
+        t1 = time.time() - t0
+
+        # add info to run info file
+        # TODO maybe move this INTO the function?
+        info_list = [['fncall', 'ensemble_projection_timeseries()'],
+                     ['init_cond', init_cond],
+                     ['ensemble', ensemble],
+                     ['num_steps', num_steps],
+                     ['num_proc', num_proc],
+                     ['occ_threshold', OCC_THRESHOLD],
+                     ['applied_field', applied_field],
+                     ['time', t1]]
+        runinfo_append(io_dict, info_list, lol=True)
+
         # less simple analysis
-        #basin_transitions()
+        # basin_transitions()
 
     # direct data plotting
     if plot_isolated_data:
