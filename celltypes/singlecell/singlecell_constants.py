@@ -3,7 +3,7 @@ import sys
 
 CELLTYPES = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(CELLTYPES)
-print "Appended to sys path", CELLTYPES
+print "Appended to sys path", CELLTYPES  # TODO can maybe move this too simetup fn call and call once somewhere else...
 
 # IO
 SINGLECELL = CELLTYPES + os.sep + "singlecell"
