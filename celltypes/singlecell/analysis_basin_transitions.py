@@ -3,18 +3,27 @@ import os
 import time
 from multiprocessing import Pool, cpu_count
 
-from analysis_basin_plotting import plot_proj_timeseries, plot_basin_occupancy_timeseries, plot_basin_endpoints
+from analysis_basin_plotting import plot_proj_timeseries, plot_basin_occupancy_timeseries, plot_basin_step
 from singlecell_class import Cell
-from singlecell_constants import RUNS_FOLDER, IPSC_CORE_GENES, BETA
+from singlecell_constants import RUNS_FOLDER
 from singlecell_data_io import run_subdir_setup, runinfo_append
-from singlecell_simsetup import N, P, XI, CELLTYPE_ID, A_INV, J, GENE_ID, GENE_LABELS, CELLTYPE_LABELS
+from singlecell_simsetup import XI, CELLTYPE_ID, CELLTYPE_LABELS
 
 
+# analysis settings
 ANALYSIS_SUBDIR = "basin_transitions"
 ANNEAL_BETA = 1.3
 ANNEAL_PROTOCOL = "protocol_A"
 FIELD_PROTOCOL = None
 OCC_THRESHOLD = 0.7
+SPURIOUS_LIST = ["mixed"]
+
+# analysis plotting
+highlights_CLPside = {6: 'k', 8: 'blue', 7: 'red', 16: 'deeppink', 11: 'darkorchid'}
+highlights_simple = {6: 'k', 8: 'blue', 10: 'steelblue'}
+highlights_CLPside = {6: 'k', 8: 'blue', 7: 'red', 16: 'deeppink', 11: 'darkorchid'}
+highlights_both = {6: 'k', 8: 'blue', 10: 'steelblue', 9: 'forestgreen', 7: 'red', 16: 'deeppink', 11: 'darkorchid'}
+DEFAULT_HIGHLIGHTS = highlights_CLPside
 
 
 def field_setup(protocol=FIELD_PROTOCOL):
@@ -72,6 +81,44 @@ def anneal_iterate(proj_onto_init, beta_current, step, wandering, anneal_dict, v
     return beta_current, wandering
 
 
+def get_init_info(init_cond):
+    """
+    Args:
+    - init_cond: np array of init state OR string memory label
+    Return:
+    - init state (Nx1 array) and init_id (str)
+    """
+    if isinstance(init_cond, np.ndarray):
+        init_state = init_cond
+        init_id = 'specific'
+    else:
+        assert isinstance(init_cond, str)
+        init_state = XI[:, CELLTYPE_ID[init_cond]]
+        init_id = init_cond
+    return init_state, init_id
+
+
+def save_and_plot_basinstats(io_dict, proj_data, occ_data, num_steps, ensemble, prefix='', occ_threshold=OCC_THRESHOLD,
+                             plot=True, highlights=DEFAULT_HIGHLIGHTS):
+    if prefix[-1] != '_':
+        prefix += '_'
+    # path setup
+    datapath_proj = io_dict['datadir'] + os.sep + '%sproj_timeseries.txt' % prefix
+    datapath_occ = io_dict['datadir'] + os.sep + '%soccupancy_timeseries.txt' % prefix
+    plotpath_proj = io_dict['plotdir'] + os.sep + '%sproj_timeseries.png' % prefix
+    plotpath_occ = io_dict['plotdir'] + os.sep + '%soccupancy_timeseries.png' % prefix
+    plotpath_basin_endpt = io_dict['plotdir'] + os.sep + '%sendpt_distro.png' % prefix
+    # save data to file
+    np.savetxt(datapath_proj, proj_data, delimiter=',', fmt='%i')
+    np.savetxt(datapath_occ, occ_data, delimiter=',', fmt='%i')
+    # plot and save figs
+    if plot:
+        plot_proj_timeseries(proj_data, num_steps, ensemble, plotpath_proj, highlights=highlights)
+        plot_basin_occupancy_timeseries(occ_data, num_steps, ensemble, occ_threshold, SPURIOUS_LIST, plotpath_occ, highlights=highlights)
+        plot_basin_step(occ_data[:, -1], num_steps, ensemble, SPURIOUS_LIST, plotpath_basin_endpt, highlights=highlights)
+    return
+
+
 def wrapper_get_basin_stats(fn_args_dict):
     np.random.seed()
     if fn_args_dict['kwargs'] is not None:
@@ -88,7 +135,6 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, num_
     field_dict = field_setup(protocol=field_protocol)
     app_field = None
 
-    endpoint_dict = {}
     transfer_dict = {}
     proj_timeseries_array = np.zeros((len(CELLTYPE_LABELS), num_steps))
     basin_occupancy_timeseries = np.zeros((len(CELLTYPE_LABELS) + 1, num_steps), dtype=int)  # could have some spurious here too? not just last as mixed
@@ -144,13 +190,7 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, num_
             if step < num_steps:
                 cell.update_state(beta=beta, app_field=None, fullstep_chunk=True)
 
-        # update endpoints for each cell
-        if projvec[topranked] > occ_threshold:
-            endpoint_dict[cell_idx] = (CELLTYPE_LABELS[topranked], projvec[topranked])
-        else:
-            endpoint_dict[cell_idx] = ('mixed', projvec[topranked])
-
-    return endpoint_dict, transfer_dict, proj_timeseries_array, basin_occupancy_timeseries
+    return transfer_dict, proj_timeseries_array, basin_occupancy_timeseries
 
 
 def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, num_steps=100, occ_threshold=0.7,
@@ -178,39 +218,21 @@ def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, nu
     if verbose:
         print "TIMER:", time.time() - t0
     # collect pooled results
-    summed_endpoint_dict = {}
-    summed_transfer_dict = {}
+    summed_transfer_dict = {}  # TODO remove?
     summed_proj_timeseries_array = np.zeros((len(CELLTYPE_LABELS), num_steps))
     summed_basin_occupancy_timeseries = np.zeros((len(CELLTYPE_LABELS) + 1, num_steps), dtype=int)  # could have some spurious here too? not just last as mixed
     for i, result in enumerate(results):
-        endpoint_dict, transfer_dict, proj_timeseries_array, basin_occupancy_timeseries = result
-        summed_endpoint_dict.update(endpoint_dict)  # TODO check
+        transfer_dict, proj_timeseries_array, basin_occupancy_timeseries = result
         summed_transfer_dict.update(transfer_dict)  # TODO check
         summed_proj_timeseries_array += proj_timeseries_array
         summed_basin_occupancy_timeseries += basin_occupancy_timeseries
     #check2 = np.sum(summed_basin_occupancy_timeseries, axis=0)
-    return summed_endpoint_dict, summed_transfer_dict, summed_proj_timeseries_array, summed_basin_occupancy_timeseries
-
-
-def get_init_info(init_cond):
-    """
-    Args:
-    - init_cond: np array of init state OR string memory label
-    Return:
-    - init state (Nx1 array) and init_id (str)
-    """
-    if isinstance(init_cond, np.ndarray):
-        init_state = init_cond
-        init_id = 'specific'
-    else:
-        assert isinstance(init_cond, str)
-        init_state = XI[:, CELLTYPE_ID[init_cond]]
-        init_id = init_cond
-    return init_state, init_id
+    return summed_transfer_dict, summed_proj_timeseries_array, summed_basin_occupancy_timeseries
 
 
 def ensemble_projection_timeseries(init_cond, ensemble, num_processes, num_steps=100, occ_threshold=0.7,
-                                   anneal_protocol=ANNEAL_PROTOCOL, field_protocol=FIELD_PROTOCOL, plot=True):
+                                   anneal_protocol=ANNEAL_PROTOCOL, field_protocol=FIELD_PROTOCOL,
+                                   output=True, plot=True):
     """
     Args:
     - init_cond: np array of init state OR string memory label
@@ -226,13 +248,17 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_processes, num_steps
     """
 
     # prep io
-    io_dict = run_subdir_setup(run_subfolder=ANALYSIS_SUBDIR)
+    if output:
+        io_dict = run_subdir_setup(run_subfolder=ANALYSIS_SUBDIR)
+    else:
+        assert not plot
+        io_dict = None
 
     # generate initial state
     init_state, init_id = get_init_info(init_cond)
 
     # simulate ensemble - pooled wrapper call
-    endpoint_dict, transfer_dict, proj_timeseries_array, basin_occupancy_timeseries = \
+    transfer_dict, proj_timeseries_array, basin_occupancy_timeseries = \
         fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, num_steps=num_steps,
                          anneal_protocol=anneal_protocol, field_protocol=field_protocol, occ_threshold=occ_threshold,
                          verbose=False)
@@ -240,26 +266,14 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_processes, num_steps
     # normalize proj timeseries
     proj_timeseries_array = proj_timeseries_array / ensemble  # want ensemble average
 
-    # save transition array and run info to file
-    proj_timeseries_data = io_dict['datadir'] + os.sep + 'proj_proj_timeseries.txt'
-    np.savetxt(proj_timeseries_data, proj_timeseries_array, delimiter=',')
-    basin_occupancy_timeseries_data = io_dict['datadir'] + os.sep + 'proj_occupancy_timeseries.txt'
-    np.savetxt(basin_occupancy_timeseries_data, basin_occupancy_timeseries, delimiter=',', fmt='%i')
-
+    # save data and plot figures
+    if output:
+        save_and_plot_basinstats(io_dict, proj_timeseries_array, basin_occupancy_timeseries, num_steps, ensemble,
+                                 prefix=init_id, occ_threshold=occ_threshold, plot=plot)
     # plot output
     for idx in xrange(ensemble):
         if idx in transfer_dict:
-            print idx, transfer_dict[idx], [CELLTYPE_LABELS[a] for a in transfer_dict[idx].keys()], endpoint_dict[idx]
-        else:
-            print idx, "no transfer dict entry", endpoint_dict[idx]
-    if plot:
-        highlights_CLPside = {6:'k', 8: 'blue', 7: 'red', 16: 'deeppink', 11: 'darkorchid'}
-        savepath_proj = io_dict['plotdir'] + os.sep + 'proj_proj_timeseries.png'
-        plot_proj_timeseries(proj_timeseries_array, num_steps, ensemble, savepath_proj, highlights=highlights_CLPside)
-        savepath_occ = io_dict['plotdir'] + os.sep + 'proj_occupancy_timeseries.png'
-        plot_basin_occupancy_timeseries(basin_occupancy_timeseries, num_steps, ensemble, occ_threshold, savepath_occ, highlights=highlights_CLPside)
-        savepath_endpt = io_dict['plotdir'] + os.sep + 'endpt_stats.png'
-        plot_basin_endpoints(endpoint_dict, num_steps, ensemble, savepath_endpt, highlights=highlights_CLPside)
+            print idx, transfer_dict[idx], [CELLTYPE_LABELS[a] for a in transfer_dict[idx].keys()]
     return proj_timeseries_array, basin_occupancy_timeseries, io_dict
 
 
@@ -329,42 +343,32 @@ if __name__ == '__main__':
     plot_isolated_data = False
 
     if gen_basin_data:
-
-        # TODO: store run settings
-
-        # simple analysis
         # common: 'HSC' / 'Common Lymphoid Progenitor (CLP)' / 'Common Myeloid Progenitor (CMP)' /
         #         'Megakaryocyte-Erythroid Progenitor (MEP)' / 'Granulocyte-Monocyte Progenitor (GMP)' / 'thymocyte DN'
         #         'thymocyte - DP' / 'neutrophils' / 'monocytes - classical'
         init_cond = 'HSC'  # note HSC index is 6 in mehta mems
-        ensemble = 16
-        num_steps = 50
+        ensemble = 8
+        num_steps = 100
         num_proc = cpu_count() / 2  # seems best to use only physical core count (1 core ~ 3x slower than 4)
-        anneal_protocol = "constant"
+        anneal_protocol = "protocol_A"
         field_protocol = None
 
+        # run and time basin ensemble sim
         t0 = time.time()
         _, _, io_dict = ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps,
                                                        occ_threshold=OCC_THRESHOLD, anneal_protocol=anneal_protocol,
                                                        plot=True)
         t1 = time.time() - t0
 
-        # add info to run info file
-        # TODO maybe move this INTO the function?
+        # append info to run info file  TODO maybe move this INTO the function?
         info_list = [['fncall', 'ensemble_projection_timeseries()'], ['init_cond', init_cond], ['ensemble', ensemble],
                      ['num_steps', num_steps], ['num_proc', num_proc], ['anneal_protocol', anneal_protocol],
                      ['occ_threshold', OCC_THRESHOLD], ['field_protocol', field_protocol], ['time', t1]]
         runinfo_append(io_dict, info_list, multi=True)
 
-        # less simple analysis
-        # basin_transitions()
-
     # direct data plotting
     if plot_isolated_data:
-        loaddata = np.loadtxt(RUNS_FOLDER +os.sep + 'proj_timeseries.txt', delimiter=',')
+        loaddata = np.loadtxt(RUNS_FOLDER + os.sep + 'proj_timeseries.txt', delimiter=',')
         ensemble = 100
-        highlights_simple = {6:'k', 8: 'blue', 10: 'steelblue'}
-        highlights_CLPside = {6:'k', 8: 'blue', 7: 'red', 16: 'deeppink', 11: 'darkorchid'}
-        highlights_both = {6:'k', 8: 'blue', 10: 'steelblue', 9: 'forestgreen', 7: 'red', 16: 'deeppink', 11: 'darkorchid'}
         plot_proj_timeseries(loaddata, loaddata.shape[1], ensemble, RUNS_FOLDER + os.sep + 'proj_timeseries.png',
                              highlights=highlights_CLPside)
