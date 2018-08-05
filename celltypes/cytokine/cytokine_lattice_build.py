@@ -2,7 +2,7 @@ import numpy as np
 
 from multicell.multicell_class import SpatialCell
 from singlecell.singlecell_functions import state_to_label
-from singlecell.cytokine_settings import build_intercell_model, DEFAULT_CYTOKINE_MODEL
+from cytokine_settings import build_intercell_model, DEFAULT_CYTOKINE_MODEL
 
 
 def build_cytokine_lattice_mono(n, model_name=DEFAULT_CYTOKINE_MODEL, init_cond_force=None):

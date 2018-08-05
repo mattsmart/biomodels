@@ -3,10 +3,10 @@ import numpy as np
 from cytokine_settings import build_intracell_model, DEFAULT_CYTOKINE_MODEL, APP_FIELD_STRENGTH, RUNS_SUBDIR_CYTOKINES, BETA_CYTOKINE
 from cytokine_simulate import cytokine_sim
 
-from singlecell_class import Cell
-from singlecell_constants import NUM_STEPS, BETA
-from singlecell_data_io import run_subdir_setup
-from singlecell_functions import state_to_label, label_to_state
+from singlecell.singlecell_class import Cell
+from singlecell.singlecell_constants import NUM_STEPS, BETA
+from singlecell.singlecell_data_io import run_subdir_setup, settings_append
+from singlecell.singlecell_functions import state_to_label, label_to_state
 
 
 def state_landscape(model_name=DEFAULT_CYTOKINE_MODEL, iterations=NUM_STEPS, applied_field_strength=APP_FIELD_STRENGTH,

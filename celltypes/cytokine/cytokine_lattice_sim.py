@@ -4,9 +4,9 @@ import random
 import matplotlib.pyplot as plt
 
 from cytokine_lattice_build import build_cytokine_lattice_mono
-from singlecell.cytokine_settings import APP_FIELD_STRENGTH, RUNS_SUBDIR_CYTOKINES
+from cytokine_settings import APP_FIELD_STRENGTH, RUNS_SUBDIR_CYTOKINES
 from singlecell.singlecell_functions import state_to_label
-from singlecell.singlecell_data_io import run_subdir_setup
+from singlecell.singlecell_data_io import run_subdir_setup, settings_append
 from multicell.multicell_lattice import get_cell_locations, write_state_all_cells, printer_labels
 
 
@@ -29,8 +29,8 @@ def run_cytokine_network(lattice, num_lattice_steps, intxn_matrix, signal_matrix
 
     # io
     if flag_write:
-        current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = run_subdir_setup(run_subfolder=RUNS_SUBDIR_CYTOKINES)
-        dirs = [current_run_folder, data_folder, plot_lattice_folder, plot_data_folder]
+        io_dict = run_subdir_setup(run_subfolder=RUNS_SUBDIR_CYTOKINES)
+        dirs = [io_dict['basedir'], io_dict['datadir'], io_dict['latticedir'], io_dict['plotdir']]
     else:
         dirs = None
 
