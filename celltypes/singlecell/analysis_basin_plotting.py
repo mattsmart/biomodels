@@ -120,9 +120,11 @@ def plot_basin_grid(grid_data, ensemble, steps, plotdir, spurious_list, ax=None,
         ax = plt.gca()
         plt.gcf().set_size_inches(18.5, 12.5)
     # plot the heatmap
+    # default color: 'YlGnBu', alts are: 'bone_r', 'BuPu', 'PuBuGn', 'Greens', 'Spectral', 'Spectral_r' (with k grid),
+    #                                    'cubehelix_r', 'magma_r'
     # note: fix vmax at 0.5 of max works nice
     # note: aspect None, 'auto', scalar, or 'equal'
-    imshow_kw = {'cmap': 'YlGnBu', 'aspect': None, 'vmin': 0.0, 'vmax': vmax}  # note: fix at 0.5 of max works nice
+    imshow_kw = {'cmap': 'bone_r', 'aspect': None, 'vmin': 0.0, 'vmax': vmax}  # note: fix at 0.5 of max works nice
     im = ax.imshow(grid_data, **imshow_kw)
     # create colorbar
     cbar_kw = {'aspect': 30, 'pad': 0.02}   # larger aspect, thinner bar
