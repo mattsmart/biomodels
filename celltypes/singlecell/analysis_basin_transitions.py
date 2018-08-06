@@ -115,8 +115,16 @@ def save_and_plot_basinstats(io_dict, proj_data, occ_data, num_steps, ensemble, 
     if plot:
         plot_proj_timeseries(proj_data, num_steps, ensemble, plotpath_proj, highlights=highlights)
         plot_basin_occupancy_timeseries(occ_data, num_steps, ensemble, occ_threshold, SPURIOUS_LIST, plotpath_occ, highlights=highlights)
-        plot_basin_step(occ_data[:, -1], num_steps, ensemble, SPURIOUS_LIST, plotpath_basin_endpt, highlights=highlights)
+        plot_basin_step(occ_data[:, -1], num_steps, ensemble, SPURIOUS_LIST, plotpath_basin_endpt, highlights=highlights)  # TODO optimize
     return
+
+
+def load_basinstats(rowdata_dir, celltype):
+    proj_name = "%s_proj_timeseries.txt" % celltype
+    occ_name = "%s_occupancy_timeseries.txt" % celltype
+    proj_timeseries_array = np.loadtxt(rowdata_dir + os.sep + proj_name, delimiter=',', dtype=float)
+    basin_occupancy_timeseries = np.loadtxt(rowdata_dir + os.sep + occ_name, delimiter=',', dtype=int)
+    return proj_timeseries_array, basin_occupancy_timeseries
 
 
 def wrapper_get_basin_stats(fn_args_dict):
