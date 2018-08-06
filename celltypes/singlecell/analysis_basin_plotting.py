@@ -74,19 +74,20 @@ def plot_basin_step(basin_step_data, step, ensemble, spurious_list, savepath, hi
     fig = plt.figure(1)
     fig.set_size_inches(18.5, 10.5)
     h = plt.bar(xrange(len(xticks)), basin_step_data, color=bar_colors)
+    ax = plt.gca()
     plt.subplots_adjust(bottom=0.3)
-    xticks_pos = [0.65 * patch.get_width() + patch.get_xy()[0] for patch in h]
-    plt.xticks(xticks_pos, xticks, ha='right', rotation=45, size=11)
-    plt.gca().yaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
+    ax.set_xticks(np.arange(len(xticks)))
+    ax.set_xticklabels(xticks, ha='right', rotation=45, fontsize=11)
+    ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
     plt.title('Ensemble coordinate at step %d (%d cells)' % (step, ensemble))
     plt.ylabel('Class occupancy count')
     plt.xlabel('Class labels')
-    fig.savefig(savepath)
+    fig.savefig(savepath, bbox_inches='tight')
     return plt.gca()
 
 
-def plot_basin_grid(grid_data, ensemble, steps, plotdir, k=1, ax=None, normalize=True, fs=9, relmax=True,
-                    rotate_standard=True, extragrid=False):
+def plot_basin_grid(grid_data, ensemble, steps, plotdir, spurious_list, ax=None, normalize=True,
+                    fs=9, relmax=True, rotate_standard=True, extragrid=False, plotname='plot_basin_grid'):
     """
     plot matrix G_ij of size p x (p + k): grid of data between 0 and 1
     each row represents one of the p encoded basins as an initial condition
@@ -97,7 +98,7 @@ def plot_basin_grid(grid_data, ensemble, steps, plotdir, k=1, ax=None, normalize
     - k represents the number of extra tracked states, by default this is 1 (i.e. mixed state, not in any basin)
     - rotate_standard: determine xlabel orientation
     """
-    assert grid_data.shape == (len(CELLTYPE_LABELS), len(CELLTYPE_LABELS) + k)
+    assert grid_data.shape == (len(CELLTYPE_LABELS), len(CELLTYPE_LABELS) + len(spurious_list))
 
     assert normalize
     datamax = np.max(grid_data)
@@ -115,6 +116,7 @@ def plot_basin_grid(grid_data, ensemble, steps, plotdir, k=1, ax=None, normalize
             vmax = ensemble
 
     if not ax:
+        plt.clf()
         ax = plt.gca()
         plt.gcf().set_size_inches(18.5, 12.5)
     # plot the heatmap
@@ -139,8 +141,8 @@ def plot_basin_grid(grid_data, ensemble, steps, plotdir, k=1, ax=None, normalize
     ax.set_xticks(np.arange(grid_data.shape[1]))
     ax.set_yticks(np.arange(grid_data.shape[0]))
     # label them with the respective list entries.
-    assert k == 1  # TODO col labels as string types + k mixed etc
-    ax.set_xticklabels(CELLTYPE_LABELS + ['mixed'], fontsize=fs)
+    assert len(spurious_list) == 1  # TODO col labels as string types + k mixed etc
+    ax.set_xticklabels(CELLTYPE_LABELS + spurious_list, fontsize=fs)
     ax.set_yticklabels(CELLTYPE_LABELS, fontsize=fs)
     # Rotate the tick labels and set their alignment.
     ax.tick_params(top=True, bottom=False,
@@ -163,6 +165,6 @@ def plot_basin_grid(grid_data, ensemble, steps, plotdir, k=1, ax=None, normalize
         for ycoord in np.arange(-.5, grid_data.shape[0], 8):
             ax.axhline(y=ycoord, ls='--', color='grey', linewidth=1)
 
-    plt.savefig(plotdir + os.sep + 'plot_basin_grid.pdf', dpi=100, bbox_inches='tight')
+    plt.savefig(plotdir + os.sep + plotname + '.pdf', dpi=100, bbox_inches='tight')
 
     return plt.gca()
