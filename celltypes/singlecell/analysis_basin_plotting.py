@@ -2,22 +2,19 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from singlecell_simsetup import CELLTYPE_ID, CELLTYPE_LABELS
-
-
-def plot_proj_timeseries(proj_timeseries_array, num_steps, ensemble, savepath, highlights=None):
+def plot_proj_timeseries(proj_timeseries_array, num_steps, ensemble, memory_labels, savepath, highlights=None):
     """
     proj_timeseries_array is expected dim p x time
     highlights: either None or a dict of idx: color for certain memory projections to highlight
     """
-    assert proj_timeseries_array.shape[0] == len(CELLTYPE_LABELS)
+    assert proj_timeseries_array.shape[0] == len(memory_labels)
     plt.clf()
     if highlights is None:
         plt.plot(xrange(num_steps), proj_timeseries_array.T, color='blue', linewidth=0.75)
     else:
         plt.plot(xrange(num_steps), proj_timeseries_array.T, color='grey', linewidth=0.55, linestyle='dashed')
         for key in highlights.keys():
-            plt.plot(xrange(num_steps), proj_timeseries_array[key,:], color=highlights[key], linewidth=0.75, label=CELLTYPE_LABELS[key])
+            plt.plot(xrange(num_steps), proj_timeseries_array[key,:], color=highlights[key], linewidth=0.75, label=memory_labels[key])
         plt.legend()
     plt.title('Ensemble mean (n=%d) projection timeseries' % ensemble)
     plt.ylabel('Mean projection onto each memory')
@@ -26,12 +23,12 @@ def plot_proj_timeseries(proj_timeseries_array, num_steps, ensemble, savepath, h
     return
 
 
-def plot_basin_occupancy_timeseries(basin_occupancy_timeseries, num_steps, ensemble, threshold, spurious_list, savepath, highlights=None):
+def plot_basin_occupancy_timeseries(basin_occupancy_timeseries, num_steps, ensemble, memory_labels, threshold, spurious_list, savepath, highlights=None):
     """
     basin_occupancy_timeseries: is expected dim (p + spurious tracked) x time  note spurious tracked default is 'mixed'
     highlights: either None or a dict of idx: color for certain memory projections to highlight
     """
-    assert basin_occupancy_timeseries.shape[0] == len(CELLTYPE_LABELS) + len(spurious_list)  # note spurious tracked default is 'mixed'
+    assert basin_occupancy_timeseries.shape[0] == len(memory_labels) + len(spurious_list)  # note spurious tracked default is 'mixed'
     assert spurious_list[0] == 'mixed'
     plt.clf()
     if highlights is None:
@@ -39,9 +36,9 @@ def plot_basin_occupancy_timeseries(basin_occupancy_timeseries, num_steps, ensem
     else:
         plt.plot(xrange(num_steps), basin_occupancy_timeseries.T, color='grey', linewidth=0.55, linestyle='dashed')
         for key in highlights.keys():
-            plt.plot(xrange(num_steps), basin_occupancy_timeseries[key,:], color=highlights[key], linewidth=0.75, label=CELLTYPE_LABELS[key])
-        if len(CELLTYPE_LABELS) not in highlights.keys():
-            plt.plot(xrange(num_steps), basin_occupancy_timeseries[len(CELLTYPE_LABELS), :], color='orange',
+            plt.plot(xrange(num_steps), basin_occupancy_timeseries[key,:], color=highlights[key], linewidth=0.75, label=memory_labels[key])
+        if len(memory_labels) not in highlights.keys():
+            plt.plot(xrange(num_steps), basin_occupancy_timeseries[len(memory_labels), :], color='orange',
                      linewidth=0.75, label='mixed')
         plt.legend()
     plt.title('Occupancy timeseries (ensemble %d)' % ensemble)
@@ -51,21 +48,21 @@ def plot_basin_occupancy_timeseries(basin_occupancy_timeseries, num_steps, ensem
     return
 
 
-def plot_basin_step(basin_step_data, step, ensemble, spurious_list, savepath, highlights={}):
+def plot_basin_step(basin_step_data, step, ensemble, memory_labels, memory_id, spurious_list, savepath, highlights={}):
     """
     basin_step_data: of length p or p + k where k tracks spurious states, p is encoded memories length
     highlights: dict of idx: color for certain memory projections to highlight
     """
-    assert len(basin_step_data) in [len(CELLTYPE_LABELS), len(CELLTYPE_LABELS) + len(spurious_list)]
-    if len(basin_step_data) == len(CELLTYPE_LABELS):
-        xticks = CELLTYPE_LABELS
-        bar_colors = ['grey' if label not in [CELLTYPE_LABELS[a] for a in highlights.keys()]
-                      else highlights[CELLTYPE_ID[label]]
+    assert len(basin_step_data) in [len(memory_labels), len(memory_labels) + len(spurious_list)]
+    if len(basin_step_data) == len(memory_labels):
+        xticks = memory_labels
+        bar_colors = ['grey' if label not in [memory_labels[a] for a in highlights.keys()]
+                      else highlights[memory_id[label]]
                       for label in xticks]
     else:
-        xticks = CELLTYPE_LABELS + spurious_list
-        bar_colors = ['grey' if label not in [CELLTYPE_LABELS[a] for a in highlights.keys()]
-                      else highlights[CELLTYPE_ID[label]]
+        xticks = memory_labels + spurious_list
+        bar_colors = ['grey' if label not in [memory_labels[a] for a in highlights.keys()]
+                      else highlights[memory_id[label]]
                       for label in xticks]
     # plotting
     import matplotlib as mpl
@@ -86,7 +83,7 @@ def plot_basin_step(basin_step_data, step, ensemble, spurious_list, savepath, hi
     return plt.gca()
 
 
-def plot_basin_grid(grid_data, ensemble, steps, plotdir, spurious_list, ax=None, normalize=True,
+def plot_basin_grid(grid_data, ensemble, steps, memory_labels, plotdir, spurious_list, ax=None, normalize=True,
                     fs=9, relmax=True, rotate_standard=True, extragrid=False, plotname='plot_basin_grid'):
     """
     plot matrix G_ij of size p x (p + k): grid of data between 0 and 1
@@ -98,7 +95,7 @@ def plot_basin_grid(grid_data, ensemble, steps, plotdir, spurious_list, ax=None,
     - k represents the number of extra tracked states, by default this is 1 (i.e. mixed state, not in any basin)
     - rotate_standard: determine xlabel orientation
     """
-    assert grid_data.shape == (len(CELLTYPE_LABELS), len(CELLTYPE_LABELS) + len(spurious_list))
+    assert grid_data.shape == (len(memory_labels), len(memory_labels) + len(spurious_list))
 
     assert normalize
     datamax = np.max(grid_data)
@@ -144,8 +141,8 @@ def plot_basin_grid(grid_data, ensemble, steps, plotdir, spurious_list, ax=None,
     ax.set_yticks(np.arange(grid_data.shape[0]))
     # label them with the respective list entries.
     assert len(spurious_list) == 1  # TODO col labels as string types + k mixed etc
-    ax.set_xticklabels(CELLTYPE_LABELS + spurious_list, fontsize=fs)
-    ax.set_yticklabels(CELLTYPE_LABELS, fontsize=fs)
+    ax.set_xticklabels(memory_labels + spurious_list, fontsize=fs)
+    ax.set_yticklabels(memory_labels, fontsize=fs)
     # Rotate the tick labels and set their alignment.
     ax.tick_params(top=True, bottom=False,
                    labeltop=True, labelbottom=False)

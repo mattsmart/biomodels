@@ -9,10 +9,10 @@ from analysis_basin_transitions import ensemble_projection_timeseries, get_basin
                                        save_and_plot_basinstats, load_basinstats
 from singlecell_constants import RUNS_FOLDER
 from singlecell_data_io import run_subdir_setup, runinfo_append
-from singlecell_simsetup import CELLTYPE_LABELS
+from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
 
 
-def gen_basin_grid(ensemble, num_processes, num_steps=100, anneal_protocol=ANNEAL_PROTOCOL,
+def gen_basin_grid(ensemble, num_processes, simsetup=None, num_steps=100, anneal_protocol=ANNEAL_PROTOCOL,
                    field_protocol=FIELD_PROTOCOL, occ_threshold=OCC_THRESHOLD, saveall=False, save=True,
                    plot=False, verbose=False):
     # TODO parallel over rows instead of within each row; fewer setup calls or mem copying
@@ -24,40 +24,44 @@ def gen_basin_grid(ensemble, num_processes, num_steps=100, anneal_protocol=ANNEA
     each column represents an endpoint of the simulation starting at a given basin (row)
     G_ij would represent: starting in cell type i, G_ij of the ensemble transitioned to cell type j
     """
+    # simsetup unpack for labelling plots
+    if simsetup is None:
+        simsetup = singlecell_simsetup()
+    celltype_labels = simsetup['CELLTYPE_LABELS']
+
     io_dict = run_subdir_setup(run_subfolder=ANALYSIS_SUBDIR)
-    basin_grid = np.zeros((len(CELLTYPE_LABELS), len(CELLTYPE_LABELS)+len(SPURIOUS_LIST)))
-    for idx, celltype in enumerate(CELLTYPE_LABELS):
+    basin_grid = np.zeros((len(celltype_labels), len(celltype_labels)+len(SPURIOUS_LIST)))
+    for idx, celltype in enumerate(celltype_labels):
         if verbose:
             print "Generating row: %d, %s" % (idx, celltype)
         if saveall:
             plot_all = False
             proj_timeseries_array, basin_occupancy_timeseries, _ = \
-                ensemble_projection_timeseries(celltype, ensemble, num_proc, num_steps=num_steps,
+                ensemble_projection_timeseries(celltype, ensemble, num_proc, simsetup=simsetup, num_steps=num_steps,
                                                anneal_protocol=anneal_protocol, field_protocol=field_protocol,
                                                occ_threshold=occ_threshold, plot=False, output=False)
             save_and_plot_basinstats(io_dict, proj_timeseries_array, basin_occupancy_timeseries, num_steps, ensemble,
                                      prefix=celltype, occ_threshold=occ_threshold, plot=plot_all)
         else:
-            init_state, init_id = get_init_info(celltype)
+            init_state, init_id = get_init_info(celltype, simsetup)
             transfer_dict, proj_timeseries_array, basin_occupancy_timeseries = \
-                fast_basin_stats(celltype, init_state, init_id, ensemble, num_processes, num_steps=num_steps,
-                                 anneal_protocol=anneal_protocol, field_protocol=field_protocol,
+                fast_basin_stats(celltype, init_state, init_id, ensemble, num_processes, simsetup=simsetup,
+                                 num_steps=num_steps, anneal_protocol=anneal_protocol, field_protocol=field_protocol,
                                  occ_threshold=occ_threshold, verbose=verbose)
             # Unparallelized for testing/profiling:
             """
             transfer_dict, proj_timeseries_array, basin_occupancy_timeseries = \
-                get_basin_stats(celltype, init_state, init_id, ensemble, 0, num_steps=num_steps, 
+                get_basin_stats(celltype, init_state, init_id, ensemble, 0, simsetup, num_steps=num_steps, 
                                 anneal_protocol=anneal_protocol, field_protocol=field_protocol,
                                 occ_threshold=occ_threshold, verbose=verbose)
-            #proj_timeseries_array = proj_timeseries_array / ensemble  # ensure normalized (get basin stats won't do this)
+            proj_timeseries_array = proj_timeseries_array / ensemble  # ensure normalized (get basin stats won't do this)
             """
-
         # fill in row of grid data from each celltype simulation
         basin_grid[idx, :] = basin_occupancy_timeseries[:,-1]
     if save:
         np.savetxt(io_dict['latticedir'] + os.sep + 'gen_basin_grid.txt', basin_grid, delimiter=',', fmt='%.4f')
     if plot:
-        plot_basin_grid(basin_grid, ensemble, num_steps, io_dict['latticedir'], SPURIOUS_LIST)
+        plot_basin_grid(basin_grid, ensemble, num_steps, celltype_labels, io_dict['latticedir'], SPURIOUS_LIST)
     return basin_grid, io_dict
 
 
@@ -73,10 +77,14 @@ if __name__ == '__main__':
     load_and_plot_basin_grid = False
     reanalyze_grid_over_time = False
 
+    # prep simulation globals
+    simsetup = singlecell_simsetup()
+    celltype_labels = simsetup['CELLTYPE_LABELS']
+
     if run_basin_grid:
         # TODO: find way to prevent reloading the interaction info from singlcell_simsetup
-        ensemble = 40
-        timesteps = 4
+        ensemble = 16
+        timesteps = 20
         field_protocol = FIELD_PROTOCOL
         anneal_protocol = ANNEAL_PROTOCOL
         num_proc = cpu_count() / 2
@@ -85,7 +93,7 @@ if __name__ == '__main__':
 
         # run gen_basin_grid
         t0 = time.time()
-        basin_grid, io_dict = gen_basin_grid(ensemble, num_proc, num_steps=timesteps, anneal_protocol=anneal_protocol,
+        basin_grid, io_dict = gen_basin_grid(ensemble, num_proc, simsetup=simsetup, num_steps=timesteps, anneal_protocol=anneal_protocol,
                                              field_protocol=field_protocol, saveall=saveall, plot=plot)
         t1 = time.time() - t0
         print "GRID TIMER:", t1
@@ -113,10 +121,10 @@ if __name__ == '__main__':
         # step 1 restructure data
         rowdatadir = rundir + os.sep + "data"
         latticedir = rundir + os.sep + "plot_lattice"
-        p = len(CELLTYPE_LABELS)
+        p = len(celltype_labels)
         k = len(SPURIOUS_LIST)
         grid_over_time = np.zeros((p, p+k, num_steps))
-        for idx, celltype in enumerate(CELLTYPE_LABELS):
+        for idx, celltype in enumerate(celltype_labels):
             print "loading:", idx, celltype
             proj_timeseries_array, basin_occupancy_timeseries = load_basinstats(rowdatadir, celltype)
             grid_over_time[idx, :, :] += basin_occupancy_timeseries
@@ -126,4 +134,5 @@ if __name__ == '__main__':
             grid_at_step = grid_over_time[:, :, step]
             filename = 'grid_at_step_%d' % step
             np.savetxt(latticedir + os.sep + filename + '.txt', grid_at_step, delimiter=',', fmt='%.4f')
-            plot_basin_grid(grid_at_step, ensemble, step, latticedir, SPURIOUS_LIST, plotname=filename, relmax=False)
+            plot_basin_grid(grid_at_step, ensemble, step, celltype_labels, latticedir, SPURIOUS_LIST,
+                            plotname=filename, relmax=False)

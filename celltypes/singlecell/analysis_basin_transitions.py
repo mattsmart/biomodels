@@ -7,7 +7,7 @@ from analysis_basin_plotting import plot_proj_timeseries, plot_basin_occupancy_t
 from singlecell_class import Cell
 from singlecell_constants import RUNS_FOLDER
 from singlecell_data_io import run_subdir_setup, runinfo_append
-from singlecell_simsetup import XI, CELLTYPE_ID, CELLTYPE_LABELS
+from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
 
 
 # analysis settings
@@ -80,7 +80,7 @@ def anneal_iterate(proj_onto_init, beta_current, step, wandering, anneal_dict, v
     return beta_current, wandering
 
 
-def get_init_info(init_cond):
+def get_init_info(init_cond, simsetup):
     """
     Args:
     - init_cond: np array of init state OR string memory label
@@ -92,15 +92,22 @@ def get_init_info(init_cond):
         init_id = 'specific'
     else:
         assert isinstance(init_cond, str)
-        init_state = XI[:, CELLTYPE_ID[init_cond]]
+        init_state = simsetup['XI'][:, simsetup['CELLTYPE_ID'][init_cond]]
         init_id = init_cond
     return init_state, init_id
 
 
-def save_and_plot_basinstats(io_dict, proj_data, occ_data, num_steps, ensemble, prefix='', occ_threshold=OCC_THRESHOLD,
-                             plot=True, highlights=DEFAULT_HIGHLIGHTS):
+def save_and_plot_basinstats(io_dict, proj_data, occ_data, num_steps, ensemble, prefix='', simsetup=None,
+                             occ_threshold=OCC_THRESHOLD, plot=True, highlights=DEFAULT_HIGHLIGHTS):
+    # filename prep
     if prefix[-1] != '_':
         prefix += '_'
+    # simsetup unpack for labelling plots
+    if simsetup is None:
+        simsetup = singlecell_simsetup()
+    memory_labels = simsetup['CELLTYPE_LABELS']
+    memory_id = simsetup['CELLTYPE_ID']
+    N, P, gene_labels, memory_labels, gene_id, celltype_id, xi, _, a_inv, intxn_matrix, _ = unpack_simsetup(simsetup)
     # path setup
     datapath_proj = io_dict['datadir'] + os.sep + '%sproj_timeseries.txt' % prefix
     datapath_occ = io_dict['datadir'] + os.sep + '%soccupancy_timeseries.txt' % prefix
@@ -112,9 +119,9 @@ def save_and_plot_basinstats(io_dict, proj_data, occ_data, num_steps, ensemble, 
     np.savetxt(datapath_occ, occ_data, delimiter=',', fmt='%i')
     # plot and save figs
     if plot:
-        plot_proj_timeseries(proj_data, num_steps, ensemble, plotpath_proj, highlights=highlights)
-        plot_basin_occupancy_timeseries(occ_data, num_steps, ensemble, occ_threshold, SPURIOUS_LIST, plotpath_occ, highlights=highlights)
-        plot_basin_step(occ_data[:, -1], num_steps, ensemble, SPURIOUS_LIST, plotpath_basin_endpt, highlights=highlights)  # TODO optimize
+        plot_proj_timeseries(proj_data, num_steps, ensemble, memory_labels, plotpath_proj, highlights=highlights)
+        plot_basin_occupancy_timeseries(occ_data, num_steps, ensemble, memory_labels, occ_threshold, SPURIOUS_LIST, plotpath_occ, highlights=highlights)
+        plot_basin_step(occ_data[:, -1], num_steps, ensemble, memory_labels, memory_id, SPURIOUS_LIST, plotpath_basin_endpt, highlights=highlights)
     return
 
 
@@ -134,8 +141,11 @@ def wrapper_get_basin_stats(fn_args_dict):
         return get_basin_stats(*fn_args_dict['args'])
 
 
-def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, num_steps=100,
+def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, simsetup, num_steps=100,
                     anneal_protocol=ANNEAL_PROTOCOL, field_protocol=FIELD_PROTOCOL, occ_threshold=OCC_THRESHOLD, verbose=False):
+
+    # simsetup unpack
+    N, _, gene_labels, memory_labels, gene_id, celltype_id, xi, _, a_inv, intxn_matrix, _ = unpack_simsetup(simsetup)
 
     # prep applied field TODO: how to include applied field neatly
     # app_field = construct_app_field_from_genes(IPSC_CORE_GENES, num_steps)
@@ -143,10 +153,10 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, num_
     app_field = None
 
     transfer_dict = {}
-    proj_timeseries_array = np.zeros((len(CELLTYPE_LABELS), num_steps))
-    basin_occupancy_timeseries = np.zeros((len(CELLTYPE_LABELS) + len(SPURIOUS_LIST), num_steps), dtype=int)
+    proj_timeseries_array = np.zeros((len(memory_labels), num_steps))
+    basin_occupancy_timeseries = np.zeros((len(memory_labels) + len(SPURIOUS_LIST), num_steps), dtype=int)
     assert len(SPURIOUS_LIST) == 1
-    mixed_index = len(CELLTYPE_LABELS)  # i.e. last elem
+    mixed_index = len(memory_labels)  # i.e. last elem
 
     anneal_dict = anneal_setup(protocol=anneal_protocol)
     wandering = False
@@ -154,14 +164,14 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, num_
     for cell_idx in xrange(ensemble_idx, ensemble_idx + ensemble):
         if verbose:
             print "Simulating cell:", cell_idx
-        cell = Cell(init_state, init_id)
+        cell = Cell(init_state, init_id, memory_labels, gene_labels)
 
         beta = anneal_dict['beta_start']  # reset beta to use in each trajectory
 
         for step in xrange(num_steps):
 
             # report on each mem proj ranked
-            projvec = cell.get_memories_projection()
+            projvec = cell.get_memories_projection(a_inv, N, xi)
             proj_timeseries_array[:, step] += projvec
             absprojvec = np.abs(projvec)
             topranked = np.argmax(absprojvec)
@@ -175,7 +185,7 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, num_
                     sortedmems_bigtosmall = sortedmems_smalltobig[::-1]
                     topranked = sortedmems_bigtosmall[0]
                     ranked_mem_idx = sortedmems_bigtosmall[rank]
-                    ranked_mem = CELLTYPE_LABELS[ranked_mem_idx]
+                    ranked_mem = memory_labels[ranked_mem_idx]
                     print rank, ranked_mem_idx, ranked_mem, projvec[ranked_mem_idx], absprojvec[ranked_mem_idx]
 
             if projvec[topranked] > occ_threshold:
@@ -183,7 +193,7 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, num_
             else:
                 basin_occupancy_timeseries[mixed_index, step] += 1
 
-            if topranked != CELLTYPE_ID[init_cond] and projvec[topranked] > occ_threshold:
+            if topranked != celltype_id[init_cond] and projvec[topranked] > occ_threshold:
                 if cell_idx not in transfer_dict:
                     transfer_dict[cell_idx] = {topranked: (step, projvec[topranked])}
                 else:
@@ -191,18 +201,21 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, num_
                         transfer_dict[cell_idx] = {topranked: (step, projvec[topranked])}
 
             # annealing block
-            proj_onto_init = projvec[CELLTYPE_ID[init_cond]]
+            proj_onto_init = projvec[celltype_id[init_cond]]
             beta, wandering = anneal_iterate(proj_onto_init, beta, step, wandering, anneal_dict, verbose=verbose)
 
             # main call to update
             if step < num_steps:
-                cell.update_state(beta=beta, app_field=None, fullstep_chunk=True)
+                cell.update_state(intxn_matrix, beta=beta, app_field=None, fullstep_chunk=True)
 
     return transfer_dict, proj_timeseries_array, basin_occupancy_timeseries
 
 
-def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, num_steps=100, occ_threshold=0.7,
+def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, simsetup=None, num_steps=100, occ_threshold=0.7,
                      anneal_protocol=ANNEAL_PROTOCOL, field_protocol=FIELD_PROTOCOL, verbose=False):
+    # simsetup unpack
+    if simsetup is None:
+        simsetup = singlecell_simsetup()
     # prepare fn args and kwargs for wrapper
     kwargs_dict = {'num_steps': num_steps, 'anneal_protocol': anneal_protocol, 'field_protocol': field_protocol,
                    'occ_threshold': occ_threshold, 'verbose': verbose}
@@ -215,20 +228,22 @@ def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, nu
         cell_startidx = i * subensemble
         if verbose:
             print "process:", i, "job size:", subensemble, "runs"
-        fn_args_dict[i] = {'args': (init_cond, init_state, init_id, subensemble, cell_startidx),
+        fn_args_dict[i] = {'args': (init_cond, init_state, init_id, subensemble, cell_startidx, simsetup),
                            'kwargs': kwargs_dict}
     # generate results list over workers
     t0 = time.time()
     pool = Pool(num_processes)
+    print "pooling"
     results = pool.map(wrapper_get_basin_stats, fn_args_dict)
+    print "done"
     pool.close()
     pool.join()
     if verbose:
         print "TIMER:", time.time() - t0
     # collect pooled results
     summed_transfer_dict = {}  # TODO remove?
-    summed_proj_timeseries_array = np.zeros((len(CELLTYPE_LABELS), num_steps))
-    summed_basin_occupancy_timeseries = np.zeros((len(CELLTYPE_LABELS) + 1, num_steps), dtype=int)  # could have some spurious here too? not just last as mixed
+    summed_proj_timeseries_array = np.zeros((len(simsetup['CELLTYPE_LABELS']), num_steps))
+    summed_basin_occupancy_timeseries = np.zeros((len(simsetup['CELLTYPE_LABELS']) + 1, num_steps), dtype=int)  # could have some spurious here too? not just last as mixed
     for i, result in enumerate(results):
         transfer_dict, proj_timeseries_array, basin_occupancy_timeseries = result
         summed_transfer_dict.update(transfer_dict)  # TODO check
@@ -242,7 +257,7 @@ def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, nu
     return summed_transfer_dict, summed_proj_timeseries_array, summed_basin_occupancy_timeseries
 
 
-def ensemble_projection_timeseries(init_cond, ensemble, num_processes, num_steps=100, occ_threshold=0.7,
+def ensemble_projection_timeseries(init_cond, ensemble, num_processes, simsetup=None, num_steps=100, occ_threshold=0.7,
                                    anneal_protocol=ANNEAL_PROTOCOL, field_protocol=FIELD_PROTOCOL,
                                    output=True, plot=True):
     """
@@ -259,6 +274,10 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_processes, num_steps
     - timeseries of projections onto store memories (dim p x T)
     """
 
+    # simsetup unpack
+    if simsetup is None:
+        simsetup = singlecell_simsetup()
+
     # prep io
     if output:
         io_dict = run_subdir_setup(run_subfolder=ANALYSIS_SUBDIR)
@@ -267,26 +286,26 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_processes, num_steps
         io_dict = None
 
     # generate initial state
-    init_state, init_id = get_init_info(init_cond)
+    init_state, init_id = get_init_info(init_cond, simsetup)
 
     # simulate ensemble - pooled wrapper call
     transfer_dict, proj_timeseries_array, basin_occupancy_timeseries = \
-        fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, num_steps=num_steps,
+        fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, simsetup=simsetup, num_steps=num_steps,
                          anneal_protocol=anneal_protocol, field_protocol=field_protocol, occ_threshold=occ_threshold,
                          verbose=False)
 
     # save data and plot figures
     if output:
         save_and_plot_basinstats(io_dict, proj_timeseries_array, basin_occupancy_timeseries, num_steps, ensemble,
-                                 prefix=init_id, occ_threshold=occ_threshold, plot=plot)
+                                 simsetup=simsetup, prefix=init_id, occ_threshold=occ_threshold, plot=plot)
     # plot output
     for idx in xrange(ensemble):
         if idx in transfer_dict:
-            print idx, transfer_dict[idx], [CELLTYPE_LABELS[a] for a in transfer_dict[idx].keys()]
+            print idx, transfer_dict[idx], [simsetup['CELLTYPE_LABELS'][a] for a in transfer_dict[idx].keys()]
     return proj_timeseries_array, basin_occupancy_timeseries, io_dict
 
 
-def basin_transitions(init_cond, ensemble, num_steps, beta):
+def basin_transitions(init_cond, ensemble, num_steps, beta, simsetup):
     # TODO note analysis basin grid fulfills this functionality, not great spurious handling though
     """
     Track jumps from basin 'i' to basin 'j' for all 'i'
@@ -315,11 +334,11 @@ def basin_transitions(init_cond, ensemble, num_steps, beta):
     """
 
     # add 1 as spurious sink dimension? this treats spurious as global sink state
-    basins_dim = len(CELLTYPE_LABELS) + 1
-    spurious_index = len(CELLTYPE_LABELS)
-    transition_data = np.zeros((basins_dim,basins_dim))
+    basins_dim = len(simsetup['CELLTYPE_LABELS']) + 1
+    spurious_index = len(simsetup['CELLTYPE_LABELS'])
+    transition_data = np.zeros((basins_dim, basins_dim))
 
-    for idx, memory_label in enumerate(CELLTYPE_LABELS):
+    for idx, memory_label in enumerate(simsetup['CELLTYPE_LABELS']):
         # TODO
         print idx, memory_label
         """
@@ -347,16 +366,18 @@ def basin_transitions(init_cond, ensemble, num_steps, beta):
 
 
 if __name__ == '__main__':
-
     gen_basin_data = True
     plot_isolated_data = False
+
+    # prep simulation globals
+    simsetup = singlecell_simsetup()
 
     if gen_basin_data:
         # common: 'HSC' / 'Common Lymphoid Progenitor (CLP)' / 'Common Myeloid Progenitor (CMP)' /
         #         'Megakaryocyte-Erythroid Progenitor (MEP)' / 'Granulocyte-Monocyte Progenitor (GMP)' / 'thymocyte DN'
         #         'thymocyte - DP' / 'neutrophils' / 'monocytes - classical'
         init_cond = 'HSC'  # note HSC index is 6 in mehta mems
-        ensemble = 8
+        ensemble = 16
         num_steps = 100
         num_proc = cpu_count() / 2  # seems best to use only physical core count (1 core ~ 3x slower than 4)
         anneal_protocol = "protocol_A"
@@ -366,8 +387,8 @@ if __name__ == '__main__':
         # run and time basin ensemble sim
         t0 = time.time()
         _, _, io_dict = ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps,
-                                                       occ_threshold=OCC_THRESHOLD, anneal_protocol=anneal_protocol,
-                                                       plot=plot)
+                                                       simsetup=simsetup, occ_threshold=OCC_THRESHOLD,
+                                                       anneal_protocol=anneal_protocol, plot=plot)
         t1 = time.time() - t0
         print "Runtime:", t1
 
@@ -381,5 +402,5 @@ if __name__ == '__main__':
     if plot_isolated_data:
         loaddata = np.loadtxt(RUNS_FOLDER + os.sep + 'proj_timeseries.txt', delimiter=',')
         ensemble = 100
-        plot_proj_timeseries(loaddata, loaddata.shape[1], ensemble, RUNS_FOLDER + os.sep + 'proj_timeseries.png',
-                             highlights=highlights_CLPside)
+        plot_proj_timeseries(loaddata, loaddata.shape[1], ensemble, simsetup['CELLTYPE_LABELS'],
+                             RUNS_FOLDER + os.sep + 'proj_timeseries.png', highlights=highlights_CLPside)
