@@ -21,7 +21,6 @@ SPURIOUS_LIST = ["mixed"]
 # analysis plotting
 highlights_CLPside = {6: 'k', 8: 'blue', 7: 'red', 16: 'deeppink', 11: 'darkorchid'}
 highlights_simple = {6: 'k', 8: 'blue', 10: 'steelblue'}
-highlights_CLPside = {6: 'k', 8: 'blue', 7: 'red', 16: 'deeppink', 11: 'darkorchid'}
 highlights_both = {6: 'k', 8: 'blue', 10: 'steelblue', 9: 'forestgreen', 7: 'red', 16: 'deeppink', 11: 'darkorchid'}
 DEFAULT_HIGHLIGHTS = highlights_CLPside
 
@@ -145,7 +144,8 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, num_
 
     transfer_dict = {}
     proj_timeseries_array = np.zeros((len(CELLTYPE_LABELS), num_steps))
-    basin_occupancy_timeseries = np.zeros((len(CELLTYPE_LABELS) + 1, num_steps), dtype=int)  # could have some spurious here too? not just last as mixed
+    basin_occupancy_timeseries = np.zeros((len(CELLTYPE_LABELS) + len(SPURIOUS_LIST), num_steps), dtype=int)
+    assert len(SPURIOUS_LIST) == 1
     mixed_index = len(CELLTYPE_LABELS)  # i.e. last elem
 
     anneal_dict = anneal_setup(protocol=anneal_protocol)
@@ -235,6 +235,10 @@ def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, nu
         summed_proj_timeseries_array += proj_timeseries_array
         summed_basin_occupancy_timeseries += basin_occupancy_timeseries
     #check2 = np.sum(summed_basin_occupancy_timeseries, axis=0)
+
+    # notmalize proj timeseries
+    summed_proj_timeseries_array = summed_proj_timeseries_array / ensemble  # want ensemble average
+
     return summed_transfer_dict, summed_proj_timeseries_array, summed_basin_occupancy_timeseries
 
 
@@ -270,9 +274,6 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_processes, num_steps
         fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, num_steps=num_steps,
                          anneal_protocol=anneal_protocol, field_protocol=field_protocol, occ_threshold=occ_threshold,
                          verbose=False)
-
-    # normalize proj timeseries
-    proj_timeseries_array = proj_timeseries_array / ensemble  # want ensemble average
 
     # save data and plot figures
     if output:
