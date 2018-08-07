@@ -4,8 +4,8 @@ import time
 from multiprocessing import cpu_count
 
 from analysis_basin_plotting import plot_basin_grid
-from analysis_basin_transitions import ensemble_projection_timeseries, fast_basin_stats, get_init_info, OCC_THRESHOLD, \
-                                       ANNEAL_PROTOCOL, FIELD_PROTOCOL, ANALYSIS_SUBDIR, SPURIOUS_LIST, \
+from analysis_basin_transitions import ensemble_projection_timeseries, get_basin_stats, fast_basin_stats, get_init_info, \
+                                       ANNEAL_PROTOCOL, FIELD_PROTOCOL, ANALYSIS_SUBDIR, SPURIOUS_LIST, OCC_THRESHOLD, \
                                        save_and_plot_basinstats, load_basinstats
 from singlecell_constants import RUNS_FOLDER
 from singlecell_data_io import run_subdir_setup, runinfo_append
@@ -40,12 +40,15 @@ def gen_basin_grid(ensemble, num_processes, num_steps=100, anneal_protocol=ANNEA
                 fast_basin_stats(celltype, init_state, init_id, ensemble, num_processes, num_steps=num_steps,
                                  anneal_protocol=anneal_protocol, field_protocol=field_protocol,
                                  occ_threshold=occ_threshold, verbose=verbose)
-            """ Unparallelized for testing/profiling:
+            # Unparallelized for testing/profiling:
+            """
             transfer_dict, proj_timeseries_array, basin_occupancy_timeseries = \
                 get_basin_stats(celltype, init_state, init_id, ensemble, 0, num_steps=num_steps, 
                                 anneal_protocol=anneal_protocol, field_protocol=field_protocol,
                                 occ_threshold=occ_threshold, verbose=verbose)
+            #proj_timeseries_array = proj_timeseries_array / ensemble  # ensure normalized (get basin stats won't do this)
             """
+
         # fill in row of grid data from each celltype simulation
         basin_grid[idx, :] = basin_occupancy_timeseries[:,-1]
     if save:
@@ -63,8 +66,8 @@ def load_basin_grid(filestr_data):
 
 
 if __name__ == '__main__':
-    run_basin_grid = False
-    load_and_plot_basin_grid = True
+    run_basin_grid = True
+    load_and_plot_basin_grid = False
     reanalyze_grid_over_time = False
 
     if run_basin_grid:
@@ -75,7 +78,7 @@ if __name__ == '__main__':
         anneal_protocol = ANNEAL_PROTOCOL
         num_proc = cpu_count() / 2
         plot = False
-        saveall = True
+        saveall = False
 
         # run gen_basin_grid
         t0 = time.time()
