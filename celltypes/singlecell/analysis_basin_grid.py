@@ -15,6 +15,9 @@ from singlecell_simsetup import CELLTYPE_LABELS
 def gen_basin_grid(ensemble, num_processes, num_steps=100, anneal_protocol=ANNEAL_PROTOCOL,
                    field_protocol=FIELD_PROTOCOL, occ_threshold=OCC_THRESHOLD, saveall=False, save=True,
                    plot=False, verbose=False):
+    # TODO parallel over rows instead of within each row; fewer setup calls or mem copying
+    # TODO reduce calls to simsetup by passing simulation object / dict around that contains all memory (rewrite simsetup and those which call it)
+    # TODO      any script using these elements would need passing of dict elements INSTEAD OF IMPORT
     """
     generate matrix G_ij of size p x (p + k): grid of data between 0 and 1
     each row represents one of the p encoded basins as an initial condition

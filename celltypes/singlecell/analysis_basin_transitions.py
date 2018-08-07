@@ -361,13 +361,15 @@ if __name__ == '__main__':
         num_proc = cpu_count() / 2  # seems best to use only physical core count (1 core ~ 3x slower than 4)
         anneal_protocol = "protocol_A"
         field_protocol = None
+        plot = False
 
         # run and time basin ensemble sim
         t0 = time.time()
         _, _, io_dict = ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps,
                                                        occ_threshold=OCC_THRESHOLD, anneal_protocol=anneal_protocol,
-                                                       plot=True)
+                                                       plot=plot)
         t1 = time.time() - t0
+        print "Runtime:", t1
 
         # append info to run info file  TODO maybe move this INTO the function?
         info_list = [['fncall', 'ensemble_projection_timeseries()'], ['init_cond', init_cond], ['ensemble', ensemble],
