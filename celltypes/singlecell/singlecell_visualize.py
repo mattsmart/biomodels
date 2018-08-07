@@ -6,10 +6,8 @@ import numpy as np
 import os
 from math import pi
 
-from singlecell_simsetup import CELLTYPE_LABELS
 
-
-def plot_as_bar(projection_vec, memory_labels=CELLTYPE_LABELS):
+def plot_as_bar(projection_vec, memory_labels):
     fig = plt.figure(1)
     fig.set_size_inches(18.5, 10.5)
     h = plt.bar(xrange(len(memory_labels)), projection_vec, label=memory_labels)
@@ -19,7 +17,7 @@ def plot_as_bar(projection_vec, memory_labels=CELLTYPE_LABELS):
     return fig, plt.gca()
 
 
-def plot_as_radar(projection_vec, memory_labels=CELLTYPE_LABELS, rotate_labels=True):
+def plot_as_radar(projection_vec, memory_labels, rotate_labels=True):
     """
     # radar plots not built-in to matplotlib
     # reference code uses pandas: https://python-graph-gallery.com/390-basic-radar-chart/

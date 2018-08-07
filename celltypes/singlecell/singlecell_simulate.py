@@ -3,7 +3,7 @@ import numpy as np
 from singlecell_class import Cell
 from singlecell_constants import NUM_STEPS, BURST_ERROR_PERIOD, APP_FIELD_STRENGTH, BETA
 from singlecell_data_io import run_subdir_setup, runinfo_append
-from singlecell_simsetup import N, XI, J, CELLTYPE_ID, CELLTYPE_LABELS, GENE_LABELS
+from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
 
 """
 NOTES:
@@ -13,8 +13,7 @@ NOTES:
 """
 
 
-def singlecell_sim(init_state=None, init_id=None, iterations=NUM_STEPS, beta=BETA, xi=XI, intxn_matrix=J,
-                   celltype_id=CELLTYPE_ID, memory_labels=CELLTYPE_LABELS, gene_labels=GENE_LABELS,
+def singlecell_sim(init_state=None, init_id=None, iterations=NUM_STEPS, beta=BETA, simsetup=None,
                    app_field=None, app_field_strength=APP_FIELD_STRENGTH, flag_burst_error=False, flag_write=True,
                    analysis_subdir=None, plot_period=10, verbose=True):
     """
@@ -36,6 +35,11 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_STEPS, beta=BET
         if verbose:
             print "Warning: flag_write set to False -- nothing will be saved"
         io_dict = None
+
+    # simsetup unpack
+    if simsetup is None:
+        simsetup = singlecell_simsetup()
+    N, P, gene_labels, memory_labels, gene_id, celltype_id, xi, _, a_inv, intxn_matrix, _ = unpack_simsetup(simsetup)
 
     # Cell setup
     N = xi.shape[0]
@@ -66,8 +70,8 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_STEPS, beta=BET
             app_field_timestep = app_field[:, step]
         if flag_write:
             if singlecell.steps % plot_period == 0:
-                fig, ax, proj = singlecell.plot_projection(use_radar=True, pltdir=io_dict['latticedir'])
-        singlecell.update_state(beta=beta, intxn_matrix=intxn_matrix, app_field=app_field_timestep,
+                fig, ax, proj = singlecell.plot_projection(a_inv, N, xi, use_radar=True, pltdir=io_dict['latticedir'])
+        singlecell.update_state(intxn_matrix, beta=beta, app_field=app_field_timestep,
                                 app_field_strength=app_field_strength)
 
     # Write
@@ -83,6 +87,8 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_STEPS, beta=BET
 
 
 if __name__ == '__main__':
-    flag_write = False
-    app_field = np.zeros((N, NUM_STEPS))
-    singlecell_sim(plot_period=10, app_field=app_field, flag_write=flag_write)
+    flag_write = True
+    simsetup = singlecell_simsetup()
+    app_field = np.zeros((simsetup['N'], NUM_STEPS))
+
+    singlecell_sim(plot_period=10, simsetup=simsetup, app_field=app_field, flag_write=flag_write)

@@ -2,7 +2,7 @@ import numpy as np
 from random import random
 
 from singlecell_constants import BETA, EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH
-from singlecell_simsetup import N, XI, A_INV, J, CELLTYPE_LABELS, GENE_ID, ETA
+from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
 
 """
 Conventions follow from Lang & Mehta 2014, PLOS Comp. Bio
@@ -16,11 +16,11 @@ def hamming(s1, s2):
     return sum(c1 != c2 for c1, c2 in zip(s1, s2))
 
 
-def hamiltonian(state_vec, intxn_matrix=J):
+def hamiltonian(state_vec, intxn_matrix):
     return -0.5*reduce(np.dot, [state_vec.T, intxn_matrix, state_vec])  # plus some other field terms... do we care for these? ie. "-sum h_i*s_i"
 
 
-def internal_field(state, gene_idx, t, intxn_matrix=J):
+def internal_field(state, gene_idx, t, intxn_matrix):
     """
     Original slow summation:
     h_1 = 0
@@ -32,7 +32,7 @@ def internal_field(state, gene_idx, t, intxn_matrix=J):
     return internal_field
 
 
-def glauber_dynamics_update(state, gene_idx, t, intxn_matrix=J, beta=BETA, ext_field=None, ext_field_strength=EXT_FIELD_STRENGTH, app_field=None, app_field_strength=APP_FIELD_STRENGTH):
+def glauber_dynamics_update(state, gene_idx, t, intxn_matrix, beta=BETA, ext_field=None, ext_field_strength=EXT_FIELD_STRENGTH, app_field=None, app_field_strength=APP_FIELD_STRENGTH):
     """
     See page 107-111 Amit for discussion on functional form
     ext_field - N x 1 - field external to the cell in a signalling sense; exosome field in multicell sym
@@ -92,34 +92,35 @@ def state_only_off(state_vec):
     return state_only_off
 
 
-def state_memory_overlap(state_arr, time):
-    return np.dot(XI.T, state_arr[:, time]) / N
+def state_memory_overlap(state_arr, time, N, xi):
+    return np.dot(xi.T, state_arr[:, time]) / N
 
 
-def state_memory_projection(state_arr, time):
-    return np.dot(A_INV, state_memory_overlap(state_arr, time))
+def state_memory_projection(state_arr, time, a_inv, N, xi):
+    return np.dot(a_inv, state_memory_overlap(state_arr, time, N, xi))
 
 
-def state_memory_projection_single(state_arr, time, memory_idx, eta=ETA):
+def state_memory_projection_single(state_arr, time, memory_idx, eta):
     #a = np.dot(ETA[memory_idx,:], state_arr[:,time])
     #b = state_memory_projection(state_arr, time)[memory_idx]
     return np.dot(eta[memory_idx,:], state_arr[:,time])
 
 
-def check_memory_energies():
+def check_memory_energies(xi, celltype_labels):
     # in projection method, expect all to have value -N/2, global minimum value (Mehta 2014)
     # TODO: what is expectation in hopfield method?
-    for idx, label in enumerate(CELLTYPE_LABELS):
-        mem = XI[:,idx]
+    for idx, label in enumerate(celltype_labels):
+        mem = xi[:,idx]
         h = hamiltonian(mem)
         print idx, label, h
     return
 
 
-def construct_app_field_from_genes(gene_list, num_steps):
+def construct_app_field_from_genes(gene_list, num_steps, gene_id):
+    N = len(gene_id.keys())
     app_field = np.zeros((N, num_steps))
     for label in gene_list:
-        app_field[GENE_ID[label], :] += 1
+        app_field[gene_id[label], :] += 1
         #app_field[GENE_ID[label], :num_steps/2] += 1
         #print app_field[GENE_ID[label]-1:GENE_ID[label]+2,0:5]
     return app_field

@@ -4,7 +4,7 @@ from random import shuffle
 from singlecell_data_io import state_write
 from singlecell_constants import BETA, EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH
 from singlecell_functions import glauber_dynamics_update, state_memory_projection, state_memory_overlap, hamiltonian, state_burst_errors, state_to_label
-from singlecell_simsetup import GENE_LABELS, CELLTYPE_LABELS, J
+from singlecell_simsetup import singlecell_simsetup
 from singlecell_visualize import plot_as_bar, plot_as_radar, save_manual
 
 """
@@ -13,8 +13,9 @@ TODO:
     -state is redundant: state_array[:,-1]
 """
 
+
 class Cell(object):
-    def __init__(self, state, label, memories_list=CELLTYPE_LABELS, gene_list=GENE_LABELS, state_array=None,
+    def __init__(self, state, label, memories_list, gene_list, state_array=None,
                  steps=None):
         self.state = state  # this should be N x 1 array
         self.label = label  # label represents it's init cond
@@ -46,7 +47,7 @@ class Cell(object):
     def get_state_array(self):
         return self.state_array
 
-    def get_energy(self, intxn_matrix=J):
+    def get_energy(self, intxn_matrix):
         return hamiltonian(self.state, intxn_matrix=intxn_matrix)
 
     def get_memories_overlap(self):
@@ -55,22 +56,22 @@ class Cell(object):
     def plot_overlap(self, use_radar=False, pltdir=None):
         overlap = self.get_memories_overlap()
         if use_radar:
-            fig, ax = plot_as_radar(overlap)
+            fig, ax = plot_as_radar(overlap, self.memories_list)
             if pltdir is not None:
                 save_manual(fig, pltdir, "state_overlap_radar_%s_%d" % (self.label, self.steps))
         else:
-            fig, ax = plot_as_bar(overlap)
+            fig, ax = plot_as_bar(overlap, self.memories_list)
             if pltdir is not None:
                 save_manual(fig, pltdir, "state_overlap_bar_%s_%d" % (self.label, self.steps))
         return fig, ax, overlap
 
-    def get_memories_projection(self):
-        return state_memory_projection(self.state_array, self.steps)
+    def get_memories_projection(self, a_inv, N, xi):
+        return state_memory_projection(self.state_array, self.steps, a_inv, N, xi)
 
-    def plot_projection(self, use_radar=False, pltdir=None):
-        proj = self.get_memories_projection()
+    def plot_projection(self, a_inv, N, xi, use_radar=False, pltdir=None):
+        proj = self.get_memories_projection(a_inv, N, xi)
         if use_radar:
-            fig, ax = plot_as_radar(proj)
+            fig, ax = plot_as_radar(proj, self.memories_list)
             if pltdir is not None:
                 save_manual(fig, pltdir, "state_%d_proj_radar_%s" % (self.steps, self.label))
         else:
@@ -85,7 +86,7 @@ class Cell(object):
         self.state_array[:, -1] = burst_errors[:]
         return burst_errors
 
-    def update_state(self, intxn_matrix=J, beta=BETA, ext_field=None, ext_field_strength=EXT_FIELD_STRENGTH, app_field=None,
+    def update_state(self, intxn_matrix, beta=BETA, ext_field=None, ext_field_strength=EXT_FIELD_STRENGTH, app_field=None,
                      app_field_strength=APP_FIELD_STRENGTH, fullstep_chunk=True):
         """
         fullstep_chunk: if True, sample from 0 to N with replacement, else each step will be 'fully random'
