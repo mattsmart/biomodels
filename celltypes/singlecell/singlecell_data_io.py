@@ -32,7 +32,6 @@ def run_subdir_setup(run_subfolder=None):
     # make base settings file with first line as the base output dir
     runinfo_append(io_dict, ('basedir', current_run_folder))
 
-    #return current_run_folder, data_folder, plot_lattice_folder, plot_data_folder
     return io_dict
 
 
