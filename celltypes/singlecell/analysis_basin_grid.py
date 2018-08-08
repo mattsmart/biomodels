@@ -44,18 +44,18 @@ def gen_basin_grid(ensemble, num_processes, simsetup=None, num_steps=100, anneal
                                      prefix=celltype, occ_threshold=occ_threshold, plot=plot_all)
         else:
             init_state, init_id = get_init_info(celltype, simsetup)
-            transfer_dict, proj_timeseries_array, basin_occupancy_timeseries = \
-                fast_basin_stats(celltype, init_state, init_id, ensemble, num_processes, simsetup=simsetup,
-                                 num_steps=num_steps, anneal_protocol=anneal_protocol, field_protocol=field_protocol,
-                                 occ_threshold=occ_threshold, verbose=verbose)
-            # Unparallelized for testing/profiling:
-            """
-            transfer_dict, proj_timeseries_array, basin_occupancy_timeseries = \
-                get_basin_stats(celltype, init_state, init_id, ensemble, 0, simsetup, num_steps=num_steps, 
-                                anneal_protocol=anneal_protocol, field_protocol=field_protocol,
-                                occ_threshold=occ_threshold, verbose=verbose)
-            proj_timeseries_array = proj_timeseries_array / ensemble  # ensure normalized (get basin stats won't do this)
-            """
+            if parallel:
+                transfer_dict, proj_timeseries_array, basin_occupancy_timeseries = \
+                    fast_basin_stats(celltype, init_state, init_id, ensemble, num_processes, simsetup=simsetup,
+                                     num_steps=num_steps, anneal_protocol=anneal_protocol, field_protocol=field_protocol,
+                                     occ_threshold=occ_threshold, verbose=verbose)
+            else:
+                # Unparallelized for testing/profiling:
+                transfer_dict, proj_timeseries_array, basin_occupancy_timeseries = \
+                    get_basin_stats(celltype, init_state, init_id, ensemble, 0, simsetup, num_steps=num_steps,
+                                    anneal_protocol=anneal_protocol, field_protocol=field_protocol,
+                                    occ_threshold=occ_threshold, verbose=verbose)
+                proj_timeseries_array = proj_timeseries_array / ensemble  # ensure normalized (get basin stats won't do this)
         # fill in row of grid data from each celltype simulation
         basin_grid[idx, :] = basin_occupancy_timeseries[:,-1]
     if save:
