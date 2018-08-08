@@ -56,9 +56,3 @@ def unpack_simsetup(simsetup):
     J = simsetup['J']
     ETA = simsetup['ETA']
     return N, P, GENE_LABELS, CELLTYPE_LABELS, GENE_ID, CELLTYPE_ID, XI, A, A_INV, J, ETA
-
-
-# DEFINE SIMULATION CONSTANTS IN ISOLATED SETUP CALL
-"""
-simsetup = singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX)
-"""
