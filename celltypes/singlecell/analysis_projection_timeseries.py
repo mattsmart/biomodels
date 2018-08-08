@@ -22,11 +22,11 @@ def get_memory_proj_timeseries(state_array, memory_idx, eta):
     return timeseries
 
 
-def single_projection_timeseries_vary_basin_init(figname='mehta2014_Fig1E.png'):
+def single_projection_timeseries_vary_basin_init(memory_label='esc', figname='mehta2014_Fig1E.png'):
     """
     Generate and plot L trajectories:
       - evolve init cond by gradually corrupting an initial memory (flip val of subset of indices)
-    See Fig1E of Mehta and Lang 2014
+    See Fig1E of Mehta and Lang 2014 -- they perform this analysis for the 'esc' basin
     Return: None
     """
     # function specific settings
@@ -39,7 +39,6 @@ def single_projection_timeseries_vary_basin_init(figname='mehta2014_Fig1E.png'):
     # perform standard simsetup
     simsetup = singlecell_simsetup(flag_prune_intxn_matrix=flag_prune_intxn_matrix)
     # basin choice
-    memory_label = 'esc'
     memory_idx = simsetup['CELLTYPE_ID'][memory_label]
     init_state_pure = simsetup['XI'][:, memory_idx]
     # additional sim settings
