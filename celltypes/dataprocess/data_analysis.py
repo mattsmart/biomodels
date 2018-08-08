@@ -7,7 +7,7 @@ from data_process import binarize_cluster_dict, binary_cluster_dict_to_memories,
 from data_settings import DATADIR, OUTPUTDIR
 from data_standardize import load_npz_of_arr_genes_cells
 from singlecell.singlecell_data_io import run_subdir_setup, runinfo_append
-from singlecell.singlecell_functions import hamiltonian, hamming, state_memory_projection_single
+from singlecell.singlecell_functions import hamiltonian, hamming, single_memory_projection
 from singlecell.singlecell_linalg import memory_corr_matrix_and_inv, interaction_matrix, predictivity_matrix
 from singlecell.singlecell_simulate import singlecell_sim
 
@@ -83,7 +83,7 @@ def basin_projection_timeseries(k, memory_array, intxn_matrix, eta, basin_data_k
         num_steps = np.shape(state_array)[1]
         timeseries = np.zeros(num_steps)
         for time_idx in xrange(num_steps):
-            timeseries[time_idx] = state_memory_projection_single(state_array, time_idx, memory_idx, eta=eta)
+            timeseries[time_idx] = single_memory_projection(state_array, time_idx, memory_idx, eta=eta)
         return timeseries
 
     TEMP = 1e-2

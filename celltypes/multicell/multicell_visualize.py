@@ -4,7 +4,7 @@ import numpy as np
 import os
 from matplotlib.patches import Rectangle
 
-from singlecell.singlecell_functions import state_memory_projection_single
+from singlecell.singlecell_functions import single_memory_projection
 from singlecell.singlecell_simsetup import P, N, CELLTYPE_LABELS
 
 """
@@ -36,7 +36,7 @@ def get_lattice_uniproj(lattice, time, n, uniplot_key):
     proj_vals = np.zeros((n,n))
     for i in xrange(n):
         for j in xrange(n):
-            proj_vals[i, j] = state_memory_projection_single(lattice[i][j].get_state_array(), time, uniplot_key)
+            proj_vals[i, j] = single_memory_projection(lattice[i][j].get_state_array(), time, uniplot_key)
     return proj_vals
 
 
