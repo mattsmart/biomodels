@@ -5,8 +5,9 @@ from multiprocessing import Pool, cpu_count
 
 from analysis_basin_plotting import plot_proj_timeseries, plot_basin_occupancy_timeseries, plot_basin_step
 from singlecell_class import Cell
-from singlecell_constants import RUNS_FOLDER
+from singlecell_constants import RUNS_FOLDER, IPSC_CORE_GENES
 from singlecell_data_io import run_subdir_setup, runinfo_append
+from singlecell_functions import construct_app_field_from_genes
 from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
 
 
@@ -27,11 +28,16 @@ DEFAULT_HIGHLIGHTS = highlights_CLPside
 
 def field_setup(protocol=FIELD_PROTOCOL):
     """
+    Construct applied field vector (either fixed or on varying under a field protocol) to bias the dynamics
+
+    Notes on named fields
+    Yamanaka factor (OSKM + nanog) names in mehta datafile: Sox2, Pou5f1 (oct3/4), Klf4, Mycbp, nanog
     """
     # TODO build
     assert protocol in [None]
     field_dict = {'protocol': protocol,
                    'field_start': None}
+    app_field = construct_app_field_from_genes(IPSC_CORE_GENES, num_steps)
     return field_dict
 
 
