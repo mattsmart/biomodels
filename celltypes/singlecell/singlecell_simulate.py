@@ -1,7 +1,7 @@
 import numpy as np
 
 from singlecell_class import Cell
-from singlecell_constants import NUM_STEPS, BURST_ERROR_PERIOD, APP_FIELD_STRENGTH, BETA
+from singlecell_constants import NUM_FULL_STEPS, BURST_ERROR_PERIOD, APP_FIELD_STRENGTH, BETA
 from singlecell_data_io import run_subdir_setup, runinfo_append
 from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
 
@@ -13,7 +13,7 @@ NOTES:
 """
 
 
-def singlecell_sim(init_state=None, init_id=None, iterations=NUM_STEPS, beta=BETA, simsetup=None,
+def singlecell_sim(init_state=None, init_id=None, iterations=NUM_FULL_STEPS, beta=BETA, simsetup=None,
                    app_field=None, app_field_strength=APP_FIELD_STRENGTH, flag_burst_error=False, flag_write=True,
                    analysis_subdir=None, plot_period=10, verbose=True):
     """
@@ -89,6 +89,6 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_STEPS, beta=BET
 if __name__ == '__main__':
     flag_write = True
     simsetup = singlecell_simsetup()
-    app_field = np.zeros((simsetup['N'], NUM_STEPS))
+    app_field = np.zeros((simsetup['N'], NUM_FULL_STEPS))
 
     singlecell_sim(plot_period=10, simsetup=simsetup, app_field=app_field, flag_write=flag_write)

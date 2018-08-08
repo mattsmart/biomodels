@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from singlecell_constants import RUNS_FOLDER, IPSC_CORE_GENES
+from singlecell_constants import RUNS_FOLDER, IPSC_CORE_GENES, FLAG_PRUNE_INTXN_MATRIX, FLAG_BURST_ERRORS
 from singlecell_functions import state_burst_errors, state_memory_projection_single, construct_app_field_from_genes
 from singlecell_simsetup import N, P, XI, CELLTYPE_ID, A_INV, J, GENE_ID, GENE_LABELS, CELLTYPE_LABELS
 from singlecell_simulate import singlecell_sim
@@ -15,17 +15,9 @@ from singlecell_simulate import singlecell_sim
 
 # TODO: rename function, very similar to other gen projection timeseries function... modularize
 
-def get_memory_proj_timeseries(state_array, memory_idx):
-    num_steps = np.shape(state_array)[1]
-    timeseries = np.zeros(num_steps)
-    for time_idx in xrange(num_steps):
-        timeseries[time_idx] = state_memory_projection_single(state_array, time_idx, memory_idx)
-    return timeseries
-
 
 def gen_projection_timeseries(figname='figure1_20.png'):
     FLAG_BURST_ERRORS = True
-    FLAG_DILUTE_INTXNS = False  # TODO: propogate through to singlecell_functions or singlecell_simsetup?
     analysis_subdir = "yamanaka"
     esc_label = 'esc'
     esc_idx = CELLTYPE_ID[esc_label]
