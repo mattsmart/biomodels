@@ -3,23 +3,11 @@ import numpy as np
 import os
 
 from singlecell_constants import RUNS_FOLDER, FLAG_PRUNE_INTXN_MATRIX, FLAG_BURST_ERRORS
-from singlecell_functions import state_burst_errors, state_memory_projection_single
+from singlecell_functions import state_burst_errors, single_memory_projection_timeseries
 from singlecell_simsetup import singlecell_simsetup
 from singlecell_simulate import singlecell_sim
 
 # TODO compare with basin grid and transition functionality, possible overlap
-# TODO same as yamanaka, remove one
-
-
-def get_memory_proj_timeseries(state_array, memory_idx, eta):
-    """
-    Given state_array (N genes x T timesteps), return projection (T x 1) onto single memory specified by memory_idx
-    """
-    num_steps = np.shape(state_array)[1]
-    timeseries = np.zeros(num_steps)
-    for time_idx in xrange(num_steps):
-        timeseries[time_idx] = state_memory_projection_single(state_array, time_idx, memory_idx, eta)
-    return timeseries
 
 
 def single_projection_timeseries_vary_basin_init(memory_label='esc', figname='mehta2014_Fig1E.png'):
@@ -50,7 +38,7 @@ def single_projection_timeseries_vary_basin_init(memory_label='esc', figname='me
         cellstate_array, io_dict = singlecell_sim(init_state=subsample_state, iterations=num_steps, simsetup=simsetup,
                                                   flag_burst_error=flag_burst_errors, flag_write=False,
                                                   analysis_subdir=analysis_subdir, plot_period=num_steps*2)
-        proj_timeseries_array[:, idx] = get_memory_proj_timeseries(cellstate_array, memory_idx, simsetup['ETA'])[:]
+        proj_timeseries_array[:, idx] = single_memory_projection_timeseries(cellstate_array, memory_idx, simsetup['ETA'])[:]
     # cleanup output folders from main()
     # TODO: function to cleanup runs subdir mehta1E call here call
     # plot output
