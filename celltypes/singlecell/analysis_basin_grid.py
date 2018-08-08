@@ -83,18 +83,19 @@ if __name__ == '__main__':
 
     if run_basin_grid:
         # TODO: find way to prevent reloading the interaction info from singlcell_simsetup
-        ensemble = 16
+        ensemble = 160
         timesteps = 20
         field_protocol = FIELD_PROTOCOL
         anneal_protocol = ANNEAL_PROTOCOL
         num_proc = cpu_count() / 2
         plot = False
         saveall = False
+        parallel = True
 
         # run gen_basin_grid
         t0 = time.time()
         basin_grid, io_dict = gen_basin_grid(ensemble, num_proc, simsetup=simsetup, num_steps=timesteps, anneal_protocol=anneal_protocol,
-                                             field_protocol=field_protocol, saveall=saveall, plot=plot)
+                                             field_protocol=field_protocol, saveall=saveall, plot=plot, parallel=parallel)
         t1 = time.time() - t0
         print "GRID TIMER:", t1
 
