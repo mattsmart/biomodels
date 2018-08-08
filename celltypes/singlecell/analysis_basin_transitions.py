@@ -5,7 +5,7 @@ from multiprocessing import Pool, cpu_count
 
 from analysis_basin_plotting import plot_proj_timeseries, plot_basin_occupancy_timeseries, plot_basin_step
 from singlecell_class import Cell
-from singlecell_constants import RUNS_FOLDER, IPSC_CORE_GENES
+from singlecell_constants import RUNS_FOLDER, IPSC_CORE_GENES_EFFECTS
 from singlecell_data_io import run_subdir_setup, runinfo_append
 from singlecell_functions import construct_app_field_from_genes
 from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
@@ -26,7 +26,7 @@ highlights_both = {6: 'k', 8: 'blue', 10: 'steelblue', 9: 'forestgreen', 7: 'red
 DEFAULT_HIGHLIGHTS = highlights_CLPside
 
 
-def field_setup(protocol=FIELD_PROTOCOL):
+def field_setup(gene_id, protocol=FIELD_PROTOCOL):
     """
     Construct applied field vector (either fixed or on varying under a field protocol) to bias the dynamics
 
@@ -37,7 +37,7 @@ def field_setup(protocol=FIELD_PROTOCOL):
     assert protocol in [None]
     field_dict = {'protocol': protocol,
                    'field_start': None}
-    app_field = construct_app_field_from_genes(IPSC_CORE_GENES, num_steps)
+    app_field_start = construct_app_field_from_genes(IPSC_CORE_GENES_EFFECTS, gene_id, num_steps=0)
     return field_dict
 
 
@@ -154,8 +154,7 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, sims
     N, _, gene_labels, memory_labels, gene_id, celltype_id, xi, _, a_inv, intxn_matrix, _ = unpack_simsetup(simsetup)
 
     # prep applied field TODO: how to include applied field neatly
-    # app_field = construct_app_field_from_genes(IPSC_CORE_GENES, num_steps)
-    field_dict = field_setup(protocol=field_protocol)
+    field_dict = field_setup(simsetup['GENE_ID'], protocol=field_protocol)
     app_field = None
 
     transfer_dict = {}
@@ -389,12 +388,23 @@ if __name__ == '__main__':
         anneal_protocol = "protocol_A"
         field_protocol = None
         plot = False
+        parallel = False
 
         # run and time basin ensemble sim
         t0 = time.time()
-        _, _, io_dict = ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps,
-                                                       simsetup=simsetup, occ_threshold=OCC_THRESHOLD,
-                                                       anneal_protocol=anneal_protocol, plot=plot)
+        if parallel:
+            _, _, io_dict = ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps,
+                                                           simsetup=simsetup, occ_threshold=OCC_THRESHOLD,
+                                                           anneal_protocol=anneal_protocol, plot=plot)
+        else:
+            # Unparallelized for testing/profiling:
+            init_state, init_id = get_init_info(init_cond, simsetup)
+            io_dict = run_subdir_setup(run_subfolder=ANALYSIS_SUBDIR)
+            transfer_dict, proj_timeseries_array, basin_occupancy_timeseries = \
+                get_basin_stats(init_cond, init_state, init_id, ensemble, 0, simsetup, num_steps=num_steps,
+                                anneal_protocol=anneal_protocol, field_protocol=field_protocol,
+                                occ_threshold=OCC_THRESHOLD, verbose=True)
+            proj_timeseries_array = proj_timeseries_array / ensemble  # ensure normalized (get basin stats won't do this)
         t1 = time.time() - t0
         print "Runtime:", t1
 
