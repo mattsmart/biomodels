@@ -106,12 +106,12 @@ def state_memory_projection_single(state_arr, time, memory_idx, eta):
     return np.dot(eta[memory_idx,:], state_arr[:,time])
 
 
-def check_memory_energies(xi, celltype_labels):
+def check_memory_energies(xi, celltype_labels, intxn_matrix):
     # in projection method, expect all to have value -N/2, global minimum value (Mehta 2014)
     # TODO: what is expectation in hopfield method?
     for idx, label in enumerate(celltype_labels):
         mem = xi[:,idx]
-        h = hamiltonian(mem)
+        h = hamiltonian(mem, intxn_matrix)
         print idx, label, h
     return
 
