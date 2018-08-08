@@ -9,7 +9,7 @@ from analysis_basin_transitions import ensemble_projection_timeseries, get_basin
                                        save_and_plot_basinstats, load_basinstats
 from singlecell_constants import RUNS_FOLDER
 from singlecell_data_io import run_subdir_setup, runinfo_append
-from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
+from singlecell_simsetup import singlecell_simsetup
 
 
 def gen_basin_grid(ensemble, num_processes, simsetup=None, num_steps=100, anneal_protocol=ANNEAL_PROTOCOL,
