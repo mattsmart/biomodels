@@ -130,11 +130,19 @@ def check_memory_energies(xi, celltype_labels, intxn_matrix):
     return
 
 
-def construct_app_field_from_genes(gene_list, num_steps, gene_id):
+def construct_app_field_from_genes(gene_name_effect, gene_id, num_steps=0):
+    """
+    Args:
+    - gene_name_effect: dict of gene_name: +-1 (on or off)
+    - gene_id: map of dict name to idx for the input memories file
+    - num_steps: optional numsteps (return 2d array if nonzero)
+    Return:
+    - applied field array of size N x 1 or N x num_steps
+    """
     N = len(gene_id.keys())
     app_field = np.zeros((N, num_steps))
-    for label in gene_list:
-        app_field[gene_id[label], :] += 1
+    for label, effect in gene_name_effect:
+        app_field[gene_id[label], :] += effect
         #app_field[GENE_ID[label], :num_steps/2] += 1
         #print app_field[GENE_ID[label]-1:GENE_ID[label]+2,0:5]
     return app_field

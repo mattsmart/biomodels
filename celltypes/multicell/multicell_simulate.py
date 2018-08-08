@@ -6,10 +6,10 @@ import matplotlib.pyplot as plt
 from multicell_constants import GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS, VALID_BUILDSTRINGS, VALID_EXOSOME_STRINGS, EXOSTRING, BUILDSTRING, LATTICE_PLOT_PERIOD, FIELD_REMOVE_RATIO
 from multicell_lattice import build_lattice_main, get_cell_locations, prep_lattice_data_dict, write_state_all_cells
 from multicell_visualize import lattice_uniplotter, reference_overlap_plotter, lattice_projection_composite
-from singlecell.singlecell_constants import EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, IPSC_CORE_GENES, IPSC_EXTENDED_GENES
+from singlecell.singlecell_constants import EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, IPSC_CORE_GENES, IPSC_EXTENDED_GENES_EFFECTS
 from singlecell.singlecell_data_io import run_subdir_setup, runinfo_append
 from singlecell.singlecell_functions import construct_app_field_from_genes
-from singlecell.singlecell_simsetup import N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS
+from singlecell.singlecell_simsetup import N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS, GENE_ID
 
 
 def run_sim(lattice, num_lattice_steps, data_dict, exosome_string=EXOSTRING, field_remove_ratio=0.0,
@@ -140,7 +140,7 @@ if __name__ == '__main__':
     fieldstring = "on"  # on/off/all, note e.g. 'off' means send info about 'off' genes only
     fieldprune = 0.8  # amount of external field idx to randomly prune from each cell
     ext_field_strength = 0.3                                                  # global EXT_FIELD_STRENGTH
-    app_field = construct_app_field_from_genes(IPSC_EXTENDED_GENES, steps)        # size N x timesteps or None
+    app_field = construct_app_field_from_genes(IPSC_EXTENDED_GENES_EFFECTS, GENE_ID, num_steps=steps)        # size N x timesteps or None
     app_field_strength = 0.0 #100.0                                                  # global APP_FIELD_STRENGTH
     plot_period = 4
     main(gridsize=n, num_steps=steps, buildstring=buildstring, exosome_string=fieldstring, field_remove_ratio=fieldprune,
