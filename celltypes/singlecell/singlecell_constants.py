@@ -14,7 +14,7 @@ MEMS_SCMCA = MEMORIESDIR + os.sep + "2018_scmca_mems_genes_types_boolean_compres
 RUNS_FOLDER = SINGLECELL + os.sep + "runs"                      # store timestamped runs here
 SETTINGS_FILE = "run_info.txt"
 
-# MODEL SPECIFICATION
+# MODEL SPECIFICATION -- TODO print used vars in simsetup dict, write to run_info.txt
 DEFAULT_MEMORIES_NPZPATH = MEMS_MEHTA     # choose which memories to embed
 METHOD = "projection"                     # 'projection' or 'hopfield'
 BETA = 2.2                                # value used in Mehta 2014 (low temperature)
@@ -24,7 +24,7 @@ FLAG_BOOL = True                          # use binarized states (up/down vs con
 FLAG_PRUNE_INTXN_MATRIX = False           # flag for non-eq dilution of the symmetric J intxn matrix
 J_RANDOM_DELETE_RATIO = 0.2               # this ratio of elements randomly pruned from J intxn matrix
 
-# SPIN FLIP DYNAMICS
+# SPIN FLIP DYNAMICS -- TODO print used vars in simsetup dict, write to run_info.txt
 NUM_FULL_STEPS = 100                      # number of full TF grid updates in the single cell simulation
 METHOD_STEPS = 'async_batch'              # options: 'async_indiv' (select one spin at a time) or 'async_batch'
 FLAG_BURST_ERRORS = False                 # forced spin swaps/errors to randomly apply every T full spin updates
