@@ -100,10 +100,24 @@ def state_memory_projection(state_arr, time, a_inv, N, xi):
     return np.dot(a_inv, state_memory_overlap(state_arr, time, N, xi))
 
 
-def state_memory_projection_single(state_arr, time, memory_idx, eta):
-    #a = np.dot(ETA[memory_idx,:], state_arr[:,time])
-    #b = state_memory_projection(state_arr, time)[memory_idx]
+def single_memory_projection(state_arr, time, memory_idx, eta):
+    """
+    Given state_array (N genes x T timesteps) and time t, return projection onto single memory (memory_idx) at t
+    - this should be faster than performing the full matrix multiplication (its just a row.T * col dot product)
+    - this should be faster if we want many single memories, say less than half of num memories
+    """
     return np.dot(eta[memory_idx,:], state_arr[:,time])
+
+
+def single_memory_projection_timeseries(state_array, memory_idx, eta):
+    """
+    Given state_array (N genes x T timesteps), return projection (T x 1) onto single memory specified by memory_idx
+    """
+    num_steps = np.shape(state_array)[1]
+    timeseries = np.zeros(num_steps)
+    for time_idx in xrange(num_steps):
+        timeseries[time_idx] = single_memory_projection(state_array, time_idx, memory_idx, eta)
+    return timeseries
 
 
 def check_memory_energies(xi, celltype_labels, intxn_matrix):
