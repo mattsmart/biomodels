@@ -472,19 +472,28 @@ if __name__ == '__main__':
         anneal_protocol = "protocol_A"
         field_protocol = None
         plot = False
+        ens_scaled = False
+        if ens_scaled:
+            ens_base = 100                                            # METHOD: all workers will do this many traj
+            proc_lists = {p: range(1,p+1) for p in [4,8,80]}
+        else:
+            ens_base = 240                                            # METHOD: divide this number amongst all workers
+            proc_lists = {4: [1,2,3,4],
+                          8: [1,2,3,4,5,6,8],
+                          80: [1,2,3,4,5,6,8,10,12,15,16,20,24,30,40,48,60,80]}
 
         # run and time basin ensemble sim
-        #for num_proc in xrange(1,9):         # method A
-        for num_proc in [1,2,3,4,5,6,8]:    # method B
-
-            #ensemble = 40 * num_proc         # method A
-            ensemble = 120 #96                       # method B
-            print "timer for num_proc %d" % num_proc
+        for num_proc in proc_lists[cpu_count()]:
+            if ens_scaled:
+                ensemble = ens_base * num_proc
+            else:
+                ensemble = ens_base
+            print "Start timer for num_proc %d (%x ens x %d steps)" % (num_proc, ensemble, num_steps)
             t0 = time.time()
             proj_timeseries_array, basin_occupancy_timeseries, worker_times, io_dict = \
                 ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps, simsetup=simsetup,
                                                occ_threshold=OCC_THRESHOLD, anneal_protocol=anneal_protocol, plot=plot,
-                                               profile=True)
+                                               output=True, profile=True)
             t1 = time.time() - t0
             print "Runtime:", t1
 
