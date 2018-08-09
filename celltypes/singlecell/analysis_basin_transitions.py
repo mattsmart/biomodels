@@ -18,6 +18,7 @@ ANNEAL_PROTOCOL = "protocol_A"
 FIELD_PROTOCOL = None
 OCC_THRESHOLD = 0.7
 SPURIOUS_LIST = ["mixed"]
+PROFILE_PREFIX = "profile_row_"
 
 # analysis plotting
 highlights_CLPside = {6: 'k', 8: 'blue', 7: 'red', 16: 'deeppink', 11: 'darkorchid'}
@@ -148,9 +149,11 @@ def wrapper_get_basin_stats(fn_args_dict):
 
 
 def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, simsetup, num_steps=100,
-                    anneal_protocol=ANNEAL_PROTOCOL, field_protocol=FIELD_PROTOCOL, occ_threshold=OCC_THRESHOLD, verbose=False):
+                    anneal_protocol=ANNEAL_PROTOCOL, field_protocol=FIELD_PROTOCOL, occ_threshold=OCC_THRESHOLD,
+                    verbose=False, profile=False):
 
-    start_outer = time.time()  # TODO remove
+    if profile:
+        start_outer = time.time()  # TODO remove
 
     # simsetup unpack
     N, _, gene_labels, memory_labels, gene_id, celltype_id, xi, _, a_inv, intxn_matrix, _ = unpack_simsetup(simsetup)
@@ -168,8 +171,8 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, sims
     anneal_dict = anneal_setup(protocol=anneal_protocol)
     wandering = False
 
-    start_inner = time.time()  # TODO remove
-
+    if profile:
+        start_inner = time.time()  # TODO remove
 
     for cell_idx in xrange(ensemble_idx, ensemble_idx + ensemble):
         if verbose:
@@ -218,23 +221,29 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, sims
             if step < num_steps:
                 cell.update_state(intxn_matrix, beta=beta, app_field=None, fullstep_chunk=True)
 
-    end_inner = time.time()
+    if profile:
+        end_inner = time.time()
+        total_time = end_inner - start_outer
+        if verbose:
+            print "TIMINGS for %s, process %s, ensemble_start %d, last job %d" % \
+                  (init_cond, current_process(), ensemble_idx, cell_idx)
+            print "start outer | start inner | end --- init_time | total time"
+            print "%.2f | %.2f | %.2f --- %.2f | %.2f " % \
+                  (start_outer, start_inner, end_inner, start_inner - start_outer, total_time)
+    else:
+        total_time = None
 
-    print "TIMINGS for %s, process %s, ensemble_start %d, last job %d" % (init_cond, current_process(), ensemble_idx, cell_idx)
-    print "start outer | start inner | end --- init_time | total time"
-    print "%.2f | %.2f | %.2f --- %.2f | %.2f " % (start_outer, start_inner, end_inner, start_inner - start_outer, end_inner - start_outer)
-
-    return transfer_dict, proj_timeseries_array, basin_occupancy_timeseries
+    return transfer_dict, proj_timeseries_array, basin_occupancy_timeseries, total_time
 
 
 def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, simsetup=None, num_steps=100, occ_threshold=0.7,
-                     anneal_protocol=ANNEAL_PROTOCOL, field_protocol=FIELD_PROTOCOL, verbose=False):
+                     anneal_protocol=ANNEAL_PROTOCOL, field_protocol=FIELD_PROTOCOL, verbose=False, profile=False):
     # simsetup unpack
     if simsetup is None:
         simsetup = singlecell_simsetup()
     # prepare fn args and kwargs for wrapper
     kwargs_dict = {'num_steps': num_steps, 'anneal_protocol': anneal_protocol, 'field_protocol': field_protocol,
-                   'occ_threshold': occ_threshold, 'verbose': verbose}
+                   'occ_threshold': occ_threshold, 'verbose': verbose, 'profile': profile}
     fn_args_dict = [0]*num_processes
     if verbose:
         print "NUM_PROCESSES:", num_processes
@@ -260,22 +269,28 @@ def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, si
     summed_transfer_dict = {}  # TODO remove?
     summed_proj_timeseries_array = np.zeros((len(simsetup['CELLTYPE_LABELS']), num_steps))
     summed_basin_occupancy_timeseries = np.zeros((len(simsetup['CELLTYPE_LABELS']) + 1, num_steps), dtype=int)  # could have some spurious here too? not just last as mixed
+    if profile:
+        worker_times = np.zeros(num_processes)
+    else:
+        worker_times = None
     for i, result in enumerate(results):
-        transfer_dict, proj_timeseries_array, basin_occupancy_timeseries = result
+        transfer_dict, proj_timeseries_array, basin_occupancy_timeseries, worker_time = result
         summed_transfer_dict.update(transfer_dict)  # TODO check
         summed_proj_timeseries_array += proj_timeseries_array
         summed_basin_occupancy_timeseries += basin_occupancy_timeseries
+        if profile:
+            worker_times[i] = worker_time
     #check2 = np.sum(summed_basin_occupancy_timeseries, axis=0)
 
     # notmalize proj timeseries
     summed_proj_timeseries_array = summed_proj_timeseries_array / ensemble  # want ensemble average
 
-    return summed_transfer_dict, summed_proj_timeseries_array, summed_basin_occupancy_timeseries
+    return summed_transfer_dict, summed_proj_timeseries_array, summed_basin_occupancy_timeseries, worker_times
 
 
 def ensemble_projection_timeseries(init_cond, ensemble, num_processes, simsetup=None, num_steps=100, occ_threshold=0.7,
                                    anneal_protocol=ANNEAL_PROTOCOL, field_protocol=FIELD_PROTOCOL,
-                                   output=True, plot=True):
+                                   output=True, plot=True, profile=False):
     """
     Args:
     - init_cond: np array of init state OR string memory label
@@ -301,14 +316,19 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_processes, simsetup=
         assert not plot
         io_dict = None
 
+    # profiler setup
+    profile_path = RUNS_FOLDER + os.sep + PROFILE_PREFIX + "%dens_%dsteps.txt" % (ensemble, num_steps)
+    if profile:
+        time_start = time.time()
+
     # generate initial state
     init_state, init_id = get_init_info(init_cond, simsetup)
 
     # simulate ensemble - pooled wrapper call
-    transfer_dict, proj_timeseries_array, basin_occupancy_timeseries = \
+    transfer_dict, proj_timeseries_array, basin_occupancy_timeseries, worker_times = \
         fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, simsetup=simsetup, num_steps=num_steps,
                          anneal_protocol=anneal_protocol, field_protocol=field_protocol, occ_threshold=occ_threshold,
-                         verbose=False)
+                         verbose=False, profile=profile)
 
     # save data and plot figures
     if output:
@@ -320,8 +340,14 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_processes, simsetup=
         if idx in transfer_dict:
             print idx, transfer_dict[idx], [simsetup['CELLTYPE_LABELS'][a] for a in transfer_dict[idx].keys()]
     """
+    if profile:
+        time_end = time.time()
+        time_total = time_end - time_start
+        with open(profile_path, 'a+') as f:
+            f.write('%d,%.2f,%.2f,%.2f\n' % (num_processes, time_total, min(worker_times), max(worker_times)))
+            #f.write(','.join(str(s) for s in [num_processes, time_total]) + '\n')
 
-    return proj_timeseries_array, basin_occupancy_timeseries, io_dict
+    return proj_timeseries_array, basin_occupancy_timeseries, worker_times, io_dict
 
 
 def basin_transitions(init_cond, ensemble, num_steps, beta, simsetup):
@@ -384,9 +410,9 @@ def basin_transitions(init_cond, ensemble, num_steps, beta, simsetup):
 
 
 if __name__ == '__main__':
-    gen_basin_data = True
+    gen_basin_data = False
     plot_isolated_data = False
-    profile = False
+    profile = True
 
     # prep simulation globals
     simsetup = singlecell_simsetup()
@@ -407,17 +433,18 @@ if __name__ == '__main__':
         # run and time basin ensemble sim
         t0 = time.time()
         if parallel:
-            _, _, io_dict = ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps,
-                                                           simsetup=simsetup, occ_threshold=OCC_THRESHOLD,
-                                                           anneal_protocol=anneal_protocol, plot=plot)
+            proj_timeseries_array, basin_occupancy_timeseries, worker_times, io_dict = \
+                ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps, simsetup=simsetup,
+                                               occ_threshold=OCC_THRESHOLD, anneal_protocol=anneal_protocol, plot=plot,
+                                               profile=False)
         else:
             # Unparallelized for testing/profiling:
             init_state, init_id = get_init_info(init_cond, simsetup)
             io_dict = run_subdir_setup(run_subfolder=ANALYSIS_SUBDIR)
-            transfer_dict, proj_timeseries_array, basin_occupancy_timeseries = \
+            transfer_dict, proj_timeseries_array, basin_occupancy_timeseries, worker_times = \
                 get_basin_stats(init_cond, init_state, init_id, ensemble, 0, simsetup, num_steps=num_steps,
                                 anneal_protocol=anneal_protocol, field_protocol=field_protocol,
-                                occ_threshold=OCC_THRESHOLD, verbose=False)
+                                occ_threshold=OCC_THRESHOLD, verbose=False, profile=True)
             proj_timeseries_array = proj_timeseries_array / ensemble  # ensure normalized (get basin stats won't do this)
         t1 = time.time() - t0
         print "Runtime:", t1
@@ -425,7 +452,8 @@ if __name__ == '__main__':
         # append info to run info file  TODO maybe move this INTO the function?
         info_list = [['fncall', 'ensemble_projection_timeseries()'], ['init_cond', init_cond], ['ensemble', ensemble],
                      ['num_steps', num_steps], ['num_proc', num_proc], ['anneal_protocol', anneal_protocol],
-                     ['occ_threshold', OCC_THRESHOLD], ['field_protocol', field_protocol], ['time', t1]]
+                     ['occ_threshold', OCC_THRESHOLD], ['field_protocol', field_protocol], ['time', t1],
+                     ['time_workers', worker_times]]
         runinfo_append(io_dict, info_list, multi=True)
 
     # direct data plotting
@@ -447,15 +475,16 @@ if __name__ == '__main__':
 
         # run and time basin ensemble sim
         #for num_proc in xrange(1,9):         # method A
-        for num_proc in [1,2,3,4,6,8]:    # method B
+        for num_proc in [1,2,3,4,5,6,8]:    # method B
 
             #ensemble = 40 * num_proc         # method A
-            ensemble = 96                       # method B
+            ensemble = 120 #96                       # method B
             print "timer for num_proc %d" % num_proc
             t0 = time.time()
-            _, _, io_dict = ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps,
-                                                           simsetup=simsetup, occ_threshold=OCC_THRESHOLD,
-                                                           anneal_protocol=anneal_protocol, plot=plot)
+            proj_timeseries_array, basin_occupancy_timeseries, worker_times, io_dict = \
+                ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps, simsetup=simsetup,
+                                               occ_threshold=OCC_THRESHOLD, anneal_protocol=anneal_protocol, plot=plot,
+                                               profile=True)
             t1 = time.time() - t0
             print "Runtime:", t1
 
@@ -463,5 +492,6 @@ if __name__ == '__main__':
             info_list = [['fncall', 'ensemble_projection_timeseries()'], ['init_cond', init_cond],
                          ['ensemble', ensemble],
                          ['num_steps', num_steps], ['num_proc', num_proc], ['anneal_protocol', anneal_protocol],
-                         ['occ_threshold', OCC_THRESHOLD], ['field_protocol', field_protocol], ['time', t1]]
+                         ['occ_threshold', OCC_THRESHOLD], ['field_protocol', field_protocol], ['time', t1],
+                         ['time_workers', worker_times]]
             runinfo_append(io_dict, info_list, multi=True)

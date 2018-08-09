@@ -36,7 +36,7 @@ def gen_basin_grid(ensemble, num_processes, simsetup=None, num_steps=100, anneal
         if saveall:
             assert parallel
             plot_all = False
-            proj_timeseries_array, basin_occupancy_timeseries, _ = \
+            proj_timeseries_array, basin_occupancy_timeseries, _, _ = \
                 ensemble_projection_timeseries(celltype, ensemble, num_proc, simsetup=simsetup, num_steps=num_steps,
                                                anneal_protocol=anneal_protocol, field_protocol=field_protocol,
                                                occ_threshold=occ_threshold, plot=False, output=False)
@@ -45,13 +45,13 @@ def gen_basin_grid(ensemble, num_processes, simsetup=None, num_steps=100, anneal
         else:
             init_state, init_id = get_init_info(celltype, simsetup)
             if parallel:
-                transfer_dict, proj_timeseries_array, basin_occupancy_timeseries = \
+                transfer_dict, proj_timeseries_array, basin_occupancy_timeseries, _ = \
                     fast_basin_stats(celltype, init_state, init_id, ensemble, num_processes, simsetup=simsetup,
                                      num_steps=num_steps, anneal_protocol=anneal_protocol, field_protocol=field_protocol,
                                      occ_threshold=occ_threshold, verbose=verbose)
             else:
                 # Unparallelized for testing/profiling:
-                transfer_dict, proj_timeseries_array, basin_occupancy_timeseries = \
+                transfer_dict, proj_timeseries_array, basin_occupancy_timeseries, _ = \
                     get_basin_stats(celltype, init_state, init_id, ensemble, 0, simsetup, num_steps=num_steps,
                                     anneal_protocol=anneal_protocol, field_protocol=field_protocol,
                                     occ_threshold=occ_threshold, verbose=verbose)
