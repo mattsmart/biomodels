@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import time
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool, cpu_count, current_process
 
 from analysis_basin_plotting import plot_proj_timeseries, plot_basin_occupancy_timeseries, plot_basin_step
 from singlecell_class import Cell
@@ -150,6 +150,8 @@ def wrapper_get_basin_stats(fn_args_dict):
 def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, simsetup, num_steps=100,
                     anneal_protocol=ANNEAL_PROTOCOL, field_protocol=FIELD_PROTOCOL, occ_threshold=OCC_THRESHOLD, verbose=False):
 
+    start_outer = time.time()  # TODO remove
+
     # simsetup unpack
     N, _, gene_labels, memory_labels, gene_id, celltype_id, xi, _, a_inv, intxn_matrix, _ = unpack_simsetup(simsetup)
 
@@ -165,6 +167,9 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, sims
 
     anneal_dict = anneal_setup(protocol=anneal_protocol)
     wandering = False
+
+    start_inner = time.time()  # TODO remove
+
 
     for cell_idx in xrange(ensemble_idx, ensemble_idx + ensemble):
         if verbose:
@@ -212,6 +217,12 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, sims
             # main call to update
             if step < num_steps:
                 cell.update_state(intxn_matrix, beta=beta, app_field=None, fullstep_chunk=True)
+
+    end_inner = time.time()
+
+    print "TIMINGS for %s, process %s, ensemble_start %d, last job %d" % (init_cond, current_process(), ensemble_idx, cell_idx)
+    print "start outer | start inner | end --- init_time | total time"
+    print "%.2f | %.2f | %.2f --- %.2f | %.2f " % (start_outer, start_inner, end_inner, start_inner - start_outer, end_inner - start_outer)
 
     return transfer_dict, proj_timeseries_array, basin_occupancy_timeseries
 
@@ -303,10 +314,13 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_processes, simsetup=
     if output:
         save_and_plot_basinstats(io_dict, proj_timeseries_array, basin_occupancy_timeseries, num_steps, ensemble,
                                  simsetup=simsetup, prefix=init_id, occ_threshold=occ_threshold, plot=plot)
-    # plot output
+    """
+    # print transfer dict
     for idx in xrange(ensemble):
         if idx in transfer_dict:
             print idx, transfer_dict[idx], [simsetup['CELLTYPE_LABELS'][a] for a in transfer_dict[idx].keys()]
+    """
+
     return proj_timeseries_array, basin_occupancy_timeseries, io_dict
 
 
@@ -332,7 +346,6 @@ def basin_transitions(init_cond, ensemble, num_steps, beta, simsetup):
     - if a potential function is known (e.g. energy H(state)) then a spurious state
       could be formally defined as a minimizer; however this may be numerically expensive to check
     """
-    num_steps = 100
     """
     app_field = construct_app_field_from_genes(IPSC_CORE_GENES, num_steps)
     proj_timeseries_array = np.zeros((num_steps, P))
@@ -373,6 +386,7 @@ def basin_transitions(init_cond, ensemble, num_steps, beta, simsetup):
 if __name__ == '__main__':
     gen_basin_data = True
     plot_isolated_data = False
+    profile = False
 
     # prep simulation globals
     simsetup = singlecell_simsetup()
@@ -403,7 +417,7 @@ if __name__ == '__main__':
             transfer_dict, proj_timeseries_array, basin_occupancy_timeseries = \
                 get_basin_stats(init_cond, init_state, init_id, ensemble, 0, simsetup, num_steps=num_steps,
                                 anneal_protocol=anneal_protocol, field_protocol=field_protocol,
-                                occ_threshold=OCC_THRESHOLD, verbose=True)
+                                occ_threshold=OCC_THRESHOLD, verbose=False)
             proj_timeseries_array = proj_timeseries_array / ensemble  # ensure normalized (get basin stats won't do this)
         t1 = time.time() - t0
         print "Runtime:", t1
@@ -420,3 +434,34 @@ if __name__ == '__main__':
         ensemble = 100
         plot_proj_timeseries(loaddata, loaddata.shape[1], ensemble, simsetup['CELLTYPE_LABELS'],
                              RUNS_FOLDER + os.sep + 'proj_timeseries.png', highlights=highlights_CLPside)
+
+    if profile:
+        # common: 'HSC' / 'Common Lymphoid Progenitor (CLP)' / 'Common Myeloid Progenitor (CMP)' /
+        #         'Megakaryocyte-Erythroid Progenitor (MEP)' / 'Granulocyte-Monocyte Progenitor (GMP)' / 'thymocyte DN'
+        #         'thymocyte - DP' / 'neutrophils' / 'monocytes - classical'
+        init_cond = 'HSC'  # note HSC index is 6 in mehta mems
+        num_steps = 100
+        anneal_protocol = "protocol_A"
+        field_protocol = None
+        plot = False
+
+        # run and time basin ensemble sim
+        #for num_proc in xrange(1,9):         # method A
+        for num_proc in [1,2,3,4,6,8]:    # method B
+
+            #ensemble = 40 * num_proc         # method A
+            ensemble = 96                       # method B
+            print "timer for num_proc %d" % num_proc
+            t0 = time.time()
+            _, _, io_dict = ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps,
+                                                           simsetup=simsetup, occ_threshold=OCC_THRESHOLD,
+                                                           anneal_protocol=anneal_protocol, plot=plot)
+            t1 = time.time() - t0
+            print "Runtime:", t1
+
+            # append info to run info file  TODO maybe move this INTO the function?
+            info_list = [['fncall', 'ensemble_projection_timeseries()'], ['init_cond', init_cond],
+                         ['ensemble', ensemble],
+                         ['num_steps', num_steps], ['num_proc', num_proc], ['anneal_protocol', anneal_protocol],
+                         ['occ_threshold', OCC_THRESHOLD], ['field_protocol', field_protocol], ['time', t1]]
+            runinfo_append(io_dict, info_list, multi=True)
