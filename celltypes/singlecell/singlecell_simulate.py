@@ -70,7 +70,7 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_FULL_STEPS, bet
             app_field_timestep = app_field[:, step]
         if flag_write:
             if singlecell.steps % plot_period == 0:
-                fig, ax, proj = singlecell.plot_projection(a_inv, N, xi, use_radar=True, pltdir=io_dict['latticedir'])
+                fig, ax, proj = singlecell.plot_projection(a_inv, xi, use_radar=True, pltdir=io_dict['latticedir'])
         singlecell.update_state(intxn_matrix, beta=beta, app_field=app_field_timestep,
                                 app_field_strength=app_field_strength)
 

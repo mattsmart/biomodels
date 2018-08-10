@@ -1,10 +1,9 @@
 import numpy as np
-from random import shuffle
+from random import shuffle, random
 
 from singlecell_data_io import state_write
 from singlecell_constants import BETA, EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH
 from singlecell_functions import glauber_dynamics_update, state_memory_projection, state_memory_overlap, hamiltonian, state_burst_errors, state_to_label
-from singlecell_simsetup import singlecell_simsetup
 from singlecell_visualize import plot_as_bar, plot_as_radar, save_manual
 
 """
@@ -50,11 +49,11 @@ class Cell(object):
     def get_energy(self, intxn_matrix):
         return hamiltonian(self.state, intxn_matrix=intxn_matrix)
 
-    def get_memories_overlap(self):
-        return state_memory_overlap(self.state_array, self.steps)
+    def get_memories_overlap(self, xi):
+        return state_memory_overlap(self.state_array, self.steps, self.N, xi)
 
-    def plot_overlap(self, use_radar=False, pltdir=None):
-        overlap = self.get_memories_overlap()
+    def plot_overlap(self, xi, use_radar=False, pltdir=None):
+        overlap = self.get_memories_overlap(xi)
         if use_radar:
             fig, ax = plot_as_radar(overlap, self.memories_list)
             if pltdir is not None:
@@ -65,17 +64,17 @@ class Cell(object):
                 save_manual(fig, pltdir, "state_overlap_bar_%s_%d" % (self.label, self.steps))
         return fig, ax, overlap
 
-    def get_memories_projection(self, a_inv, N, xi):
-        return state_memory_projection(self.state_array, self.steps, a_inv, N, xi)
+    def get_memories_projection(self, a_inv, xi):
+        return state_memory_projection(self.state_array, self.steps, a_inv, self.N, xi)
 
-    def plot_projection(self, a_inv, N, xi, use_radar=False, pltdir=None):
-        proj = self.get_memories_projection(a_inv, N, xi)
+    def plot_projection(self, a_inv, xi, use_radar=False, pltdir=None):
+        proj = self.get_memories_projection(a_inv, xi)
         if use_radar:
             fig, ax = plot_as_radar(proj, self.memories_list)
             if pltdir is not None:
                 save_manual(fig, pltdir, "state_%d_proj_radar_%s" % (self.steps, self.label))
         else:
-            fig, ax = plot_as_bar(proj)
+            fig, ax = plot_as_bar(proj, self.memories_list)
             if pltdir is not None:
                 save_manual(fig, pltdir, "state_%d_proj_bar_%s" % (self.steps, self.label))
         return fig, ax, proj
@@ -98,6 +97,7 @@ class Cell(object):
         app_field_strength - scaling factor for appt_field
         """
         sites = range(self.N)
+        rsamples = np.random.rand(self.N)  # optimized: pass one to each of the N single spin update calls  TODO: benchmark vs intels
         if fullstep_chunk:
             shuffle(sites)  # randomize site ordering each timestep updates
         else:
@@ -107,10 +107,10 @@ class Cell(object):
         state_array_ext = np.zeros((self.N, np.shape(self.state_array)[1] + 1))
         state_array_ext[:, :-1] = self.state_array  # TODO: make sure don't need array copy
         state_array_ext[:,-1] = self.state_array[:,-1]
-        for idx, site in enumerate(sites):  # TODO: parallelize
-            state_array_ext = glauber_dynamics_update(state_array_ext, site, self.steps + 1,
-                                                      intxn_matrix=intxn_matrix, beta=beta, ext_field=ext_field,
-                                                      ext_field_strength=ext_field_strength, app_field=app_field,
+        for idx, site in enumerate(sites):          # TODO: parallelize approximation
+            state_array_ext = glauber_dynamics_update(state_array_ext, site, self.steps + 1, intxn_matrix, rsamples[idx],
+                                                      beta=beta, ext_field=ext_field, app_field=app_field,
+                                                      ext_field_strength=ext_field_strength,
                                                       app_field_strength=app_field_strength)
         self.state_array = state_array_ext
         self.steps += 1

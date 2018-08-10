@@ -184,7 +184,7 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, sims
         for step in xrange(num_steps):
 
             # report on each mem proj ranked
-            projvec = cell.get_memories_projection(a_inv, N, xi)
+            projvec = cell.get_memories_projection(a_inv, xi)
             proj_timeseries_array[:, step] += projvec
             absprojvec = np.abs(projvec)
             topranked = np.argmax(absprojvec)
@@ -410,9 +410,9 @@ def basin_transitions(init_cond, ensemble, num_steps, beta, simsetup):
 
 
 if __name__ == '__main__':
-    gen_basin_data = False
+    gen_basin_data = True
     plot_isolated_data = False
-    profile = True
+    profile = False
 
     # prep simulation globals
     simsetup = singlecell_simsetup()

@@ -32,22 +32,24 @@ def internal_field(state, gene_idx, t, intxn_matrix):
     return internal_field
 
 
-def glauber_dynamics_update(state, gene_idx, t, intxn_matrix, beta=BETA, ext_field=None, ext_field_strength=EXT_FIELD_STRENGTH, app_field=None, app_field_strength=APP_FIELD_STRENGTH):
+def glauber_dynamics_update(state, gene_idx, t, intxn_matrix, unirand, beta=BETA, ext_field=None, app_field=None,
+                            ext_field_strength=EXT_FIELD_STRENGTH, app_field_strength=APP_FIELD_STRENGTH):
     """
+    unirand: pass a uniform 0,1 random number
+        - note previously unirand = random() OR unirand = np.random_intel.random() from intel python distribution
     See page 107-111 Amit for discussion on functional form
     ext_field - N x 1 - field external to the cell in a signalling sense; exosome field in multicell sym
     ext_field_strength  - scaling factor for ext_field
     app_field - N x 1 - unnatural external field (e.g. force TF on for some time period experimentally)
     app_field_strength - scaling factor for appt_field
     """
-    r1 = random()
     total_field = internal_field(state, gene_idx, t, intxn_matrix=intxn_matrix)
     if ext_field is not None:
         total_field += ext_field_strength * ext_field[gene_idx]
     if app_field is not None:
         total_field += app_field_strength * app_field[gene_idx]
     prob_on_after_timestep = 1 / (1 + np.exp(-2*beta*total_field))  # probability that site i will be "up" after the timestep
-    if prob_on_after_timestep > r1:
+    if prob_on_after_timestep > unirand:
         state[gene_idx, t] = 1.0
     else:
         state[gene_idx, t] = -1.0
