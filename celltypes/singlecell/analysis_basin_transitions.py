@@ -10,6 +10,7 @@ from singlecell_data_io import run_subdir_setup, runinfo_append
 from singlecell_functions import construct_app_field_from_genes
 from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
 
+#os.environ["OMP_NUM_THREADS"] = "1"
 
 # analysis settings
 ANALYSIS_SUBDIR = "basin_transitions"
