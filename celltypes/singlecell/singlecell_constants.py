@@ -5,6 +5,12 @@ CELLTYPES = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(CELLTYPES)
 print "Appended to sys path", CELLTYPES  # TODO can maybe move this too simetup fn call and call once somewhere else...
 
+# LIBRARY GLOBAL MODS
+#os.environ['MKL_NUM_THREADS'] = '1'
+#os.environ["OMP_NUM_THREADS"] = "1"
+#os.environ["NUMEXPR_NUM_THREADS"] = "1"
+os.environ["MKL_THREADING_LAYER"] = "sequential"
+
 # IO
 SINGLECELL = CELLTYPES + os.sep + "singlecell"
 DATADIR = CELLTYPES + os.sep + "input"

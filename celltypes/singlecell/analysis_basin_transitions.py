@@ -10,8 +10,6 @@ from singlecell_data_io import run_subdir_setup, runinfo_append
 from singlecell_functions import construct_app_field_from_genes
 from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
 
-#os.environ["OMP_NUM_THREADS"] = "1"
-
 # analysis settings
 ANALYSIS_SUBDIR = "basin_transitions"
 ANNEAL_BETA = 1.3
@@ -411,9 +409,9 @@ def basin_transitions(init_cond, ensemble, num_steps, beta, simsetup):
 
 
 if __name__ == '__main__':
-    gen_basin_data = True
+    gen_basin_data = False
     plot_isolated_data = False
-    profile = False
+    profile = True
 
     # prep simulation globals
     simsetup = singlecell_simsetup()
@@ -473,9 +471,9 @@ if __name__ == '__main__':
         anneal_protocol = "protocol_A"
         field_protocol = None
         plot = False
-        ens_scaled = False
+        ens_scaled = True
         if ens_scaled:
-            ens_base = 100                                            # METHOD: all workers will do this many traj
+            ens_base = 16                                             # METHOD: all workers will do this many traj
             proc_lists = {p: range(1,p+1) for p in [4,8,80]}
         else:
             ens_base = 240                                            # METHOD: divide this number amongst all workers
