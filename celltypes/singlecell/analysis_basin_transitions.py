@@ -1,5 +1,5 @@
-import numpy as np
 import os
+import numpy as np
 import time
 from multiprocessing import Pool, cpu_count, current_process
 
@@ -409,9 +409,9 @@ def basin_transitions(init_cond, ensemble, num_steps, beta, simsetup):
 
 
 if __name__ == '__main__':
-    gen_basin_data = False
+    gen_basin_data = True
     plot_isolated_data = False
-    profile = True
+    profile = False
 
     # prep simulation globals
     simsetup = singlecell_simsetup()
@@ -421,13 +421,13 @@ if __name__ == '__main__':
         #         'Megakaryocyte-Erythroid Progenitor (MEP)' / 'Granulocyte-Monocyte Progenitor (GMP)' / 'thymocyte DN'
         #         'thymocyte - DP' / 'neutrophils' / 'monocytes - classical'
         init_cond = 'HSC'  # note HSC index is 6 in mehta mems
-        ensemble = 16
-        num_steps = 100
+        ensemble = 160
+        num_steps = 20
         num_proc = cpu_count() / 2  # seems best to use only physical core count (1 core ~ 3x slower than 4)
         anneal_protocol = "protocol_A"
         field_protocol = None
         plot = False
-        parallel = False
+        parallel = True
 
         # run and time basin ensemble sim
         t0 = time.time()
@@ -471,14 +471,14 @@ if __name__ == '__main__':
         anneal_protocol = "protocol_A"
         field_protocol = None
         plot = False
-        ens_scaled = True
+        ens_scaled = False
         if ens_scaled:
             ens_base = 16                                             # METHOD: all workers will do this many traj
             proc_lists = {p: range(1,p+1) for p in [4,8,80]}
         else:
-            ens_base = 240                                            # METHOD: divide this number amongst all workers
+            ens_base = 48                                            # METHOD: divide this number amongst all workers
             proc_lists = {4: [1,2,3,4],
-                          8: [1,2,3,4,5,6,8],
+                          8: [1,2,3,4,6,8], #[1,2,3,4,5,6,8],
                           80: [1,2,3,4,5,6,8,10,12,15,16,20,24,30,40,48,60,80]}
 
         # run and time basin ensemble sim
@@ -487,7 +487,7 @@ if __name__ == '__main__':
                 ensemble = ens_base * num_proc
             else:
                 ensemble = ens_base
-            print "Start timer for num_proc %d (%x ens x %d steps)" % (num_proc, ensemble, num_steps)
+            print "Start timer for num_proc %d (%d ens x %d steps)" % (num_proc, ensemble, num_steps)
             t0 = time.time()
             proj_timeseries_array, basin_occupancy_timeseries, worker_times, io_dict = \
                 ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps, simsetup=simsetup,

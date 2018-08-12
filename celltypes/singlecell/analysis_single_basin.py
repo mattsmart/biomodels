@@ -7,8 +7,6 @@ from singlecell_functions import state_burst_errors, single_memory_projection_ti
 from singlecell_simsetup import singlecell_simsetup
 from singlecell_simulate import singlecell_sim
 
-# TODO compare with basin grid and transition functionality, possible overlap
-
 
 def single_projection_timeseries_vary_basin_init(memory_label='esc', figname='mehta2014_Fig1E.png'):
     """
