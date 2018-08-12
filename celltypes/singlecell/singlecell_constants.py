@@ -23,7 +23,7 @@ SETTINGS_FILE = "run_info.txt"
 
 # MODEL SPECIFICATION -- TODO print used vars in simsetup dict, write to run_info.txt
 DEFAULT_MEMORIES_NPZPATH = MEMS_MEHTA     # choose which memories to embed
-METHOD = "projection"                     # 'projection' or 'hopfield'
+NETWORK_METHOD = "projection"             # supported: 'projection' or 'hopfield'
 BETA = 2.2                                # value used in Mehta 2014 (low temperature)
 EXT_FIELD_STRENGTH = 0.30                 # relative strength of exosome local field effect
 APP_FIELD_STRENGTH = 1.0                  # relative strength of artificial applied fields
@@ -33,7 +33,7 @@ J_RANDOM_DELETE_RATIO = 0.2               # this ratio of elements randomly prun
 
 # SPIN FLIP DYNAMICS -- TODO print used vars in simsetup dict, write to run_info.txt
 NUM_FULL_STEPS = 100                      # number of full TF grid updates in the single cell simulation
-METHOD_STEPS = 'async_batch'              # options: 'async_indiv' (select one spin at a time) or 'async_batch'
+ASYNC_BATCH = True                        # options: 'async_indiv' (select one spin at a time) or 'async_batch'
 FLAG_BURST_ERRORS = False                 # forced spin swaps/errors to randomly apply every T full spin updates
 BURST_ERROR_PERIOD = 5                    # val 5 = apply every 5 full spin updates (~5000 individual spin updates)
 

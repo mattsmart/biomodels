@@ -7,7 +7,7 @@ from analysis_basin_plotting import plot_basin_grid
 from analysis_basin_transitions import ensemble_projection_timeseries, get_basin_stats, fast_basin_stats, get_init_info, \
                                        ANNEAL_PROTOCOL, FIELD_PROTOCOL, ANALYSIS_SUBDIR, SPURIOUS_LIST, OCC_THRESHOLD, \
                                        save_and_plot_basinstats, load_basinstats
-from singlecell_constants import RUNS_FOLDER
+from singlecell_constants import RUNS_FOLDER, ASYNC_BATCH
 from singlecell_data_io import run_subdir_setup, runinfo_append
 from singlecell_simsetup import singlecell_simsetup
 
@@ -73,8 +73,8 @@ def load_basin_grid(filestr_data):
 
 
 if __name__ == '__main__':
-    run_basin_grid = True
-    load_and_plot_basin_grid = False
+    run_basin_grid = False
+    load_and_plot_basin_grid = True
     reanalyze_grid_over_time = False
 
     # prep simulation globals
@@ -102,7 +102,7 @@ if __name__ == '__main__':
         # add info to run info file TODO maybe move this INTO the function?
         info_list = [['fncall', 'gen_basin_grid()'], ['ensemble', ensemble], ['num_steps', timesteps],
                      ['num_proc', num_proc], ['anneal_protocol', anneal_protocol], ['field_protocol', field_protocol],
-                     ['occ_threshold', OCC_THRESHOLD], ['time', t1]]
+                     ['occ_threshold', OCC_THRESHOLD], ['ASYNC_BATCH', ASYNC_BATCH], ['time', t1]]
         runinfo_append(io_dict, info_list, multi=True)
 
     # direct data plotting

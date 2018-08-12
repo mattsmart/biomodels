@@ -5,7 +5,7 @@ from multiprocessing import Pool, cpu_count, current_process
 
 from analysis_basin_plotting import plot_proj_timeseries, plot_basin_occupancy_timeseries, plot_basin_step
 from singlecell_class import Cell
-from singlecell_constants import RUNS_FOLDER, IPSC_CORE_GENES_EFFECTS
+from singlecell_constants import RUNS_FOLDER, IPSC_CORE_GENES_EFFECTS, ASYNC_BATCH
 from singlecell_data_io import run_subdir_setup, runinfo_append
 from singlecell_functions import construct_app_field_from_genes
 from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
@@ -218,7 +218,7 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, sims
 
             # main call to update
             if step < num_steps:
-                cell.update_state(intxn_matrix, beta=beta, app_field=None, fullstep_chunk=True)
+                cell.update_state(intxn_matrix, beta=beta, app_field=None, async_batch=True)
 
     if profile:
         end_inner = time.time()
@@ -451,8 +451,8 @@ if __name__ == '__main__':
         # append info to run info file  TODO maybe move this INTO the function?
         info_list = [['fncall', 'ensemble_projection_timeseries()'], ['init_cond', init_cond], ['ensemble', ensemble],
                      ['num_steps', num_steps], ['num_proc', num_proc], ['anneal_protocol', anneal_protocol],
-                     ['occ_threshold', OCC_THRESHOLD], ['field_protocol', field_protocol], ['time', t1],
-                     ['time_workers', worker_times]]
+                     ['occ_threshold', OCC_THRESHOLD], ['field_protocol', field_protocol],
+                     ['ASYNC_BATCH', ASYNC_BATCH], ['time', t1], ['time_workers', worker_times]]
         runinfo_append(io_dict, info_list, multi=True)
 
     # direct data plotting
@@ -473,10 +473,10 @@ if __name__ == '__main__':
         plot = False
         ens_scaled = False
         if ens_scaled:
-            ens_base = 16                                             # METHOD: all workers will do this many traj
+            ens_base = 16                                             # NETWORK_METHOD: all workers will do this many traj
             proc_lists = {p: range(1,p+1) for p in [4,8,80]}
         else:
-            ens_base = 48                                            # METHOD: divide this number amongst all workers
+            ens_base = 48                                            # NETWORK_METHOD: divide this number amongst all workers
             proc_lists = {4: [1,2,3,4],
                           8: [1,2,3,4,6,8], #[1,2,3,4,5,6,8],
                           80: [1,2,3,4,5,6,8,10,12,15,16,20,24,30,40,48,60,80]}
@@ -500,6 +500,6 @@ if __name__ == '__main__':
             info_list = [['fncall', 'ensemble_projection_timeseries()'], ['init_cond', init_cond],
                          ['ensemble', ensemble],
                          ['num_steps', num_steps], ['num_proc', num_proc], ['anneal_protocol', anneal_protocol],
-                         ['occ_threshold', OCC_THRESHOLD], ['field_protocol', field_protocol], ['time', t1],
-                         ['time_workers', worker_times]]
+                         ['occ_threshold', OCC_THRESHOLD], ['field_protocol', field_protocol],
+                         ['ASYNC_BATCH', ASYNC_BATCH], ['time', t1], ['time_workers', worker_times]]
             runinfo_append(io_dict, info_list, multi=True)

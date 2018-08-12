@@ -1,6 +1,6 @@
 import numpy as np
 
-from singlecell_constants import METHOD, FLAG_BOOL, DEFAULT_MEMORIES_NPZPATH, J_RANDOM_DELETE_RATIO, FLAG_PRUNE_INTXN_MATRIX
+from singlecell_constants import NETWORK_METHOD, FLAG_BOOL, DEFAULT_MEMORIES_NPZPATH, J_RANDOM_DELETE_RATIO, FLAG_PRUNE_INTXN_MATRIX
 from singlecell_linalg import memory_corr_matrix_and_inv, interaction_matrix, predictivity_matrix
 from dataprocess.data_standardize import load_npz_of_arr_genes_cells
 
@@ -22,7 +22,7 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath
     gene_labels = gene_labels.tolist()
     celltype_labels = celltype_labels.tolist()
     a, a_inv = memory_corr_matrix_and_inv(xi)
-    j = interaction_matrix(xi, a_inv, method=METHOD, flag_prune_intxn_matrix=flag_prune_intxn_matrix)
+    j = interaction_matrix(xi, a_inv, method=NETWORK_METHOD, flag_prune_intxn_matrix=flag_prune_intxn_matrix)
     eta = predictivity_matrix(xi, a_inv)
     celltype_id = {k: v for v, k in enumerate(celltype_labels)}
     gene_id = {k: v for v, k in enumerate(gene_labels)}
