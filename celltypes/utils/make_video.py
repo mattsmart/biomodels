@@ -35,7 +35,7 @@ def copy_and_rename_plots(plot_lattice_dir, output_dir):
     sorted_files = natural_sort(unsorted_files)
     # rename the files accordingly
     basename = "lattice_at_time_"
-    filetype = ".png"
+    filetype = ".jpg"
     for i, filename in enumerate(sorted_files):
         num = "%05d" % i
         newname = basename + num + filetype
@@ -61,8 +61,13 @@ def make_video_ffmpeg(plot_lattice_dir, output_path, fps=15, ffmpeg_dir=None):
     temp_plot_dir = os.path.join(plot_lattice_dir, os.pardir, "temp")
     copy_and_rename_plots(plot_lattice_dir, temp_plot_dir)
     # make video
-    command_line = ["ffmpeg", "-framerate", "%d" % fps, "-i", os.path.join(temp_plot_dir, "lattice_at_time_%05d.png"),
-                    "-c:v", "libx264", "-r", "%d" % fps, "-pix_fmt", "yuv420p", "%s" % output_path]
+    command_line = ["ffmpeg",
+                    "-i", os.path.join(temp_plot_dir, "lattice_at_time_%05d.jpg"),  # set the input files
+                    "-vcodec", "libx264",                                           # set the video codec
+                    "-r", "%d" % fps,                                               # set video frames per second
+                    "-pix_fmt", "yuv420p",                                          # pixel formatting
+                    "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2",                     # fix if height/width not even ints
+                    "%s" % output_path]                                             # output path of video
     if ffmpeg_dir is not None:
         app_path = os.path.join(ffmpeg_dir, "bin", "ffmpeg.exe")
         sp = subprocess.Popen(command_line, executable=app_path, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
