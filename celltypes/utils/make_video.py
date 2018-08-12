@@ -60,7 +60,6 @@ def make_video_ffmpeg(plot_lattice_dir, output_path, fps=15, ffmpeg_dir=None):
     # make temp dir
     temp_plot_dir = os.path.join(plot_lattice_dir, os.pardir, "temp")
     copy_and_rename_plots(plot_lattice_dir, temp_plot_dir)
-
     # make video
     command_line = ["ffmpeg", "-framerate", "%d" % fps, "-i", os.path.join(temp_plot_dir, "lattice_at_time_%05d.png"),
                     "-c:v", "libx264", "-r", "%d" % fps, "-pix_fmt", "yuv420p", "%s" % output_path]
@@ -71,21 +70,6 @@ def make_video_ffmpeg(plot_lattice_dir, output_path, fps=15, ffmpeg_dir=None):
         sp = subprocess.Popen(command_line, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
     out, err = sp.communicate()
     print out, err, sp.returncode
-
     # delete temp dir
     shutil.rmtree(temp_plot_dir)
-
     return
-
-"""
-# MESSY CODE FOR QUICK PLOTS
-# =============================================
-desktop_base = "C:\\Games\\Development\\repositories\\biomodels\\agent_based_models\\abm_allelopathy\\runs\\"
-laptop_base = "C:\\Users\\mattsmart\\Documents\\biomodels\\agent_based_models\\abm_allelopathy\\runs\\"
-# =============================================
-base = desktop_base
-folder_in_runs = "tosend1\\plot_lattice"
-plots = base + folder_in_runs
-make_video_ffmpeg(plots, os.path.join(plots, os.pardir, "out.mp4"), fps=5)
-# =============================================
-"""
