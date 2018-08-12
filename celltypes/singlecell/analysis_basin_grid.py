@@ -41,7 +41,7 @@ def gen_basin_grid(ensemble, num_processes, simsetup=None, num_steps=100, anneal
                                                anneal_protocol=anneal_protocol, field_protocol=field_protocol,
                                                occ_threshold=occ_threshold, plot=False, output=False)
             save_and_plot_basinstats(io_dict, proj_timeseries_array, basin_occupancy_timeseries, num_steps, ensemble,
-                                     prefix=celltype, occ_threshold=occ_threshold, plot=plot_all)
+                                     simsetup=simsetup, prefix=celltype, occ_threshold=occ_threshold, plot=plot_all)
         else:
             init_state, init_id = get_init_info(celltype, simsetup)
             if parallel:
