@@ -121,7 +121,7 @@ def plot_basin_grid(grid_data, ensemble, steps, memory_labels, plotdir, spurious
     #                                    'cubehelix_r', 'magma_r'
     # note: fix vmax at 0.5 of max works nice
     # note: aspect None, 'auto', scalar, or 'equal'
-    imshow_kw = {'cmap': 'bone_r', 'aspect': None, 'vmin': 0.0, 'vmax': vmax}  # note: fix at 0.5 of max works nice
+    imshow_kw = {'cmap': 'YlGnBu', 'aspect': None, 'vmin': 0.0, 'vmax': vmax}  # note: fix at 0.5 of max works nice
     im = ax.imshow(grid_data, **imshow_kw)
     # create colorbar
     cbar_kw = {'aspect': 30, 'pad': 0.02}   # larger aspect, thinner bar
@@ -164,6 +164,6 @@ def plot_basin_grid(grid_data, ensemble, steps, memory_labels, plotdir, spurious
         for ycoord in np.arange(-.5, grid_data.shape[0], 8):
             ax.axhline(y=ycoord, ls='--', color='grey', linewidth=1)
 
-    plt.savefig(plotdir + os.sep + plotname + '.pdf', dpi=100, bbox_inches='tight')
+    plt.savefig(plotdir + os.sep + plotname + '.jpg', dpi=100, bbox_inches='tight')
 
     return plt.gca()

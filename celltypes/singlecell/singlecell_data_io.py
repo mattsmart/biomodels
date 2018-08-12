@@ -15,9 +15,10 @@ def run_subdir_setup(run_subfolder=None):
 
     # make subfolders in the timestamped run directory:
     data_folder = os.path.join(current_run_folder, "data")
-    plot_lattice_folder = os.path.join(current_run_folder, "plot_lattice")
     plot_data_folder = os.path.join(current_run_folder, "plot_data")
-    dir_list = [RUNS_FOLDER, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder]
+    lattice_folder = os.path.join(current_run_folder, "lattice")
+    plot_lattice_folder = os.path.join(current_run_folder, "plot_lattice")
+    dir_list = [RUNS_FOLDER, current_run_folder, plot_data_folder, data_folder, lattice_folder, plot_lattice_folder]
     for dirs in dir_list:
         if not os.path.exists(dirs):
             os.makedirs(dirs)
@@ -25,8 +26,9 @@ def run_subdir_setup(run_subfolder=None):
     # io path storage to pass around
     io_dict = {'basedir': current_run_folder,
                'datadir': data_folder,
-               'latticedir': plot_lattice_folder,
-               'plotdir': plot_data_folder,
+               'plotdatadir': plot_data_folder,
+               'latticedir': lattice_folder,
+               'plotlatticedir': plot_lattice_folder,
                'runinfo': current_run_folder + os.sep + SETTINGS_FILE}
 
     # make base settings file with first line as the base output dir
