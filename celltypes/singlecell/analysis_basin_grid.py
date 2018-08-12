@@ -13,8 +13,8 @@ from singlecell_simsetup import singlecell_simsetup
 
 
 def gen_basin_grid(ensemble, num_processes, simsetup=None, num_steps=100, anneal_protocol=ANNEAL_PROTOCOL,
-                   field_protocol=FIELD_PROTOCOL, occ_threshold=OCC_THRESHOLD, saveall=False, save=True,
-                   plot=False, verbose=False, parallel=True):
+                   field_protocol=FIELD_PROTOCOL, occ_threshold=OCC_THRESHOLD, async_batch=ASYNC_BATCH, saveall=False,
+                   save=True, plot=False, verbose=False, parallel=True):
     """
     generate matrix G_ij of size p x (p + k): grid of data between 0 and 1
     each row represents one of the p encoded basins as an initial condition
@@ -36,7 +36,8 @@ def gen_basin_grid(ensemble, num_processes, simsetup=None, num_steps=100, anneal
             proj_timeseries_array, basin_occupancy_timeseries, _, _ = \
                 ensemble_projection_timeseries(celltype, ensemble, num_proc, simsetup=simsetup, num_steps=num_steps,
                                                anneal_protocol=anneal_protocol, field_protocol=field_protocol,
-                                               occ_threshold=occ_threshold, plot=False, output=False)
+                                               occ_threshold=occ_threshold, async_batch=async_batch,
+                                               plot=False, output=False)
             save_and_plot_basinstats(io_dict, proj_timeseries_array, basin_occupancy_timeseries, num_steps, ensemble,
                                      simsetup=simsetup, prefix=celltype, occ_threshold=occ_threshold, plot=plot_all)
         else:
@@ -45,13 +46,13 @@ def gen_basin_grid(ensemble, num_processes, simsetup=None, num_steps=100, anneal
                 transfer_dict, proj_timeseries_array, basin_occupancy_timeseries, _ = \
                     fast_basin_stats(celltype, init_state, init_id, ensemble, num_processes, simsetup=simsetup,
                                      num_steps=num_steps, anneal_protocol=anneal_protocol, field_protocol=field_protocol,
-                                     occ_threshold=occ_threshold, verbose=verbose)
+                                     occ_threshold=occ_threshold, async_batch=async_batch, verbose=verbose)
             else:
                 # Unparallelized for testing/profiling:
                 transfer_dict, proj_timeseries_array, basin_occupancy_timeseries, _ = \
                     get_basin_stats(celltype, init_state, init_id, ensemble, 0, simsetup, num_steps=num_steps,
                                     anneal_protocol=anneal_protocol, field_protocol=field_protocol,
-                                    occ_threshold=occ_threshold, verbose=verbose)
+                                    async_batch=async_batch, occ_threshold=occ_threshold, verbose=verbose)
                 proj_timeseries_array = proj_timeseries_array / ensemble  # ensure normalized (get basin stats won't do this)
         # fill in row of grid data from each celltype simulation
         basin_grid[idx, :] = basin_occupancy_timeseries[:,-1]
@@ -70,9 +71,9 @@ def load_basin_grid(filestr_data):
 
 
 if __name__ == '__main__':
-    run_basin_grid = False
+    run_basin_grid = True
     load_and_plot_basin_grid = False
-    reanalyze_grid_over_time = True
+    reanalyze_grid_over_time = False
     make_grid_video = False
 
     # prep simulation globals
@@ -81,31 +82,33 @@ if __name__ == '__main__':
 
     if run_basin_grid:
         # TODO: find way to prevent reloading the interaction info from singlcell_simsetup
-        ensemble = 160
-        timesteps = 20
+        ensemble = 1000
+        timesteps = 500
         field_protocol = FIELD_PROTOCOL
         anneal_protocol = ANNEAL_PROTOCOL
         num_proc = cpu_count() / 2
+        async_batch = True
         plot = False
-        saveall = False
+        saveall = True
         parallel = True
 
         # run gen_basin_grid
         t0 = time.time()
-        basin_grid, io_dict = gen_basin_grid(ensemble, num_proc, simsetup=simsetup, num_steps=timesteps, anneal_protocol=anneal_protocol,
-                                             field_protocol=field_protocol, saveall=saveall, plot=plot, parallel=parallel)
+        basin_grid, io_dict = gen_basin_grid(ensemble, num_proc, simsetup=simsetup, num_steps=timesteps,
+                                             anneal_protocol=anneal_protocol, field_protocol=field_protocol,
+                                             async_batch=async_batch, saveall=saveall, plot=plot, parallel=parallel)
         t1 = time.time() - t0
         print "GRID TIMER:", t1
 
         # add info to run info file TODO maybe move this INTO the function?
         info_list = [['fncall', 'gen_basin_grid()'], ['ensemble', ensemble], ['num_steps', timesteps],
                      ['num_proc', num_proc], ['anneal_protocol', anneal_protocol], ['field_protocol', field_protocol],
-                     ['occ_threshold', OCC_THRESHOLD], ['ASYNC_BATCH', ASYNC_BATCH], ['time', t1]]
+                     ['occ_threshold', OCC_THRESHOLD], ['async_batch', async_batch], ['time', t1]]
         runinfo_append(io_dict, info_list, multi=True)
 
     # direct data plotting
     if load_and_plot_basin_grid:
-        rundir = RUNS_FOLDER + os.sep + ANALYSIS_SUBDIR + os.sep + "aug11 - 1000ens x 500step"
+        rundir = RUNS_FOLDER + os.sep + ANALYSIS_SUBDIR + os.sep + "aug11 - 1000ens x 500step - fullRandomSteps"
         latticedir = rundir + os.sep + "lattice"
         filestr_data = latticedir + os.sep + "gen_basin_grid.txt"
         basin_grid_data = load_basin_grid(filestr_data)
@@ -134,7 +137,7 @@ if __name__ == '__main__':
             proj_timeseries_array, basin_occupancy_timeseries = load_basinstats(rowdatadir, celltype)
             grid_over_time[idx, :, :] += basin_occupancy_timeseries
         # step 2 save and plot
-        vforce = 1.0
+        vforce = 0.5
         filename = 'grid_at_step'
         for step in xrange(num_steps):
             print "step", step
@@ -142,7 +145,7 @@ if __name__ == '__main__':
             namemod = '_%d' % step
             np.savetxt(latticedir + os.sep + filename + namemod + '.txt', grid_at_step, delimiter=',', fmt='%.4f')
             plot_basin_grid(grid_at_step, ensemble, step, celltype_labels, plotlatticedir, SPURIOUS_LIST,
-                            plotname=filename, relmax=False, vforce=1.0, namemod=namemod, ext='.jpg')
+                            plotname=filename, relmax=False, vforce=vforce, namemod=namemod, ext='.jpg')
 
     if make_grid_video:
         from utils.make_video import make_video_ffmpeg
@@ -150,7 +153,8 @@ if __name__ == '__main__':
         rundir = RUNS_FOLDER + os.sep + ANALYSIS_SUBDIR + os.sep + "aug11 - 1000ens x 500step - fullRandomSteps"
         latticedir = rundir + os.sep + "plot_lattice"
         custom_fps = 20  # 1, 5, or 20 are good
-        vidname = "grid_1000x500_vmax1_stepFullyRandom_fps%d.mp4" % custom_fps
+        vidname = "grid_1000x500_vmax0.5_stepFullyRandom_fps%d.mp4" % custom_fps
+        #vidname = "grid_1000x500_vmax0.5_stepChunk_fps%d.mp4" % custom_fps
         videopath = rundir + os.sep + "video" + os.sep + vidname
         # call make video fn
         print "Creating video at %s..." % videopath

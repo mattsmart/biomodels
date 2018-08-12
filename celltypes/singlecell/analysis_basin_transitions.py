@@ -117,9 +117,9 @@ def save_and_plot_basinstats(io_dict, proj_data, occ_data, num_steps, ensemble, 
     # path setup
     datapath_proj = io_dict['datadir'] + os.sep + '%sproj_timeseries.txt' % prefix
     datapath_occ = io_dict['datadir'] + os.sep + '%soccupancy_timeseries.txt' % prefix
-    plotpath_proj = io_dict['plotdir'] + os.sep + '%sproj_timeseries.png' % prefix
-    plotpath_occ = io_dict['plotdir'] + os.sep + '%soccupancy_timeseries.png' % prefix
-    plotpath_basin_endpt = io_dict['plotdir'] + os.sep + '%sendpt_distro.png' % prefix
+    plotpath_proj = io_dict['plotdatadir'] + os.sep + '%sproj_timeseries.png' % prefix
+    plotpath_occ = io_dict['plotdatadir'] + os.sep + '%soccupancy_timeseries.png' % prefix
+    plotpath_basin_endpt = io_dict['plotdatadir'] + os.sep + '%sendpt_distro.png' % prefix
     # save data to file
     np.savetxt(datapath_proj, proj_data, delimiter=',', fmt='%i')
     np.savetxt(datapath_occ, occ_data, delimiter=',', fmt='%i')
@@ -149,7 +149,7 @@ def wrapper_get_basin_stats(fn_args_dict):
 
 def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, simsetup, num_steps=100,
                     anneal_protocol=ANNEAL_PROTOCOL, field_protocol=FIELD_PROTOCOL, occ_threshold=OCC_THRESHOLD,
-                    verbose=False, profile=False):
+                    async_batch=ASYNC_BATCH, verbose=False, profile=False):
 
     if profile:
         start_outer = time.time()  # TODO remove
@@ -205,20 +205,21 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, sims
             else:
                 basin_occupancy_timeseries[mixed_index, step] += 1
 
+            """ comment out for speedup
             if topranked != celltype_id[init_cond] and projvec[topranked] > occ_threshold:
                 if cell_idx not in transfer_dict:
                     transfer_dict[cell_idx] = {topranked: (step, projvec[topranked])}
                 else:
                     if topranked not in transfer_dict[cell_idx]:
                         transfer_dict[cell_idx] = {topranked: (step, projvec[topranked])}
-
+            """
             # annealing block
             proj_onto_init = projvec[celltype_id[init_cond]]
             beta, wandering = anneal_iterate(proj_onto_init, beta, step, wandering, anneal_dict, verbose=verbose)
 
             # main call to update
             if step < num_steps:
-                cell.update_state(intxn_matrix, beta=beta, app_field=None, async_batch=True)
+                cell.update_state(intxn_matrix, beta=beta, app_field=None, async_batch=async_batch)
 
     if profile:
         end_inner = time.time()
@@ -236,13 +237,14 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, sims
 
 
 def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, simsetup=None, num_steps=100, occ_threshold=0.7,
-                     anneal_protocol=ANNEAL_PROTOCOL, field_protocol=FIELD_PROTOCOL, verbose=False, profile=False):
+                     anneal_protocol=ANNEAL_PROTOCOL, field_protocol=FIELD_PROTOCOL, async_batch=ASYNC_BATCH,
+                     verbose=False, profile=False):
     # simsetup unpack
     if simsetup is None:
         simsetup = singlecell_simsetup()
     # prepare fn args and kwargs for wrapper
     kwargs_dict = {'num_steps': num_steps, 'anneal_protocol': anneal_protocol, 'field_protocol': field_protocol,
-                   'occ_threshold': occ_threshold, 'verbose': verbose, 'profile': profile}
+                   'occ_threshold': occ_threshold, 'async_batch': async_batch, 'verbose': verbose, 'profile': profile}
     fn_args_dict = [0]*num_processes
     if verbose:
         print "NUM_PROCESSES:", num_processes
@@ -289,7 +291,7 @@ def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, si
 
 def ensemble_projection_timeseries(init_cond, ensemble, num_processes, simsetup=None, num_steps=100, occ_threshold=0.7,
                                    anneal_protocol=ANNEAL_PROTOCOL, field_protocol=FIELD_PROTOCOL,
-                                   output=True, plot=True, profile=False):
+                                   async_batch=ASYNC_BATCH, output=True, plot=True, profile=False):
     """
     Args:
     - init_cond: np array of init state OR string memory label
@@ -327,7 +329,7 @@ def ensemble_projection_timeseries(init_cond, ensemble, num_processes, simsetup=
     transfer_dict, proj_timeseries_array, basin_occupancy_timeseries, worker_times = \
         fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, simsetup=simsetup, num_steps=num_steps,
                          anneal_protocol=anneal_protocol, field_protocol=field_protocol, occ_threshold=occ_threshold,
-                         verbose=False, profile=profile)
+                         async_batch=async_batch, verbose=False, profile=profile)
 
     # save data and plot figures
     if output:
@@ -421,11 +423,12 @@ if __name__ == '__main__':
         #         'Megakaryocyte-Erythroid Progenitor (MEP)' / 'Granulocyte-Monocyte Progenitor (GMP)' / 'thymocyte DN'
         #         'thymocyte - DP' / 'neutrophils' / 'monocytes - classical'
         init_cond = 'HSC'  # note HSC index is 6 in mehta mems
-        ensemble = 160
-        num_steps = 20
+        ensemble = 16
+        num_steps = 200
         num_proc = cpu_count() / 2  # seems best to use only physical core count (1 core ~ 3x slower than 4)
         anneal_protocol = "protocol_A"
         field_protocol = None
+        async_batch = True
         plot = False
         parallel = True
 
@@ -443,7 +446,7 @@ if __name__ == '__main__':
             transfer_dict, proj_timeseries_array, basin_occupancy_timeseries, worker_times = \
                 get_basin_stats(init_cond, init_state, init_id, ensemble, 0, simsetup, num_steps=num_steps,
                                 anneal_protocol=anneal_protocol, field_protocol=field_protocol,
-                                occ_threshold=OCC_THRESHOLD, verbose=False, profile=True)
+                                occ_threshold=OCC_THRESHOLD, async_batch=async_batch, verbose=False, profile=True)
             proj_timeseries_array = proj_timeseries_array / ensemble  # ensure normalized (get basin stats won't do this)
         t1 = time.time() - t0
         print "Runtime:", t1
@@ -452,7 +455,7 @@ if __name__ == '__main__':
         info_list = [['fncall', 'ensemble_projection_timeseries()'], ['init_cond', init_cond], ['ensemble', ensemble],
                      ['num_steps', num_steps], ['num_proc', num_proc], ['anneal_protocol', anneal_protocol],
                      ['occ_threshold', OCC_THRESHOLD], ['field_protocol', field_protocol],
-                     ['ASYNC_BATCH', ASYNC_BATCH], ['time', t1], ['time_workers', worker_times]]
+                     ['async_batch', async_batch], ['time', t1], ['time_workers', worker_times]]
         runinfo_append(io_dict, info_list, multi=True)
 
     # direct data plotting
@@ -470,6 +473,7 @@ if __name__ == '__main__':
         num_steps = 100
         anneal_protocol = "protocol_A"
         field_protocol = None
+        async_batch = ASYNC_BATCH
         plot = False
         ens_scaled = False
         if ens_scaled:
@@ -491,8 +495,8 @@ if __name__ == '__main__':
             t0 = time.time()
             proj_timeseries_array, basin_occupancy_timeseries, worker_times, io_dict = \
                 ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps, simsetup=simsetup,
-                                               occ_threshold=OCC_THRESHOLD, anneal_protocol=anneal_protocol, plot=plot,
-                                               output=True, profile=True)
+                                               occ_threshold=OCC_THRESHOLD, anneal_protocol=anneal_protocol,
+                                               async_batch=async_batch, plot=plot, output=True, profile=True)
             t1 = time.time() - t0
             print "Runtime:", t1
 
@@ -501,5 +505,5 @@ if __name__ == '__main__':
                          ['ensemble', ensemble],
                          ['num_steps', num_steps], ['num_proc', num_proc], ['anneal_protocol', anneal_protocol],
                          ['occ_threshold', OCC_THRESHOLD], ['field_protocol', field_protocol],
-                         ['ASYNC_BATCH', ASYNC_BATCH], ['time', t1], ['time_workers', worker_times]]
+                         ['async_batch', async_batch], ['time', t1], ['time_workers', worker_times]]
             runinfo_append(io_dict, info_list, multi=True)
