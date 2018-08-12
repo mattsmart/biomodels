@@ -3,6 +3,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 
 
 def natural_sort(unsorted_list):
@@ -43,7 +44,7 @@ def copy_and_rename_plots(plot_lattice_dir, output_dir):
     return
 
 
-def make_video_ffmpeg(plot_lattice_dir, output_path, fps=15, ffmpeg_dir=None):
+def make_video_ffmpeg(plot_lattice_dir, output_path, fps=5, ffmpeg_dir=None):
     """Makes a video using ffmpeg - also copies the lattice plot dir, changes filenames, and deletes the copy
     Args:
         plot_lattice_dir: source directory
@@ -56,12 +57,17 @@ def make_video_ffmpeg(plot_lattice_dir, output_path, fps=15, ffmpeg_dir=None):
         - assumes ffmpeg has been extracted on your system and added to the path
         - if it's not added to path, point to it (the directory containing ffmpeg bin) using ffmpeg_dir arg
         - assumes less than 10000 images are being joined (for ffmpeg simplicity)
+        - .mp4 seems to play best with Windows Media Player, not VLC
     """
+    # make sure video directory exists
+    if not os.path.exists(os.path.dirname(output_path)):
+        os.makedirs(os.path.dirname(output_path))
     # make temp dir
     temp_plot_dir = os.path.join(plot_lattice_dir, os.pardir, "temp")
     copy_and_rename_plots(plot_lattice_dir, temp_plot_dir)
     # make video
     command_line = ["ffmpeg",
+                    "-framerate", "%d" % fps,                                       # *force* video frames per second
                     "-i", os.path.join(temp_plot_dir, "lattice_at_time_%05d.jpg"),  # set the input files
                     "-vcodec", "libx264",                                           # set the video codec
                     "-r", "%d" % fps,                                               # set video frames per second
@@ -73,6 +79,13 @@ def make_video_ffmpeg(plot_lattice_dir, output_path, fps=15, ffmpeg_dir=None):
         sp = subprocess.Popen(command_line, executable=app_path, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
     else:
         sp = subprocess.Popen(command_line, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        while True:
+            out = sp.stderr.read(1)
+            if out == '' and sp.poll() != None:
+                break
+            if out != '':
+                sys.stdout.write(out)
+                sys.stdout.flush()
     out, err = sp.communicate()
     print out, err, sp.returncode
     # delete temp dir
