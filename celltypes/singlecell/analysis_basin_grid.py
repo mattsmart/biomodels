@@ -15,9 +15,6 @@ from singlecell_simsetup import singlecell_simsetup
 def gen_basin_grid(ensemble, num_processes, simsetup=None, num_steps=100, anneal_protocol=ANNEAL_PROTOCOL,
                    field_protocol=FIELD_PROTOCOL, occ_threshold=OCC_THRESHOLD, saveall=False, save=True,
                    plot=False, verbose=False, parallel=True):
-    # TODO parallel over rows instead of within each row; fewer setup calls or mem copying
-    # TODO reduce calls to simsetup by passing simulation object / dict around that contains all memory (rewrite simsetup and those which call it)
-    # TODO      any script using these elements would need passing of dict elements INSTEAD OF IMPORT
     """
     generate matrix G_ij of size p x (p + k): grid of data between 0 and 1
     each row represents one of the p encoded basins as an initial condition
@@ -75,8 +72,8 @@ def load_basin_grid(filestr_data):
 if __name__ == '__main__':
     run_basin_grid = False
     load_and_plot_basin_grid = False
-    reanalyze_grid_over_time = False
-    make_grid_video = True
+    reanalyze_grid_over_time = True
+    make_grid_video = False
 
     # prep simulation globals
     simsetup = singlecell_simsetup()
@@ -108,18 +105,23 @@ if __name__ == '__main__':
 
     # direct data plotting
     if load_and_plot_basin_grid:
-        filestr_data = RUNS_FOLDER + os.sep + 'gen_basin_grid.txt'
+        rundir = RUNS_FOLDER + os.sep + ANALYSIS_SUBDIR + os.sep + "aug11 - 1000ens x 500step"
+        latticedir = rundir + os.sep + "lattice"
+        filestr_data = latticedir + os.sep + "gen_basin_grid.txt"
         basin_grid_data = load_basin_grid(filestr_data)
-        ensemble = 960
-        num_steps = 100
-        plot_basin_grid(basin_grid_data, ensemble, num_steps, celltype_labels, RUNS_FOLDER, SPURIOUS_LIST)
+        ensemble = 1000
+        num_steps = 500
+        plot_basin_grid(basin_grid_data, ensemble, num_steps, celltype_labels, latticedir, SPURIOUS_LIST,
+                        relmax=False, ext='.pdf', vforce=0.5)
+        plot_basin_grid(basin_grid_data, ensemble, num_steps, celltype_labels, latticedir, SPURIOUS_LIST,
+                        relmax=False, ext='.pdf', vforce=1.0)
 
     # use labelled collection of timeseries from each row to generate multiple grids over time
     if reanalyze_grid_over_time:
         # step 0 specify ensemble, num steps, and location of row data
-        ensemble = 960
-        num_steps = 100
-        rundir = RUNS_FOLDER + os.sep + ANALYSIS_SUBDIR + os.sep + "aug11 - 960ens x 100step - fullRandomSteps"
+        ensemble = 1000
+        num_steps = 500
+        rundir = RUNS_FOLDER + os.sep + ANALYSIS_SUBDIR + os.sep + "aug11 - 1000ens x 500step - fullRandomSteps"
         # step 1 restructure data
         rowdatadir = rundir + os.sep + "data"
         latticedir = rundir + os.sep + "lattice"
@@ -132,21 +134,23 @@ if __name__ == '__main__':
             proj_timeseries_array, basin_occupancy_timeseries = load_basinstats(rowdatadir, celltype)
             grid_over_time[idx, :, :] += basin_occupancy_timeseries
         # step 2 save and plot
+        vforce = 1.0
+        filename = 'grid_at_step'
         for step in xrange(num_steps):
             print "step", step
             grid_at_step = grid_over_time[:, :, step]
-            filename = 'grid_at_step_%d' % step
-            np.savetxt(latticedir + os.sep + filename + '.txt', grid_at_step, delimiter=',', fmt='%.4f')
+            namemod = '_%d' % step
+            np.savetxt(latticedir + os.sep + filename + namemod + '.txt', grid_at_step, delimiter=',', fmt='%.4f')
             plot_basin_grid(grid_at_step, ensemble, step, celltype_labels, plotlatticedir, SPURIOUS_LIST,
-                            plotname=filename, relmax=False)
+                            plotname=filename, relmax=False, vforce=1.0, namemod=namemod, ext='.jpg')
 
     if make_grid_video:
         from utils.make_video import make_video_ffmpeg
         # args specify
-        rundir = RUNS_FOLDER + os.sep + ANALYSIS_SUBDIR + os.sep + "aug11 - 960ens x 100step - fullRandomSteps"
+        rundir = RUNS_FOLDER + os.sep + ANALYSIS_SUBDIR + os.sep + "aug11 - 1000ens x 500step - fullRandomSteps"
         latticedir = rundir + os.sep + "plot_lattice"
-        custom_fps = 5
-        vidname = "grid_960x100_vmax1_asyncRandom_fps%d.mp4" % custom_fps
+        custom_fps = 20  # 1, 5, or 20 are good
+        vidname = "grid_1000x500_vmax1_stepFullyRandom_fps%d.mp4" % custom_fps
         videopath = rundir + os.sep + "video" + os.sep + vidname
         # call make video fn
         print "Creating video at %s..." % videopath
