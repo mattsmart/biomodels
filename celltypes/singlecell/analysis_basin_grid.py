@@ -75,8 +75,8 @@ def load_basin_grid(filestr_data):
 if __name__ == '__main__':
     run_basin_grid = False
     load_and_plot_basin_grid = False
-    reanalyze_grid_over_time = True
-    make_grid_video = False
+    reanalyze_grid_over_time = False
+    make_grid_video = True
 
     # prep simulation globals
     simsetup = singlecell_simsetup()
@@ -143,11 +143,11 @@ if __name__ == '__main__':
     if make_grid_video:
         from utils.make_video import make_video_ffmpeg
         # args specify
-        vidname = "grid_960x100_vmax1_asyncRandom.mp4"
         rundir = RUNS_FOLDER + os.sep + ANALYSIS_SUBDIR + os.sep + "aug11 - 960ens x 100step - fullRandomSteps"
         latticedir = rundir + os.sep + "plot_lattice"
-        videopath = rundir + os.sep + "video" + os.sep + vidname
         custom_fps = 5
+        vidname = "grid_960x100_vmax1_asyncRandom_fps%d.mp4" % custom_fps
+        videopath = rundir + os.sep + "video" + os.sep + vidname
         # call make video fn
         print "Creating video at %s..." % videopath
         make_video_ffmpeg(latticedir, videopath, fps=custom_fps, ffmpeg_dir=None)
