@@ -84,7 +84,8 @@ def plot_basin_step(basin_step_data, step, ensemble, memory_labels, memory_id, s
 
 
 def plot_basin_grid(grid_data, ensemble, steps, memory_labels, plotdir, spurious_list, ax=None, normalize=True,
-                    fs=9, relmax=True, rotate_standard=True, extragrid=False, plotname='plot_basin_grid'):
+                    fs=9, relmax=True, rotate_standard=True, extragrid=False, plotname='plot_basin_grid', ext='.jpg',
+                    vforce=None, namemod=''):
     """
     plot matrix G_ij of size p x (p + k): grid of data between 0 and 1
     each row represents one of the p encoded basins as an initial condition
@@ -96,31 +97,38 @@ def plot_basin_grid(grid_data, ensemble, steps, memory_labels, plotdir, spurious
     - rotate_standard: determine xlabel orientation
     """
     assert grid_data.shape == (len(memory_labels), len(memory_labels) + len(spurious_list))
-
+    # adjust data normalization
     assert normalize
     datamax = np.max(grid_data)
-
     if np.max(grid_data) > 1.0 and normalize:
         grid_data = grid_data / ensemble
         datamax = datamax / ensemble
-
-    if relmax:
-        vmax = datamax
+    # adjust colourbar max val
+    if vforce is not None:
+        vmax = vforce
+        plotname += '_vforce%.2f%s' % (vforce, namemod)
     else:
-        if normalize:
-            vmax = 1.0
+        if relmax:
+            vmax = datamax
         else:
-            vmax = ensemble
+            if normalize:
+                vmax = 1.0
+            else:
+                vmax = ensemble
+        plotname += namemod
 
+    # plot setup
     if not ax:
         plt.clf()
         ax = plt.gca()
         plt.gcf().set_size_inches(18.5, 12.5)
     # plot the heatmap
-    # default color: 'YlGnBu', alts are: 'bone_r', 'BuPu', 'PuBuGn', 'Greens', 'Spectral', 'Spectral_r' (with k grid),
-    #                                    'cubehelix_r', 'magma_r'
-    # note: fix vmax at 0.5 of max works nice
-    # note: aspect None, 'auto', scalar, or 'equal'
+    """
+    default color: 'YlGnBu', alts are: 'bone_r', 'BuPu', 'PuBuGn', 'Greens', 'Spectral', 'Spectral_r' (with k grid),
+                                       'cubehelix_r', 'magma_r'
+    note: fix vmax at 0.5 of max works nice
+    note: aspect None, 'auto', scalar, or 'equal'
+    """
     imshow_kw = {'cmap': 'YlGnBu', 'aspect': None, 'vmin': 0.0, 'vmax': vmax}  # note: fix at 0.5 of max works nice
     im = ax.imshow(grid_data, **imshow_kw)
     # create colorbar
@@ -128,8 +136,7 @@ def plot_basin_grid(grid_data, ensemble, steps, memory_labels, plotdir, spurious
     cbarlabel = 'Basin occupancy fraction'
     cbar = ax.figure.colorbar(im, ax=ax, **cbar_kw)
     cbar.ax.set_ylabel(cbarlabel, rotation=-90, va="bottom", fontsize=fs+2, labelpad=20)
-
-    # hack title to bottom
+    # hack title placement
     plt.text(0.5, 1.3, 'Basin grid transition data (%d cells per basin, %d steps)' % (ensemble, steps),
              horizontalalignment='center', transform=ax.transAxes, fontsize=fs+4)
     # axis labels
@@ -151,19 +158,15 @@ def plot_basin_grid(grid_data, ensemble, steps, memory_labels, plotdir, spurious
     else:
         plt.setp(ax.get_xticklabels(), rotation=-45, ha="right",
                  rotation_mode="anchor")
-
     # add gridlines
     ax.set_xticks(np.arange(-.5, grid_data.shape[1], 1), minor=True)
     ax.set_yticks(np.arange(-.5, grid_data.shape[0], 1), minor=True)
     ax.grid(which='minor', color='w', linestyle='-', linewidth=1)  # grey good to split, white looks nice though
-
     # hack to add extra gridlines (not clear how to have more than minor and major on one axis)
     if extragrid:
         for xcoord in np.arange(-.5, grid_data.shape[1], 8):
             ax.axvline(x=xcoord, ls='--', color='grey', linewidth=1)
         for ycoord in np.arange(-.5, grid_data.shape[0], 8):
             ax.axhline(y=ycoord, ls='--', color='grey', linewidth=1)
-
-    plt.savefig(plotdir + os.sep + plotname + '.jpg', dpi=100, bbox_inches='tight')
-
+    plt.savefig(plotdir + os.sep + plotname + ext, dpi=100, bbox_inches='tight')
     return plt.gca()
