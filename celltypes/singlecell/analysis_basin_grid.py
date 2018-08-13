@@ -71,10 +71,11 @@ def load_basin_grid(filestr_data):
 
 
 if __name__ == '__main__':
-    run_basin_grid = True
+    run_basin_grid = False
     load_and_plot_basin_grid = False
     reanalyze_grid_over_time = False
     make_grid_video = False
+    check_row_sum_and_stats = True
 
     # prep simulation globals
     simsetup = singlecell_simsetup()
@@ -153,10 +154,27 @@ if __name__ == '__main__':
         rundir = RUNS_FOLDER + os.sep + ANALYSIS_SUBDIR + os.sep + "aug11 - 1000ens x 500step - fullRandomSteps"
         latticedir = rundir + os.sep + "plot_lattice"
         custom_fps = 20  # 1, 5, or 20 are good
-        vidname = "grid_1000x500_vmax0.5_stepFullyRandom_fps%d.mp4" % custom_fps
-        #vidname = "grid_1000x500_vmax0.5_stepChunk_fps%d.mp4" % custom_fps
+        vidname = "grid_1000x500_vmax1.0_stepFullyRandom_fps%d.mp4" % custom_fps
         videopath = rundir + os.sep + "video" + os.sep + vidname
         # call make video fn
         print "Creating video at %s..." % videopath
         make_video_ffmpeg(latticedir, videopath, fps=custom_fps, ffmpeg_dir=None)
         print "Done"
+
+    # useful to look at the rankings for each row for the endpoint of a big simulation
+    if check_row_sum_and_stats:
+        filestr_data = RUNS_FOLDER + os.sep + "gen_basin_grid.txt"
+        basin_grid_data = load_basin_grid(filestr_data)
+        basin_row_sum = np.sum(basin_grid_data, axis=1)
+        ensemble = basin_row_sum[0]
+        ref_list = celltype_labels + SPURIOUS_LIST
+
+        for row in xrange(len(celltype_labels)):
+            sortedmems_smalltobig = np.argsort(basin_grid_data[row,:])
+            sortedmems_bigtosmall = sortedmems_smalltobig[::-1]
+            print "\nRankings for row", row, celltype_labels[row], "(sum %d)" % int(basin_row_sum[row])
+            for rank in xrange(10):
+                ranked_col_idx = sortedmems_bigtosmall[rank]
+                ranked_label = ref_list[ranked_col_idx]
+                percentage = ensemble
+                print rank, ranked_label, basin_grid_data[row, ranked_col_idx], basin_grid_data[row, ranked_col_idx] / ensemble
