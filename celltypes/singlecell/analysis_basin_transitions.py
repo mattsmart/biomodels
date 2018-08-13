@@ -42,7 +42,7 @@ def field_setup(simsetup, protocol=FIELD_PROTOCOL):
     field_dict = {'protocol': protocol,
                   'time_varying': False,
                   'app_field': None,
-                  'app_field_strength': 0}  # TODO calibrate this to be very large compared to J*s scale
+                  'app_field_strength': 1e5}  # TODO calibrate this to be very large compared to J*s scale
     gene_id = simsetup['GENE_ID']
     if protocol == "yamanaka_OSKM":
         assert simsetup['memories_path'] == MEMS_MEHTA  # gene labels correspond to Mehta 2014 labels
