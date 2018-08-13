@@ -5,7 +5,7 @@ from multiprocessing import Pool, cpu_count, current_process
 
 from analysis_basin_plotting import plot_proj_timeseries, plot_basin_occupancy_timeseries, plot_basin_step
 from singlecell_class import Cell
-from singlecell_constants import RUNS_FOLDER, IPSC_CORE_GENES_EFFECTS, ASYNC_BATCH
+from singlecell_constants import RUNS_FOLDER, IPSC_CORE_GENES_EFFECTS, ASYNC_BATCH, MEMS_MEHTA
 from singlecell_data_io import run_subdir_setup, runinfo_append
 from singlecell_functions import construct_app_field_from_genes
 from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
@@ -26,18 +26,33 @@ highlights_both = {6: 'k', 8: 'blue', 10: 'steelblue', 9: 'forestgreen', 7: 'red
 DEFAULT_HIGHLIGHTS = highlights_CLPside
 
 
-def field_setup(gene_id, protocol=FIELD_PROTOCOL):
+def field_setup(simsetup, protocol=FIELD_PROTOCOL):
     """
     Construct applied field vector (either fixed or on varying under a field protocol) to bias the dynamics
-
     Notes on named fields
-    Yamanaka factor (OSKM + nanog) names in mehta datafile: Sox2, Pou5f1 (oct3/4), Klf4, Mycbp, nanog
+    - Yamanaka factor (OSKM) names in mehta datafile: Sox2, Pou5f1 (oct4), Klf4, Myc, also nanog
     """
-    # TODO build
-    assert protocol in [None]
+    # TODO must optimize: naive implement brings i7-920 row: 16x200 from 56sec (None field) to 140sec (not parallel)
+    # TODO support time varying cleanly
+    # TODO speedup: initialize at the same time as simsetup
+    # TODO speedup: pre-multiply the fields so it need not to be scaled each glauber step (see singlecell_functions.py)
+    # TODO there are two non J_ij fields an isolated single cell experiences: TF explicit mod and type biasing via proj
+    # TODO     need to include the type biasing one too
+    assert protocol in ["yamanaka_OSKM", None]
     field_dict = {'protocol': protocol,
-                   'field_start': None}
-    app_field_start = construct_app_field_from_genes(IPSC_CORE_GENES_EFFECTS, gene_id, num_steps=0)
+                  'time_varying': False,
+                  'app_field': None,
+                  'app_field_strength': 0}  # TODO calibrate this to be very large compared to J*s scale
+    gene_id = simsetup['GENE_ID']
+    if protocol == "yamanaka_OSKM":
+        assert simsetup['memories_path'] == MEMS_MEHTA  # gene labels correspond to Mehta 2014 labels
+        IPSC_CORE_GENES = ['Sox2', 'Pou5f1', 'Klf4', 'Myc']  # "yamanaka" factors to make iPSC (labels for mehta dataset)
+        IPSC_CORE_GENES_EFFECTS = {label: 1.0 for label in IPSC_CORE_GENES}  # this ensure all should be ON
+        app_field_start = construct_app_field_from_genes(IPSC_CORE_GENES_EFFECTS, gene_id, num_steps=0)
+        field_dict['app_field'] = app_field_start
+    else:
+        assert protocol is None
+        # TODO fill in...
     return field_dict
 
 
@@ -158,8 +173,10 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, sims
     N, _, gene_labels, memory_labels, gene_id, celltype_id, xi, _, a_inv, intxn_matrix, _ = unpack_simsetup(simsetup)
 
     # prep applied field TODO: how to include applied field neatly
-    field_dict = field_setup(simsetup['GENE_ID'], protocol=field_protocol)
-    app_field = None
+    field_dict = field_setup(simsetup, protocol=field_protocol)
+    assert not field_dict['time_varying']  # TODO not yet supported
+    app_field = field_dict['app_field']
+    app_field_strength = field_dict['app_field_strength']
 
     transfer_dict = {}
     proj_timeseries_array = np.zeros((len(memory_labels), num_steps))
@@ -219,7 +236,9 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, sims
 
             # main call to update
             if step < num_steps:
-                cell.update_state(intxn_matrix, beta=beta, app_field=None, async_batch=async_batch)
+                #cell.update_state(intxn_matrix, beta=beta, app_field=None, async_batch=async_batch)
+                cell.update_state(intxn_matrix, beta=beta, app_field=app_field, app_field_strength=app_field_strength,
+                                  async_batch=async_batch)
 
     if profile:
         end_inner = time.time()
@@ -424,13 +443,13 @@ if __name__ == '__main__':
         #         'Megakaryocyte-Erythroid Progenitor (MEP)' / 'Granulocyte-Monocyte Progenitor (GMP)' / 'thymocyte DN'
         #         'thymocyte - DP' / 'neutrophils' / 'monocytes - classical'
         init_cond = 'HSC'  # note HSC index is 6 in mehta mems
-        ensemble = 16
-        num_steps = 200
+        ensemble = 100
+        num_steps = 100
         num_proc = cpu_count() / 2  # seems best to use only physical core count (1 core ~ 3x slower than 4)
         anneal_protocol = "protocol_A"
-        field_protocol = None
+        field_protocol = "yamanaka_OSKM"
         async_batch = True
-        plot = False
+        plot = True
         parallel = True
 
         # run and time basin ensemble sim
@@ -439,7 +458,7 @@ if __name__ == '__main__':
             proj_timeseries_array, basin_occupancy_timeseries, worker_times, io_dict = \
                 ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps, simsetup=simsetup,
                                                occ_threshold=OCC_THRESHOLD, anneal_protocol=anneal_protocol,
-                                               async_batch=async_batch, plot=plot, profile=False)
+                                               field_protocol=field_protocol, async_batch=async_batch, plot=plot)
         else:
             # Unparallelized for testing/profiling:
             init_state, init_id = get_init_info(init_cond, simsetup)
@@ -497,7 +516,8 @@ if __name__ == '__main__':
             proj_timeseries_array, basin_occupancy_timeseries, worker_times, io_dict = \
                 ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps, simsetup=simsetup,
                                                occ_threshold=OCC_THRESHOLD, anneal_protocol=anneal_protocol,
-                                               async_batch=async_batch, plot=plot, output=True, profile=True)
+                                               field_protocol=field_protocol, async_batch=async_batch, plot=plot,
+                                               output=True, profile=True)
             t1 = time.time() - t0
             print "Runtime:", t1
 
