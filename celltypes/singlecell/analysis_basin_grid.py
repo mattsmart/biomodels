@@ -70,19 +70,67 @@ def load_basin_grid(filestr_data):
     return basin_grid
 
 
+def grid_stats(grid_data, printtorank=10):
+    """
+    Prints info based on row statistics of the grid
+    Args:
+        grid_data: basin grid data from basin occupancy hopping sim
+    Returns:
+        None
+    """
+    basin_row_sum = np.sum(grid_data, axis=1)
+    ensemble = basin_row_sum[0]
+    ref_list = celltype_labels + SPURIOUS_LIST
+    for row in xrange(len(celltype_labels)):
+        assert basin_row_sum[row] == ensemble  # make sure all rows sum to expected value
+        sortedmems_smalltobig = np.argsort(grid_data[row, :])
+        sortedmems_bigtosmall = sortedmems_smalltobig[::-1]
+        print "\nRankings for row", row, celltype_labels[row], "(sum %d)" % int(basin_row_sum[row])
+        for rank in xrange(printtorank):
+            ranked_col_idx = sortedmems_bigtosmall[rank]
+            ranked_label = ref_list[ranked_col_idx]
+            print rank, ranked_label, grid_data[row, ranked_col_idx], grid_data[row, ranked_col_idx] / ensemble
+
+
+def grid_video(rundir, vidname, imagedir=None, ext='.mp4', fps=20):
+    """
+    Make a video of the grid over time using ffmpeg.
+    Note: ffmpeg must be installed and on system path.
+    Args:
+        rundir: Assumes sequentially named images of grid over time are in "plot_lattice" subdir of rundir.
+        vidname: filename for the video (no extension); it will be placed in a "video" subdir of rundir
+        imagedir: override use of "plot_lattice" subdir of rundir as the source [Default: None]
+        ext: only '.mp4' has been tested, seems to work on Windows Media Player but not VLC
+        fps: video frames per second; 1, 5, 20 work well
+    Returns:
+        path to video
+    """
+    from utils.make_video import make_video_ffmpeg
+    # args specify
+    if imagedir is None:
+        imagedir = rundir + os.sep + "plot_lattice"
+    if not os.path.exists(rundir + os.sep + "video"):
+        os.makedirs(rundir + os.sep + "video")
+    videopath = rundir + os.sep + "video" + os.sep + vidname + ext
+    # call make video fn
+    print "Creating video at %s..." % videopath
+    make_video_ffmpeg(imagedir, videopath, fps=fps, ffmpeg_dir=None)
+    print "Done"
+    return videopath
+
+
 if __name__ == '__main__':
     run_basin_grid = False
     load_and_plot_basin_grid = False
     reanalyze_grid_over_time = False
-    make_grid_video = False
-    check_row_sum_and_stats = True
+    make_grid_video = True
+    print_grid_stats_from_file = True
 
     # prep simulation globals
     simsetup = singlecell_simsetup()
     celltype_labels = simsetup['CELLTYPE_LABELS']
 
     if run_basin_grid:
-        # TODO: find way to prevent reloading the interaction info from singlcell_simsetup
         ensemble = 1000
         timesteps = 500
         field_protocol = FIELD_PROTOCOL
@@ -149,32 +197,13 @@ if __name__ == '__main__':
                             plotname=filename, relmax=False, vforce=vforce, namemod=namemod, ext='.jpg')
 
     if make_grid_video:
-        from utils.make_video import make_video_ffmpeg
-        # args specify
+        custom_fps = 5  # 1, 5, or 20 are good
         rundir = RUNS_FOLDER + os.sep + ANALYSIS_SUBDIR + os.sep + "aug11 - 1000ens x 500step - fullRandomSteps"
-        latticedir = rundir + os.sep + "plot_lattice"
-        custom_fps = 20  # 1, 5, or 20 are good
-        vidname = "grid_1000x500_vmax1.0_stepFullyRandom_fps%d.mp4" % custom_fps
-        videopath = rundir + os.sep + "video" + os.sep + vidname
-        # call make video fn
-        print "Creating video at %s..." % videopath
-        make_video_ffmpeg(latticedir, videopath, fps=custom_fps, ffmpeg_dir=None)
-        print "Done"
+        vidname = "grid_1000x500_vmax1.0_stepFullyRandom_fps%d" % custom_fps
+        latticedir = rundir + os.sep + "ARCHIVE_partial_vforce1.00_plot_lattice"
+        videopath = grid_video(rundir, vidname, imagedir=latticedir, fps=custom_fps)
 
-    # useful to look at the rankings for each row for the endpoint of a big simulation
-    if check_row_sum_and_stats:
+    if print_grid_stats_from_file:
         filestr_data = RUNS_FOLDER + os.sep + "gen_basin_grid.txt"
         basin_grid_data = load_basin_grid(filestr_data)
-        basin_row_sum = np.sum(basin_grid_data, axis=1)
-        ensemble = basin_row_sum[0]
-        ref_list = celltype_labels + SPURIOUS_LIST
-
-        for row in xrange(len(celltype_labels)):
-            sortedmems_smalltobig = np.argsort(basin_grid_data[row,:])
-            sortedmems_bigtosmall = sortedmems_smalltobig[::-1]
-            print "\nRankings for row", row, celltype_labels[row], "(sum %d)" % int(basin_row_sum[row])
-            for rank in xrange(10):
-                ranked_col_idx = sortedmems_bigtosmall[rank]
-                ranked_label = ref_list[ranked_col_idx]
-                percentage = ensemble
-                print rank, ranked_label, basin_grid_data[row, ranked_col_idx], basin_grid_data[row, ranked_col_idx] / ensemble
+        grid_stats(basin_grid_data)
