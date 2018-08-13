@@ -236,9 +236,9 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, sims
     return transfer_dict, proj_timeseries_array, basin_occupancy_timeseries, total_time
 
 
-def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, simsetup=None, num_steps=100, occ_threshold=0.7,
-                     anneal_protocol=ANNEAL_PROTOCOL, field_protocol=FIELD_PROTOCOL, async_batch=ASYNC_BATCH,
-                     verbose=False, profile=False):
+def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, simsetup=None, num_steps=100,
+                     occ_threshold=OCC_THRESHOLD, anneal_protocol=ANNEAL_PROTOCOL, field_protocol=FIELD_PROTOCOL,
+                     async_batch=ASYNC_BATCH, verbose=False, profile=False):
     # simsetup unpack
     if simsetup is None:
         simsetup = singlecell_simsetup()
