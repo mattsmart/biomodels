@@ -141,9 +141,11 @@ def construct_app_field_from_genes(gene_name_effect, gene_id, num_steps=0):
     Return:
     - applied field array of size N x 1 or N x num_steps
     """
+    print "Constructing applied field:"
     N = len(gene_id.keys())
     app_field = np.zeros((N, num_steps))
     for label, effect in gene_name_effect.iteritems():
+        print label, gene_id[label], 'effect:', effect
         app_field[gene_id[label], :] += effect
         #app_field[GENE_ID[label], :num_steps/2] += 1
         #print app_field[GENE_ID[label]-1:GENE_ID[label]+2,0:5]

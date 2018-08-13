@@ -28,6 +28,7 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath
     gene_id = {k: v for v, k in enumerate(gene_labels)}
     # store in sim object (currently just a dict)
     simsetup = {
+        'memories_path': npzpath,
         'N': len(gene_labels),
         'P': len(celltype_labels),
         'GENE_LABELS': gene_labels,

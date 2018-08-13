@@ -39,7 +39,7 @@ BURST_ERROR_PERIOD = 5                    # val 5 = apply every 5 full spin upda
 
 # SPECIFIC APPLIED FIELDS
 # TODO generalize, this is for 2014_MEHTA only
-IPSC_CORE_GENES = ['Sox2', 'Pou5f1', 'Klf4', 'Mycbp']  # "yamanaka" factors to make iPSC (labels for mehta dataset)
+IPSC_CORE_GENES = ['Sox2', 'Pou5f1', 'Klf4', 'Myc']                           # "yamanaka" factors to make iPSC (labels for mehta dataset)
 IPSC_CORE_GENES_EFFECTS = {label: 1.0 for label in IPSC_CORE_GENES}           # this ensure all should be ON
 IPSC_EXTENDED_GENES = IPSC_CORE_GENES + ['Nanog']
 IPSC_EXTENDED_GENES_EFFECTS = {label: 1.0 for label in IPSC_EXTENDED_GENES}   # TODO ensure all should be ON
