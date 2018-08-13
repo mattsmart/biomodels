@@ -123,7 +123,7 @@ if __name__ == '__main__':
     run_basin_grid = False
     load_and_plot_basin_grid = False
     reanalyze_grid_over_time = False
-    make_grid_video = True
+    make_grid_video = False
     print_grid_stats_from_file = True
 
     # prep simulation globals
@@ -203,7 +203,18 @@ if __name__ == '__main__':
         latticedir = rundir + os.sep + "ARCHIVE_partial_vforce1.00_plot_lattice"
         videopath = grid_video(rundir, vidname, imagedir=latticedir, fps=custom_fps)
 
-    if print_grid_stats_from_file:
-        filestr_data = RUNS_FOLDER + os.sep + "gen_basin_grid.txt"
+    if print_grid_stats_from_file:\
+        filestr_data = RUNS_FOLDER + os.sep + "gen_basin_grid_C.txt"
         basin_grid_data = load_basin_grid(filestr_data)
         grid_stats(basin_grid_data)
+        """
+        ensemble = 960
+        basin_grid_A = load_basin_grid(RUNS_FOLDER + os.sep + "gen_basin_grid_A.txt") / ensemble
+        basin_grid_B = load_basin_grid(RUNS_FOLDER + os.sep + "gen_basin_grid_B.txt") / ensemble
+        basin_grid_C = load_basin_grid(RUNS_FOLDER + os.sep + "gen_basin_grid_C.txt") / ensemble
+        basin_grid_D = load_basin_grid(RUNS_FOLDER + os.sep + "gen_basin_grid_D.txt") / ensemble
+        basin_grid_E = load_basin_grid(RUNS_FOLDER + os.sep + "gen_basin_grid_E.txt") / ensemble
+        for idx, label in enumerate(celltype_labels):
+            print idx, "%.2f vs %.2f" % (basin_grid_A[idx,-1], basin_grid_C[idx,-1]), label
+            print idx, "%.2f vs %.2f" % (basin_grid_B[idx,-1], basin_grid_D[idx,-1]), label
+        """
