@@ -289,9 +289,10 @@ def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, si
     return summed_transfer_dict, summed_proj_timeseries_array, summed_basin_occupancy_timeseries, worker_times
 
 
-def ensemble_projection_timeseries(init_cond, ensemble, num_processes, simsetup=None, num_steps=100, occ_threshold=0.7,
-                                   anneal_protocol=ANNEAL_PROTOCOL, field_protocol=FIELD_PROTOCOL,
-                                   async_batch=ASYNC_BATCH, output=True, plot=True, profile=False):
+def ensemble_projection_timeseries(init_cond, ensemble, num_processes, simsetup=None, num_steps=100,
+                                   occ_threshold=OCC_THRESHOLD, anneal_protocol=ANNEAL_PROTOCOL,
+                                   field_protocol=FIELD_PROTOCOL, async_batch=ASYNC_BATCH, output=True, plot=True,
+                                   profile=False):
     """
     Args:
     - init_cond: np array of init state OR string memory label
@@ -437,8 +438,8 @@ if __name__ == '__main__':
         if parallel:
             proj_timeseries_array, basin_occupancy_timeseries, worker_times, io_dict = \
                 ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps, simsetup=simsetup,
-                                               occ_threshold=OCC_THRESHOLD, anneal_protocol=anneal_protocol, plot=plot,
-                                               profile=False)
+                                               occ_threshold=OCC_THRESHOLD, anneal_protocol=anneal_protocol,
+                                               async_batch=async_batch, plot=plot, profile=False)
         else:
             # Unparallelized for testing/profiling:
             init_state, init_id = get_init_info(init_cond, simsetup)

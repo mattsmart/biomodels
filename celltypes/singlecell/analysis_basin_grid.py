@@ -203,7 +203,7 @@ if __name__ == '__main__':
         latticedir = rundir + os.sep + "ARCHIVE_partial_vforce1.00_plot_lattice"
         videopath = grid_video(rundir, vidname, imagedir=latticedir, fps=custom_fps)
 
-    if print_grid_stats_from_file:\
+    if print_grid_stats_from_file:
         filestr_data = RUNS_FOLDER + os.sep + "gen_basin_grid_C.txt"
         basin_grid_data = load_basin_grid(filestr_data)
         grid_stats(basin_grid_data)
