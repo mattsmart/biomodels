@@ -136,7 +136,7 @@ def save_and_plot_basinstats(io_dict, proj_data, occ_data, num_steps, ensemble, 
     plotpath_occ = io_dict['plotdatadir'] + os.sep + '%soccupancy_timeseries.png' % prefix
     plotpath_basin_endpt = io_dict['plotdatadir'] + os.sep + '%sendpt_distro.png' % prefix
     # save data to file
-    np.savetxt(datapath_proj, proj_data, delimiter=',', fmt='%i')
+    np.savetxt(datapath_proj, proj_data, delimiter=',', fmt='%.4f')
     np.savetxt(datapath_occ, occ_data, delimiter=',', fmt='%i')
     # plot and save figs
     if plot:
