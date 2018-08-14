@@ -432,7 +432,7 @@ def basin_transitions(init_cond, ensemble, num_steps, beta, simsetup):
 
 if __name__ == '__main__':
     gen_basin_data = True
-    plot_isolated_data = False
+    plot_grouped_data = False
     profile = False
 
     # prep simulation globals
@@ -479,11 +479,27 @@ if __name__ == '__main__':
         runinfo_append(io_dict, info_list, multi=True)
 
     # direct data plotting
-    if plot_isolated_data:
-        loaddata = np.loadtxt(RUNS_FOLDER + os.sep + 'proj_timeseries.txt', delimiter=',')
-        ensemble = 100
-        plot_proj_timeseries(loaddata, loaddata.shape[1], ensemble, simsetup['CELLTYPE_LABELS'],
-                             RUNS_FOLDER + os.sep + 'proj_timeseries.png', highlights=highlights_CLPside)
+    if plot_grouped_data:
+        bases = ["output_335260","output_335261","output_335262","output_335264","output_335265"]
+        types = ["HSC","HSC","mef","mef","mef"]
+        labels = ["yam_1e5", "yam_0", "None", "yam_idk", "yam_1e5"]
+        ensemble = 10000
+        for i in xrange(len(bases)):
+            celltypes = simsetup['CELLTYPE_LABELS']
+            outdir = field_dir + os.sep + bases[i]
+            outproj = outdir + os.sep + 'proj_timeseries_%s.png' % labels[i]
+            outocc = outdir + os.sep + 'occ_timeseries_%s.png' % labels[i]
+            outend = outdir + os.sep + 'occ_endpt_%s.png' % labels[i]
+            # load and parse
+            proj_data, occ_data = load_basinstats(outdir + os.sep + 'data', types[i])
+            num_steps = proj_data.shape[1]
+            ensemble = np.sum(occ_data[:,0])
+            # plot
+            plot_proj_timeseries(proj_data, num_steps, ensemble, celltypes, outproj, highlights=highlights_CLPside)
+            plot_basin_occupancy_timeseries(occ_data, num_steps, ensemble, celltypes, OCC_THRESHOLD, SPURIOUS_LIST,
+                                            outocc, highlights=highlights_CLPside)
+            plot_basin_step(occ_data[:, -1], num_steps, ensemble, celltypes, simsetup['CELLTYPE_ID'],
+                            SPURIOUS_LIST, outend, highlights=highlights_CLPside)
 
     if profile:
         # common: 'HSC' / 'Common Lymphoid Progenitor (CLP)' / 'Common Myeloid Progenitor (CMP)' /
