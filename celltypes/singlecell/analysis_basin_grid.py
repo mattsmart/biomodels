@@ -6,7 +6,7 @@ from multiprocessing import cpu_count
 from analysis_basin_plotting import plot_basin_grid
 from analysis_basin_transitions import ensemble_projection_timeseries, get_basin_stats, fast_basin_stats, get_init_info, \
                                        ANNEAL_PROTOCOL, FIELD_PROTOCOL, ANALYSIS_SUBDIR, SPURIOUS_LIST, OCC_THRESHOLD, \
-                                       save_and_plot_basinstats, load_basinstats
+                                       save_and_plot_basinstats, load_basinstats, fetch_from_run_info
 from singlecell_constants import RUNS_FOLDER, ASYNC_BATCH
 from singlecell_data_io import run_subdir_setup, runinfo_append
 from singlecell_simsetup import singlecell_simsetup
@@ -121,10 +121,10 @@ def grid_video(rundir, vidname, imagedir=None, ext='.mp4', fps=20):
 
 if __name__ == '__main__':
     run_basin_grid = False
-    load_and_plot_basin_grid = False
+    load_and_plot_basin_grid = True
     reanalyze_grid_over_time = False
     make_grid_video = False
-    print_grid_stats_from_file = True
+    print_grid_stats_from_file = False
 
     # prep simulation globals
     simsetup = singlecell_simsetup()
@@ -157,12 +157,13 @@ if __name__ == '__main__':
 
     # direct data plotting
     if load_and_plot_basin_grid:
-        rundir = RUNS_FOLDER + os.sep + ANALYSIS_SUBDIR + os.sep + "aug11 - 1000ens x 500step - fullRandomSteps"
+        # specify paths and load data / parameters
+        rundir = RUNS_FOLDER + os.sep + ANALYSIS_SUBDIR + os.sep + "grid_335324_5kx200_fieldYama"
         latticedir = rundir + os.sep + "lattice"
         filestr_data = latticedir + os.sep + "gen_basin_grid.txt"
         basin_grid_data = load_basin_grid(filestr_data)
-        ensemble = 1000
-        num_steps = 500
+        ensemble, num_steps = fetch_from_run_info(rundir + os.sep + 'run_info.txt', ['ensemble', 'num_steps'])
+        # build grid plots
         plot_basin_grid(basin_grid_data, ensemble, num_steps, celltype_labels, latticedir, SPURIOUS_LIST,
                         relmax=False, ext='.pdf', vforce=0.5)
         plot_basin_grid(basin_grid_data, ensemble, num_steps, celltype_labels, latticedir, SPURIOUS_LIST,
@@ -171,9 +172,8 @@ if __name__ == '__main__':
     # use labelled collection of timeseries from each row to generate multiple grids over time
     if reanalyze_grid_over_time:
         # step 0 specify ensemble, num steps, and location of row data
-        ensemble = 1000
-        num_steps = 500
         rundir = RUNS_FOLDER + os.sep + ANALYSIS_SUBDIR + os.sep + "aug11 - 1000ens x 500step - fullRandomSteps"
+        ensemble, num_steps = fetch_from_run_info(rundir + os.sep + 'run_info.txt', ['ensemble', 'num_steps'])
         # step 1 restructure data
         rowdatadir = rundir + os.sep + "data"
         latticedir = rundir + os.sep + "lattice"

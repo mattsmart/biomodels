@@ -154,6 +154,27 @@ def load_basinstats(rowdata_dir, celltype):
     return proj_timeseries_array, basin_occupancy_timeseries
 
 
+def fetch_from_run_info(txtpath, obj_labels):
+    """
+    Args:
+        txtpath: path to standardized 'run_info.txt' file
+        obj_labels: list of the form ['str_to_look_for', ...] type it will be read as is defined in local dict
+    Returns:
+        list of corresponding objects (or None's if they weren't found) in the same order
+    """
+    label_obj_map = {'ensemble': int,
+                     'num_steps': int}
+    assert all([a in label_obj_map.keys() for a in obj_labels])
+    linelist = [line.rstrip() for line in open(txtpath)]
+    fetched_values = [None for _ in obj_labels]
+    for line in linelist:
+        line = line.split(',')
+        for idx, label in enumerate(obj_labels):
+            if label == line[0]:
+                fetched_values[idx] = label_obj_map[label](line[1])
+    return fetched_values
+
+
 def wrapper_get_basin_stats(fn_args_dict):
     np.random.seed()
     if fn_args_dict['kwargs'] is not None:
@@ -480,20 +501,21 @@ if __name__ == '__main__':
 
     # direct data plotting
     if plot_grouped_data:
+        group_dir = RUNS_FOLDER
         bases = ["output_335260","output_335261","output_335262","output_335264","output_335265"]
         types = ["HSC","HSC","mef","mef","mef"]
         labels = ["yam_1e5", "yam_0", "None", "yam_idk", "yam_1e5"]
         ensemble = 10000
         for i in xrange(len(bases)):
             celltypes = simsetup['CELLTYPE_LABELS']
-            outdir = field_dir + os.sep + bases[i]
+            outdir = group_dir + os.sep + bases[i]
             outproj = outdir + os.sep + 'proj_timeseries_%s.png' % labels[i]
             outocc = outdir + os.sep + 'occ_timeseries_%s.png' % labels[i]
             outend = outdir + os.sep + 'occ_endpt_%s.png' % labels[i]
             # load and parse
             proj_data, occ_data = load_basinstats(outdir + os.sep + 'data', types[i])
-            num_steps = proj_data.shape[1]
-            ensemble = np.sum(occ_data[:,0])
+            ensemble, num_steps = fetch_from_run_info(outdir + os.sep + 'run_info.txt', ['ensemble', 'num_steps'])
+            assert num_steps == proj_data.shape[1]
             # plot
             plot_proj_timeseries(proj_data, num_steps, ensemble, celltypes, outproj, highlights=highlights_CLPside)
             plot_basin_occupancy_timeseries(occ_data, num_steps, ensemble, celltypes, OCC_THRESHOLD, SPURIOUS_LIST,
