@@ -3,12 +3,13 @@ import os
 import time
 from multiprocessing import cpu_count
 
-from analysis_basin_plotting import plot_basin_grid
+from analysis_basin_plotting import plot_basin_grid, grid_video, plot_overlap_grid
 from analysis_basin_transitions import ensemble_projection_timeseries, get_basin_stats, fast_basin_stats, get_init_info, \
                                        ANNEAL_PROTOCOL, FIELD_PROTOCOL, ANALYSIS_SUBDIR, SPURIOUS_LIST, OCC_THRESHOLD, \
                                        save_and_plot_basinstats, load_basinstats, fetch_from_run_info
 from singlecell_constants import RUNS_FOLDER, ASYNC_BATCH
 from singlecell_data_io import run_subdir_setup, runinfo_append
+from singlecell_functions import hamming
 from singlecell_simsetup import singlecell_simsetup
 
 
@@ -92,36 +93,40 @@ def grid_stats(grid_data, printtorank=10):
             print rank, ranked_label, grid_data[row, ranked_col_idx], grid_data[row, ranked_col_idx] / ensemble
 
 
-def grid_video(rundir, vidname, imagedir=None, ext='.mp4', fps=20):
+def static_overlap_grid(simsetup, calc_hamming=False, savedata=True, plot=True):
     """
-    Make a video of the grid over time using ffmpeg.
-    Note: ffmpeg must be installed and on system path.
     Args:
-        rundir: Assumes sequentially named images of grid over time are in "plot_lattice" subdir of rundir.
-        vidname: filename for the video (no extension); it will be placed in a "video" subdir of rundir
-        imagedir: override use of "plot_lattice" subdir of rundir as the source [Default: None]
-        ext: only '.mp4' has been tested, seems to work on Windows Media Player but not VLC
-        fps: video frames per second; 1, 5, 20 work well
+        simsetup: project standard sim object
     Returns:
-        path to video
+        grid_data = np.dot(xi.T, xi) -- the (p x p) correlation matrix of the memories OR
+                    (p x p) array of hamming distance between all the memory pairs (equivalent; transformed)
     """
-    from utils.make_video import make_video_ffmpeg
-    # args specify
-    if imagedir is None:
-        imagedir = rundir + os.sep + "plot_lattice"
-    if not os.path.exists(rundir + os.sep + "video"):
-        os.makedirs(rundir + os.sep + "video")
-    videopath = rundir + os.sep + "video" + os.sep + vidname + ext
-    # call make video fn
-    print "Creating video at %s..." % videopath
-    make_video_ffmpeg(imagedir, videopath, fps=fps, ffmpeg_dir=None)
-    print "Done"
-    return videopath
+    # generate
+    celltypes = simsetup["CELLTYPE_LABELS"]
+    xi = simsetup["XI"]
+    if calc_hamming:
+        grid_data = np.zeros((len(celltypes), len(celltypes)))
+        for i in xrange(len(celltypes)):
+            for j in xrange(len(celltypes)):
+                hd = hamming(xi[:, i], xi[:, j])
+                grid_data[i, j] = hd
+                grid_data[j, i] = hd
+    else:
+        grid_data = np.dot(xi.T, xi)
+    # save and plot
+    outdir = RUNS_FOLDER
+    if savedata:
+        dataname = 'celltypes_%s.txt' % ["overlap", "hammingdist"][calc_hamming]
+        np.savetxt(outdir + os.sep + dataname, grid_data, delimiter=',', fmt='%.4f')
+    if plot:
+        plot_overlap_grid(grid_data, celltypes, outdir, ext='.pdf', normalize=False)
+    return grid_data
 
 
 if __name__ == '__main__':
     run_basin_grid = False
-    load_and_plot_basin_grid = True
+    gen_overlap_grid = True
+    load_and_plot_basin_grid = False
     reanalyze_grid_over_time = False
     make_grid_video = False
     print_grid_stats_from_file = False
@@ -154,6 +159,9 @@ if __name__ == '__main__':
                      ['num_proc', num_proc], ['anneal_protocol', anneal_protocol], ['field_protocol', field_protocol],
                      ['occ_threshold', OCC_THRESHOLD], ['async_batch', async_batch], ['time', t1]]
         runinfo_append(io_dict, info_list, multi=True)
+
+    if gen_overlap_grid:
+        static_overlap_grid(simsetup, calc_hamming=True)
 
     # direct data plotting
     if load_and_plot_basin_grid:

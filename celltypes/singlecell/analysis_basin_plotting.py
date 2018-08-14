@@ -98,11 +98,13 @@ def plot_basin_grid(grid_data, ensemble, steps, memory_labels, plotdir, spurious
     """
     assert grid_data.shape == (len(memory_labels), len(memory_labels) + len(spurious_list))
     # adjust data normalization
-    assert normalize
+    #assert normalize
     datamax = np.max(grid_data)
+    datamin = np.min(grid_data)
     if np.max(grid_data) > 1.0 and normalize:
         grid_data = grid_data / ensemble
         datamax = datamax / ensemble
+        datamin = datamax / ensemble
     # adjust colourbar max val
     if vforce is not None:
         vmax = vforce
@@ -170,3 +172,97 @@ def plot_basin_grid(grid_data, ensemble, steps, memory_labels, plotdir, spurious
             ax.axhline(y=ycoord, ls='--', color='grey', linewidth=1)
     plt.savefig(plotdir + os.sep + plotname + ext, dpi=100, bbox_inches='tight')
     return plt.gca()
+
+
+def plot_overlap_grid(grid_data, memory_labels, plotdir, ax=None, N=None, normalize=True, fs=9, relmax=True,
+                      rotate_standard=True, extragrid=False, plotname=None, ext='.pdf',
+                      hamming=False, vforce=None, namemod=''):
+    """
+    Alteration of plot_basin_grid to support (simpler) overlap and hamming dist plots
+    """
+    plotnames = ['celltypes_overlap', 'celltypes_hamming']
+    if plotname is None:
+        plotname = plotnames[hamming]
+    datalabels = ['Overlap', 'Hamming distance']
+    assert grid_data.shape == (len(memory_labels), len(memory_labels))
+    datamax = np.max(grid_data)
+    datamin = np.min(grid_data)
+    # adjust colourbar max val
+    if vforce is not None:
+        vmax = vforce
+        plotname += '_vforce%.2f%s' % (vforce, namemod)
+    else:
+        if relmax:
+            vmax = datamax
+        else:
+            if normalize:
+                vmax = 1.0
+            else:
+                vmax = N
+        plotname += namemod
+    # plot setup
+    if not ax:
+        plt.clf()
+        ax = plt.gca()
+        plt.gcf().set_size_inches(18.5, 12.5)
+    # plot the heatmap
+    imshow_kw = {'cmap': 'YlGnBu', 'aspect': None, 'vmin': datamin, 'vmax': vmax}  # note: fix at 0.5 of max works nice
+    im = ax.imshow(grid_data, **imshow_kw)
+    # create colorbar
+    cbar_kw = {'aspect': 30, 'pad': 0.02}   # larger aspect, thinner bar
+    cbarlabel = '(Symmetric) %s between memory i and j' % datalabels[hamming]
+    cbar = ax.figure.colorbar(im, ax=ax, **cbar_kw)
+    cbar.ax.set_ylabel(cbarlabel, rotation=-90, va="bottom", fontsize=fs+2, labelpad=20)
+    # hack title placement
+    plt.text(0.5, 1.3, '%s between memories' % datalabels[hamming], horizontalalignment='center',
+             transform=ax.transAxes, fontsize=fs+4)
+    ax.set_xticks(np.arange(grid_data.shape[1]))
+    ax.set_yticks(np.arange(grid_data.shape[0]))
+    # label them with the respective list entries.
+    ax.set_xticklabels(memory_labels, fontsize=fs)
+    ax.set_yticklabels(memory_labels, fontsize=fs)
+    # Rotate the tick labels and set their alignment.
+    ax.tick_params(top=True, bottom=False, labeltop=True, labelbottom=False)
+    if rotate_standard:
+        plt.setp(ax.get_xticklabels(), rotation=45, ha='left')
+    else:
+        plt.setp(ax.get_xticklabels(), rotation=-45, ha="right", rotation_mode="anchor")
+    # add gridlines
+    ax.set_xticks(np.arange(-.5, grid_data.shape[1], 1), minor=True)
+    ax.set_yticks(np.arange(-.5, grid_data.shape[0], 1), minor=True)
+    ax.grid(which='minor', color='w', linestyle='-', linewidth=1)  # grey good to split, white looks nice though
+    # hack to add extra gridlines (not clear how to have more than minor and major on one axis)
+    if extragrid:
+        for xcoord in np.arange(-.5, grid_data.shape[1], 8):
+            ax.axvline(x=xcoord, ls='--', color='grey', linewidth=1)
+        for ycoord in np.arange(-.5, grid_data.shape[0], 8):
+            ax.axhline(y=ycoord, ls='--', color='grey', linewidth=1)
+    plt.savefig(plotdir + os.sep + plotnames[hamming] + ext, dpi=100, bbox_inches='tight')
+    return plt.gca()
+
+
+def grid_video(rundir, vidname, imagedir=None, ext='.mp4', fps=20):
+    """
+    Make a video of the grid over time using ffmpeg.
+    Note: ffmpeg must be installed and on system path.
+    Args:
+        rundir: Assumes sequentially named images of grid over time are in "plot_lattice" subdir of rundir.
+        vidname: filename for the video (no extension); it will be placed in a "video" subdir of rundir
+        imagedir: override use of "plot_lattice" subdir of rundir as the source [Default: None]
+        ext: only '.mp4' has been tested, seems to work on Windows Media Player but not VLC
+        fps: video frames per second; 1, 5, 20 work well
+    Returns:
+        path to video
+    """
+    from utils.make_video import make_video_ffmpeg
+    # args specify
+    if imagedir is None:
+        imagedir = rundir + os.sep + "plot_lattice"
+    if not os.path.exists(rundir + os.sep + "video"):
+        os.makedirs(rundir + os.sep + "video")
+    videopath = rundir + os.sep + "video" + os.sep + vidname + ext
+    # call make video fn
+    print "Creating video at %s..." % videopath
+    make_video_ffmpeg(imagedir, videopath, fps=fps, ffmpeg_dir=None)
+    print "Done"
+    return videopath
