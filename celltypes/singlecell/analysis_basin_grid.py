@@ -161,7 +161,7 @@ if __name__ == '__main__':
         runinfo_append(io_dict, info_list, multi=True)
 
     if gen_overlap_grid:
-        static_overlap_grid(simsetup, calc_hamming=True)
+        static_overlap_grid(simsetup, calc_hamming=False)
 
     # direct data plotting
     if load_and_plot_basin_grid:
