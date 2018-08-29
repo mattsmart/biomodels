@@ -1,7 +1,8 @@
 # biomodels
 Various modelling projects
 
-Main Languages: Python and MATLAB 
+Main Languages: Python
+Additional: MATLAB and Mathematica
 
 Contents: 
 - modelling cell state dynamics with boolean networks (hopfield-like neural networks)
