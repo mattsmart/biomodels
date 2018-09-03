@@ -465,10 +465,10 @@ if __name__ == '__main__':
         #         'thymocyte - DP' / 'neutrophils' / 'monocytes - classical'
         init_cond = 'HSC'  # note HSC index is 6 in mehta mems
         ensemble = 100
-        num_steps = 100
+        num_steps = 300
         num_proc = cpu_count() / 2  # seems best to use only physical core count (1 core ~ 3x slower than 4)
         anneal_protocol = "protocol_A"
-        field_protocol = "yamanaka_OSKM"
+        field_protocol = None #"yamanaka_OSKM"
         async_batch = True
         plot = True
         parallel = True
