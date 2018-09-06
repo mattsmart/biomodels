@@ -91,4 +91,4 @@ if __name__ == '__main__':
     flag_write = True
     simsetup = singlecell_simsetup()
     app_field = np.zeros((simsetup['N'], NUM_FULL_STEPS))
-    singlecell_sim(init_id='esc', plot_period=1, simsetup=simsetup, app_field=app_field, flag_write=flag_write)
+    singlecell_sim(init_id='HSC', plot_period=1, simsetup=simsetup, app_field=app_field, flag_write=flag_write)
