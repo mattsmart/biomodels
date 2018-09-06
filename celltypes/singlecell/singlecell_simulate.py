@@ -1,7 +1,7 @@
 import numpy as np
 
 from singlecell_class import Cell
-from singlecell_constants import NUM_FULL_STEPS, BURST_ERROR_PERIOD, APP_FIELD_STRENGTH, BETA
+from singlecell_constants import NUM_FULL_STEPS, BURST_ERROR_PERIOD, APP_FIELD_STRENGTH, BETA, ASYNC_BATCH
 from singlecell_data_io import run_subdir_setup, runinfo_append
 from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
 
@@ -71,6 +71,7 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_FULL_STEPS, bet
         if flag_write:
             if singlecell.steps % plot_period == 0:
                 fig, ax, proj = singlecell.plot_projection(a_inv, xi, use_radar=True, pltdir=io_dict['plotdatadir'])
+                fig, ax, proj = singlecell.plot_overlap(xi, use_radar=True, pltdir=io_dict['plotdatadir'])
         singlecell.update_state(intxn_matrix, beta=beta, app_field=app_field_timestep,
                                 app_field_strength=app_field_strength, async_batch=ASYNC_BATCH)
 
@@ -90,5 +91,4 @@ if __name__ == '__main__':
     flag_write = True
     simsetup = singlecell_simsetup()
     app_field = np.zeros((simsetup['N'], NUM_FULL_STEPS))
-
-    singlecell_sim(plot_period=10, simsetup=simsetup, app_field=app_field, flag_write=flag_write)
+    singlecell_sim(init_id='esc', plot_period=1, simsetup=simsetup, app_field=app_field, flag_write=flag_write)

@@ -4,22 +4,21 @@ from singlecell_constants import J_RANDOM_DELETE_RATIO
 
 
 def memory_corr_matrix_and_inv(xi, check_invertible=False):
-
     if check_invertible:
         print xi.shape, np.linalg.matrix_rank(xi)  # expect rank = p (num memories) for invertibility
-
     corr_matrix = np.dot(xi.T, xi) / len(xi)
     return corr_matrix, np.linalg.inv(corr_matrix)
 
 
 def interaction_matrix(xi, corr_inv, method, flag_prune_intxn_matrix=False):
+    print "Note network method for interaction_matrix() is %s" % method
     if method == "hopfield":
-        intxn_matrix = np.dot(xi, xi.T) / len(xi[0])                     # TODO: not sure if factor 1/N or 1/p needed...
+        intxn_matrix = np.dot(xi, xi.T) / len(xi)
     elif method == "projection":
-        intxn_matrix = reduce(np.dot, [xi, corr_inv, xi.T]) / len(xi)    # TODO: not sure if factor 1/N needed
+        intxn_matrix = reduce(np.dot, [xi, corr_inv, xi.T]) / len(xi)
     else:
         raise ValueError("method arg invalid, must be one of %s" % ["projection", "hopfield"])
-    np.fill_diagonal(intxn_matrix, 0)                                    # TODO: is this step necessary in both cases? speedup...
+    np.fill_diagonal(intxn_matrix, 0)
     if flag_prune_intxn_matrix:
         randarr = np.random.rand(*intxn_matrix.shape)
         randarr = np.where(randarr > J_RANDOM_DELETE_RATIO, 1, 0)
