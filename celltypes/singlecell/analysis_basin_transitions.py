@@ -452,9 +452,9 @@ def basin_transitions(init_cond, ensemble, num_steps, beta, simsetup):
 
 
 if __name__ == '__main__':
-    gen_basin_data = True
+    gen_basin_data = False
     plot_grouped_data = False
-    profile = False
+    profile = True
 
     # prep simulation globals
     simsetup = singlecell_simsetup()
@@ -538,9 +538,10 @@ if __name__ == '__main__':
             ens_base = 16                                             # NETWORK_METHOD: all workers will do this many traj
             proc_lists = {p: range(1,p+1) for p in [4,8,80]}
         else:
-            ens_base = 48                                            # NETWORK_METHOD: divide this number amongst all workers
+            ens_base = 128                                            # NETWORK_METHOD: divide this number amongst all workers
             proc_lists = {4: [1,2,3,4],
                           8: [1,2,3,4,6,8], #[1,2,3,4,5,6,8],
+                          64: [1,2,4,8,16,32,64],
                           80: [1,2,3,4,5,6,8,10,12,15,16,20,24,30,40,48,60,80]}
 
         # run and time basin ensemble sim

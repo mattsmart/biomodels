@@ -8,6 +8,14 @@ from __future__ import print_function
 import numpy as np
 from time import time
 
+"""
+import os  # these appear to do nothing here, 1,2,8 all look same as comment out for np.dot
+os.environ['MKL_NUM_THREADS'] = "8"
+os.environ["OMP_NUM_THREADS"] = "8"
+os.environ["NUMEXPR_NUM_THREADS"] = "8"
+os.environ["OPENBLAS_NUM_THREADS"] = "8"
+"""
+
 # Let's take the randomness out of random numbers (for reproducibility)
 np.random.seed(0)
 
