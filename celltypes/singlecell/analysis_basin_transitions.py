@@ -453,9 +453,9 @@ def basin_transitions(init_cond, ensemble, num_steps, beta, simsetup):
 
 
 if __name__ == '__main__':
-    gen_basin_data = False
+    gen_basin_data = True
     plot_grouped_data = False
-    profile = True
+    profile = False
 
     # prep simulation globals
     simsetup = singlecell_simsetup()
@@ -465,7 +465,7 @@ if __name__ == '__main__':
         #         'Megakaryocyte-Erythroid Progenitor (MEP)' / 'Granulocyte-Monocyte Progenitor (GMP)' / 'thymocyte DN'
         #         'thymocyte - DP' / 'neutrophils' / 'monocytes - classical'
         init_cond = 'HSC'  # note HSC index is 6 in mehta mems
-        ensemble = 100
+        ensemble = 128
         num_steps = 100
         num_proc = cpu_count() / 2  # seems best to use only physical core count (1 core ~ 3x slower than 4)
         anneal_protocol = "protocol_A"
