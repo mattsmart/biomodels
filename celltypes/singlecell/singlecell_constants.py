@@ -1,16 +1,11 @@
 import os
 import sys
+import init_multiprocessing
 
+# LIBRARY GLOBAL MODS
 CELLTYPES = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(CELLTYPES)
 print "Appended to sys path", CELLTYPES  # TODO can maybe move this too simetup fn call and call once somewhere else...
-
-# LIBRARY GLOBAL MODS
-os.environ['MKL_NUM_THREADS'] = "2"
-os.environ["OMP_NUM_THREADS"] = "2"
-os.environ["NUMEXPR_NUM_THREADS"] = "2"
-os.environ["OPENBLAS_NUM_THREADS"] = "2"
-#os.environ["MKL_THREADING_LAYER"] = "sequential"  # this should be off if NUM_THREADS is not 1
 
 # IO
 SINGLECELL = CELLTYPES + os.sep + "singlecell"

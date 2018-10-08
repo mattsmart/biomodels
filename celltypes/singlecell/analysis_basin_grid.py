@@ -1,3 +1,4 @@
+import init_multiprocessing  # import before numpy
 import numpy as np
 import os
 import time

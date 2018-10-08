@@ -1,4 +1,5 @@
 import os
+import init_multiprocessing  # import before numpy
 import numpy as np
 import time
 from multiprocessing import Pool, cpu_count, current_process
@@ -540,7 +541,7 @@ if __name__ == '__main__':
         else:
             ens_base = 128                                            # NETWORK_METHOD: divide this number amongst all workers
             proc_lists = {4: [1,2,3,4],
-                          8: [1,2,3,4,6,8], #[1,2,3,4,5,6,8],
+                          8: [1,2,4,8], #[1,2,3,4,5,6,8],
                           64: [1,2,4,8,16,32,64],
                           80: [1,2,3,4,5,6,8,10,12,15,16,20,24,30,40,48,60,80]}
 
