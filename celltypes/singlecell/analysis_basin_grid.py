@@ -1,3 +1,4 @@
+import init_multiprocessing  # import before numpy
 import numpy as np
 import os
 import time
@@ -123,10 +124,39 @@ def static_overlap_grid(simsetup, calc_hamming=False, savedata=True, plot=True):
     return grid_data
 
 
+def stoch_from_distance(distance_data, kappa=None):
+    """
+    Given a square matrix of distances between N points
+    - stretch the distances according to a transformation rule (currently only np.exp(-kappa*d_ab) with kappa > 0
+    - set diagonals to zero
+    - normalize columns so that it represents a stochastic rate matrix (diagonals are -1*sum(col))
+    - return the generated stochastic rate matrix
+    """
+    def transform_distance(d_ab, kappa):
+        if kappa is None:
+            return 1/d_ab
+        else:
+            return np.exp(-kappa*d_ab)
+    stoch_array = np.zeros(distance_data.shape)
+    for col in xrange(distance_data.shape[1]):
+        colsum = 0.0
+        for row in xrange(distance_data.shape[0]):
+            if row != col:
+                distmod = transform_distance(distance_data[row, col], kappa)
+                stoch_array[row, col] = distmod
+                colsum += distmod
+            else:
+                stoch_array[row, col] = 0.0
+        stoch_array[col, col] = -colsum
+        stoch_array[:, col] /= colsum  # TODO this step should not be necessary
+    return stoch_array
+
+
 if __name__ == '__main__':
     run_basin_grid = False
-    gen_overlap_grid = True
+    gen_overlap_grid = False
     load_and_plot_basin_grid = False
+    load_and_compare_grids = True
     reanalyze_grid_over_time = False
     make_grid_video = False
     print_grid_stats_from_file = False
@@ -161,7 +191,7 @@ if __name__ == '__main__':
         runinfo_append(io_dict, info_list, multi=True)
 
     if gen_overlap_grid:
-        static_overlap_grid(simsetup, calc_hamming=False)
+        static_grid_data = static_overlap_grid(simsetup, calc_hamming=True)
 
     # direct data plotting
     if load_and_plot_basin_grid:
@@ -176,6 +206,47 @@ if __name__ == '__main__':
                         relmax=False, ext='.pdf', vforce=0.5)
         plot_basin_grid(basin_grid_data, ensemble, num_steps, celltype_labels, latticedir, SPURIOUS_LIST,
                         relmax=False, ext='.pdf', vforce=1.0)
+
+    # direct data plotting
+    if load_and_compare_grids:
+        kappa = 1.0  # positive number or None
+        comparisondir = RUNS_FOLDER + os.sep + "comparegrids"
+        # load basin grid
+        rundir = comparisondir + os.sep + "aug11 - 1000ens x 500step"
+        latticedir = rundir + os.sep + "lattice"
+        filestr_data = latticedir + os.sep + "gen_basin_grid.txt"
+        simulated_data = load_basin_grid(filestr_data)
+        ensemble, num_steps = fetch_from_run_info(rundir + os.sep + 'run_info.txt', ['ensemble', 'num_steps'])
+        plot_basin_grid(simulated_data, ensemble, num_steps, celltype_labels, comparisondir, SPURIOUS_LIST,
+                        relmax=False, ext='.pdf', vforce=0.5, plotname='simulated_endpt')
+        simulated_data_normed = simulated_data / ensemble
+        # load static distance grid
+        distance_path = comparisondir + os.sep + "celltypes_hammingdist.txt"
+        distance_data_normed = load_basin_grid(distance_path) / simsetup['N']  # note normalization
+        plot_overlap_grid(distance_data_normed, celltype_labels, comparisondir, hamming=True,
+                          relmax=True, ext='.pdf', plotname='distances_matrix')
+        # transform distance grid via f(d_ab)
+        stochastic_matrix = stoch_from_distance(distance_data_normed, kappa=kappa)
+        stochastic_matrix_nodiag = stochastic_matrix - np.diag(np.diag(stochastic_matrix))
+        plot_overlap_grid(stochastic_matrix, celltype_labels, comparisondir,
+                          hamming=True, relmax=True, ext='.pdf', plotname='stochastic_matrix')
+        plot_overlap_grid(stochastic_matrix_nodiag, celltype_labels, comparisondir,
+                          hamming=True, relmax=True, ext='.pdf', plotname='stochastic_matrix_nodiag')  # deleted diags
+        # compute deviations
+        truncated_sim = simulated_data_normed[:, 0:-len(SPURIOUS_LIST)]
+        print truncated_sim.shape
+        deviation_matrix = stochastic_matrix_nodiag - truncated_sim.T
+        print simulated_data[0:4, 0:4]
+        print simulated_data_normed[0:4, 0:4]
+        print distance_data_normed[0:4, 0:4]
+        print stochastic_matrix[0:4, 0:4]
+        print stochastic_matrix_nodiag[0:4, 0:4]
+        print deviation_matrix[0:4, 0:4]
+        plot_overlap_grid(deviation_matrix, celltype_labels, comparisondir,
+                          hamming=True, relmax=True, ext='.pdf', plotname='deviation_matrix')
+        # solve for scaling constant such that difference is minimized (A-cB=0 => AB^-1=cI)
+        inverted_deviation = stochastic_matrix_nodiag*np.linalg.inv(truncated_sim.T)
+        print inverted_deviation[0:4, 0:4]
 
     # use labelled collection of timeseries from each row to generate multiple grids over time
     if reanalyze_grid_over_time:

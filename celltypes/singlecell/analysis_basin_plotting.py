@@ -237,7 +237,7 @@ def plot_overlap_grid(grid_data, memory_labels, plotdir, ax=None, N=None, normal
             ax.axvline(x=xcoord, ls='--', color='grey', linewidth=1)
         for ycoord in np.arange(-.5, grid_data.shape[0], 8):
             ax.axhline(y=ycoord, ls='--', color='grey', linewidth=1)
-    plt.savefig(plotdir + os.sep + plotnames[hamming] + ext, dpi=100, bbox_inches='tight')
+    plt.savefig(plotdir + os.sep + plotname + ext, dpi=100, bbox_inches='tight')
     return plt.gca()
 
 

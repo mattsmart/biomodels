@@ -1,4 +1,5 @@
 import os
+import init_multiprocessing  # import before numpy
 import numpy as np
 import time
 from multiprocessing import Pool, cpu_count, current_process
@@ -464,7 +465,7 @@ if __name__ == '__main__':
         #         'Megakaryocyte-Erythroid Progenitor (MEP)' / 'Granulocyte-Monocyte Progenitor (GMP)' / 'thymocyte DN'
         #         'thymocyte - DP' / 'neutrophils' / 'monocytes - classical'
         init_cond = 'HSC'  # note HSC index is 6 in mehta mems
-        ensemble = 100
+        ensemble = 128
         num_steps = 100
         num_proc = cpu_count() / 2  # seems best to use only physical core count (1 core ~ 3x slower than 4)
         anneal_protocol = "protocol_A"
@@ -538,9 +539,10 @@ if __name__ == '__main__':
             ens_base = 16                                             # NETWORK_METHOD: all workers will do this many traj
             proc_lists = {p: range(1,p+1) for p in [4,8,80]}
         else:
-            ens_base = 48                                            # NETWORK_METHOD: divide this number amongst all workers
+            ens_base = 128                                            # NETWORK_METHOD: divide this number amongst all workers
             proc_lists = {4: [1,2,3,4],
-                          8: [1,2,3,4,6,8], #[1,2,3,4,5,6,8],
+                          8: [1,2,4,8], #[1,2,3,4,5,6,8],
+                          64: [1,2,4,8,16,32,64],
                           80: [1,2,3,4,5,6,8,10,12,15,16,20,24,30,40,48,60,80]}
 
         # run and time basin ensemble sim

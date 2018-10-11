@@ -24,8 +24,6 @@ biophysics_meanfield/data/
 population_genetics/simulate - time - testing.py
 population_genetics/simulate - time.py
 
-oncogenesis_dynamics/python/output/
-
 transcriptome_clustering/rawdata/
 transcriptome_clustering/documentation/
 
@@ -38,3 +36,5 @@ celltypes/multicell/stored/
 celltypes/dataprocess/runs/
 celltypes/cytokine/runs/
 celltypes/input/2018_scMCA/
+
+oncogenesis_dynamics/output/
