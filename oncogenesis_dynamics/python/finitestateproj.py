@@ -75,21 +75,28 @@ def fsp_matrix(params, fpt_flag=False):
     count = 0
     fpt_rxn_idx = np.max(update_dict.keys())
     sparse_info = dict()
+
+    simplex_buffer = int(params.N*0.1 + 10)  # TODO fluctuations ~ order sqrt(F)?
+    lowcutoff = 0.0 # params.N - simplex_buffer
+    highcutoff = params.N + 20 # params.N + simplex_buffer
+
     for state_start_idx in xrange(statespace_volume-1):
         state_start = int_to_state[state_start_idx]
-        rxn_prop = reaction_propensities_lowmem(state_start, params, fpt_flag=fpt_flag)
-        for rxn_idx, prop in enumerate(rxn_prop):
-            if prop != 0.0:
-                if rxn_idx == fpt_rxn_idx:
-                    state_end_idx = state_to_int["firstpassage"]  # i.e. fpt absorbing state is the last one
-                    sparse_info[count] = [prop, state_end_idx, state_start_idx]  # note A index as [end, start]
-                    count += 1
-                else:
-                    state_end = [state_start[k] + update_dict[rxn_idx][k] for k in xrange(params.numstates)]
-                    if not any(np.array(state_end) >= statespace_length):  # this is the truncation step
-                        state_end_idx = state_to_int[tuple(state_end)]
+        if (lowcutoff <= np.sum(state_start) < highcutoff):  # this is one truncation step
+            rxn_prop = reaction_propensities_lowmem(state_start, params, fpt_flag=fpt_flag)
+            for rxn_idx, prop in enumerate(rxn_prop):
+                if prop != 0.0:
+                    if rxn_idx == fpt_rxn_idx:
+                        state_end_idx = state_to_int["firstpassage"]  # i.e. fpt absorbing state is the last one
                         sparse_info[count] = [prop, state_end_idx, state_start_idx]  # note A index as [end, start]
                         count += 1
+                    else:
+                        state_end = [state_start[k] + update_dict[rxn_idx][k] for k in xrange(params.numstates)]
+                        #if not any(np.array(state_end) >= statespace_length):  # this is the truncation step
+                        if not any(np.array(state_end) >= statespace_length) and (lowcutoff <= np.sum(state_end) < highcutoff):  # this is the truncation step
+                            state_end_idx = state_to_int[tuple(state_end)]
+                            sparse_info[count] = [prop, state_end_idx, state_start_idx]  # note A index as [end, start]
+                            count += 1
 
     print "done collecting FSP generator elements, loading sparse matrix"
     # build sparse FSP matrix
@@ -180,7 +187,9 @@ def plot_distr(distr, domain, title):
 if __name__ == "__main__":
     # SCRIPT PARAMETERS
     switch_generate = False
-    plot_vs_histogram = True
+    load = False
+    plot_vs_histogram = False
+    plot_multi_pdf = True
     default_path_p_of_t = OUTPUT_DIR + sep + 'p_of_t.npy'
     default_path_p_of_t_idx = OUTPUT_DIR + sep + 'p_of_t_idx.npy'
     default_path_p_of_t_times = OUTPUT_DIR + sep + 'p_of_t_times.npy'
@@ -189,7 +198,7 @@ if __name__ == "__main__":
     params = presets('preset_xyz_constant')  # preset_xyz_constant, preset_xyz_constant_fast, valley_2hit
     params = params.mod_copy({'N': 20})  # TODO had memory error with N = 50 once it got to expm call, had delayed memory error for N = 20
     t1 = 0.3 * 1e5
-    dt = 0.5 * 1e2
+    dt = 1.0 * 1e2
 
     # INITIAL PROBABILITY VECTOR
     statespace_vol, statespace_length = fsp_statespace(params, fpt_flag=True)
@@ -200,30 +209,59 @@ if __name__ == "__main__":
     assert np.sum(init_prob) == 1.0
 
     # get p_of_t data
-    if switch_generate:
-        p_of_t, trange = prob_at_t_timeseries(params, init_prob, t1=t1, dt=dt, fpt_flag=True)
-    else:
-        path_p_of_t = default_path_p_of_t
-        path_p_of_t_idx = default_path_p_of_t_idx
-        path_p_of_t_times = default_path_p_of_t_times
-        p_of_t, _, trange = read_matrix_data_and_idx_vals(path_p_of_t, path_p_of_t_idx, path_p_of_t_times, binary=True)
+    if load:
+        if switch_generate:
+            p_of_t, trange = prob_at_t_timeseries(params, init_prob, t1=t1, dt=dt, fpt_flag=True)
+        else:
+            path_p_of_t = default_path_p_of_t
+            path_p_of_t_idx = default_path_p_of_t_idx
+            path_p_of_t_times = default_path_p_of_t_times
+            p_of_t, _, trange = read_matrix_data_and_idx_vals(path_p_of_t, path_p_of_t_idx, path_p_of_t_times, binary=True)
 
-    # get fpt distribution
-    fpt_cdf = fsp_fpt_cdf(p_of_t, fpt_idx=-1)
-    fpt_pdf = conv_cdf_to_pdf(fpt_cdf, trange)
+        # get fpt distribution
+        fpt_cdf = fsp_fpt_cdf(p_of_t, fpt_idx=-1)
+        fpt_pdf = conv_cdf_to_pdf(fpt_cdf, trange)
 
-    # plot
-    plot_distr(fpt_cdf, trange, 'FPT cdf')
-    plot_distr(fpt_pdf, trange, 'FPT pdf')
+        # plot
+        plot_distr(fpt_cdf, trange, 'FPT cdf')
+        plot_distr(fpt_pdf, trange, 'FPT pdf')
 
     # plot over histogram
     if plot_vs_histogram:
-        fpt_data = "fpt_default_ens1500_main_data.txt"  # or try 300
-        fpt_params = "fpt_default_ens1500_main_params.csv"
+        fpt_data = "fpt_feedback_z_ens300_main_data.txt"  # or try 300
+        fpt_params = "fpt_feedback_z_ens300_main_params.csv"
         fp_times, fp_times_params = read_fpt_and_params(OUTPUT_DIR, filename_data=fpt_data, filename_params=fpt_params)
         hist_ax = fpt_histogram(fp_times, fp_times_params, figname_mod="", flag_show=False, flag_norm=True,
                                 flag_xlog10=False, flag_ylog10=False, fs=12)
-        #plt.show()
         hist_ax.plot(trange, fpt_pdf, 'k--', lw=2)  # could have chunkier pdf by taking sum of chunks and replotting for wider bins
-        plt.savefig('test.pdf')
+        #hist_ax.set_yscale("log", nonposx='clip')
+        plt.savefig(OUTPUT_DIR + sep + 'fsp_vs_ssa_stats.pdf')
+        plt.show()
+
+    if plot_multi_pdf:
+        pdfdir = OUTPUT_DIR
+        pdfs = ["p_of_t_const","p_of_t_hill"]
+        colors = ["black", "red"]
+        p_of_t_set = []
+        trange_set = []
+        plt.figure()
+        ax = plt.gca()
+        for idx, pdfstr in enumerate(pdfs):
+            path_p_of_t = OUTPUT_DIR + sep + pdfstr + '.npy'
+            path_p_of_t_idx = OUTPUT_DIR + sep + pdfstr + '_idx.npy'
+            path_p_of_t_times = OUTPUT_DIR + sep + pdfstr + '_times.npy'
+            p_of_t, _, trange = read_matrix_data_and_idx_vals(path_p_of_t, path_p_of_t_idx, path_p_of_t_times,
+                                                              binary=True)
+            p_of_t_set.append(p_of_t)
+            trange_set.append(trange)
+            print idx, len(trange), min(trange), max(trange)
+            fpt_cdf = fsp_fpt_cdf(p_of_t, fpt_idx=-1)
+            fpt_pdf = conv_cdf_to_pdf(fpt_cdf, trange)
+            ax.plot(trange, fpt_pdf, '--', color=colors[idx], lw=2, label=pdfs[idx])
+        #ax.set_yscale("log", nonposx='clip')
+        plt.title('Multiple FPT pdfs')
+        plt.legend()
+        plt.xlabel('t')
+        plt.ylabel('prob')
+        plt.savefig(OUTPUT_DIR + sep + 'multifsp.pdf')
         plt.show()
