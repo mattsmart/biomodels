@@ -44,7 +44,7 @@ def phase_portrait(params, num_traj=NUM_TRAJ, sim_method=SIM_METHOD, figname_mod
 
     stable_fps = []
     unstable_fps = []
-    all_fps = fp_location_fsolve(params, check_near_traj_endpt=True, gridsteps=2*35, tol=10e-1, buffer=2.0)
+    all_fps = fp_location_fsolve(params, check_near_traj_endpt=True, gridsteps=35, tol=10e-1, buffer=True)
     for fp in all_fps:
         J = jacobian_numerical_2d(params, fp[0:2])
         eigenvalues, V = np.linalg.eig(J)
