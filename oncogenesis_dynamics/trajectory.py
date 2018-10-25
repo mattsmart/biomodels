@@ -42,13 +42,18 @@ def phase_portrait(params, num_traj=NUM_TRAJ, sim_method=SIM_METHOD, figname_mod
     for k in xrange(num_traj):
         init_conds[k, :] = np.array(map_init_name_to_init_cond(params, "random"))
 
-    all_fps = fp_location_fsolve(params, check_near_traj_endpt=True, gridsteps=35, tol=10e-1)
-    sorted_fps = sorted(get_physical_and_stable_fp(params), key=itemgetter(2))
-    print "STABLE", sorted_fps
+    stable_fps = []
+    unstable_fps = []
+    all_fps = fp_location_fsolve(params, check_near_traj_endpt=True, gridsteps=2*35, tol=10e-1, buffer=2.0)
     for fp in all_fps:
         J = jacobian_numerical_2d(params, fp[0:2])
         eigenvalues, V = np.linalg.eig(J)
-        print fp, eigenvalues
+        if eigenvalues[0] < 0 and eigenvalues[1] < 0:
+            print "Stable FP:", fp, "Evals:", eigenvalues
+            stable_fps.append(fp)
+        else:
+            print "Unstable FP:", fp, "Evals:", eigenvalues
+            unstable_fps.append(fp)
 
     plt_title = "Phase portrait (%d traj) System: %s" % (num_traj, params.system)
     plt_save = "trajectory_simplex_multi%s" % figname_mod
@@ -64,7 +69,7 @@ def phase_portrait(params, num_traj=NUM_TRAJ, sim_method=SIM_METHOD, figname_mod
         r, times, = trajectory_simulate(params, init_cond=init_cond, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS, sim_method=sim_method)
         if basins_flag:
             endpt = r[-1,:]
-            for idx, fp in enumerate(sorted_fps):
+            for idx, fp in enumerate(all_fps):
                 if np.linalg.norm(endpt - fp) <= 10-2:  # check if trajectory went to that fp
                     ax_traj.plot(r[:, 0], r[:, 1], r[:, 2], label='trajectory', color=BASIN_COLOUR_DICT[idx])
         else:
@@ -72,8 +77,10 @@ def phase_portrait(params, num_traj=NUM_TRAJ, sim_method=SIM_METHOD, figname_mod
         #assert np.abs(np.sum(r[-1, :]) - N) <= 0.001
 
     # plot the fixed points
-    for fp in sorted_fps:
+    for fp in stable_fps:
         plt.plot([fp[0]], [fp[1]], [fp[2]], marker='o', markersize=5, markeredgecolor='black', linewidth='3', color='yellow')
+    for fp in unstable_fps:
+        plt.plot([fp[0]], [fp[1]], [fp[2]], marker='o', markersize=5, markeredgecolor='black', linewidth='3', color='red')
 
     plot_options['plt_save'] = plt_save
     plot_options['bbox_inches'] = 'tight'
@@ -98,13 +105,16 @@ def conserved_quantity(state, params):
 
 if __name__ == "__main__":
     # MAIN RUN OPTIONS
-    run_singletraj = True
+    run_singletraj = False
     run_conserved = False
     plot_options_traj = plot_options_build(flag_table=True, flag_show=True, flag_save=True, plt_save="trajectory")
     run_multitraj = False
     plot_options_multitraj = plot_options_build(flag_table=True, flag_show=True, flag_save=True, plt_save="trajmulti")
-    run_phaseportrait = True
+    run_phaseportrait = False
     plot_options_trajportrait = plot_options_build(flag_table=True, flag_show=True, flag_save=True, plt_save="trajportrait")
+    run_multiphaseportrait = True
+    plot_options_mulyitrajportrait = plot_options_build(flag_table=True, flag_show=True, flag_save=True,
+                                                   plt_save="trajportrait")
 
     # PLOTTING OPTIONS
     sim_method = "libcall"
@@ -120,7 +130,7 @@ if __name__ == "__main__":
         'mu': 0.001,  # 0.01
         'a': 1.0,
         'b': 1.075,
-        'c': 1.14,  # 1.2
+        'c': 0.8,  # 1.2
         'N': 100.0,  # 100.0
         'v_x': 0.0,
         'v_y': 0.0,
@@ -155,3 +165,12 @@ if __name__ == "__main__":
 
     if run_phaseportrait:
         phase_portrait(params, num_traj=70, show_flag=True, basins_flag=False, **plot_options_trajportrait)
+
+    if run_multiphaseportrait:
+        param_vary_name = 'c'
+        param_vary_range = np.linspace(1.022,1.025, 10)
+        # fp_dict = {pv: [] for pv in param_vary_range}
+        for i, pv in enumerate(param_vary_range):
+            print "paramset %d, %s=%.5f" % (i, param_vary_name, pv)
+            params_step = params.mod_copy({param_vary_name: pv})
+            phase_portrait(params_step, num_traj=30, show_flag=True, basins_flag=False, **plot_options_mulyitrajportrait)

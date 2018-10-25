@@ -884,7 +884,7 @@ def fsolve_func(xvec_guess, params):  # TODO: faster if split into 3 fns w.o if 
     return [xdot, ydot]
 
 
-def fp_location_fsolve(params, check_near_traj_endpt=True, gridsteps=15, tol=10e-1):
+def fp_location_fsolve(params, check_near_traj_endpt=True, gridsteps=15, tol=10e-1, buffer=False):
     assert params.system in ["default", "feedback_z", "feedback_yz"]
     N = params.N
     unique_solutions = []
@@ -898,10 +898,17 @@ def fp_location_fsolve(params, check_near_traj_endpt=True, gridsteps=15, tol=10e
         if np.linalg.norm(infodict["fvec"]) <= 10e-3:  # only append actual roots (i.e. f(x)=0)
             unique_solutions.append([solution[0], solution[1], N - solution[0] - solution[1]])
     # grid search of solution space (positive simplex):
-    for i in xrange(gridsteps):
-        x_guess = N*i/float(gridsteps)
-        for j in xrange(gridsteps-i):
-            y_guess = N * i / float(gridsteps)
+    if buffer:
+        buffer = int(gridsteps/5)
+        irange = range(-buffer, gridsteps + buffer)
+        jrange = range(-buffer, gridsteps + buffer)
+    else:
+        irange = range(gridsteps)
+        jrange = range(gridsteps)
+    for i in irange:
+        x_guess = N * i / float(gridsteps)
+        for j in jrange:
+            y_guess = N * j / float(gridsteps)
             # TODO: this returns jacobian estimate.. use it
             solution, infodict, _, _ = fsolve(fsolve_func, [x_guess, y_guess], (params), full_output=True)
             append_flag = True
