@@ -6,6 +6,7 @@ from params import Params
 
 VALID_PRESET_LABELS = ["preset_xyz_constant", "preset_xyz_constant_fast",
                        "preset_xyz_hill", "preset_xyz_hill_onlyinc", "preset_xyz_hill_onlydec",
+                       "preset_xyz_tanh", "preset_xyz_tanh_onlyinc", "preset_xyz_tanh_onlydec",
                        "valley_2hit"]
 
 
@@ -15,7 +16,7 @@ def presets(preset_label):
     if preset_label == "preset_xyz_constant":
         # DYNAMICS PARAMETERS
         system = "default"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
-        feedback = "constant"  # "constant", "hill", "step", "pwlinear"
+        feedback = "constant"  # "constant", "hill", "step", "pwlinear", "tanh"
         params_dict = {
             'alpha_plus': 0.2,
             'alpha_minus': 0.5,  # 0.5
@@ -36,7 +37,7 @@ def presets(preset_label):
     elif preset_label == "preset_xyz_constant_fast":
         # DYNAMICS PARAMETERS
         system = "default"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
-        feedback = "constant"  # "constant", "hill", "step", "pwlinear"
+        feedback = "constant"  # "constant", "hill", "step", "pwlinear", "tanh"
         params_dict = {
             'alpha_plus': 0.2,
             'alpha_minus': 0.5,  # 0.5
@@ -57,7 +58,7 @@ def presets(preset_label):
     elif preset_label == "preset_xyz_hill":
         # DYNAMICS PARAMETERS
         system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
-        feedback = "hill"  # "constant", "hill", "step", "pwlinear"
+        feedback = "hill"  # "constant", "hill", "step", "pwlinear", "tanh"
         params_dict = {
             'alpha_plus': 0.2,
             'alpha_minus': 0.5,  # 0.5
@@ -87,6 +88,18 @@ def presets(preset_label):
         params = presets("preset_xyz_hill")
         params = params.mod_copy({'mult_inc': 1.0})  # setting mult params to 1.0 means no feedback
 
+    elif preset_label == "preset_xyz_tanh":
+        params = presets("preset_xyz_hill")
+        params = params.mod_copy({}, feedback='tanh')
+
+    elif preset_label == "preset_xyz_tanh_onlyinc":
+        params = presets("preset_xyz_tanh")
+        params = params.mod_copy({'mult_dec': 1.0})  # setting mult params to 1.0 means no feedback
+
+    elif preset_label == "preset_xyz_tanh_onlydec":
+        params = presets("preset_xyz_tanh")
+        params = params.mod_copy({'mult_inc': 1.0})  # setting mult params to 1.0 means no feedback
+
     elif preset_label == "valley_2hit":
         # param comparison: Fig 5a fisher 2009 theor pop bio
         # they use ensemble of 500 runs for each data point
@@ -97,7 +110,7 @@ def presets(preset_label):
 
         # DYNAMICS PARAMETERS
         system = "default"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
-        feedback = "constant"  # "constant", "hill", "step", "pwlinear"
+        feedback = "constant"  # "constant", "hill", "step", "pwlinear", "tanh"
         params_dict = {
             'alpha_plus': mu_0,
             'alpha_minus': 0.0,  # # reversibility of x <-> y

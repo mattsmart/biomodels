@@ -288,7 +288,7 @@ class Params(object):
         # TODO implement (also modify params list attribute)
         return self.params_list[PARAMS_ID_INV[param_label]]  # could also use getattr
 
-    def mod_copy(self, new_values):
+    def mod_copy(self, new_values, feedback=None):
         """
         new_values is dict of pairs of form param id: val
         return new params instance
@@ -297,7 +297,9 @@ class Params(object):
         params_dict_new = dict(self.params_dict)
         for k,v in new_values.iteritems():
             params_dict_new[k] = v
-        return Params(params_dict_new, self.system, feedback=self.feedback)
+        if feedback is None:
+            feedback = self.feedback
+        return Params(params_dict_new, self.system, feedback=feedback)
 
     def printer(self):
         print "System: %s" % self.system
