@@ -5,7 +5,8 @@ from os import sep
 from constants import ODE_SYSTEMS, PARAMS_ID, PARAMS_ID_INV, HILLORIG_Z0_RATIO, HILLORIG_Y0_PLUS_Z0_RATIO, HILL_EXP, \
                       MUBASE_MULTIPLIER, SWITCHING_RATIO, MULT_INC, MULT_DEC, \
                       DEFAULT_FEEDBACK_SHAPE, FEEDBACK_SHAPES
-from feedback import hill_increase, hill_decrease, step_increase, step_decrease, hill_orig_increase, hill_orig_decrease
+from feedback import hill_increase, hill_decrease, step_increase, step_decrease, hill_orig_increase, hill_orig_decrease, \
+                     tanh_increase, tanh_decrease
 
 
 class Params(object):
@@ -158,6 +159,8 @@ class Params(object):
                 feedbackval = hill_increase(self.alpha_plus, state_coordinate, N, hill_exp=hill_exp, hill_ratio=state_ratio, multiplier=mult_inc)
             elif self.feedback == "step":
                 feedbackval = step_increase(self.alpha_plus, state_coordinate, N, step_ratio=state_ratio, multiplier=mult_inc)
+            elif self.feedback == "tanh":
+                feedbackval = tanh_increase(self.alpha_plus, state_coordinate, N, switchpoint=state_ratio, multiplier=mult_inc)
 
         elif param_name == "alpha_minus":
             if self.feedback == "constant":
@@ -169,6 +172,8 @@ class Params(object):
                 feedbackval = hill_decrease(self.alpha_minus, state_coordinate, N, hill_exp=hill_exp, hill_ratio=state_ratio, multiplier=mult_dec)
             elif self.feedback == "step":
                 feedbackval = step_decrease(self.alpha_minus, state_coordinate, N, step_ratio=state_ratio, multiplier=mult_dec)
+            elif self.feedback == "tanh":
+                feedbackval = tanh_decrease(self.alpha_minus, state_coordinate, N, switchpoint=state_ratio, multiplier=mult_dec)
 
         elif param_name == "mu_base":
             if self.feedback == "constant":
@@ -178,7 +183,8 @@ class Params(object):
                 feedbackval = hill_increase(self.mu_base, state_coordinate, N, hill_exp=hill_exp, hill_ratio=state_ratio, multiplier=mult_inc_mu)
             elif self.feedback == "step":
                 feedbackval = step_increase(self.mu_base, state_coordinate, N, step_ratio=state_ratio, multiplier=mult_inc_mu)
-
+            elif self.feedback == "tanh":
+                feedbackval = tanh_increase(self.mu_base, state_coordinate, N, switchpoint=state_ratio, multiplier=mult_inc_mu)
         else:
             print "param_name %s not supported in feedback_shape" % param_name
             feedbackval = None

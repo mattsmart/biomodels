@@ -95,6 +95,49 @@ def step_decrease(param_to_modify, coord, N, step_ratio=SWITCHING_RATIO, multipl
     return feedbackval
 
 
+def tanh_unit(coord_normed, rate=5.0, switchpoint=SWITCHING_RATIO):
+    """
+    Eegularized unit between 0 and 1 effectively 0.5*(1+tan(x))=1/(1+exp(-2x))
+    As coord -> infty, val -> 1
+    As coord -> -infty, val -> 0
+    Switchpoint defines the midpoint of the s-shape
+    Rate define the steepness: rate -> infty should resemble step function at coord = midpoint
+    Defaults: switchpoint ~ 0.5, rate ~ 5.0 so that as coord -> 0, val -> 0
+    Notes:
+        - could additionally perform val ** (1/hill_exp) to modify the switching behaviour
+    """
+    x = rate * (coord_normed - switchpoint)
+    return 1 / (1 + np.exp(-2*x))                     # note this is 0.5*(1+tan(x))
+
+
+def tanh_increase(param_to_modify, coord, N, rate=5.0, switchpoint=SWITCHING_RATIO, multiplier=MULT_INC):
+    """
+    param_to_modify: e.g. alpha_plus_0 (value without feedback)
+    coord: state coordinate e.g. z=50
+    N: param N e.g. N=10,000
+    multiplier: sets scale of increase, e.g. multiplier=k corresponds to saturation at (k+1)*param_to_modify
+    """
+    f = coord / float(N)
+    tanhcurve = tanh_unit(f, rate=rate, switchpoint=switchpoint)
+    mult_factor = (multiplier - 1)
+    feedbackval = param_to_modify * (1 + mult_factor * tanhcurve)
+    return feedbackval
+
+
+def tanh_decrease(param_to_modify, coord, N, rate=5.0, switchpoint=SWITCHING_RATIO, multiplier=MULT_DEC):
+    """
+    param_to_modify: e.g. alpha_plus_0 (value without feedback)
+    coord: state coordinate e.g. z=50
+    N: param N e.g. N=10,000
+    multiplier: param_to_modify gets "multiplier" times smaller as coord -> N
+    """
+    f = coord / float(N)
+    tanhcurve = tanh_unit(f, rate=rate, switchpoint=switchpoint)
+    mult_factor = 1/multiplier - 1
+    feedbackval = param_to_modify * (1 + mult_factor * tanhcurve)
+    return feedbackval
+
+
 def plot_all_feedbacks():
     # value settings
     param_to_modify = 10.0
@@ -105,12 +148,14 @@ def plot_all_feedbacks():
     y_label = 'value (e.g. alpha(z))'
     feedback_labels = ['hill_orig_increase', 'hill_orig_decrease',
                        'hill_increase', 'hill_decrease',
-                       'step_increase', 'step_decrease']
+                       'step_increase', 'step_decrease',
+                       'tanh_increase', 'tanh_decrease']
     feedback_fns = [hill_orig_increase, hill_orig_decrease,
                     hill_increase, hill_decrease,
-                    step_increase, step_decrease]
+                    step_increase, step_decrease,
+                    tanh_increase, tanh_decrease]
     # subplot settings
-    numrow = 3
+    numrow = 4
     numcol = 2
     #plt.subplots(numrow, numcol, sharex='col', sharey='row')
     fig, axarr = plt.subplots(numrow, numcol)
@@ -124,6 +169,7 @@ def plot_all_feedbacks():
             axarr[i,j].set_title('Feedback: %s' % feedback_labels[idx])
             axarr[i,j].set_xlabel(x_label)
             axarr[i,j].set_ylabel(y_label)
+            print feedback_labels[idx], param_range[0], param_range[-1]
     plt.tight_layout()
     plt.show()
     return

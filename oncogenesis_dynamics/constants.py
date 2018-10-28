@@ -27,7 +27,7 @@ Conventions
 
 # MODEL PARAMETERS AND LABELS
 ODE_SYSTEMS = ["default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"]
-FEEDBACK_SHAPES = ["constant", "hill", "step", "pwlinear", "hillorig"]
+FEEDBACK_SHAPES = ["constant", "hill", "step", "pwlinear", "hillorig", "tanh"]
 DEFAULT_FEEDBACK_SHAPE = "hill"
 PARAMS_ID = {0: "alpha_plus",
              1: "alpha_minus",
