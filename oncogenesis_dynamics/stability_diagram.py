@@ -5,7 +5,7 @@ from os import sep
 
 from constants import PARAMS_ID, PARAMS_ID_INV, STATES_ID_INV, OUTPUT_DIR, Z_TO_COLOUR_BISTABLE_WIDE, Z_TO_COLOUR_ORIG
 from data_io import write_matrix_data_and_idx_vals, read_matrix_data_and_idx_vals, read_params
-from formulae import is_stable, fp_location_general, get_physical_and_stable_fp, get_stable_fp
+from formulae import is_stable, fp_location_general, get_physical_fp_stable_and_not, get_fp_stable_and_not
 from params import Params
 from plotting import plot_table_params
 
@@ -56,7 +56,7 @@ def plot_stability_data_2d(params_general, param_1_name, param_1_range, param_2_
 
 def get_gap_dist(params, axis="z", flag_simple=True):
     N = params.N
-    fp_list = get_physical_and_stable_fp(params)
+    fp_list = get_physical_fp_stable_and_not(params)[0]
     if len(fp_list) > 2:
         print "WARNING: %d phys/stable fixed points at these params:" % len(fp_list)
         print params.printer()
@@ -136,8 +136,8 @@ def get_jump_dist(params_orig, param_1_name, param_2_name, param_1_delta=0.01, p
     values_mod = {param_1_name: params_orig.get(param_1_name) + param_1_delta,
                   param_2_name: params_orig.get(param_2_name) + param_2_delta}
     params_shift = params_orig.mod_copy(values_mod)
-    fp_orig_list = get_physical_and_stable_fp(params_orig)
-    fp_shift_list = get_physical_and_stable_fp(params_shift)
+    fp_orig_list = get_physical_fp_stable_and_not(params_orig)[0]
+    fp_shift_list = get_physical_fp_stable_and_not(params_shift)[0]
     assert len(fp_orig_list) == 1
     assert len(fp_shift_list) == 1
     axis_idx = STATES_ID_INV[axis]
@@ -176,13 +176,20 @@ def plot_jump_data_2d(params_general, param_1_name, param_1_range, param_2_name,
     return plt.gca()
 
 
-def get_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range, flag_phys=True, flag_write=True, figname_mod=None):
-    if flag_phys:
-        fpcollector = get_physical_and_stable_fp
-        filestr = "physfpcount2d"
+def get_fp_count_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range,
+                    flag_stable=True, flag_phys=True, flag_write=True, figname_mod=None):
+    if flag_stable:
+        fp_subidx = 0
+        filemod = "Stable"
     else:
-        fpcollector = get_stable_fp
-        filestr = "fpcount2d"
+        fp_subidx = 1
+        filemod = "Unstable"
+    if flag_phys:
+        fpcollector = get_physical_fp_stable_and_not
+        filestr = "fpPhys%sCount2d" % filemod
+    else:
+        fpcollector = get_fp_stable_and_not
+        filestr = "fp%sCount2d" % filemod
 
     assert param_1_name, param_2_name in PARAMS_ID_INV.keys()
     fp_count_array = np.zeros((len(param_1_range), len(param_2_range)))
@@ -190,25 +197,28 @@ def get_stable_fp_count_2d(params_general, param_1_name, param_1_range, param_2_
         for j, p2 in enumerate(param_2_range):
             param_mod_dict = {param_1_name:p1, param_2_name: p2}
             params_step = params_general.mod_copy(param_mod_dict)
-            fp_list = fpcollector(params_step)
+            fp_list = fpcollector(params_step)[fp_subidx]
             fp_count_array[i, j] = len(fp_list)
         print i, j, p1, p2
     if flag_write:
         write_matrix_data_and_idx_vals(fp_count_array, param_1_range, param_2_range, filestr, param_1_name, param_2_name, output_dir=OUTPUT_DIR)
     if figname_mod is not None:
-        plot_stable_fp_count_2d(fp_count_array, params_general, param_1_name, param_1_range, param_2_name,
-                                param_2_range, figname_mod=figname_mod, flag_phys=flag_phys)
+        plot_fp_count_2d(fp_count_array, params_general, param_1_name, param_1_range, param_2_name,
+                         param_2_range, figname_mod=figname_mod, flag_phys=flag_phys)
     return fp_count_array
 
 
-def plot_stable_fp_count_2d(fp_count_array, params_general, param_1_name, param_1_range, param_2_name,
-                            param_2_range, figname_mod="", flag_phys=True, flag_show=False):
+def plot_fp_count_2d(fp_count_array, params_general, param_1_name, param_1_range, param_2_name,
+                     param_2_range, figname_mod="", flag_stable=True, flag_phys=True, flag_show=False):
+    stable_str = 'unstable'
+    if flag_stable:
+        stable_str = 'stable'
     if flag_phys:
-        plt_title = "Physical and Stable FP count (vary %s, %s) %dx%d" % (param_1_name, param_2_name, len(fp_count_array), len(fp_count_array[0]))
-        filestr = 'physfp_count_2d_%s_%s_%s.png' % (param_1_name, param_2_name, figname_mod)
+        plt_title = "Physical and %s FP count (vary %s, %s) %dx%d" % (stable_str, param_1_name, param_2_name, len(fp_count_array), len(fp_count_array[0]))
+        filestr = 'physfp_count_2d_%s_%s_%s_%s.png' % (stable_str, param_1_name, param_2_name, figname_mod)
     else:
-        plt_title = "Stable FP count (vary %s, %s) %dx%d" % (param_1_name, param_2_name, len(fp_count_array), len(fp_count_array[0]))
-        filestr = 'fp_count_2d_%s_%s_%s.png' % (param_1_name, param_2_name, figname_mod)
+        plt_title = "%s FP count (vary %s, %s) %dx%d" % (stable_str, param_1_name, param_2_name, len(fp_count_array), len(fp_count_array[0]))
+        filestr = 'fp_count_2d_%s_%s_%s_%s.png' % (stable_str, param_1_name, param_2_name, figname_mod)
 
     plt.imshow(fp_count_array, cmap='seismic', interpolation="none", origin='lower', aspect='auto',
                extent=[param_2_range[0], param_2_range[-1], param_1_range[0], param_1_range[-1]])
@@ -272,8 +282,8 @@ if __name__ == "__main__":
 
     # generate and plot data
     if run_generate:
-        fp_data = get_stable_fp_count_2d(params, param_1_name, param_1_range, param_2_name, param_2_range)
-        plot_stable_fp_count_2d(fp_data, params, param_1_name, param_1_range, param_2_name, param_2_range, figname_mod="default")
+        fp_data = get_fp_count_2d(params, param_1_name, param_1_range, param_2_name, param_2_range)
+        plot_fp_count_2d(fp_data, params, param_1_name, param_1_range, param_2_name, param_2_range, figname_mod="default")
 
     # loaf data
     if run_load:

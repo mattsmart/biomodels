@@ -7,13 +7,13 @@ from constants import OUTPUT_DIR
 from data_io import write_matrix_data_and_idx_vals
 from params import Params
 from presets import presets
-from stability_diagram import plot_stable_fp_count_2d, get_stable_fp_count_2d, get_gap_data_2d, plot_gap_data_2d
+from stability_diagram import plot_fp_count_2d, get_fp_count_2d, get_gap_data_2d, plot_gap_data_2d
 
 # CONSTANTS
 NUM_PROCESSES = -1 + cpu_count()
 
 # DYNAMICS PARAMETERS
-params = presets('valley_2hit')
+params = presets('preset_xyz_tanh')
 
 # ARGS TO PASS
 param_1_name = "b"
@@ -30,15 +30,16 @@ param_2_range = np.linspace(param_2_start, param_2_stop, param_2_steps)
 #param_name_to_split = 2
 #assert param_name_to_split in [1,2]
 
-data_id = "gapdist"  # gapdist or fpcount
+data_id = "fpcount"  # gapdist or fpcount
 flag_physicalfp = True
+flag_stablefp = True
 flag_plot = True
 if data_id == "fpcount":
-    data_fnstr = "phys"*flag_physicalfp + "fpcount2d_full"
-    data_fn = get_stable_fp_count_2d
-    plot_fn = plot_stable_fp_count_2d
-    kwargs_dict = {'figname_mod': None, 'flag_phys': flag_physicalfp}
-    kwargs_plot_dict = {'figname_mod': "sum", 'flag_show': True, 'flag_phys': flag_physicalfp}
+    data_fnstr = "fp" + "Phys"*flag_physicalfp + "Stable"*flag_stablefp + "fpcount2d_full"
+    data_fn = get_fp_count_2d
+    plot_fn = plot_fp_count_2d
+    kwargs_dict = {'figname_mod': None, 'flag_phys': flag_physicalfp, 'flag_stable': flag_stablefp}
+    kwargs_plot_dict = {'figname_mod': "sum", 'flag_show': True, 'flag_phys': flag_physicalfp, 'flag_stable':flag_stablefp}
 elif data_id == "gapdist":
     data_fnstr = "gapdist2d_full"
     data_fn = get_gap_data_2d

@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from operator import itemgetter
 
-from formulae import fp_location_fsolve, jacobian_numerical_2d, get_physical_and_stable_fp, simulate_dynamics_general, \
+from formulae import fp_location_fsolve, jacobian_numerical_2d, get_physical_fp_stable_and_not, simulate_dynamics_general, \
                      fp_location_general, is_stable, map_init_name_to_init_cond
 from constants import BASIN_COLOUR_DICT, NUM_TRAJ, INIT_COND, TIME_START, TIME_END, NUM_STEPS, SIM_METHOD
 from params import Params

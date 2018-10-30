@@ -989,36 +989,42 @@ def is_stable(params, fp, method="numeric_2d"):
     return all(eig < 0 for eig in eigenvalues)
 
 
-def get_stable_fp(params):
+def get_fp_stable_and_not(params):
     fp_locs = fp_location_general(params, solver_fsolve=True)
     fp_locs_stable = []
+    fp_locs_unstable = []
     for fp in fp_locs:
         if is_stable(params, fp[0:2], method="numeric_2d"):
             fp_locs_stable.append(fp)
             # eigs,V = np.linalg.eig(jacobian_numerical_2d(params, fp[0:2], ode_system))
             # print fp, eigs
-    return fp_locs_stable
+        else:
+            fp_locs_unstable.append(fp)
+    return fp_locs_stable, fp_locs_unstable
 
 
-def get_physical_and_stable_fp(params, verbose=False):
+def get_physical_fp_stable_and_not(params, verbose=False):
     fp_locs = fp_location_general(params, solver_fsolve=True)
-    fp_locs_physical_and_stable = []
+    fp_locs_physical_stable = []
+    fp_locs_physical_unstable = []
     for fp in fp_locs:
         if all([val > -0.1 for val in fp]):
             if is_stable(params, fp[0:2], method="numeric_2d"):
-                fp_locs_physical_and_stable.append(fp)
+                fp_locs_physical_stable.append(fp)
                 #eigs,V = np.linalg.eig(jacobian_numerical_2d(params, fp[0:2], ode_system))
                 #print fp, eigs
+            else:
+                fp_locs_physical_unstable.append(fp)
 
     if verbose:
         print "\nFP NOTES for b,c", params.b, params.c
         print "ALL FP: (%d)" % len(fp_locs)
         for fp in fp_locs:
             print fp
-        print "PHYS/STABLE FP: (%d)" % len(fp_locs_physical_and_stable)
-        for fp in fp_locs_physical_and_stable:
+        print "PHYS/STABLE FP: (%d)" % len(fp_locs_physical_stable)
+        for fp in fp_locs_physical_stable:
             print fp
-        if len(fp_locs_physical_and_stable) == 0:
+        if len(fp_locs_physical_stable) == 0:
             print "WARNING: 0 phys and stable FP"
             init_cond = INIT_COND
             times = np.linspace(TIME_START, TIME_END, NUM_STEPS + 1)
@@ -1029,7 +1035,7 @@ def get_physical_and_stable_fp(params, verbose=False):
             print "ode_system_vector at possible FP is"
             print params.ode_system_vector(fp_guess, None)
 
-    return fp_locs_physical_and_stable
+    return fp_locs_physical_stable, fp_locs_physical_unstable
 
 
 def random_init_cond(params):
