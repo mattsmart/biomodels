@@ -1,6 +1,5 @@
 # feedback.py
 # shapes of feedback assigned in params.py used for the dynamics
-# TODO implement tanh (beta is param? slide center param?)
 # TODO implement relu/pwLinear (fewer params than slope, start, end)
 
 import matplotlib.pyplot as plt
