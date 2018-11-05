@@ -122,15 +122,15 @@ if __name__ == "__main__":
     basins_flag = False
 
     # DYNAMICS PARAMETERS
-    system = "default"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
-    feedback = "constant"      # "constant", "hill", "step", "pwlinear"
+    system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
+    feedback = "tanh"      # "constant", "hill", "step", "pwlinear"
     params_dict = {
         'alpha_plus': 0.2,
         'alpha_minus': 0.5,  # 0.5
         'mu': 0.001,  # 0.01
         'a': 1.0,
-        'b': 1.075,
-        'c': 0.8,  # 1.2
+        'b': 0.92,
+        'c': 0.9,  # 1.2
         'N': 100.0,  # 100.0
         'v_x': 0.0,
         'v_y': 0.0,
@@ -168,9 +168,9 @@ if __name__ == "__main__":
 
     if run_multiphaseportrait:
         param_vary_name = 'c'
-        param_vary_range = np.linspace(1.022,1.025, 10)
+        param_vary_range = np.linspace(0.9308,0.9315, 10)
         # fp_dict = {pv: [] for pv in param_vary_range}
         for i, pv in enumerate(param_vary_range):
-            print "paramset %d, %s=%.5f" % (i, param_vary_name, pv)
+            print "\nparamset %d, %s=%.5f" % (i, param_vary_name, pv)
             params_step = params.mod_copy({param_vary_name: pv})
             phase_portrait(params_step, num_traj=30, show_flag=True, basins_flag=False, **plot_options_mulyitrajportrait)
