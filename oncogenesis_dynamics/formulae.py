@@ -884,7 +884,7 @@ def fsolve_func(xvec_guess, params):  # TODO: faster if split into 3 fns w.o if 
     return [xdot, ydot]
 
 
-def fp_location_fsolve(params, check_near_traj_endpt=True, gridsteps=15, tol=10e-1, buffer=False):
+def fp_location_fsolve(params, check_near_traj_endpt=True, gridsteps=15, tol=10e-4, buffer=False):
     assert params.system in ["default", "feedback_z", "feedback_yz"]
     N = params.N
     unique_solutions = []
@@ -1008,7 +1008,7 @@ def get_physical_fp_stable_and_not(params, verbose=False):
     fp_locs_physical_stable = []
     fp_locs_physical_unstable = []
     for fp in fp_locs:
-        if all([val > -0.1 for val in fp]):
+        if all([val > -1e-4 for val in fp]):
             if is_stable(params, fp[0:2], method="numeric_2d"):
                 fp_locs_physical_stable.append(fp)
                 #eigs,V = np.linalg.eig(jacobian_numerical_2d(params, fp[0:2], ode_system))
