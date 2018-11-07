@@ -5,8 +5,6 @@ import os
 from matplotlib.patches import Rectangle
 
 
-
-
 # Constants
 # =================================================
 axis_buffer = 20.0
