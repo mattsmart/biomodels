@@ -6,17 +6,6 @@ from matplotlib.patches import Rectangle
 
 
 
-"""
-COMMENTS:
-    -radius seems to extend 85% of r, to intersect middle of line seg
-        -eg. radius 10 means cell takes up almost 20 x slots
-    -JAMES: will try circles
-INPUT:
-   1) n
-   2) list of lists, of size n x n, containing labels (corresponding to colour)
-OUTPUT: rectangular lattice with labels coloured appropriately
-"""
-
 
 # Constants
 # =================================================
@@ -34,6 +23,10 @@ nutrient_text_flag = False  # True - plot nutrient quantity at each grid locatio
 # Functions
 # =================================================
 def lattice_draw(lattice, n):
+    """
+    Note: lattice is list of lists, containing labels (corresponding to colour)
+    Output: drawn lattice with labels coloured appropriately
+    """
     # assume cell_per_row = n, cell_per_col = n
     cell_radius = axis_length / (2 * n)
     x0 = cell_radius
