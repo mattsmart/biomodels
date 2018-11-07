@@ -129,8 +129,8 @@ if __name__ == "__main__":
         'alpha_minus': 0.5,  # 0.5
         'mu': 0.001,  # 0.01
         'a': 1.0,
-        'b': 0.92,
-        'c': 0.9,  # 1.2
+        'b': 1.001,
+        'c': 0.5,  # 1.2
         'N': 100.0,  # 100.0
         'v_x': 0.0,
         'v_y': 0.0,
@@ -168,7 +168,7 @@ if __name__ == "__main__":
 
     if run_multiphaseportrait:
         param_vary_name = 'c'
-        param_vary_range = np.linspace(0.9308,0.9315, 10)
+        param_vary_range = np.linspace(0.999, 1.001, 5)
         # fp_dict = {pv: [] for pv in param_vary_range}
         for i, pv in enumerate(param_vary_range):
             print "\nparamset %d, %s=%.5f" % (i, param_vary_name, pv)
