@@ -56,6 +56,9 @@ def make_video_ffmpeg(plot_lattice_dir, output_path, fps=15, ffmpeg_dir=None):
         - assumes ffmpeg has been extracted on your system and added to the path
         - if it's not added to path, point to it (the directory containing ffmpeg bin) using ffmpeg_dir arg
         - assumes less than 10000 images are being joined (for ffmpeg simplicity)
+    Example usage:
+        - imagepath = "video_tomake" + os.sep "plot_lattice"  # <-- all images should be in here
+        - make_video_ffmpeg(imagepath, os.path.join(imagepath, os.pardir, "out.mp4"), fps=5)
     """
     # make temp dir
     temp_plot_dir = os.path.join(plot_lattice_dir, os.pardir, "temp")
@@ -76,16 +79,3 @@ def make_video_ffmpeg(plot_lattice_dir, output_path, fps=15, ffmpeg_dir=None):
     shutil.rmtree(temp_plot_dir)
 
     return
-
-"""
-# MESSY CODE FOR QUICK PLOTS
-# =============================================
-desktop_base = "C:\\Games\\Development\\repositories\\biomodels\\agent_based_models\\abm_allelopathy\\runs\\"
-laptop_base = "C:\\Users\\mattsmart\\Documents\\biomodels\\agent_based_models\\abm_allelopathy\\runs\\"
-# =============================================
-base = desktop_base
-folder_in_runs = "tosend1\\plot_lattice"
-plots = base + folder_in_runs
-make_video_ffmpeg(plots, os.path.join(plots, os.pardir, "out.mp4"), fps=5)
-# =============================================
-"""

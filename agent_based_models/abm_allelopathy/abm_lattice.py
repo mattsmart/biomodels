@@ -17,19 +17,11 @@ from utils import make_video
 
 
 """
-TODO
--convert lattice to np array and ref with tuples instead of separate loc 0 and loc 1 (cleaner, maybe faster)
--make paths independent of OS (use os.path.join(...))
-
 SPEED
 -instead of explicit class structure for the states, could just use dicts (should be faster)
 -use location tuples instead of lists (faster assigning)
 -all to numpy arrays
 -store cell type as well as position for faster referencing?
-
-IMPORTANT
-- turn time needs to be tied to the time to shoot/kill -- fix this
-- make donorA and donorB inherit from a general donor class -- this WILL reduce bugs lol
 """
 
 
@@ -53,7 +45,7 @@ for dirs in dir_list:
 # Constants
 # =================================================
 # simulation dimensions
-n = 100  # up to 1000 tested as feasible
+n = 10  # up to 1000 tested as feasible
 
 # simulation lattice parameters
 search_radius_bacteria = 1
@@ -503,11 +495,11 @@ def run_sim():
 # =================================================
 def main():
     # choose ICs
-    #build_lattice_random()
+    build_lattice_random()
     #build_lattice_colonies()
     #build_lattice_diag()
     #build_lattice_concentric_random()
-    build_lattice_sprinkle()
+    #build_lattice_sprinkle()
 
     # run the simulation
     run_sim()
@@ -535,6 +527,7 @@ def main():
 
     print "\nDone!"
     return
+
 
 if __name__ == '__main__':
     main()
