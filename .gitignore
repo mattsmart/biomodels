@@ -38,3 +38,4 @@ celltypes/cytokine/runs/
 celltypes/input/2018_scMCA/
 
 oncogenesis_dynamics/output/
+*.png
