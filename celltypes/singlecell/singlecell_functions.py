@@ -1,7 +1,7 @@
 import numpy as np
 from random import random
 
-from singlecell_constants import BETA, EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH
+from singlecell_constants import BETA, EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, MEMS_MEHTA, FIELD_PROTOCOL
 from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
 
 """
@@ -150,6 +150,55 @@ def construct_app_field_from_genes(gene_name_effect, gene_id, num_steps=0):
         #app_field[gene_id[label], :] += effect
         app_field[gene_id[label]] += effect
     return app_field
+
+
+def field_setup(simsetup, protocol=FIELD_PROTOCOL):
+    """
+    Construct applied field vector (either fixed or on varying under a field protocol) to bias the dynamics
+    Notes on named fields
+    - Yamanaka factor (OSKM) names in mehta datafile: Sox2, Pou5f1 (oct4), Klf4, Myc, also nanog
+    """
+    # TODO must optimize: naive implement brings i7-920 row: 16x200 from 56sec (None field) to 140sec (not parallel)
+    # TODO support time varying cleanly
+    # TODO speedup: initialize at the same time as simsetup
+    # TODO speedup: pre-multiply the fields so it need not to be scaled each glauber step (see singlecell_functions.py)
+    # TODO there are two non J_ij fields an isolated single cell experiences: TF explicit mod and type biasing via proj
+    # TODO     need to include the type biasing one too
+    assert protocol in ["yamanaka_OSKM", "miR_21", None]
+    field_dict = {'protocol': protocol,
+                  'time_varying': False,
+                  'app_field': None,
+                  'app_field_strength': 1e5}  # TODO calibrate this to be very large compared to J*s scale
+    gene_id = simsetup['GENE_ID']
+
+    if protocol == "yamanaka_OSKM":
+        """
+        - could extend to include 'Nanog'
+        """
+        assert simsetup['memories_path'] == MEMS_MEHTA  # gene labels correspond to Mehta 2014 labels
+        IPSC_CORE_GENES = ['Sox2', 'Pou5f1', 'Klf4', 'Myc']  # "yamanaka" factors to make iPSC (labels for mehta dataset)
+        IPSC_CORE_GENES_EFFECTS = {label: 1.0 for label in IPSC_CORE_GENES}  # this ensure all should be ON
+        app_field_start = construct_app_field_from_genes(IPSC_CORE_GENES_EFFECTS, gene_id, num_steps=0)
+        field_dict['app_field'] = app_field_start
+
+    elif protocol == "miR_21":
+        """
+        - 2018 Nature comm macrophage -> fibroblast paper lists KLF-5 and PTEN as primary targets of miR-21
+        - wiki miR-21 lists ~ 20 targets including KLF-5 and PTEN, most not in dataset
+            - found Trp63 and Mef2c, also Smarca4 but it was deleted
+        - 2014 mehta dataset does not contain PTEN
+        """
+        assert simsetup['memories_path'] == MEMS_MEHTA  # gene labels correspond to Mehta 2014 labels
+        MIR21_CORE_GENES = ['Klf5']  # "yamanaka" factors to make iPSC (labels for mehta dataset)
+        MIR21_CORE_GENES_EFFECTS = {label: -1.0 for label in MIR21_CORE_GENES}  # this ensure all should be ON
+        MIR21_EXTENDED_GENES = MIR21_CORE_GENES + ['Trp63', 'Mef2c']
+        MIR21_EXTENDED_GENES_EFFECTS = {label: -1.0 for label in MIR21_EXTENDED_GENES}
+        app_field_start = construct_app_field_from_genes(MIR21_EXTENDED_GENES_EFFECTS, gene_id, num_steps=0)
+        field_dict['app_field'] = app_field_start
+
+    else:
+        assert protocol is None
+    return field_dict
 
 
 def state_to_label(state):

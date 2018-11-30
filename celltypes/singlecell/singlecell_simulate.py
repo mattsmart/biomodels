@@ -3,6 +3,7 @@ import numpy as np
 from singlecell_class import Cell
 from singlecell_constants import NUM_FULL_STEPS, BURST_ERROR_PERIOD, APP_FIELD_STRENGTH, BETA, ASYNC_BATCH
 from singlecell_data_io import run_subdir_setup, runinfo_append
+from singlecell_functions import field_setup
 from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
 
 """
@@ -14,14 +15,13 @@ NOTES:
 
 
 def singlecell_sim(init_state=None, init_id=None, iterations=NUM_FULL_STEPS, beta=BETA, simsetup=None,
-                   app_field=None, app_field_strength=APP_FIELD_STRENGTH, flag_burst_error=False, flag_write=True,
+                   field_protocol=None, flag_burst_error=False, flag_write=True,
                    analysis_subdir=None, plot_period=10, verbose=True):
     """
     init_state: N x 1
     init_id: None, or memory label like 'esc', or arbitrary label (e.g. 'All on')
     iterations: main simulation loop duration
-    app_field: size N x timesteps applied field array; column k is field to apply at timestep k
-    app_field_strength: scales app_field magnitude
+    field_protocol: label for call field_setup to build field dict for applied field
     flag_burst_error: if True, randomly flip some TFs at each BURST_ERROR_PERIOD (see ...constants.py)
     flag_write: False only if want to avoid saving state to file
     analysis_subdir: use to store data for non-standard runs
@@ -52,11 +52,10 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_FULL_STEPS, bet
     singlecell = Cell(init_state, init_id, memories_list=memory_labels, gene_list=gene_labels)
 
     # Input checks
-    if app_field is not None:
-        assert len(app_field) == N
-        assert len(app_field[0]) == iterations
-    else:
-        app_field_timestep = None
+    field_dict = field_setup(simsetup, protocol=field_protocol)
+    assert not field_dict['time_varying']  # TODO not yet supported
+    app_field = field_dict['app_field']
+    app_field_strength = field_dict['app_field_strength']
 
     # Simulate
     for step in xrange(iterations-1):
@@ -66,14 +65,11 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_FULL_STEPS, bet
         if flag_burst_error and step % BURST_ERROR_PERIOD == 0:
             singlecell.apply_burst_errors()
         # prep applied field TODO see if better speed to pass array of zeros and ditch all these if not None checks...
-        if app_field is not None:
-            app_field_timestep = app_field[:, step]
         if flag_write:
             if singlecell.steps % plot_period == 0:
                 fig, ax, proj = singlecell.plot_projection(a_inv, xi, use_radar=True, pltdir=io_dict['plotdatadir'])
                 fig, ax, proj = singlecell.plot_overlap(xi, use_radar=True, pltdir=io_dict['plotdatadir'])
-        singlecell.update_state(intxn_matrix, beta=beta, app_field=app_field_timestep,
-                                app_field_strength=app_field_strength, async_batch=ASYNC_BATCH)
+        singlecell.update_state(intxn_matrix, beta=beta, app_field=app_field, app_field_strength=app_field_strength, async_batch=ASYNC_BATCH)
 
     # Write
     if verbose:
@@ -90,5 +86,5 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_FULL_STEPS, bet
 if __name__ == '__main__':
     flag_write = True
     simsetup = singlecell_simsetup()
-    app_field = np.zeros((simsetup['N'], NUM_FULL_STEPS))
-    singlecell_sim(init_id='HSC', plot_period=1, simsetup=simsetup, app_field=app_field, flag_write=flag_write)
+    singlecell_sim(init_id='macrophage', field_protocol='miR_21', plot_period=10, iterations=50,
+                   simsetup=simsetup, flag_write=flag_write)

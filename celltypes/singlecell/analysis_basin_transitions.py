@@ -6,16 +6,15 @@ from multiprocessing import Pool, cpu_count, current_process
 
 from analysis_basin_plotting import plot_proj_timeseries, plot_basin_occupancy_timeseries, plot_basin_step
 from singlecell_class import Cell
-from singlecell_constants import RUNS_FOLDER, IPSC_CORE_GENES_EFFECTS, ASYNC_BATCH, MEMS_MEHTA
+from singlecell_constants import RUNS_FOLDER, ASYNC_BATCH, FIELD_PROTOCOL
 from singlecell_data_io import run_subdir_setup, runinfo_append
-from singlecell_functions import construct_app_field_from_genes
+from singlecell_functions import field_setup
 from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
 
 # analysis settings
 ANALYSIS_SUBDIR = "basin_transitions"
 ANNEAL_BETA = 1.3
 ANNEAL_PROTOCOL = "protocol_A"
-FIELD_PROTOCOL = None
 OCC_THRESHOLD = 0.7
 SPURIOUS_LIST = ["mixed"]
 PROFILE_PREFIX = "profile_row_"
@@ -25,36 +24,6 @@ highlights_CLPside = {6: 'k', 8: 'blue', 7: 'red', 16: 'deeppink', 11: 'darkorch
 highlights_simple = {6: 'k', 8: 'blue', 10: 'steelblue'}
 highlights_both = {6: 'k', 8: 'blue', 10: 'steelblue', 9: 'forestgreen', 7: 'red', 16: 'deeppink', 11: 'darkorchid'}
 DEFAULT_HIGHLIGHTS = highlights_CLPside
-
-
-def field_setup(simsetup, protocol=FIELD_PROTOCOL):
-    """
-    Construct applied field vector (either fixed or on varying under a field protocol) to bias the dynamics
-    Notes on named fields
-    - Yamanaka factor (OSKM) names in mehta datafile: Sox2, Pou5f1 (oct4), Klf4, Myc, also nanog
-    """
-    # TODO must optimize: naive implement brings i7-920 row: 16x200 from 56sec (None field) to 140sec (not parallel)
-    # TODO support time varying cleanly
-    # TODO speedup: initialize at the same time as simsetup
-    # TODO speedup: pre-multiply the fields so it need not to be scaled each glauber step (see singlecell_functions.py)
-    # TODO there are two non J_ij fields an isolated single cell experiences: TF explicit mod and type biasing via proj
-    # TODO     need to include the type biasing one too
-    assert protocol in ["yamanaka_OSKM", None]
-    field_dict = {'protocol': protocol,
-                  'time_varying': False,
-                  'app_field': None,
-                  'app_field_strength': 1e5}  # TODO calibrate this to be very large compared to J*s scale
-    gene_id = simsetup['GENE_ID']
-    if protocol == "yamanaka_OSKM":
-        assert simsetup['memories_path'] == MEMS_MEHTA  # gene labels correspond to Mehta 2014 labels
-        IPSC_CORE_GENES = ['Sox2', 'Pou5f1', 'Klf4', 'Myc']  # "yamanaka" factors to make iPSC (labels for mehta dataset)
-        IPSC_CORE_GENES_EFFECTS = {label: 1.0 for label in IPSC_CORE_GENES}  # this ensure all should be ON
-        app_field_start = construct_app_field_from_genes(IPSC_CORE_GENES_EFFECTS, gene_id, num_steps=0)
-        field_dict['app_field'] = app_field_start
-    else:
-        assert protocol is None
-        # TODO fill in...
-    return field_dict
 
 
 def anneal_setup(protocol=ANNEAL_PROTOCOL):
@@ -464,12 +433,12 @@ if __name__ == '__main__':
         # common: 'HSC' / 'Common Lymphoid Progenitor (CLP)' / 'Common Myeloid Progenitor (CMP)' /
         #         'Megakaryocyte-Erythroid Progenitor (MEP)' / 'Granulocyte-Monocyte Progenitor (GMP)' / 'thymocyte DN'
         #         'thymocyte - DP' / 'neutrophils' / 'monocytes - classical'
-        init_cond = 'HSC'  # note HSC index is 6 in mehta mems
+        init_cond = 'macrophage'  # note HSC index is 6 in mehta mems
         ensemble = 128
         num_steps = 100
         num_proc = cpu_count() / 2  # seems best to use only physical core count (1 core ~ 3x slower than 4)
         anneal_protocol = "protocol_A"
-        field_protocol = None #"yamanaka_OSKM"
+        field_protocol = "miR_21"  # "yamanaka_OSKM"
         async_batch = True
         plot = True
         parallel = True
