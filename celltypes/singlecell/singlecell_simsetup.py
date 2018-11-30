@@ -64,3 +64,13 @@ def unpack_simsetup(simsetup):
     J = simsetup['J']
     ETA = simsetup['ETA']
     return N, P, GENE_LABELS, CELLTYPE_LABELS, GENE_ID, CELLTYPE_ID, XI, A, A_INV, J, ETA
+
+
+if __name__ == '__main__':
+    simsetup = singlecell_simsetup()
+    print 'Genes:'
+    for idx, label in enumerate(simsetup['GENE_LABELS']):
+        print idx, label
+    print 'Celltypes:'
+    for idx, label in enumerate(simsetup['CELLTYPE_LABELS']):
+        print idx, label
