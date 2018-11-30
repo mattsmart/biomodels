@@ -4,14 +4,13 @@ from multicell_constants import VALID_EXOSOME_STRINGS, EXOSTRING
 from singlecell.singlecell_constants import BETA, EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH
 from singlecell.singlecell_class import Cell
 from singlecell.singlecell_functions import state_subsample, state_only_on, state_only_off
-from singlecell.singlecell_simsetup import GENE_LABELS, CELLTYPE_LABELS, J
 
 
 class SpatialCell(Cell):
-    def __init__(self, state, label, location, memories_list=CELLTYPE_LABELS, gene_list=GENE_LABELS,
-                 state_array=None, steps=None):
-        Cell.__init__(self, state, label, memories_list=memories_list, gene_list=gene_list, state_array=state_array,
-                      steps=steps)
+    def __init__(self, state, label, location, simsetup, state_array=None, steps=None):
+        memories_list = simsetup['CELLTYPE_LABELS']
+        gene_list = simsetup['GENE_LABELS']
+        Cell.__init__(self, state, label, memories_list, gene_list, state_array=state_array, steps=steps)
         self.location = location
 
     def get_surroundings_square(self, search_radius, gridsize):
@@ -75,7 +74,7 @@ class SpatialCell(Cell):
             raise ValueError("exosome_string arg invalid, must be one of %s" % VALID_EXOSOME_STRINGS)
         return field_state, neighbours
 
-    def update_with_signal_field(self, lattice, search_radius, gridsize, beta=BETA, intxn_matrix=J, signal_matrix=None, exosome_string=EXOSTRING, ratio_to_remove=0.0,
+    def update_with_signal_field(self, lattice, search_radius, gridsize, intxn_matrix, beta=BETA, signal_matrix=None, exosome_string=EXOSTRING, ratio_to_remove=0.0,
                                  ext_field_strength=EXT_FIELD_STRENGTH, app_field=None, app_field_strength=APP_FIELD_STRENGTH):
         ext_field, neighbours = self.get_local_exosome_field(lattice, search_radius, gridsize, exosome_string=exosome_string, ratio_to_remove=ratio_to_remove)
         if signal_matrix is not None:

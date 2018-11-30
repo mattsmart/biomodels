@@ -9,10 +9,10 @@ from multicell_visualize import lattice_uniplotter, reference_overlap_plotter, l
 from singlecell.singlecell_constants import EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, IPSC_CORE_GENES, IPSC_EXTENDED_GENES_EFFECTS
 from singlecell.singlecell_data_io import run_subdir_setup, runinfo_append
 from singlecell.singlecell_functions import construct_app_field_from_genes
-from singlecell.singlecell_simsetup import N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS, GENE_ID
+from singlecell.singlecell_simsetup import singlecell_simsetup # N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS, GENE_ID
 
 
-def run_sim(lattice, num_lattice_steps, data_dict, exosome_string=EXOSTRING, field_remove_ratio=0.0,
+def run_sim(lattice, num_lattice_steps, data_dict, simsetup, exosome_string=EXOSTRING, field_remove_ratio=0.0,
             ext_field_strength=EXT_FIELD_STRENGTH, app_field=None, app_field_strength=APP_FIELD_STRENGTH,
             plot_period=LATTICE_PLOT_PERIOD, flag_uniplots=True):
     """
@@ -29,10 +29,10 @@ def run_sim(lattice, num_lattice_steps, data_dict, exosome_string=EXOSTRING, fie
     n = len(lattice)
     assert n == len(lattice[0])  # work with square lattice for simplicity
     if app_field is not None:
-        assert len(app_field) == N
+        assert len(app_field) == simsetup['N']
         assert len(app_field[0]) == num_lattice_steps
     else:
-        app_field_timestep = None
+        app_field_step = None
 
     io_dict = run_subdir_setup()
     cell_locations = get_cell_locations(lattice, n)
@@ -42,18 +42,18 @@ def run_sim(lattice, num_lattice_steps, data_dict, exosome_string=EXOSTRING, fie
     # plot initial state of the lattice
     if flag_uniplots:
         for mem_idx in memory_idx_list:
-            lattice_uniplotter(lattice, 0, n, io_dict['latticedir'], mem_idx)
+            lattice_uniplotter(lattice, 0, n, io_dict['latticedir'], mem_idx, simsetup)
     # get data for initial state of the lattice
     for loc in cell_locations:
         for mem_idx in memory_idx_list:
-            proj = lattice[loc[0]][loc[1]].get_memories_projection()
+            proj = lattice[loc[0]][loc[1]].get_memories_projection(simsetup['A_INV'], simsetup['XI'])
             data_dict['memory_proj_arr'][mem_idx][loc_to_idx[loc], 0] = proj[mem_idx]
     # initial condition plot
-    lattice_projection_composite(lattice, 0, n, io_dict['latticedir'])
-    reference_overlap_plotter(lattice, 0, n, io_dict['latticedir'])
+    lattice_projection_composite(lattice, 0, n, io_dict['latticedir'], simsetup)
+    reference_overlap_plotter(lattice, 0, n, io_dict['latticedir'], simsetup)
     if flag_uniplots:
         for mem_idx in memory_idx_list:
-            lattice_uniplotter(lattice, 0, n, io_dict['latticedir'], mem_idx)
+            lattice_uniplotter(lattice, 0, n, io_dict['latticedir'], mem_idx, simsetup)
 
 
     for turn in xrange(1, num_lattice_steps):
@@ -61,24 +61,26 @@ def run_sim(lattice, num_lattice_steps, data_dict, exosome_string=EXOSTRING, fie
         random.shuffle(cell_locations)
         for idx, loc in enumerate(cell_locations):
             cell = lattice[loc[0]][loc[1]]
-            cell.update_with_signal_field(lattice, SEARCH_RADIUS_CELL, n, exosome_string=exosome_string, ratio_to_remove=field_remove_ratio,
-                                          ext_field_strength=ext_field_strength, app_field=app_field[:,turn], app_field_strength=app_field_strength)
-            proj = cell.get_memories_projection()
+            if app_field is not None:
+                app_field_step = app_field[:, turn]
+            cell.update_with_signal_field(lattice, SEARCH_RADIUS_CELL, n, simsetup['J'], exosome_string=exosome_string, ratio_to_remove=field_remove_ratio,
+                                          ext_field_strength=ext_field_strength, app_field=app_field_step, app_field_strength=app_field_strength)
+            proj = cell.get_memories_projection(simsetup['A_INV'], simsetup['XI'])
             for mem_idx in memory_idx_list:
                 data_dict['memory_proj_arr'][mem_idx][loc_to_idx[loc], turn] = proj[mem_idx]
             if turn % (40*plot_period) == 0:  # plot proj visualization of each cell (takes a while; every k lat plots)
                 fig, ax, proj = cell.plot_projection(use_radar=False, pltdir=io_dict['latticedir'])
         if turn % plot_period == 0:  # plot the lattice
-            lattice_projection_composite(lattice, turn, n, io_dict['latticedir'])
-            reference_overlap_plotter(lattice, turn, n, io_dict['latticedir'])
+            lattice_projection_composite(lattice, turn, n, io_dict['latticedir'], simsetup)
+            reference_overlap_plotter(lattice, turn, n, io_dict['latticedir'], simsetup)
             if flag_uniplots:
                 for mem_idx in memory_idx_list:
-                    lattice_uniplotter(lattice, turn, n, io_dict['latticedir'], mem_idx)
+                    lattice_uniplotter(lattice, turn, n, io_dict['latticedir'], mem_idx, simsetup)
 
     return lattice, data_dict, io_dict
 
 
-def main(gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING, exosome_string=EXOSTRING,
+def main(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING, exosome_string=EXOSTRING,
          field_remove_ratio=FIELD_REMOVE_RATIO, ext_field_strength=EXT_FIELD_STRENGTH, app_field=None,
          app_field_strength=APP_FIELD_STRENGTH, plot_period=LATTICE_PLOT_PERIOD):
 
@@ -92,8 +94,8 @@ def main(gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING
     assert 0.0 <= ext_field_strength < 10.0
 
     # setup lattice IC
-    type_1_idx = 5
-    type_2_idx = 36
+    type_1_idx = 42
+    type_2_idx = 33
     flag_uniplots = True
     if buildstring == "mono":
         list_of_type_idx = [type_1_idx]
@@ -101,9 +103,9 @@ def main(gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING
         list_of_type_idx = [type_1_idx, type_2_idx]
     if buildstring == "memory_sequence":
         flag_uniplots = False
-        list_of_type_idx = range(P)
+        list_of_type_idx = range(simsetup['P'])
         random.shuffle(list_of_type_idx)  # shuffle or not?
-    lattice = build_lattice_main(gridsize, list_of_type_idx, buildstring)
+    lattice = build_lattice_main(gridsize, list_of_type_idx, buildstring, simsetup)
     #print list_of_type_idx
 
     # prep data dictionary
@@ -112,7 +114,7 @@ def main(gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING
 
     # run the simulation
     lattice, data_dict, io_dict = \
-        run_sim(lattice, num_steps, data_dict, exosome_string=exosome_string, field_remove_ratio=field_remove_ratio,
+        run_sim(lattice, num_steps, data_dict, simsetup, exosome_string=exosome_string, field_remove_ratio=field_remove_ratio,
                 ext_field_strength=ext_field_strength, app_field=app_field, app_field_strength=app_field_strength,
                 plot_period=plot_period, flag_uniplots=flag_uniplots)
 
@@ -120,28 +122,32 @@ def main(gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING
     for data_idx, memory_idx in enumerate(data_dict['memory_proj_arr'].keys()):
         print data_dict['memory_proj_arr'][memory_idx]
         plt.plot(data_dict['memory_proj_arr'][memory_idx].T)
-        plt.ylabel('Projection of all cells onto type: %s' % CELLTYPE_LABELS[memory_idx])
+        plt.ylabel('Projection of all cells onto type: %s' % simsetup['CELLTYPE_LABELS'][memory_idx])
         plt.xlabel('Time (full lattice steps)')
-        plt.savefig(io_dict['plotdir'] + os.sep + '%s_%s_n%d_t%d_proj%d_remove%.2f_exo%.2f.png' %
+        plt.savefig(io_dict['plotdatadir'] + os.sep + '%s_%s_n%d_t%d_proj%d_remove%.2f_exo%.2f.png' %
                     (exosome_string, buildstring, gridsize, num_steps, memory_idx, field_remove_ratio, ext_field_strength))
         plt.clf()  #plt.show()
 
     # write cell state TODO: and data_dict to file
     write_state_all_cells(lattice, io_dict['datadir'])
 
-    print "\nMulticell simulation complete - output in %s" % io_dict['baseedir']
+    print "\nMulticell simulation complete - output in %s" % io_dict['basedir']
     return lattice, data_dict, io_dict
 
 
 if __name__ == '__main__':
+    simsetup = singlecell_simsetup()
+
     n = 6  # global GRIDSIZE
     steps = 20  # global NUM_LATTICE_STEPS
     buildstring = "dual"  # mono/dual/memory_sequence/
     fieldstring = "on"  # on/off/all, note e.g. 'off' means send info about 'off' genes only
     fieldprune = 0.8  # amount of external field idx to randomly prune from each cell
-    ext_field_strength = 0.3                                                  # global EXT_FIELD_STRENGTH
-    app_field = construct_app_field_from_genes(IPSC_EXTENDED_GENES_EFFECTS, GENE_ID, num_steps=steps)        # size N x timesteps or None
-    app_field_strength = 0.0 #100.0                                                  # global APP_FIELD_STRENGTH
+    ext_field_strength = 0.6                                                  # global EXT_FIELD_STRENGTH
+    #app_field = construct_app_field_from_genes(IPSC_EXTENDED_GENES_EFFECTS, simsetup['GENE_ID'], num_steps=steps)        # size N x timesteps or None
+    app_field = None
+    app_field_strength = 0.0  # 100.0 global APP_FIELD_STRENGTH
     plot_period = 4
-    main(gridsize=n, num_steps=steps, buildstring=buildstring, exosome_string=fieldstring, field_remove_ratio=fieldprune,
-         ext_field_strength=ext_field_strength, app_field=app_field, app_field_strength=app_field_strength, plot_period=plot_period)
+    main(simsetup, gridsize=n, num_steps=steps, buildstring=buildstring, exosome_string=fieldstring,
+         field_remove_ratio=fieldprune, ext_field_strength=ext_field_strength, app_field=app_field,
+         app_field_strength=app_field_strength, plot_period=plot_period)

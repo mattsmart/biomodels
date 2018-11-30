@@ -5,7 +5,6 @@ import os
 from matplotlib.patches import Rectangle
 
 from singlecell.singlecell_functions import single_memory_projection
-from singlecell.singlecell_simsetup import P, N, CELLTYPE_LABELS
 
 """
 COMMENTS:
@@ -32,22 +31,22 @@ fast_flag = False  # True - fast / simple plotting
 # Functions
 # =================================================
 
-def get_lattice_uniproj(lattice, time, n, uniplot_key):
+def get_lattice_uniproj(lattice, time, n, uniplot_key, simsetup):
     proj_vals = np.zeros((n,n))
     for i in xrange(n):
         for j in xrange(n):
-            proj_vals[i, j] = single_memory_projection(lattice[i][j].get_state_array(), time, uniplot_key)
+            proj_vals[i, j] = single_memory_projection(lattice[i][j].get_state_array(), time, uniplot_key, simsetup['ETA'])
     return proj_vals
 
 
-def lattice_uniplotter(lattice, time, n, lattice_plot_dir, uniplot_key, dict_counts=None):
+def lattice_uniplotter(lattice, time, n, lattice_plot_dir, uniplot_key, simsetup, dict_counts=None):
     # generate figure data
-    proj_vals = get_lattice_uniproj(lattice, time, n, uniplot_key)
+    proj_vals = get_lattice_uniproj(lattice, time, n, uniplot_key, simsetup)
     # plot projection
     colourmap = plt.get_cmap('PiYG')
     plt.imshow(proj_vals, cmap=colourmap, vmin=-1, vmax=1)
     plt.colorbar()
-    plt.title('Lattice site-wise projection onto memory %d (%s) (Step=%d)' % (uniplot_key, CELLTYPE_LABELS[uniplot_key], time))
+    plt.title('Lattice site-wise projection onto memory %d (%s) (Step=%d)' % (uniplot_key, simsetup['CELLTYPE_LABELS'][uniplot_key], time))
     # draw gridlines
     ax = plt.gca()
     ax.grid(which='major', axis='both', linestyle='-', color='k', linewidth=1)
@@ -59,8 +58,8 @@ def lattice_uniplotter(lattice, time, n, lattice_plot_dir, uniplot_key, dict_cou
     return
 
 
-def lattice_projection_composite(lattice, time, n, lattice_plot_dir):
-    assert P == 63  # TODO: hardcoded rows and columns should change with P
+def lattice_projection_composite(lattice, time, n, lattice_plot_dir, simsetup):
+    assert simsetup['P'] == 63  # TODO: hardcoded rows and columns should change with P
     empty_subplots = [[-1, -1]]
     ncol = 8
     nrow = 8
@@ -69,7 +68,7 @@ def lattice_projection_composite(lattice, time, n, lattice_plot_dir):
     fig, ax = plt.subplots(nrow, ncol)
     fig.set_size_inches(16, 16)
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
-    fig.suptitle('Lattice projection onto p=%d memories (Step=%d)' % (P, time), fontsize=20)
+    fig.suptitle('Lattice projection onto p=%d memories (Step=%d)' % (simsetup['P'], time), fontsize=20)
     colourmap = plt.get_cmap('PiYG')  # 'PiYG' or 'Spectral'
 
     mem_idx = 0
@@ -77,10 +76,10 @@ def lattice_projection_composite(lattice, time, n, lattice_plot_dir):
         for col in xrange(ncol):
             subax = ax[row][col]
             # plot data
-            proj_vals = get_lattice_uniproj(lattice, time, n, mem_idx)
+            proj_vals = get_lattice_uniproj(lattice, time, n, mem_idx, simsetup)
             im = subax.imshow(proj_vals, cmap=colourmap, vmin=-1, vmax=1)
             # hide axis nums
-            subax.set_title('%d (%s)' % (mem_idx, CELLTYPE_LABELS[mem_idx][:24]), fontsize=8)
+            subax.set_title('%d (%s)' % (mem_idx, simsetup['CELLTYPE_LABELS'][mem_idx][:24]), fontsize=8)
             labels = [item.get_text() for item in subax.get_xticklabels()]
             empty_string_labels = [''] * len(labels)
             subax.set_xticklabels(empty_string_labels)
@@ -92,7 +91,7 @@ def lattice_projection_composite(lattice, time, n, lattice_plot_dir):
             subax.set_yticks(np.arange(-.5, n, 1))
             subax.grid(which='major', axis='both', linestyle='-', color='k', linewidth=1)
             mem_idx += 1
-            if mem_idx == P:
+            if mem_idx == simsetup['P']:
                 break
 
     # turn off empty boxes
@@ -107,19 +106,19 @@ def lattice_projection_composite(lattice, time, n, lattice_plot_dir):
     return
 
 
-def site_site_overlap(lattice, loc_1, loc_2, time):
+def site_site_overlap(lattice, loc_1, loc_2, time, N):
     cellstate_1 = lattice[loc_1[0]][loc_1[1]].get_state_array()[:, time]
     cellstate_2 = lattice[loc_2[0]][loc_2[1]].get_state_array()[:, time]
     return np.dot(cellstate_1.T, cellstate_2) / N
 
 
-def reference_overlap_plotter(lattice, time, n, lattice_plot_dir, ref_site=(0,0)):
+def reference_overlap_plotter(lattice, time, n, lattice_plot_dir, simsetup, ref_site=(0,0)):
     # get lattice size array of overlaps
     overlaps = np.zeros((n,n))
     for i in xrange(n):
         for j in xrange(n):
             #cell = lattice[i][j]
-            state_overlap = site_site_overlap(lattice, [i,j], ref_site, time)
+            state_overlap = site_site_overlap(lattice, [i,j], ref_site, time, simsetup['N'])
             overlaps[i,j] = state_overlap
     # plot
     colourmap = plt.get_cmap('Spectral')  # see https://matplotlib.org/examples/color/colormaps_reference.html... used 'PiYG',
