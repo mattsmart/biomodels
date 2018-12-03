@@ -93,6 +93,9 @@ def binary_cluster_dict_to_memories(binarized_cluster_dict, gene_labels, memory_
     Returns:
         - memory_array: i.e. xi matrix, will be N x K (one memory from each cluster)
     """
+    if gene_labels[0] == 'cluster_id':
+        print "Warning: gene_labels[0] == 'cluster_id', removing first element"
+        gene_labels = gene_labels[1:]
     num_genes = len(gene_labels)
     num_clusters = len(binarized_cluster_dict.keys())
     print "num_genes", num_genes
