@@ -136,7 +136,7 @@ def save_npz_of_arr_genes_cells(npzpath, arr, genes, cells):
 if __name__ == '__main__':
 
     # choose pipeline from PIPELINES_VALID
-    pipeline = "misc"
+    pipeline = "2018_scMCA"
     assert pipeline in PIPELINES_VALID
     datadir = DATADIR + os.sep + pipeline
 

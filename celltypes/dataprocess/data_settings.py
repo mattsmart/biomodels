@@ -18,7 +18,7 @@ NPZ_2014MEHTA_MEMS = DATADIR + os.sep + "2014_mehta" + os.sep + "mems_genes_type
 NPZ_2014MEHTA_MEMS_PRUNED = DATADIR + os.sep + "2014_mehta" + os.sep + "mems_genes_types_compressed_pruned.npz"
 
 # 2018 scMCA data
-RAWDATA_2018SCMCA = DATADIR + os.sep + "2018_scMCA" + os.sep + "Figure2-batch-removed.txt"
+RAWDATA_2018SCMCA = DATADIR + os.sep + "2018_scMCA" + os.sep + "SI_Figure2-batch-removed.txt"
 CELLSTOCLUSTERS_2018SCMCA = DATADIR + os.sep + "2018_scMCA" + os.sep + "SI_cells_to_clusters.csv"
 NPZ_2018SCMCA_ORIG = DATADIR + os.sep + "2018_scMCA" + os.sep + "arr_genes_cells_compressed.npz"
 NPZ_2018SCMCA_ORIG_WITHCLUSTER = DATADIR + os.sep + "2018_scMCA" + os.sep + "arr_genes_cells_withcluster_compressed.npz"
