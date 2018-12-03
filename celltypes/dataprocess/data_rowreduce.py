@@ -11,7 +11,7 @@ Script to reduce row count (number of genes) in single-cell RNA expression data 
 TODO: less naive dimension reduction (PCA, others)
 """
 
-def prune_rows(npzpath, specified_rows=None, save_pruned=True, save_rows=True):
+def prune_rows(npzpath, specified_rows=None, save_pruned=True, save_rows=True, del_A=True, del_B=True):
     """
     Delete rows from array and corresponding genes that are self-duplicates
     NOTE: very similar to reduce_gene_set(xi, gene_labels)
@@ -21,16 +21,24 @@ def prune_rows(npzpath, specified_rows=None, save_pruned=True, save_rows=True):
     print "CHECK FIRST ROW NOT CLUSTER ROW:", genes[0]
     if specified_rows is None:
         # collect rows to delete (A - self-duplicate rows all on / all off)
-        rows_duplicates = np.all(arr.T == arr.T[0,:], axis=0)
-        rows_to_delete_self_dup = set([idx for idx, val in enumerate(rows_duplicates) if val])
-        print "number of self-duplicate rows:", len(rows_to_delete_self_dup)
+        if del_A:
+            rows_duplicates = np.all(arr.T == arr.T[0,:], axis=0)
+            rows_to_delete_self_dup = set([idx for idx, val in enumerate(rows_duplicates) if val])
+            print "number of self-duplicate rows:", len(rows_to_delete_self_dup)
 
         # collect rows to delete (B - rows which are copies of other rows)
-        _, unique_indices = np.unique(arr, return_index=True, axis=0)
-        rows_to_delete_dupe = set(range(num_rows)) - set(unique_indices)
-        print "number of duplicated rows (num to delete):", len(rows_to_delete_dupe)
+        if del_B:
+            _, unique_indices = np.unique(arr, return_index=True, axis=0)
+            rows_to_delete_dupe = set(range(num_rows)) - set(unique_indices)
+            print "number of duplicated rows (num to delete):", len(rows_to_delete_dupe)
 
-        rows_to_delete = np.array(list(rows_to_delete_dupe.union(rows_to_delete_self_dup)))
+        # prepare rows to delete based on deletion choice
+        if del_A and del_B:
+            rows_to_delete = np.array(list(rows_to_delete_dupe.union(rows_to_delete_self_dup)))
+        elif del_A:
+            rows_to_delete = np.array(list(rows_to_delete_self_dup))
+        else:
+            rows_to_delete = np.array(list(rows_to_delete_dupe))
     else:
         save_rows = False
         rows_to_delete = np.array(specified_rows)
@@ -67,9 +75,9 @@ def reduce_gene_set(xi, gene_labels):  # TODO: my removal ends with 1339 left bu
 
 if __name__ == '__main__':
     datadir = DATADIR
-    flag_prune_rows = False
+    flag_prune_rows = True
     flag_prune_duplicate_rows = False
 
     if flag_prune_rows:
-        compressed_file = datadir + os.sep + "arr_genes_cells_raw_compressed.npz"
+        compressed_file = datadir + os.sep + "mems_genes_types_compressed.npz"
         prune_rows(compressed_file)
