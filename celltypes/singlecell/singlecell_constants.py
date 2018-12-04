@@ -17,7 +17,7 @@ RUNS_FOLDER = SINGLECELL + os.sep + "runs"                      # store timestam
 SETTINGS_FILE = "run_info.txt"
 
 # MODEL SPECIFICATION -- TODO print used vars in simsetup dict, write to run_info.txt
-DEFAULT_MEMORIES_NPZPATH = MEMS_SCMCA     # choose which memories to embed
+DEFAULT_MEMORIES_NPZPATH = MEMS_MEHTA     # choose which memories to embed
 NETWORK_METHOD = "projection"             # supported: 'projection' or 'hopfield'
 BETA = 2.2                                # value used in Mehta 2014 (low temperature: BETA=2.2)
 EXT_FIELD_STRENGTH = 0.30                 # relative strength of exosome local field effect
