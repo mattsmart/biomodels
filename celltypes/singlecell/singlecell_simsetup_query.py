@@ -28,7 +28,7 @@ def read_gene_list_csv(csvpath, aliases=False):
     with open(csvpath, 'r') as f:
         reader = csv.reader(f)
         if aliases:
-            data = {r[0]: r[1:] for r in reader}
+            data = {r[0]: [val for val in r[1:] if val] for r in reader}
         else:
             data = [r[0] for r in reader]
     return data
@@ -101,53 +101,56 @@ def write_genelist_id_csv(gene_list, gene_hits, outpath='genelist_id.csv'):
     return outpath
 
 
+def check_target_in_gene_id_dict(memories_genes_id, target_genes_id):
+    """
+    Returns:
+        list of tuples (mem_symbol, target_symbol) if they are aliases
+    """
+    matches = []
+    for target_key, target_val in target_genes_id.iteritems():
+        for mem_key, mem_val in memories_genes_id.iteritems():
+            #print target_key, target_val, mem_key, mem_val
+            for target_id in target_val:
+                if target_id in mem_val:
+                    matches.append((mem_key, target_key))
+    return matches
+
+
 if __name__ == '__main__':
-    simsetup = singlecell_simsetup()
-    # print_simsetup_labels(simsetup)
+    write_memories_id = False
+    write_targets_id = False
+    find_matches = True
 
-    # find ref for gene list# load csv to compare gene list
-    data_genes = simsetup['GENE_LABELS']
-    data_genes_lowercase = [g.lower() for g in data_genes]
+    if write_memories_id:
+        simsetup = singlecell_simsetup()
+        # print_simsetup_labels(simsetup
+        memories_genes = simsetup['GENE_LABELS']
+        memories_genes_lowercase = [g.lower() for g in memories_genes]
+        memories_genes_id, memories_hitcounts = collect_mygene_hits(memories_genes)
+        write_genelist_id_csv(memories_genes, memories_genes_id)
+    else:
+        memories_genes_id = read_gene_list_csv('2014mehta_genelist_id_filled.csv', aliases=True)
 
-    """    
-    data_gene_hits, data_hitcounts = collect_mygene_hits(data_genes)
-    write_genelist_id_csv(data_genes, data_gene_hits)
-    """
 
-    hits = get_mygene_hits('MLL3')
-    for hit in hits:
-        print hit.keys(), hit['taxid']
-        print hit
-
-    # check weird hits individually
-    """
-    for g in data_hitdict[2].keys():
-        entrez_ids = []
-        for hit in data_hitdict[2][g]:
-            hit.get()
-            entrez_ids.append('entrezgene', None)
-        data_hitdict[2][g] = entrez_ids
-        print g
-        print data_hitdict[2]
-        hits = get_mygene_hits(g)
-        print hits
-    """
-
-    # # load csv to compare gene list to target database
-    targetdir = DATADIR + os.sep + 'misc' + os.sep + 'mir21_targets'
+    # prep target csv
+    targetgenes_dir = DATADIR + os.sep + 'misc' + os.sep + 'mir21_targets'
+    targetgenes_id_dir = '.'
     target_names = ['mir21_misc', 'mir21_wiki', 'mir21_targetscan']
-    target_dict = {name: {'path': targetdir + os.sep + '%s.csv' % name} for name in target_names}
-    for name in target_names:
-        genes = read_gene_list_csv(target_dict[name]['path'])
-        print genes
-        target_dict[name]['genes'] = genes
-        gene_hits, hitcounts = collect_mygene_hits(genes)
-        write_genelist_id_csv(genes, gene_hits, outpath='genelist_id_%s.csv' % name)
+    target_dict = {name: {'gene_path': targetgenes_dir + os.sep + '%s.csv' % name} for name in target_names}
 
-    """
-    with open('targetscan_mir21_barelist.csv', 'r') as targetfile:
-        for idx, gene in enumerate(targetfile):
-            gene_lowercase = gene.lower()
-            if gene_lowercase in reference_list:
-                print "Target", idx, gene_lowercase
-    """
+    # write target csv to compare gene list to target database
+    for name in target_names:
+        genes = read_gene_list_csv(target_dict[name]['gene_path'])
+        target_dict[name]['genes'] = genes
+        if write_targets_id:
+            gene_hits, hitcounts = collect_mygene_hits(genes)
+            write_genelist_id_csv(genes, gene_hits, outpath=targetgenes_dir + os.sep + 'genelist_id_%s.csv' % name)
+        if find_matches:
+            target_genes_id = read_gene_list_csv(targetgenes_id_dir + os.sep + 'genelist_id_%s_filled.csv' % name,
+                                                 aliases=True)
+            # read target csv to compare gene list to target database
+            matches = check_target_in_gene_id_dict(memories_genes_id, target_genes_id)
+            target_dict[name]['matches'] = matches
+            print "MATCHES for %s" % name
+            for idx, match in enumerate(matches):
+                print match, memories_genes_id[match[0]], target_genes_id[match[1]]
