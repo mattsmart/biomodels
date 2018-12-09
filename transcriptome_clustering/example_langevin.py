@@ -13,7 +13,7 @@ deterministic_dynamics(...) and langevin_dynamics(...) return output of the form
     - times: np.array of size num_times
     - note on num_times:
         - in deterministic case: pre-determined (for euler method used here)
-        - in langevin case case: pre-determined    
+        - in langevin case case: pre-determined (for euler-maruyama method used here)  
 """
 
 STATE_DIM = 2
@@ -101,13 +101,13 @@ if __name__ == '__main__':
     # plotting
     fig = plt.figure(figsize=(8, 6))
     plt.suptitle('Example comparison of deterministic vs langevin trajectories for 2D linear system')
-    for subplt in xrange(2):
-        ax = fig.add_subplot(1, 2, subplt + 1)
-        ax.plot(times, states[:, subplt], label='deterministic')
-        for traj in xrange(3):
-            ax.plot(trials_times[traj], trials_states[traj][:, subplt], '--', alpha=0.4, label='stoch_%d' % traj)
+    for state_idx in xrange(2):
+        ax = fig.add_subplot(1, 2, state_idx + 1)
+        ax.plot(times, states[:, state_idx], label='deterministic')
+        for traj in xrange(num_trials):
+            ax.plot(trials_times[traj], trials_states[traj][:, state_idx], '--', alpha=0.4, label='stoch_%d' % traj)
         ax.legend()
         ax.set_xlabel('time')
-        ax.set_ylabel('x%d' % subplt)
+        ax.set_ylabel('x%d' % state_idx)
         plt.subplots_adjust(wspace=0.2)
     plt.show()
