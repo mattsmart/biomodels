@@ -17,8 +17,8 @@ deterministic_dynamics(...) and langevin_dynamics(...) return output of the form
 """
 
 STATE_DIM = 2
-SYSTEM = np.array([[-1, 4],
-                   [-0.5, -1]])
+SYSTEM = np.array([[-1.0, 4],
+                   [-0.5, 0.2]])
 
 
 def deterministic_term(states, step, system=SYSTEM):
@@ -27,11 +27,11 @@ def deterministic_term(states, step, system=SYSTEM):
     - system: the matrix A as an array
     """
     current_state = states[step, :]
-    deterministic_term = np.dot(system, current_state)
     return np.dot(system, current_state)
 
 
 def noise_term(dt):
+    # TODO more generally involves matrix product to get N x 1 term: B*dW is N x k * k x 1 where N = STATE_DIM
     """
     Computed as part of Euler-Maruyama method for langevin dynamics
     noise_term looks like B(x_k)*delta_w
@@ -81,7 +81,7 @@ def langevin_dynamics(init_cond, dt, num_steps, init_time=0.0):
 if __name__ == '__main__':
 
     # settings
-    init_cond = [10.0, 20.0]
+    init_cond = [10.0, 25.0]
     init_time = 4.0
     num_steps = 200
     dt = 0.1
