@@ -1,6 +1,9 @@
 import numpy as np
+import os
 import matplotlib.pyplot as plt
 import pickle
+
+from settings import FOLDER_OUTPUT
 
 """
 Adapted from original version sent by Sid Nov 20
@@ -153,7 +156,7 @@ if __name__ == '__main__':
     num_slaves = 20
     alphas = np.random.uniform(0, 1, num_slaves)
     timestep = .01
-    tmax = 5 #200
+    tmax = 2 #200
     nCells = 10000
     tauArr = [1.9]
     scale = 1000  # scale for number of proteins in a cell
@@ -170,17 +173,20 @@ if __name__ == '__main__':
 
         plt.imshow(covM)
         plt.colorbar()
-        plt.savefig('covM_scale' + str(scale) + '_runs-' + str(runcounts) + '_ncells-' + str(nCells) + '.png')
+        savefig = 'covM_scale' + str(scale) + '_runs-' + str(runcounts) + '_ncells-' + str(nCells) + '.png'
+        plt.savefig(FOLDER_OUTPUT + os.sep + savefig)
         plt.close()
 
         plt.imshow(lyap)
         plt.colorbar()
-        plt.savefig('lyap_scale' + str(scale) + '_runs-' + str(runcounts) + '_ncells-' + str(nCells) + '.png')
+        savefig = 'lyap_scale' + str(scale) + '_runs-' + str(runcounts) + '_ncells-' + str(nCells) + '.png'
+        plt.savefig(FOLDER_OUTPUT + os.sep + savefig)
         plt.close()
 
         plt.hist(u[0, :], alpha=0.5, label=str(tau), density=1)
         plt.legend()
-        plt.savefig('hist-pitchfork_nCells-' + str(nCells) + '_scale-' + str(scale) + '.png')
+        savefig = 'hist-pitchfork_nCells-' + str(nCells) + '_scale-' + str(scale) + '.png'
+        plt.savefig(FOLDER_OUTPUT + os.sep + savefig)
         plt.close()
 
     # pickle.dump([gArr, tauArr, tArr],open('genes_vs_t_noise_'+str(1./sigmaSupp)+'_taurange_'+str(taumin)+'-'+str(taumax)+'_dt_'+str(dt)+'.p', 'wb'))
