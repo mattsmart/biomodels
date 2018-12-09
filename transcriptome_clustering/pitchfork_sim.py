@@ -18,16 +18,16 @@ def rminus(u, tau):
     return np.array([np.divide(u[0,:], tau, dtype = float), np.divide(u[1,:], tau, dtype = float)])
 
 
-def sigma(u,dt,h,tau, scale):
+def sigma(u, dt, h, tau, scale):
     return np.sqrt(dt*(rplus(u,h) + rminus(u,tau))/scale, dtype = float)
 
 
-def step(u,dt,h,tau,nExp,scale):
-    mean = u + (rplus(u,h)-rminus(u,tau))*dt
-    return np.random.normal(mean,sigma(u,dt,h,tau,scale),np.array([2,nExp]))
+def step(u, dt, h, tau, nExp, scale):
+    mean = u + (rplus(u,h) - rminus(u,tau)) * dt
+    return np.random.normal(mean, sigma(u,dt,h,tau,scale), np.array([2,nExp]))
 
 
-def rplusSlave(u,v,h,aVec,N):
+def rplusSlave(u, v, h, aVec, N):
     rplusList = []
     for n in range(0,N):
         a = aVec[n]
@@ -35,20 +35,20 @@ def rplusSlave(u,v,h,aVec,N):
     return np.array(rplusList)
 
 
-def rminusSlave(v,N):
+def rminusSlave(v, N):
     rminusList = []
-    for n in range(0,N):
+    for n in range(0, N):
         rminusList.append(v[n,:])
     return np.array(rminusList)
 
 
-def sigmaSlave(u,v,aVec,dt,h,N,scale):
+def sigmaSlave(u, v, aVec, dt, h, N, scale):
     return np.sqrt(dt*(rplusSlave(u,v,h,aVec,N) + rminusSlave(v,N))/scale, dtype = float)
 
 
-def stepSlave(u,v,aVec,dt,h,N,nExp,scale):
+def stepSlave(u, v, aVec, dt, h, N, nExp, scale):
     mean = v + (rplusSlave(u,v,h,aVec,N) - rminusSlave(v,N))*dt
-    return np.random.normal(mean,sigmaSlave(u,v,aVec,dt,h,N,scale),np.array([N,nExp]))
+    return np.random.normal(mean, sigmaSlave(u,v,aVec,dt,h,N,scale), np.array([N,nExp]))
 
 
 def getTau(taumin, taumax, dt, tmax,t):
@@ -62,7 +62,7 @@ def getTau1(taumin, taumax, dt, tmax, t):
     return taumin + (taumax-taumin)*np.divide(t**k,t**k+(tmax/2.)**k, dtype=float)
 
 
-def langevin(hill_coeff,tau,num_slaves,alphas, scale,nCells,timestep,tmax):
+def langevin(hill_coeff, tau, num_slaves, alphas, scale, nCells, timestep, tmax):
     h = hill_coeff
     N = num_slaves
     aVec = alphas #np.random.uniform(0,1,N)
@@ -104,7 +104,7 @@ def langevin(hill_coeff,tau,num_slaves,alphas, scale,nCells,timestep,tmax):
             gArr.append(np.append(u,v, axis =0))
             count = 0
         t += dt
-    return(tArr, xArr, u, v)
+    return tArr, xArr, u, v
 
 
 def flucDiss(tau, hill_coeff, num_slaves, alphas, timestep, tmax, scale, nCells, runcounts):
@@ -138,7 +138,7 @@ def flucDiss(tau, hill_coeff, num_slaves, alphas, timestep, tmax, scale, nCells,
     covM = np.divide(covM,runcounts,dtype=float)
     lyap = (np.matmul(jac,covM) + np.matmul(jac,covM).T+dmat)*scale**1 #should be zero
     langevinData = tArr, xArr, u, v
-    return(jac, dmat, covM, lyap, langevinData)
+    return jac, dmat, covM, lyap, langevinData
 
 
 """
