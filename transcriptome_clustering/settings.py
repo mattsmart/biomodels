@@ -28,8 +28,8 @@ class Params:
         self.dim_slave = STATE_SLAVE_DIM
         self.dim = self.dim_master + self.dim_slave
         # master gene params
-        self.tau = TAU
-        self.hill_coeff = HILL_COEFF
+        self.tau = TAU                                   # TODO consider split into tau_x, tau_y params
+        self.hill_coeff = HILL_COEFF                     # TODO not sure how to incorporate, fix at 1.0 for now
         self.gamma = GAMMA
         # slave gene params
         self.alphas = ALPHAS
