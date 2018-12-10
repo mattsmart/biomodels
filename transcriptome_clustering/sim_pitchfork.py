@@ -7,11 +7,14 @@ from settings import FOLDER_OUTPUT
 """
 TODO
 0) rebuild         tArr, xArr, u, v = langevin(hill_coeff, tau, num_slaves, alphas, scale, nCells, timestep, tmax)
+
 1) rebuild         jac, dmat, covM, lyap, langevinData = 
                         flucDiss(tau, hill_coeff, num_slaves, alphas, timestep, tmax, scale, nCells, runcounts)
 
 2) estimate cov properly
+
 3) infer j_ij
+
 4) figure out how to encode changing dynamics here i.e. at some point there is pitchfork bifurcation
 
 """
