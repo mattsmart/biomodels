@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from settings import FOLDER_OUTPUT, DEFAULT_PARAMS, STATE_SLAVE_DIM
+from settings import DEFAULT_PARAMS, FOLDER_OUTPUT, STATE_SLAVE_DIM
 
 """
 Encode gene expression dynamics described in July pdf
@@ -31,24 +31,43 @@ Model parameters (for master genes: x, y):
 Model parameters (for slave genes: v_i):
     - alpha_i: 0<=alpha<=1, one for each slave gene, controls activation (1) or repression (0) by a master gene
     - beta_i: scales the production term for a slave gene
-    - tau_i: exponential degradation rate
-    
-deterministic_dynamics(...) and langevin_dynamics(...) return output of the form:
-    - states: np.array of size num_times x STATE_DIM
-    - times: np.array of size num_times
-    - note on num_times:
-        - in deterministic case: pre-determined (for euler method used here)
-        - in langevin case case: pre-determined (for euler-maruyama method used here)  
+    - tau_i: exponential degradation rate  
 """
 
 
-def jacobian_pitchfork(params):
-    # TODO
-    return 0
+def jacobian_pitchfork(params, steadystate):
+    # aliases
+    p = params
+    xss = steadystate[0]
+    yss = steadystate[1]
+    # check + jac prep
+    assert p.dim_master == 2  # TODO generalize this
+    jac = np.zeros((p.dim, p.dim))
+    # specify master gene components of J_ij
+    jac[0, 0] = -1.0 / p.tau
+    jac[0, 1] = -2.0 * yss / (1 + yss**2)
+    jac[1, 0] = -p.gamma * 2.0 * xss / (1 + xss**2)
+    jac[1, 1] = -p.gamma / p.tau
+    # specify slave gene components of J_ij
+    for i in xrange(2, p.dim):
+        slave_idx = i - p.dim_master
+        jac[i, 0] = p.betas[slave_idx] * (2 * xss) * (2*p.alphas[slave_idx] - 1) / ((xss**2 + 1) ** 2)
+        jac[i, i] = -1.0 / p.taus[slave_idx]
+    return jac
 
 
 def steadystate_pitchfork(params):
+    # TODO note may need to pass output to jacobian call
+    p = params
+    assert p.dim_master == 2  # TODO generalize this
+    steadystate = np.zeros(p.dim)
+    # master steady states
     # TODO
+    # slaves steady states
+    # TODO
+    for i in xrange(2, p.dim):
+        slave_idx = i - p.dim_master
+        steadystate[i] = None
     return 0
 
 
@@ -82,6 +101,11 @@ def langevin_dynamics(init_cond, dt, num_steps, init_time=0.0, params=DEFAULT_PA
         - B(x_k) describes possibly state dependent, possibly anisotropic diffusion
         - delta_w = Norm(0, sqrt(dt))
     Note: setting noise to 0.0 recovers deterministic dynamics
+
+    return output of the form:
+    - states: np.array of size num_times x STATE_DIM
+    - times: np.array of size num_times
+    - note on num_times: size pre-determined (for Euler-Maruyama method used here)
     """
     # prep arrays
     states = np.zeros((num_steps, params.dim))
