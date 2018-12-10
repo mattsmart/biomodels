@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+from settings import FOLDER_OUTPUT, DEFAULT_PARAMS, STATE_SLAVE_DIM
+
 """
 Encode gene expression dynamics described in July pdf
     - form of the dynamics is assumed
