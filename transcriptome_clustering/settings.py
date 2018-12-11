@@ -37,7 +37,7 @@ class Params:
         self.taus = TAUS
         assert self.hill_coeff == 1.0  # unclear how to put in model otherwise (based on pdf)
 
-    def __str__(self):
+    def printer(self):
         print "Dimension: (total = master + slave)"
         print "%d = %d + %d" % (self.dim, self.dim_master, self.dim_slave)
         print "Master params:"

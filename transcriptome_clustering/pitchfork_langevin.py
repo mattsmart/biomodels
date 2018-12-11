@@ -83,7 +83,7 @@ def steadystate_pitchfork(params):
         return tau / (1 + yss**2)
 
     def vss_from_xss(xss, alpha_i, beta_i, tau_i):
-        return tau_i * beta_i *(alpha_i * xss**2 + 1 - alpha_i) / (1 + xss**2)
+        return tau_i * beta_i * (alpha_i * xss**2 + 1 - alpha_i) / (1 + xss**2)
 
     root_to_int = {0: yss_root_main, 1:yss_root_plus, 2: yss_root_minus}
 
@@ -109,16 +109,32 @@ def steadystate_pitchfork(params):
         for i in xrange(2, p.dim):
             slave = i - p.dim_master
             steadystates[i][fp] = vss_from_xss(xss, p.alphas[slave], p.betas[slave], p.taus[slave])
-    return num_fp, steadystates
+    return steadystates
 
 
-def deterministic_term(states, step, jacobian, steady_state):
+def deterministic_term(states, step, params, linearized=False, jacobian=None, fp=None):
     """
-    Calculating right hand side of vector equation: xdot = J * (x - x_steadystate)
+    Calculating right hand side of vector equation: xdot = F(x)
+    If linearized: need to pass jacobian and a fixed point to compute linearized dynamics xdot=J*(x-x_fp)
     """
+    p = params
     current_state = states[step, :]
-    state_difference = current_state - steady_state
-    return np.dot(jacobian, state_difference)
+    if linearized:
+        state_difference = current_state - fp
+        rhs = np.dot(jacobian, state_difference)
+    else:
+        rhs = np.zeros(p.dim)
+        assert p.dim_master == 2
+        x = current_state[0]
+        y = current_state[1]
+        rhs[0] = 1/(1 + y**2) - x/p.tau                     # x_dot RHS
+        rhs[1] = (1/(1 + x**2) - y/p.tau) * p.gamma         # y_dot RHS
+        for idx in xrange(2, p.dim):
+            slave = idx - p.dim_master
+            alpha, beta, tau = p.alphas[slave], p.betas[slave], p.taus[slave]
+            #rhs[idx] = p.betas[slave] * (p.alphas[slave]*x**2 + 1 -p.alphas[slave]) / (1+x**2) - current_state[idx] / p.taus[slave]
+            rhs[idx] = beta * (alpha * x ** 2 + 1 - alpha) / (1 + x ** 2) - current_state[idx] / tau   # vi_dot RHS
+    return rhs
 
 
 def noise_term(dt):
@@ -154,13 +170,22 @@ def langevin_dynamics(init_cond, dt, num_steps, init_time=0.0, params=DEFAULT_PA
     # fill init cond
     states[0, :] = init_cond
     times[0] = init_time
+
     # build model
-    jacobian = jacobian_pitchfork(params)
-    steadystate = steadystate_pitchfork(params)
+    linearized = False
+    if linearized:
+        steadystates = steadystate_pitchfork(params)
+        fp_mid = steadystates[:, 0]                                 # always linearize around middle branch FP
+        jacobian = jacobian_pitchfork(params, fp_mid)
+
     for step in xrange(1, num_steps):
-        states[step, :] = states[step-1, :] + noise * noise_term(dt) + \
-                          deterministic_term(states, step-1, jacobian, steadystate) * dt
+        if linearized:
+            determ = deterministic_term(states, step-1, params, linearized=True, jacobian=jacobian, fp=fp_mid)
+        else:
+            determ = deterministic_term(states, step - 1, params, linearized=False)
+        states[step, :] = states[step-1, :] + noise * noise_term(dt) + determ * dt
         times[step] = times[step-1] + dt
+
     return states, times
 
 
@@ -168,7 +193,7 @@ if __name__ == '__main__':
 
     # setup params
     params = DEFAULT_PARAMS
-    print(params)
+    params.printer()
 
     # trajectory settings
     init_cond = [10.0, 25.0] + [0 for _ in xrange(params.dim_slave)]
