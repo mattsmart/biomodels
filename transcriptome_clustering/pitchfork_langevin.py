@@ -36,6 +36,10 @@ Model parameters (for slave genes: v_i):
 
 
 def jacobian_pitchfork(params, steadystate):
+    """
+    Assumes steady state is an array of size state_dim, but only uses the first two components (xss, yss)
+    Returns: state_dim x state_dim array
+    """
     # aliases
     p = params
     xss = steadystate[0]
@@ -57,18 +61,55 @@ def jacobian_pitchfork(params, steadystate):
 
 
 def steadystate_pitchfork(params):
+    """
+    See mathematica file -- there is 1 real root if 0 < tau <= 2, 3 for tau > 2 (the 3 are coincident at tau=2)
+    Returns steady states array of form: state_dim x num_fixed_points
+        - should be DIM x 1 or DIM x 3 typically
+    """
     # TODO note may need to pass output to jacobian call
+    def yss_root_main(tau):
+        C = (9*tau + np.sqrt(12 + 81 * tau ** 2))**(1/3)
+        num = -2 * 3**(1/3) + 2**(1/3) * C ** 2
+        den = 6**(2/3) * C
+        return num / den
+
+    def yss_root_plus(tau):
+        return 0.5 * (tau + np.sqrt(tau ** 2 - 4))
+
+    def yss_root_minus(tau):
+        return 0.5 * (tau - np.sqrt(tau ** 2 - 4))
+
+    def xss_from_yss(yss, tau):
+        return tau / (1 + yss**2)
+
+    def vss_from_xss(xss, alpha_i, beta_i, tau_i):
+        return tau_i * beta_i *(alpha_i * xss**2 + 1 - alpha_i) / (1 + xss**2)
+
+    root_to_int = {0: yss_root_main, 1:yss_root_plus, 2: yss_root_minus}
+
     p = params
-    assert p.dim_master == 2  # TODO generalize this
-    steadystate = np.zeros(p.dim)
-    # master steady states
-    # TODO
+    assert p.dim_master == 2
+
+    # two main cases for master genes
+    if 0 < p.tau <= 2:
+        num_fp = 1
+        steadystates = np.zeros((p.dim, num_fp))
+        steadystates[1][0] = yss_root_main(p.tau)
+        steadystates[0][0] = xss_from_yss(steadystates[1][0], p.tau)
+    else:
+        num_fp = 3
+        steadystates = np.zeros((p.dim, num_fp))
+        for fp in xrange(num_fp):
+            yss_fn = root_to_int[fp]
+            steadystates[1][fp] = yss_fn(p.tau)
+            steadystates[0][fp] = xss_from_yss(steadystates[1][fp], p.tau)
     # slaves steady states
-    # TODO
-    for i in xrange(2, p.dim):
-        slave_idx = i - p.dim_master
-        steadystate[i] = None
-    return 0
+    for fp in xrange(num_fp):
+        xss = steadystates[0][fp]
+        for i in xrange(2, p.dim):
+            slave = i - p.dim_master
+            steadystates[i][fp] = vss_from_xss(xss, p.alphas[slave], p.betas[slave], p.taus[slave])
+    return num_fp, steadystates
 
 
 def deterministic_term(states, step, jacobian, steady_state):
