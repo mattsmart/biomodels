@@ -38,16 +38,15 @@ class Params:
         assert self.hill_coeff == 1.0  # unclear how to put in model otherwise (based on pdf)
 
     def printer(self):
-        print "Dimension: (total = master + slave)"
-        print "%d = %d + %d" % (self.dim, self.dim_master, self.dim_slave)
+        print "Dimension: (total = master + slave): %d = %d + %d" % (self.dim, self.dim_master, self.dim_slave)
         print "Master params:"
-        print "tau = %.3f" % self.tau
-        print "hill_coeff = %.3f" % self.hill_coeff
-        print "gamma = %.3f" % self.gamma
+        print "\ttau = %.3f" % self.tau
+        print "\thill_coeff = %.3f" % self.hill_coeff
+        print "\tgamma = %.3f" % self.gamma
         print "Slave params:"
-        print "alphas = %s" % self.alphas
-        print "betas = %s" % self.betas
-        print "taus = %s" % self.taus
+        print "\talphas = %s" % self.alphas
+        print "\tbetas = %s" % self.betas
+        print "\ttaus = %s" % self.taus
 
 
 # prep default params for typical simulation
