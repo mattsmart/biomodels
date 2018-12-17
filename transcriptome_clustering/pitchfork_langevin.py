@@ -208,6 +208,11 @@ def langevin_dynamics(init_cond, dt, num_steps, init_time=0.0, params=DEFAULT_PA
 
 if __name__ == '__main__':
 
+    # main settings
+    plot = True
+    num_trials = 30
+    num_to_plot = 3
+
     # setup params
     params = DEFAULT_PARAMS
     params.printer()
@@ -215,8 +220,8 @@ if __name__ == '__main__':
     # trajectory settings
     init_cond = [7.0, 2.0] + [5.0 for _ in xrange(params.dim_slave)]
     init_time = 0.0
-    num_steps = 20000
-    dt = 0.01
+    num_steps = 2000
+    dt = 0.1
 
     # get predicted steady states
     steadystates = steadystate_pitchfork(params)
@@ -228,7 +233,6 @@ if __name__ == '__main__':
     states, times = langevin_dynamics(init_cond, dt, num_steps, init_time=init_time, params=params, noise=0.0)
 
     # get langevin trajectories
-    num_trials = 3
     trials_states = np.zeros((num_steps, params.dim, num_trials))
     trials_times = np.zeros((num_steps, num_trials))
     for traj in xrange(num_trials):
@@ -237,20 +241,21 @@ if __name__ == '__main__':
         trials_times[:, traj] = langevin_times
 
     # plotting master genes
-    fig = plt.figure(figsize=(8, 6))
-    plt.suptitle('Comparison of deterministic vs langevin gene expression for pitchfork system')
-    for state_idx in xrange(2):
-        ax = fig.add_subplot(1, 2, state_idx + 1)
-        ax.plot(times, states[:, state_idx], label='deterministic')
-        ax.axhline(steadystates[state_idx, 0], ls='--', c='k', alpha=0.4, label='FP formula')
-        for traj in xrange(num_trials):
-            ax.plot(trials_times[:, traj], trials_states[:, state_idx, traj], '--', alpha=0.4, label='stoch_%d' % traj)
-        ax.legend()
-        ax.set_xlabel('time')
-        ax.set_ylabel('%s' % params.state_dict[state_idx])
-        ax.set_title('State: %s' % params.state_dict[state_idx])
-        plt.subplots_adjust(wspace=0.2)
-    plt.show()
+    if plot:
+        fig = plt.figure(figsize=(8, 6))
+        plt.suptitle('Comparison of deterministic vs langevin gene expression for pitchfork system')
+        for state_idx in xrange(2):
+            ax = fig.add_subplot(1, 2, state_idx + 1)
+            ax.plot(times, states[:, state_idx], label='deterministic')
+            ax.axhline(steadystates[state_idx, 0], ls='--', c='k', alpha=0.4, label='FP formula')
+            for traj in xrange(num_to_plot):
+                ax.plot(trials_times[:, traj], trials_states[:, state_idx, traj], '--', alpha=0.4, label='stoch_%d' % traj)
+            ax.legend()
+            ax.set_xlabel('time')
+            ax.set_ylabel('%s' % params.state_dict[state_idx])
+            ax.set_title('State: %s' % params.state_dict[state_idx])
+            plt.subplots_adjust(wspace=0.2)
+        plt.show()
 
     # print diffusion, covariance, J_ij
     D = build_diffusion(trials_states, params)
