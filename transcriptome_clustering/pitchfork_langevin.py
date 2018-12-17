@@ -6,10 +6,8 @@ from statistical_formulae import collect_multitraj_info
 
 """
 TODO
-    (1) Verify tau=2.0 still bifurc in scaling case (beta > 1.0)
-        Saw at tau=2.5 that all three roots have all negative eigenvalues... middle root shouldn't
-    (2) implement J_ij inference
-    (3) flesh out paramvary script 
+    (1) implement J_ij inference
+    (2) flesh out paramvary script 
 """
 
 """
