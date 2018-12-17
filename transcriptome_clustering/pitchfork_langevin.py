@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from settings import DEFAULT_PARAMS, FOLDER_OUTPUT, STATE_SLAVE_DIM
+from statistical_formulae import build_diffusion, build_covariance, infer_interactions
 
 """
 Encode gene expression dynamics described in July pdf
@@ -213,12 +214,12 @@ if __name__ == '__main__':
 
     # get langevin trajectories
     num_trials = 3
-    trials_states = [0] * num_trials  # TODO array convert
-    trials_times = [0] * num_trials  # TODO array convert
+    trials_states = np.zeros((num_steps, params.dim, num_trials))
+    trials_times = np.zeros((num_steps, num_trials))
     for traj in xrange(num_trials):
         langevin_states, langevin_times = langevin_dynamics(init_cond, dt, num_steps, init_time=init_time, params=params)
-        trials_states[traj] = langevin_states
-        trials_times[traj] = langevin_times
+        trials_states[:, :, traj] = langevin_states
+        trials_times[:, traj] = langevin_times
 
     # plotting master genes
     fig = plt.figure(figsize=(8, 6))
@@ -227,10 +228,21 @@ if __name__ == '__main__':
         ax = fig.add_subplot(1, 2, state_idx + 1)
         ax.plot(times, states[:, state_idx], label='deterministic')
         for traj in xrange(num_trials):
-            ax.plot(trials_times[traj], trials_states[traj][:, state_idx], '--', alpha=0.4, label='stoch_%d' % traj)
+            ax.plot(trials_times[:, traj], trials_states[:, state_idx, traj], '--', alpha=0.4, label='stoch_%d' % traj)
         ax.legend()
         ax.set_xlabel('time')
         ax.set_ylabel('%s' % params.state_dict[state_idx])
         ax.set_title('State: %s' % params.state_dict[state_idx])
         plt.subplots_adjust(wspace=0.2)
     plt.show()
+
+    # print diffusion, covariance, J_ij
+    D = build_diffusion(trials_states, params)
+    C = build_covariance(trials_states, params)
+    J = infer_interactions(trials_states, params)
+    print "D - diffusion"
+    print D
+    print "C - covariance"
+    print C
+    print "J - interactions"
+    print J
