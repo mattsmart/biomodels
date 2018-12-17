@@ -36,6 +36,13 @@ class Params:
         self.betas = BETAS
         self.taus = TAUS
         assert self.hill_coeff == 1.0  # unclear how to put in model otherwise (based on pdf)
+        # housekeeping
+        if self.dim_master == 2:
+            self.state_dict = {idx: 'v_%d' % idx for idx in xrange(2, self.dim)}
+            self.state_dict.update({0: 'x', 1: 'y'})
+            print self.state_dict
+        else:
+            state_dict = None
 
     def printer(self):
         print "Dimension: (total = master + slave): %d = %d + %d" % (self.dim, self.dim_master, self.dim_slave)

@@ -223,6 +223,7 @@ if __name__ == '__main__':
             ax.plot(trials_times[traj], trials_states[traj][:, state_idx], '--', alpha=0.4, label='stoch_%d' % traj)
         ax.legend()
         ax.set_xlabel('time')
-        ax.set_ylabel('x%d' % state_idx)
+        ax.set_ylabel('%s' % params.state_dict[state_idx])
+        ax.set_title('State: %s' % params.state_dict[state_idx])
         plt.subplots_adjust(wspace=0.2)
     plt.show()
