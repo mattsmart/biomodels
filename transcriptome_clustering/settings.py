@@ -42,7 +42,7 @@ class Params:
             self.state_dict.update({0: 'x', 1: 'y'})
             print self.state_dict
         else:
-            state_dict = None
+            self.state_dict = None
 
     def printer(self):
         print "Dimension: (total = master + slave): %d = %d + %d" % (self.dim, self.dim_master, self.dim_slave)
