@@ -1,46 +1,67 @@
 import numpy as np
 
-from settings import DEFAULT_PARAMS
 
-
-def build_diffusion(multitraj, params):
+def build_diffusion(params, state_means):
     """
-    multitraj: of the form NUM_STEPS x STATE_DIM x NUM_TRAJ
-    Note: assume last step is roughly at steady state, without testing
+    steadystate_samples: of the form STATE_DIM x NUM_TRAJ
     """
     # setup
-    p = params
-    D = np.zeros((p.dim, p.dim))
-    # identify steadystate time slice
-    steadystate_samples = multitraj[-1, :, :]
+    D = np.zeros((params.dim, params.dim))
     # fill in matrix
     for idx in xrange(params.dim):
-        state_mean = np.mean(steadystate_samples[idx,:])
         if idx < params.dim_master:
-            D[idx, idx] = 2 * state_mean / params.tau
+            D[idx, idx] = 2 * state_means[idx] / params.tau
         else:
             slave_idx = idx - params.dim_master
-            D[idx, idx] = 2 * state_mean / params.taus[slave_idx]
+            D[idx, idx] = 2 * state_means[idx] / params.taus[slave_idx]
     return D
 
 
-def build_covariance(multitraj, params):
+def build_covariance(params, steadystate_samples, use_numpy=True, state_means=None):
     """
-    multitraj: of the form NUM_STEPS x STATE_DIM x NUM_TRAJ
-    Note: assume last step is roughly at steady state, without testing
+    steadystate_samples: of the form STATE_DIM x NUM_TRAJ
     """
-    p = params
-    cov = np.zeros((p.dim, p.dim))
-    # TODO
+    if use_numpy:
+        cov = np.cov(steadystate_samples)
+    else:
+        p = params
+        sample = steadystate_samples
+        cov = np.zeros((p.dim, p.dim))
+        num_traj = steadystate_samples.shape[-1]
+        denom_correction = num_traj - 1
+        if state_means is None:
+            state_means = np.mean(steadystate_samples, axis=1)
+        # fill in
+        for i in xrange(p.dim):
+            for j in xrange(p.dim):
+                for k in xrange(num_traj):
+                    cov[i, j] += (sample[i, k] - state_means[i]) * (sample[j, k] - state_means[j])
+                cov[i, j] = cov[i, j] / denom_correction
     return cov
 
 
-def infer_interactions(multitraj, params):
+def infer_interactions(params, steadystate_samples, state_means):
     """
-    multitraj: of the form NUM_STEPS x STATE_DIM x NUM_TRAJ
-    Note: assume last step is roughly at steady state, without testing
+    steadystate_samples: of the form STATE_DIM x NUM_TRAJ
     """
     p = params
     J = np.zeros((p.dim, p.dim))
     # TODO
     return J
+
+
+def collect_multitraj_info(multitraj, params):
+    """
+    steadystate_samples: of the form STATE_DIM x NUM_TRAJ
+    Note: assume last step is roughly at steady state, without testing
+    """
+    # identify steadystate time slice and compute sample means
+    steadystate_samples = multitraj[-1, :, :]
+    # compute means to pass to array functions
+    state_means = np.mean(steadystate_samples, axis=1)
+    assert len(state_means) == params.dim
+    # obtain three matrices in fluctuation-dissipation relation
+    D = build_diffusion(params, state_means)
+    C = build_covariance(params, steadystate_samples, use_numpy=True)
+    J = infer_interactions(params, steadystate_samples, state_means)
+    return D, C, J

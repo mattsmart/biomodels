@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from settings import DEFAULT_PARAMS, FOLDER_OUTPUT, STATE_SLAVE_DIM
-from statistical_formulae import build_diffusion, build_covariance, infer_interactions
+from statistical_formulae import collect_multitraj_info
 
 """
 Encode gene expression dynamics described in July pdf
@@ -258,9 +258,7 @@ if __name__ == '__main__':
         plt.show()
 
     # print diffusion, covariance, J_ij
-    D = build_diffusion(trials_states, params)
-    C = build_covariance(trials_states, params)
-    J = infer_interactions(trials_states, params)
+    D, C, J = collect_multitraj_info(trials_states, params)
     print "D - diffusion"
     print D
     print "C - covariance"
