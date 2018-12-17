@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from settings import DEFAULT_PARAMS, FOLDER_OUTPUT, STATE_SLAVE_DIM
+from settings import DEFAULT_PARAMS, FOLDER_OUTPUT, TIMESTEP, INIT_COND, NUM_STEPS
 from statistical_formulae import collect_multitraj_info
 
 """
@@ -125,6 +125,24 @@ def steadystate_pitchfork(params):
             slave = i - p.dim_master
             steadystates[i][fp] = vss_from_xss(xss_unscaled, p.alphas[slave], p.betas[slave], p.taus[slave])
     return steadystates
+
+
+def steadystate_info(params, printer=True):
+    steadystates = steadystate_pitchfork(params)
+    for idx in xrange(steadystates.shape[-1]):
+        fp = steadystates[:,idx]
+        # check each fp is a true fp
+        rhs = deterministic_term(np.array([fp]), 0, params)
+        error = np.linalg.norm(rhs)
+        # get eigensystem
+        eigenvalues, V = np.linalg.eig(jacobian_pitchfork(params, fp))
+        if printer:
+            print "FP #%d" % idx
+            for state in xrange(params.dim):
+                print "\t%s: %.3f" % (params.state_dict[state], steadystates[state][idx])
+            print "np.linalg.norm(rhs) =", error
+            print "Eigenvalues for given xss, yss:\n", eigenvalues, '\n'
+    return steadystates, eigenvalues
 
 
 def deterministic_term(states, step, params, linearized=False, jacobian=None, fp=None):
