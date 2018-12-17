@@ -140,7 +140,6 @@ def deterministic_term(states, step, params, linearized=False, jacobian=None, fp
         for idx in xrange(2, p.dim):
             slave = idx - p.dim_master
             alpha, beta, tau = p.alphas[slave], p.betas[slave], p.taus[slave]
-            #rhs[idx] = p.betas[slave] * (p.alphas[slave]*x**2 + 1 -p.alphas[slave]) / (1+x**2) - current_state[idx] / p.taus[slave]
             rhs[idx] = beta * (alpha * x ** 2 + 1 - alpha) / (1 + x ** 2) - current_state[idx] / tau   # vi_dot RHS
     return rhs
 
