@@ -6,8 +6,8 @@ from statistical_formulae import build_diffusion, build_covariance, infer_intera
 
 """
 TODO
-1 - can have negative master/slave states, for both linearized and direct dynamics -- FIX
-  - this happens even without noise
+1 - linearized dynamics explode (i.e. unstable), numeric problem or encoding problem... check derivatives
+    -notice not all eigenvalues negative... but mathematica shows stable (2-dim master dynamics at least)
 2 - fluctuation can send state below zero (separate problem from 1)
 """
 
@@ -65,14 +65,16 @@ def jacobian_pitchfork(params, steadystate):
     jac = np.zeros((p.dim, p.dim))
     # specify master gene components of J_ij
     jac[0, 0] = -1.0 / p.tau
-    jac[0, 1] = -2.0 * yss / (1 + yss**2)
-    jac[1, 0] = -p.gamma * 2.0 * xss / (1 + xss**2)
+    jac[0, 1] = -2.0 * yss / (1 + yss**2) ** 2
+    jac[1, 0] = -p.gamma * 2.0 * xss / (1 + xss**2) ** 2
     jac[1, 1] = -p.gamma / p.tau
     # specify slave gene components of J_ij
     for i in xrange(2, p.dim):
         slave_idx = i - p.dim_master
         jac[i, 0] = p.betas[slave_idx] * (2 * xss) * (2*p.alphas[slave_idx] - 1) / ((xss**2 + 1) ** 2)
         jac[i, i] = -1.0 / p.taus[slave_idx]
+    print jac
+    print np.linalg.eig(jac)
     return jac
 
 
@@ -82,7 +84,6 @@ def steadystate_pitchfork(params):
     Returns steady states array of form: state_dim x num_fixed_points
         - should be DIM x 1 or DIM x 3 typically
     """
-    # TODO note may need to pass output to jacobian call
     def yss_root_main(tau):
         C = (9*tau + np.sqrt(12 + 81 * tau ** 2))**(1.0/3.0)
         num = -2 * 3**(1.0/3.0) + 2**(1.0/3.0) * C ** 2
@@ -187,7 +188,7 @@ def langevin_dynamics(init_cond, dt, num_steps, init_time=0.0, params=DEFAULT_PA
     times[0] = init_time
 
     # build model
-    linearized = False
+    linearized = True
     if linearized:
         steadystates = steadystate_pitchfork(params)
         fp_mid = steadystates[:, 0]                                 # always linearize around middle branch FP
@@ -212,9 +213,15 @@ if __name__ == '__main__':
 
     # trajectory settings
     init_cond = [10.0, 25.0] + [0 for _ in xrange(params.dim_slave)]
-    init_time = 4.0
+    init_time = 0.0
     num_steps = 200
-    dt = 0.1
+    dt = 0.01
+
+    # get predicted steady states
+    steadystates = steadystate_pitchfork(params)
+    print "Predict %d fixed points" % steadystates.shape[-1]
+    for idx in xrange(params.dim):
+        print "\t%s: %.3f" % (params.state_dict[idx], steadystates[idx][0])
 
     # get deterministic trajectory
     states, times = langevin_dynamics(init_cond, dt, num_steps, init_time=init_time, params=params, noise=0.0)
@@ -234,6 +241,7 @@ if __name__ == '__main__':
     for state_idx in xrange(2):
         ax = fig.add_subplot(1, 2, state_idx + 1)
         ax.plot(times, states[:, state_idx], label='deterministic')
+        ax.axhline(steadystates[state_idx, 0], ls='--', c='k', alpha=0.4, label='FP formula')
         for traj in xrange(num_trials):
             ax.plot(trials_times[:, traj], trials_states[:, state_idx, traj], '--', alpha=0.4, label='stoch_%d' % traj)
         ax.legend()
