@@ -3,10 +3,6 @@ import numpy as np
 # project level constants
 FOLDER_OUTPUT = "output"
 
-# model specification
-SYSTEM = np.array([[-1.0, 4],
-                   [-0.5, 0.2]])
-
 # default model parameters (master genes)
 STATE_MASTER_DIM = 2
 TAU = 1.9

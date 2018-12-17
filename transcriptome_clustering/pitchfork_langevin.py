@@ -5,6 +5,11 @@ from settings import DEFAULT_PARAMS, FOLDER_OUTPUT, STATE_SLAVE_DIM
 from statistical_formulae import build_diffusion, build_covariance, infer_interactions
 
 """
+TODO
+1 - can have negative master/slave states, for both linearized and direct dynamics -- FIX
+"""
+
+"""
 Encode gene expression dynamics described in July pdf
     - form of the dynamics is assumed
     - as model parameter is vaired there is a patchfork bifurcation

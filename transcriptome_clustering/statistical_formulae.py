@@ -12,17 +12,15 @@ def build_diffusion(multitraj, params):
     p = params
     D = np.zeros((p.dim, p.dim))
     # identify steadystate time slice
-    steadystate_samples = multitraj[-1,:,:]
-    print multitraj.shape
-    print steadystate_samples.shape
+    steadystate_samples = multitraj[-1, :, :]
     # fill in matrix
     for idx in xrange(params.dim):
         state_mean = np.mean(steadystate_samples[idx,:])
         if idx < params.dim_master:
-            D[idx, idx] = state_mean / params.tau
+            D[idx, idx] = 2 * state_mean / params.tau
         else:
             slave_idx = idx - params.dim_master
-            D[idx, idx] = state_mean / params.taus[slave_idx]
+            D[idx, idx] = 2 * state_mean / params.taus[slave_idx]
     return D
 
 
