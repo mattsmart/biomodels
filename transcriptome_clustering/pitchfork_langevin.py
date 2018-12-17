@@ -61,18 +61,20 @@ def jacobian_pitchfork(params, steadystate, print_eig=False):
     p = params
     xss = steadystate[0]
     yss = steadystate[1]
+    xss_normed = xss / p.beta
+    yss_normed = yss / p.beta
     # check + jac prep
     assert p.dim_master == 2  # TODO generalize this
     jac = np.zeros((p.dim, p.dim))
     # specify master gene components of J_ij
     jac[0, 0] = -1.0 / p.tau
-    jac[0, 1] = -2.0 * yss / (1 + yss**2) ** 2
-    jac[1, 0] = -p.gamma * 2.0 * xss / (1 + xss**2) ** 2
+    jac[0, 1] = -2.0 * yss_normed / (1 + yss_normed**2) ** 2
+    jac[1, 0] = -p.gamma * 2.0 * xss_normed / (1 + xss_normed**2) ** 2
     jac[1, 1] = -p.gamma / p.tau
     # specify slave gene components of J_ij
     for i in xrange(2, p.dim):
         slave_idx = i - p.dim_master
-        jac[i, 0] = p.betas[slave_idx] * (2 * xss) * (2*p.alphas[slave_idx] - 1) / ((xss**2 + 1) ** 2)
+        jac[i, 0] = p.betas[slave_idx] * (2 * xss_normed) * (2*p.alphas[slave_idx] - 1) / ((xss_normed**2 + 1) ** 2) / p.beta
         jac[i, i] = -1.0 / p.taus[slave_idx]
     if print_eig:
         print "computed jacobian\n", jac
@@ -285,9 +287,6 @@ if __name__ == '__main__':
 
     # print diffusion, covariance, J_ij
     D, C, J = collect_multitraj_info(trials_states, params)
-    print "D - diffusion"
-    print D
-    print "C - covariance"
-    print C
-    print "J - interactions"
-    print J
+    print "D - diffusion\n", D
+    print "C - covariance\n", C
+    print "J - interactions\n", J
