@@ -13,6 +13,14 @@ The ODE: autonomous STATE_DIM x STATE_DIM linear system
     - xdot = J * (x - x_steadystate)
     - the jacobian J is defined by model parameters, a control parameter, and the steady state
     
+General procedure:
+- model starts before bifurcation, and as a key param is tuned a bifurcation occurs
+- fix model parameters   -> run N trajectories -> compute steady state correlation function -> infer J_ij
+- slide model parameters -> run N trajectories -> compute steady state correlation function -> infer J_ij 
+- ...
+- report bifurcation point if/when eig(J_ij) -> 0
+- at the detected bifurcation, report on control genes via deletion method
+    
 Model assumptions:
     - there are 2 master genes which interact with eachother and may control expression of other slave genes
     - the slave genes do not interact with other genes
