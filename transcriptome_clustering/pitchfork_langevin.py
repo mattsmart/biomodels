@@ -6,9 +6,7 @@ from statistical_formulae import build_diffusion, build_covariance, infer_intera
 
 """
 TODO
-1 - linearized dynamics explode (i.e. unstable), numeric problem or encoding problem... check derivatives
-    -notice not all eigenvalues negative... but mathematica shows stable (2-dim master dynamics at least)
-2 - fluctuation can send state below zero (separate problem from 1)
+- how to handle large fluctuations going negative
 """
 
 """
@@ -51,7 +49,7 @@ Model parameters (for slave genes: v_i):
 """
 
 
-def jacobian_pitchfork(params, steadystate):
+def jacobian_pitchfork(params, steadystate, print_eig=False):
     """
     Assumes steady state is an array of size state_dim, but only uses the first two components (xss, yss)
     Returns: state_dim x state_dim array
@@ -73,8 +71,9 @@ def jacobian_pitchfork(params, steadystate):
         slave_idx = i - p.dim_master
         jac[i, 0] = p.betas[slave_idx] * (2 * xss) * (2*p.alphas[slave_idx] - 1) / ((xss**2 + 1) ** 2)
         jac[i, i] = -1.0 / p.taus[slave_idx]
-    print jac
-    print np.linalg.eig(jac)
+    if print_eig:
+        print "computed jacobian\n", jac
+        print "eig\n", np.linalg.eig(jac)
     return jac
 
 
@@ -188,10 +187,11 @@ def langevin_dynamics(init_cond, dt, num_steps, init_time=0.0, params=DEFAULT_PA
     times[0] = init_time
 
     # build model
-    linearized = True
+    linearized = False
     if linearized:
         steadystates = steadystate_pitchfork(params)
-        fp_mid = steadystates[:, 0]                                 # always linearize around middle branch FP
+        fp_mid = steadystates[:, 0]                                         # always linearize around middle branch FP
+        assert np.linalg.norm(fp_mid[0:params.dim_master] - init_cond[0:params.dim_master]) <= 10.0  # start "near" FP
         jacobian = jacobian_pitchfork(params, fp_mid)
 
     for step in xrange(1, num_steps):
@@ -212,9 +212,9 @@ if __name__ == '__main__':
     params.printer()
 
     # trajectory settings
-    init_cond = [10.0, 25.0] + [0 for _ in xrange(params.dim_slave)]
+    init_cond = [7.0, 2.0] + [0 for _ in xrange(params.dim_slave)]
     init_time = 0.0
-    num_steps = 200
+    num_steps = 20000
     dt = 0.01
 
     # get predicted steady states
