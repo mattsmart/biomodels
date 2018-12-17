@@ -5,11 +5,6 @@ from settings import DEFAULT_PARAMS, FOLDER_OUTPUT, STATE_SLAVE_DIM
 from statistical_formulae import build_diffusion, build_covariance, infer_interactions
 
 """
-TODO
-- how to handle large fluctuations going negative
-"""
-
-"""
 Encode gene expression dynamics described in July pdf
     - form of the dynamics is assumed
     - as model parameter is vaired there is a patchfork bifurcation
@@ -110,21 +105,25 @@ def steadystate_pitchfork(params):
     if 0 < p.tau <= 2:
         num_fp = 1
         steadystates = np.zeros((p.dim, num_fp))
-        steadystates[1][0] = yss_root_main(p.tau)
-        steadystates[0][0] = xss_from_yss(steadystates[1][0], p.tau)
+        yss_unscaled = yss_root_main(p.tau)
+        xss_unscaled = xss_from_yss(yss_unscaled, p.tau)
+        steadystates[1][0] = p.beta * yss_unscaled                  # need to scale by p.beta to stretch FP away from 1
+        steadystates[0][0] = p.beta * xss_unscaled                  # need to scale by p.beta to stretch FP away from 1
     else:
         num_fp = 3
         steadystates = np.zeros((p.dim, num_fp))
         for fp in xrange(num_fp):
             yss_fn = root_to_int[fp]
-            steadystates[1][fp] = yss_fn(p.tau)
-            steadystates[0][fp] = xss_from_yss(steadystates[1][fp], p.tau)
+            yss_unscaled = yss_fn(p.tau)
+            xss_unscaled = xss_from_yss(yss_unscaled, p.tau)
+            steadystates[1][0] = p.beta * yss_unscaled  # need to scale by p.beta to stretch FP away from 1
+            steadystates[0][0] = p.beta * xss_unscaled  # need to scale by p.beta to stretch FP away from 1
     # slaves steady states
     for fp in xrange(num_fp):
-        xss = steadystates[0][fp]
+        xss_unscaled = steadystates[0][fp] / p.beta
         for i in xrange(2, p.dim):
             slave = i - p.dim_master
-            steadystates[i][fp] = vss_from_xss(xss, p.alphas[slave], p.betas[slave], p.taus[slave])
+            steadystates[i][fp] = vss_from_xss(xss_unscaled, p.alphas[slave], p.betas[slave], p.taus[slave])
     return steadystates
 
 
@@ -143,12 +142,14 @@ def deterministic_term(states, step, params, linearized=False, jacobian=None, fp
         assert p.dim_master == 2
         x = current_state[0]
         y = current_state[1]
-        rhs[0] = 1/(1 + y**2) - x/p.tau                     # x_dot RHS
-        rhs[1] = (1/(1 + x**2) - y/p.tau) * p.gamma         # y_dot RHS
+        x_normed = x / p.beta
+        y_normed = y / p.beta
+        rhs[0] = p.beta/(1 + y_normed**2) - x/p.tau                     # x_dot RHS
+        rhs[1] = (p.beta/(1 + x_normed**2) - y/p.tau) * p.gamma         # y_dot RHS
         for idx in xrange(2, p.dim):
             slave = idx - p.dim_master
             alpha, beta, tau = p.alphas[slave], p.betas[slave], p.taus[slave]
-            rhs[idx] = beta * (alpha * x ** 2 + 1 - alpha) / (1 + x ** 2) - current_state[idx] / tau   # vi_dot RHS
+            rhs[idx] = beta * (alpha * x_normed ** 2 + 1 - alpha) / (1 + x_normed ** 2) - current_state[idx] / tau
     return rhs
 
 
@@ -212,7 +213,7 @@ if __name__ == '__main__':
     params.printer()
 
     # trajectory settings
-    init_cond = [7.0, 2.0] + [0 for _ in xrange(params.dim_slave)]
+    init_cond = [7.0, 2.0] + [5.0 for _ in xrange(params.dim_slave)]
     init_time = 0.0
     num_steps = 20000
     dt = 0.01
