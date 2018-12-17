@@ -116,8 +116,8 @@ def steadystate_pitchfork(params):
             yss_fn = root_to_int[fp]
             yss_unscaled = yss_fn(p.tau)
             xss_unscaled = xss_from_yss(yss_unscaled, p.tau)
-            steadystates[1][0] = p.beta * yss_unscaled  # need to scale by p.beta to stretch FP away from 1
-            steadystates[0][0] = p.beta * xss_unscaled  # need to scale by p.beta to stretch FP away from 1
+            steadystates[1][fp] = p.beta * yss_unscaled  # need to scale by p.beta to stretch FP away from 1
+            steadystates[0][fp] = p.beta * xss_unscaled  # need to scale by p.beta to stretch FP away from 1
     # slaves steady states
     for fp in xrange(num_fp):
         xss_unscaled = steadystates[0][fp] / p.beta
@@ -185,7 +185,8 @@ def noise_term(dt):
     return delta_w
 
 
-def langevin_dynamics(init_cond, dt, num_steps, init_time=0.0, params=DEFAULT_PARAMS, noise=1.0):
+def langevin_dynamics(init_cond=INIT_COND, dt=TIMESTEP, num_steps=NUM_STEPS, init_time=0.0, params=DEFAULT_PARAMS,
+                      noise=1.0):
     """
     Uses Euler-Maruyama method: x(t+dt) = x_k + F(x_k, t_k) * dt + noise_term
     noise_term looks like B(x_k)*delta_w
@@ -242,19 +243,18 @@ if __name__ == '__main__':
     dt = 0.1
 
     # get predicted steady states
-    steadystates = steadystate_pitchfork(params)
-    print "Predict %d fixed points" % steadystates.shape[-1]
-    for idx in xrange(params.dim):
-        print "\t%s: %.3f" % (params.state_dict[idx], steadystates[idx][0])
+    steadystates, eigenvlaues = steadystate_info(params)
 
     # get deterministic trajectory
-    states, times = langevin_dynamics(init_cond, dt, num_steps, init_time=init_time, params=params, noise=0.0)
+    states, times = langevin_dynamics(init_cond=init_cond, dt=dt, num_steps=num_steps, init_time=init_time,
+                                      params=params, noise=0.0)
 
     # get langevin trajectories
     trials_states = np.zeros((num_steps, params.dim, num_trials))
     trials_times = np.zeros((num_steps, num_trials))
     for traj in xrange(num_trials):
-        langevin_states, langevin_times = langevin_dynamics(init_cond, dt, num_steps, init_time=init_time, params=params)
+        langevin_states, langevin_times = langevin_dynamics(init_cond=init_cond, dt=dt, num_steps=num_steps,
+                                                            init_time=init_time, params=params)
         trials_states[:, :, traj] = langevin_states
         trials_times[:, traj] = langevin_times
 
