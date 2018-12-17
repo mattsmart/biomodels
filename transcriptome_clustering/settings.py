@@ -38,7 +38,7 @@ PARAMS_DEFAULTS_DICT = {'dim_master': DIM_MASTER,
 
 # misc
 assert DIM_MASTER == 2
-INIT_COND = [7.0, 2.0] + [5.0 for _ in xrange(DIM_MASTER + DIM_SLAVE)]
+INIT_COND = [7.0, 2.0] + [5.0 for _ in xrange(DIM_SLAVE)]
 TIMESTEP = 0.1
 NUM_TRAJ = 30
 NUM_STEPS = 2000
