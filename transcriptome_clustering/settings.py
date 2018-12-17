@@ -5,8 +5,8 @@ FOLDER_OUTPUT = "output"
 
 # default model parameters (master genes)
 STATE_MASTER_DIM = 2
-TAU = 1.9
-HILL_COEFF = 1.0
+TAU = 1.8
+HILL_COEFF = 1.0                                         # TODO not sure how to incorporate, fix at 1.0 for now
 GAMMA = 1.3
 
 # default model parameters (slave genes)
@@ -25,7 +25,7 @@ class Params:
         self.dim = self.dim_master + self.dim_slave
         # master gene params
         self.tau = TAU                                   # TODO consider split into tau_x, tau_y params
-        self.hill_coeff = HILL_COEFF                     # TODO not sure how to incorporate, fix at 1.0 for now
+        self.hill_coeff = HILL_COEFF
         self.gamma = GAMMA
         # slave gene params
         self.alphas = ALPHAS

@@ -7,6 +7,8 @@ from statistical_formulae import build_diffusion, build_covariance, infer_intera
 """
 TODO
 1 - can have negative master/slave states, for both linearized and direct dynamics -- FIX
+  - this happens even without noise
+2 - fluctuation can send state below zero (separate problem from 1)
 """
 
 """
@@ -82,9 +84,9 @@ def steadystate_pitchfork(params):
     """
     # TODO note may need to pass output to jacobian call
     def yss_root_main(tau):
-        C = (9*tau + np.sqrt(12 + 81 * tau ** 2))**(1/3)
-        num = -2 * 3**(1/3) + 2**(1/3) * C ** 2
-        den = 6**(2/3) * C
+        C = (9*tau + np.sqrt(12 + 81 * tau ** 2))**(1.0/3.0)
+        num = -2 * 3**(1.0/3.0) + 2**(1.0/3.0) * C ** 2
+        den = 6**(2.0/3.0) * C
         return num / den
 
     def yss_root_plus(tau):
@@ -99,7 +101,7 @@ def steadystate_pitchfork(params):
     def vss_from_xss(xss, alpha_i, beta_i, tau_i):
         return tau_i * beta_i * (alpha_i * xss**2 + 1 - alpha_i) / (1 + xss**2)
 
-    root_to_int = {0: yss_root_main, 1:yss_root_plus, 2: yss_root_minus}
+    root_to_int = {0: yss_root_main, 1: yss_root_plus, 2: yss_root_minus}
 
     p = params
     assert p.dim_master == 2
@@ -193,7 +195,7 @@ def langevin_dynamics(init_cond, dt, num_steps, init_time=0.0, params=DEFAULT_PA
 
     for step in xrange(1, num_steps):
         if linearized:
-            determ = deterministic_term(states, step-1, params, linearized=True, jacobian=jacobian, fp=fp_mid)
+            determ = deterministic_term(states, step - 1, params, linearized=True, jacobian=jacobian, fp=fp_mid)
         else:
             determ = deterministic_term(states, step - 1, params, linearized=False)
         states[step, :] = states[step-1, :] + noise * noise_term(dt) + determ * dt
