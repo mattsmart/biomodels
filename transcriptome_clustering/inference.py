@@ -36,44 +36,51 @@ def matrixify_vector(vec, order='C'):
 def arr_cross_eye(arr):
     """
     Computes the block outer product (kronecker product) "A cross I" which will be of size N^2 x N^2
+    For 2x2 arr, it looks like [[a11 * I, a12 * I], [a21 * I, a22 * I]]
     """
     assert len(arr.shape) == 2 and arr.shape[0] == arr.shape[1]
     N = arr.shape[0]
+    eye = np.eye(N)
     tiled = np.zeros((N**2, N**2))
     for i in xrange(N):
+        i_start = N * i
+        i_end = N * (i + 1)
         for j in xrange(N):
-            if i == j:
-                idx_start = N * i
-                idx_end = N * (i+1)
-                tiled[idx_start:idx_end, idx_start:idx_end] = arr
+            j_start = N * j
+            j_end = N * (j + 1)
+            tiled[i_start:i_end, j_start:j_end] = arr[i, j] * eye
     return tiled
 
 
 def eye_cross_arr(arr):
     """
     Computes the block outer product (kronecker product) "I cross arr" which will be of size N^2 x N^2
+    For 2x2 arr, it looks like [[1 * A, 0], [0, 1 * A]]
     """
     assert len(arr.shape) == 2 and arr.shape[0] == arr.shape[1]
     N = arr.shape[0]
     tiled = np.zeros((N**2, N**2))
-    # TODO
-    """
     for i in xrange(N):
         for j in xrange(N):
             if i == j:
                 idx_start = N * i
                 idx_end = N * (i+1)
                 tiled[idx_start:idx_end, idx_start:idx_end] = arr
-    """
     return tiled
 
 
 def permutation_from_transpose(N):
     """
     Construct permutation matrix P such that vec(arr) = P * vec(arr^T) (for any NxN arr)
+    See: https://en.wikipedia.org/wiki/Commutation_matrix
+    Idea: "where does J_ij vector component get sent?"
     """
     P = np.zeros((N**2, N**2))
-    # TODO
+    for row in xrange(N):
+        for col in xrange(N):
+            vec_idx = row * N + col
+            vec_transpose_idx = col * N + row
+            P[vec_idx, vec_transpose_idx] = 1
     return P
 
 
@@ -81,6 +88,7 @@ def build_linear_problem(C, D):
     """
     Construct the 2D array A and 1D array b in Ax=b
     Based on fluctuation-dissipation relation JC +(JC)^T = -D
+    TODO there are many redundant equations, may be better to use the half-vector (upper triangular) vectorize
     """
     # TODO test output
     # shape checks
@@ -93,16 +101,18 @@ def build_linear_problem(C, D):
     # make b vector (RHS)
     b = vectorize_matrix(-D)
     # make A matrix (LHS)
-    term_1 = arr_cross_eye(C)
-    term_2 = eye_cross_arr(C)
-    term_2 = np.dot(term_2, P)
-    A = term_1 + term_2
+    CxI = arr_cross_eye(C)
+    IxC = eye_cross_arr(C)
+    A = CxI + np.dot(IxC, P)
     return A, b
 
 
 if __name__ == '__main__':
+    test_arr_2D = np.array([[1.0, 2.0], [3.0, 4.0]])
+    test_arr_3D = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]])
+
     print 'testing inference.py functions...'
-    test_arr = np.array([[1.0, 2.0], [3.0, 4.0]])
+    test_arr = test_arr_3D
     N = test_arr.shape[0]
     print 'N =', N
     print 'test_arr\n', test_arr
@@ -118,12 +128,15 @@ if __name__ == '__main__':
     print 'testing kronecker products...'
     AxI = arr_cross_eye(test_arr)
     IxA = eye_cross_arr(test_arr)
-    P = permutation_from_transpose(N)
     print 'arr_cross_eye\n', AxI
     print 'eye_cross_arr\n', IxA
 
     print 'testing permutation...'
+    P = permutation_from_transpose(N)
     print 'transposing permutation\n', P
+    vec_arr_T = vectorize_matrix(test_arr.T)
+    print 'P * vec_arr_T\n', np.dot(P, vec_arr_T)
+    print 'vec_arr\n', vec_row
 
     print 'testing Ax=b construction...'
     test_C_arr = np.array([[10.0, 4.0], [4.0, 7.0]])
