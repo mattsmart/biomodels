@@ -1,6 +1,10 @@
 import numpy as np
 
 
+def check_symmetric(arr, tol=1e-8):
+    return np.allclose(arr, arr.T, atol=tol)
+
+
 def vectorize_matrix(arr, order='C'):
     """
     Convert NxN matrix into N^2 1-dim array, row by row
@@ -12,9 +16,26 @@ def vectorize_matrix(arr, order='C'):
     return vec
 
 
+def matrixify_vector(vec, order='C'):
+    """
+    Convert N^2xN^2 vector (1-dim array) into NxN matrix (2-dim array), row by row
+        C - C-style, do row-by-row (default)
+        F - Fortran-style, do column-by-column
+    """
+    assert len(vec.shape) == 1 and order in ['C', 'F']
+    N_sqr = vec.shape[0]
+    N = int(np.sqrt(N_sqr))
+    assert N_sqr == N*N
+    if order == 'C':
+        vec = vec.reshape((N, N))
+    else:
+        vec = vec.reshape((N, N), order='F')
+    return vec
+
+
 def arr_cross_eye(arr):
     """
-    Computes the block outer produce "A cross I" which will be of size N^2 x N^2
+    Computes the block outer product (kronecker product) "A cross I" which will be of size N^2 x N^2
     """
     assert len(arr.shape) == 2 and arr.shape[0] == arr.shape[1]
     N = arr.shape[0]
@@ -30,7 +51,7 @@ def arr_cross_eye(arr):
 
 def eye_cross_arr(arr):
     """
-    Computes the block outer produce "I cross arr" which will be of size N^2 x N^2
+    Computes the block outer product (kronecker product) "I cross arr" which will be of size N^2 x N^2
     """
     assert len(arr.shape) == 2 and arr.shape[0] == arr.shape[1]
     N = arr.shape[0]
@@ -47,11 +68,68 @@ def eye_cross_arr(arr):
     return tiled
 
 
+def permutation_from_transpose(N):
+    """
+    Construct permutation matrix P such that vec(arr) = P * vec(arr^T) (for any NxN arr)
+    """
+    P = np.zeros((N**2, N**2))
+    # TODO
+    return P
+
+
+def build_linear_problem(C, D):
+    """
+    Construct the 2D array A and 1D array b in Ax=b
+    Based on fluctuation-dissipation relation JC +(JC)^T = -D
+    """
+    # TODO test output
+    # shape checks
+    assert C.shape == D.shape and len(C.shape) == 2 and C.shape[0] == C.shape[1]
+    # symmetry checks
+    assert check_symmetric(C) and check_symmetric(D)
+    # prep array computation
+    N = C.shape[0]
+    P = permutation_from_transpose(N)
+    # make b vector (RHS)
+    b = vectorize_matrix(-D)
+    # make A matrix (LHS)
+    term_1 = arr_cross_eye(C)
+    term_2 = eye_cross_arr(C)
+    term_2 = np.dot(term_2, P)
+    A = term_1 + term_2
+    return A, b
+
+
 if __name__ == '__main__':
-    print 'testing Ax=b construction'
-    C_test = np.array([[1.0 , 2.0], [3.0, 4.0]])
-    print 'arr\n', C_test
-    arr_cross_eye = arr_cross_eye(C_test)
-    eye_cross_arr = eye_cross_arr(C_test)
-    print 'arr_cross_eye\n', arr_cross_eye
-    print 'eye_cross_arr\n', eye_cross_arr
+    print 'testing inference.py functions...'
+    test_arr = np.array([[1.0, 2.0], [3.0, 4.0]])
+    N = test_arr.shape[0]
+    print 'N =', N
+    print 'test_arr\n', test_arr
+
+    print 'testing array reshapes on C...'
+    vec_row = vectorize_matrix(test_arr, order='C')
+    vec_col = vectorize_matrix(test_arr, order='F')
+    print 'vec row-by-row\n', vec_row
+    print 'vec col-by-col\n', vec_col
+    print 'array row-by-row\n', matrixify_vector(vec_row, order='C')
+    print 'array col-by-col\n', matrixify_vector(vec_col, order='F')
+
+    print 'testing kronecker products...'
+    AxI = arr_cross_eye(test_arr)
+    IxA = eye_cross_arr(test_arr)
+    P = permutation_from_transpose(N)
+    print 'arr_cross_eye\n', AxI
+    print 'eye_cross_arr\n', IxA
+
+    print 'testing permutation...'
+    print 'transposing permutation\n', P
+
+    print 'testing Ax=b construction...'
+    test_C_arr = np.array([[10.0, 4.0], [4.0, 7.0]])
+    test_D_arr = np.array([[2.0, 1.0], [1.0, 2.0]])
+    print 'test_C_arr\n', test_C_arr
+    print 'test_D_arr\n', test_D_arr
+    A, b = build_linear_problem(test_C_arr, test_D_arr)
+    print "A\n", A
+    print "b\n", b
