@@ -3,7 +3,7 @@ import numpy as np
 from inference import build_linear_problem, solve_regularized_linear_problem, matrixify_vector
 
 
-def build_diffusion(params, state_means):
+def build_diffusion_from_expt(params, state_means):
     """
     steadystate_samples: of the form STATE_DIM x NUM_TRAJ
     """
@@ -16,6 +16,14 @@ def build_diffusion(params, state_means):
         else:
             slave_idx = idx - params.dim_master
             D[idx, idx] = 2 * state_means[idx] / params.taus[slave_idx]
+
+    D = 0.5*np.eye(params.dim)
+    return D
+
+
+def build_diffusion_from_langevin(params, noise):
+    # TODO fix
+    D = noise*np.eye(params.dim)
     return D
 
 
@@ -42,7 +50,7 @@ def build_covariance(params, steadystate_samples, use_numpy=True, state_means=No
     return cov
 
 
-def infer_interactions(C, D):
+def infer_interactions(C, D, alpha=0.1):
     """
     Method to solve for J in JC + (JC)^T = -D
     - convert problem to linear one: underdetermined Ax=b
@@ -50,12 +58,12 @@ def infer_interactions(C, D):
     """
     # TODO why is result so poor
     A, b = build_linear_problem(C, D, order='C')
-    x = solve_regularized_linear_problem(A, b)
+    x = solve_regularized_linear_problem(A, b, alpha=alpha)
     J = matrixify_vector(x, order='C')
     return J
 
 
-def collect_multitraj_info(multitraj, params):
+def collect_multitraj_info(multitraj, params, noise, alpha=0.1):
     """
     steadystate_samples: of the form STATE_DIM x NUM_TRAJ
     Note: assume last step is roughly at steady state, without testing
@@ -66,7 +74,7 @@ def collect_multitraj_info(multitraj, params):
     state_means = np.mean(steadystate_samples, axis=1)
     assert len(state_means) == params.dim
     # obtain three matrices in fluctuation-dissipation relation
-    D = build_diffusion(params, state_means)
+    D = build_diffusion_from_langevin(params, noise)
     C = build_covariance(params, steadystate_samples, use_numpy=True)
-    J = infer_interactions(C, D)
+    J = infer_interactions(C, D, alpha=alpha)
     return D, C, J

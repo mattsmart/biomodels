@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+from inference import error_fn
 from settings import DEFAULT_PARAMS, FOLDER_OUTPUT, TIMESTEP, INIT_COND, NUM_STEPS
 from statistical_formulae import collect_multitraj_info
 
@@ -249,9 +250,12 @@ if __name__ == '__main__':
     init_time = 0.0
     num_steps = 2000
     dt = 0.1
+    noise = 1.0
 
-    # get predicted steady states
+    # get predicted steady states and jacobian
     steadystates, eigenvlaues = steadystate_info(params)
+    fp_mid = steadystates[:, 0]  # always linearize around middle branch FP
+    J_true = jacobian_pitchfork(params, fp_mid)
 
     # get deterministic trajectory
     states, times = langevin_dynamics(init_cond=init_cond, dt=dt, num_steps=num_steps, init_time=init_time,
@@ -262,7 +266,7 @@ if __name__ == '__main__':
     trials_times = np.zeros((num_steps, num_trials))
     for traj in xrange(num_trials):
         langevin_states, langevin_times = langevin_dynamics(init_cond=init_cond, dt=dt, num_steps=num_steps,
-                                                            init_time=init_time, params=params)
+                                                            init_time=init_time, params=params, noise=noise)
         trials_states[:, :, traj] = langevin_states
         trials_times[:, traj] = langevin_times
 
@@ -284,7 +288,14 @@ if __name__ == '__main__':
         plt.show()
 
     # print diffusion, covariance, J_ij
-    D, C, J = collect_multitraj_info(trials_states, params)
-    print "D - diffusion\n", D
-    print "C - covariance\n", C
-    print "J - interactions\n", J
+    D, C, J_guess = collect_multitraj_info(trials_states, params, noise, alpha=0.01)
+    print "D - diffusion (generated from pre-specified scalar langevin noise (%.2f))\n" % noise, D
+    print "C - covariance (generated from %d sample trajectories)\n" % num_trials, C
+    print "J - 'guessed' interactions\n", J_guess
+
+    # print J_true
+    print "J - 'true' from simulation\n", J_true
+
+    # assess inference
+    print "Error from JC + (JC)^T + D - inferred value of J\t", error_fn(C, D, J_guess)
+    print "Error from JC + (JC)^T + D - true value of J\t", error_fn(C, D, J_true)
