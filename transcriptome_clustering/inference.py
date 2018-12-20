@@ -7,6 +7,15 @@ def check_symmetric(arr, tol=1e-8):
     return np.allclose(arr, arr.T, atol=tol)
 
 
+def error_fn(C, D, J):
+    """
+    Return Frobenius norm of JC +(JC)^T + D
+    """
+    term = np.dot(J, C)
+    error_matrix = term + term.T + D
+    return np.linalg.norm(error_matrix)
+
+
 def vectorize_matrix(arr, order='C'):
     """
     Convert NxN matrix into N^2 1-dim array, row by row
@@ -137,29 +146,23 @@ def solve_regularized_linear_problem(A, b, alpha=0.1, tol=0.0001, verbose=True, 
 
 
 def scan_hyperparameter_plot_error(C, D, alpha_low=1e-3, alpha_high=1.0, num=20, check_eig=True):
-
-    def error_fn(J_sol):
-        term = np.dot(J_sol, C)
-        error_matrix = term + term.T + D
-        return np.linalg.norm(error_matrix)  # this is frobenius norm
-
     A, b = build_linear_problem(C, D)
     alphas = np.linspace(alpha_low, alpha_high, num)
     errors = np.zeros(alphas.shape)
     for idx, alpha in enumerate(alphas):
-        x = solve_regularized_linear_problem(A, b, alpha=alpha, tol=0.00001, verbose=False, use_ridge=False)
+        x = solve_regularized_linear_problem(A, b, alpha=alpha, tol=0.0001, verbose=False, use_ridge=False)
         J = matrixify_vector(x)
         if check_eig:
             E, V = np.linalg.eig(J)
             print idx, alpha, "eigenvalues", E
-        errors[idx] = error_fn(J)
+        errors[idx] = error_fn(C, D, J)
     # plotting
     plt.plot(alphas, errors)
-    plt.title('error vs alpha (lagrange multiplier')
+    plt.title('reconstruction error vs alpha (lagrange multiplier)')
     plt.xlabel('alpha')
     plt.xlabel('error (frobenius norm of covariance equation)')
     plt.show()
-    return errors
+    return alphas, errors
 
 
 if __name__ == '__main__':
@@ -212,8 +215,19 @@ if __name__ == '__main__':
     J_est = matrixify_vector(x_est)
     print "x*\n", x_est
     print "J*\n", J_est
-    print "check J* solves generating equation JC + (JC)^T + D = 0"
-    print "JC + (JC)^T + D\n", np.dot(J_est, C) + np.dot(J_est, C).T + D
+    print "check for all 0 in JC + (JC)^T + D\n", np.dot(J_est, C) + np.dot(J_est, C).T + D
+    print "Error:", error_fn(C, D, J_est)
+    print "Eigenvalues:",  np.linalg.eig(J_est)[0]
+
+
+    print "\nCompare vs eqn (9) suggestion of [2017] ref..."
+    scale = 200.0
+    R_trial = scale * np.random.rand(D.shape[0], D.shape[0])
+    U_trial = 0.5 * (R_trial - R_trial.T)
+    J_guess = -0.5*np.dot(D + U_trial, np.linalg.inv(C))
+    print J_guess
+    print "Error:", error_fn(C, D, J_guess)
+    print "Eigenvalues:",  np.linalg.eig(J_guess)[0]
 
     print "\nScanning alphas..."
-    errors = scan_hyperparameter_plot_error(C, D, alpha_low=1e-3, alpha_high=0.1, num=2000)
+    alphas, errors = scan_hyperparameter_plot_error(C, D, alpha_low=1e-3, alpha_high=0.1, num=200, check_eig=False)
