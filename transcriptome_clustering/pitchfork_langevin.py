@@ -14,7 +14,7 @@ TODO
 """
 Encode gene expression dynamics described in July pdf
     - form of the dynamics is assumed
-    - as model parameter is vaired there is a patchfork bifurcation
+    - as model parameter is varied there is a pitchfork bifurcation
     - assume linearized dynamics near fixed point
     
 The ODE: autonomous STATE_DIM x STATE_DIM linear system
@@ -30,7 +30,7 @@ General procedure:
 - at the detected bifurcation, report on control genes via deletion method
     
 Model assumptions:
-    - there are 2 master genes which interact with eachother and may control expression of other slave genes
+    - there are 2 master genes which interact with each other and may control expression of other slave genes
     - the slave genes do not interact with other genes
     - here assume the first master gene (i.e. index 0) controls other genes
 
@@ -180,7 +180,7 @@ def deterministic_term(states, step, params, linearized=False, jacobian=None, fp
     return rhs
 
 
-def noise_term(dt):
+def noise_term(dt, params):
     # TODO more generally involves matrix product to get N x 1 term: B*dW is N x k * k x 1 where N = STATE_DIM
     # TODO noise should be diagonal with something like sqrt(2 <x_i> / tau_i), check orig script for form
     """
@@ -190,7 +190,7 @@ def noise_term(dt):
         - delta_w = Norm(0, sqrt(dt))
     NOTE: we assume B(x_k) is a constant (i.e. scaled identity matrix)
     """
-    delta_w = np.random.normal(0, np.sqrt(dt))
+    delta_w = np.random.normal(0, np.sqrt(dt), params.dim)
     return delta_w
 
 
@@ -228,7 +228,7 @@ def langevin_dynamics(init_cond=INIT_COND, dt=TIMESTEP, num_steps=NUM_STEPS, ini
             determ = deterministic_term(states, step - 1, params, linearized=True, jacobian=jacobian, fp=fp_mid)
         else:
             determ = deterministic_term(states, step - 1, params, linearized=False)
-        states[step, :] = states[step-1, :] + noise * noise_term(dt) + determ * dt
+        states[step, :] = states[step-1, :] + noise * noise_term(dt, params) + determ * dt
         times[step] = times[step-1] + dt
 
     return states, times
@@ -250,7 +250,7 @@ if __name__ == '__main__':
     init_time = 0.0
     num_steps = 2000
     dt = 0.1
-    noise = 1.0
+    noise = 0.5
 
     # get predicted steady states and jacobian
     steadystates, eigenvlaues = steadystate_info(params)
@@ -288,7 +288,7 @@ if __name__ == '__main__':
         plt.show()
 
     # print diffusion, covariance, J_ij
-    D, C, J_guess = collect_multitraj_info(trials_states, params, noise, alpha=0.01)
+    D, C, J_guess = collect_multitraj_info(trials_states, params, noise, alpha=0.01, tol=1e-6)
     print "D - diffusion (generated from pre-specified scalar langevin noise (%.2f))\n" % noise, D
     print "C - covariance (generated from %d sample trajectories)\n" % num_trials, C
     print "J - 'guessed' interactions\n", J_guess

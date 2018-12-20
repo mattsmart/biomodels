@@ -16,14 +16,13 @@ def build_diffusion_from_expt(params, state_means):
         else:
             slave_idx = idx - params.dim_master
             D[idx, idx] = 2 * state_means[idx] / params.taus[slave_idx]
-
-    D = 0.5*np.eye(params.dim)
     return D
 
 
 def build_diffusion_from_langevin(params, noise):
     # TODO fix
-    D = noise**2 * np.eye(params.dim)
+    D = noise ** 2 * np.eye(params.dim)                  # if N noise sampled independently for each gene
+    #D = noise ** 2 * np.ones((params.dim, params.dim))  # if same noise sample applied to all genes
     print "CHECK build_diffusion_from_langevin(params, noise)"
     return D
 
@@ -51,7 +50,7 @@ def build_covariance(params, steadystate_samples, use_numpy=True, state_means=No
     return cov
 
 
-def infer_interactions(C, D, alpha=0.1):
+def infer_interactions(C, D, alpha=0.1, tol=1e-4):
     """
     Method to solve for J in JC + (JC)^T = -D
     - convert problem to linear one: underdetermined Ax=b
@@ -59,12 +58,12 @@ def infer_interactions(C, D, alpha=0.1):
     """
     # TODO why is result so poor
     A, b = build_linear_problem(C, D, order='C')
-    x = solve_regularized_linear_problem(A, b, alpha=alpha)
+    x = solve_regularized_linear_problem(A, b, alpha=alpha, tol=tol)
     J = matrixify_vector(x, order='C')
     return J
 
 
-def collect_multitraj_info(multitraj, params, noise, alpha=0.1):
+def collect_multitraj_info(multitraj, params, noise, alpha=0.1, tol=1e-4):
     """
     steadystate_samples: of the form STATE_DIM x NUM_TRAJ
     Note: assume last step is roughly at steady state, without testing
@@ -77,5 +76,5 @@ def collect_multitraj_info(multitraj, params, noise, alpha=0.1):
     # obtain three matrices in fluctuation-dissipation relation
     D = build_diffusion_from_langevin(params, noise)
     C = build_covariance(params, steadystate_samples, use_numpy=True)
-    J = infer_interactions(C, D, alpha=alpha)
+    J = infer_interactions(C, D, alpha=alpha, tol=tol)
     return D, C, J
