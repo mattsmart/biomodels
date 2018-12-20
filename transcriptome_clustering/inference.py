@@ -119,6 +119,7 @@ def build_linear_problem(C, D, order='C'):
     if order == 'C':
         A = IxC + np.dot(CxI, P)  # use this is vec(M) is defined row-by-row, i.e. 'C'
     else:
+        print 'here'
         A = CxI + np.dot(IxC, P)  # use this is vec(M) is defined col-by-col, i.e. 'F'
     return A, b
 
@@ -145,13 +146,13 @@ def solve_regularized_linear_problem(A, b, alpha=0.1, tol=0.0001, verbose=True, 
     return rgr.coef_
 
 
-def scan_hyperparameter_plot_error(C, D, alpha_low=1e-3, alpha_high=1.0, num=20, check_eig=True):
-    A, b = build_linear_problem(C, D)
+def scan_hyperparameter_plot_error(C, D, alpha_low=1e-3, alpha_high=1.0, num=20, check_eig=True, order='C'):
+    A, b = build_linear_problem(C, D, order=order)
     alphas = np.linspace(alpha_low, alpha_high, num)
     errors = np.zeros(alphas.shape)
     for idx, alpha in enumerate(alphas):
         x = solve_regularized_linear_problem(A, b, alpha=alpha, tol=0.0001, verbose=False, use_ridge=False)
-        J = matrixify_vector(x)
+        J = matrixify_vector(x, order=order)
         if check_eig:
             E, V = np.linalg.eig(J)
             print idx, alpha, "eigenvalues", E
@@ -221,7 +222,7 @@ if __name__ == '__main__':
 
 
     print "\nCompare vs eqn (9) suggestion of [2017] ref..."
-    scale = 200.0
+    scale = 10.0
     R_trial = scale * np.random.rand(D.shape[0], D.shape[0])
     U_trial = 0.5 * (R_trial - R_trial.T)
     J_guess = -0.5*np.dot(D + U_trial, np.linalg.inv(C))
@@ -230,4 +231,4 @@ if __name__ == '__main__':
     print "Eigenvalues:",  np.linalg.eig(J_guess)[0]
 
     print "\nScanning alphas..."
-    alphas, errors = scan_hyperparameter_plot_error(C, D, alpha_low=1e-3, alpha_high=0.1, num=200, check_eig=False)
+    alphas, errors = scan_hyperparameter_plot_error(C, D, alpha_low=1e-3, alpha_high=0.5, num=200, check_eig=False)
