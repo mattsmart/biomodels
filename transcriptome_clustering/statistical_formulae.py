@@ -1,6 +1,6 @@
 import numpy as np
 
-from inference import build_linear_problem, solve_lasso, matrixify_vector
+from inference import build_linear_problem, solve_regularized_linear_problem, matrixify_vector
 
 
 def build_diffusion(params, state_means):
@@ -48,9 +48,9 @@ def infer_interactions(C, D):
     - convert problem to linear one: underdetermined Ax=b
     - use lasso (lagrange multiplier with L1-norm on J) to find candidate J
     """
-    # TODO
+    # TODO why is result so poor
     A, b = build_linear_problem(C, D, order='C')
-    x = solve_lasso(A, b, mult=1.0)
+    x = solve_regularized_linear_problem(A, b)
     J = matrixify_vector(x, order='C')
     return J
 

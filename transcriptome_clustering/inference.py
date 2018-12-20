@@ -1,4 +1,6 @@
+import matplotlib.pyplot as plt
 import numpy as np
+from sklearn.linear_model import Lasso, Ridge
 
 
 def check_symmetric(arr, tol=1e-8):
@@ -112,29 +114,65 @@ def build_linear_problem(C, D, order='C'):
     return A, b
 
 
-def solve_lasso(A, b, mult=1.0):
+def solve_regularized_linear_problem(A, b, alpha=0.1, tol=0.0001, verbose=True, use_ridge=False):
     """
-    Finds x which minimzes: ||Ax-b||^2 + mult*|x|
+    Finds x which minimizes: 1/(2n)*||Ax-b||^2 + alpha*|x| where n is size of b ("number of samples" says scikit)
         - || . || denotes L2-norm
         -  | . |  denotes L1-norm
-        - mult acts as a lagrange multiplier: larger mult means prioritize smaller J_ij values over ||Ax-b|| error
+        - alpha acts as a lagrange multiplier: larger alpha means prioritize smaller J_ij values over ||Ax-b|| error
+    Uses scikit-learn Lasso regression: https://scikit-learn.org/stable/modules/linear_model.html
+    Default scikit: alpha=0.1, tol=0.0001
     """
-    # TODO
-    x = 1  # solve lasso from some package?
-    return x
+    if use_ridge:
+        rgr = Ridge(alpha=alpha, tol=tol)
+    else:
+        rgr = Lasso(alpha=alpha, tol=tol)
+    rgr.fit(A, b)
+    if verbose:
+        if not use_ridge:
+            print "rgr.l1_ratio =", rgr.l1_ratio
+        print "rgr.tol =", rgr.tol
+        print "rgr.coef_\n", rgr.coef_
+    return rgr.coef_
+
+
+def scan_hyperparameter_plot_error(C, D, alpha_low=1e-3, alpha_high=1.0, num=20, check_eig=True):
+
+    def error_fn(J_sol):
+        term = np.dot(J_sol, C)
+        error_matrix = term + term.T + D
+        return np.linalg.norm(error_matrix)  # this is frobenius norm
+
+    A, b = build_linear_problem(C, D)
+    alphas = np.linspace(alpha_low, alpha_high, num)
+    errors = np.zeros(alphas.shape)
+    for idx, alpha in enumerate(alphas):
+        x = solve_regularized_linear_problem(A, b, alpha=alpha, tol=0.00001, verbose=False, use_ridge=False)
+        J = matrixify_vector(x)
+        if check_eig:
+            E, V = np.linalg.eig(J)
+            print idx, alpha, "eigenvalues", E
+        errors[idx] = error_fn(J)
+    # plotting
+    plt.plot(alphas, errors)
+    plt.title('error vs alpha (lagrange multiplier')
+    plt.xlabel('alpha')
+    plt.xlabel('error (frobenius norm of covariance equation)')
+    plt.show()
+    return errors
 
 
 if __name__ == '__main__':
     test_arr_2D = np.array([[1.0, 2.0], [3.0, 4.0]])
     test_arr_3D = np.array([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0], [7.0, 8.0, 9.0]])
 
-    print 'testing inference.py functions...'
+    print '\ntesting inference.py functions...'
     test_arr = test_arr_3D
     N = test_arr.shape[0]
     print 'N =', N
     print 'test_arr\n', test_arr
 
-    print 'testing array reshapes on arr...'
+    print '\ntesting array reshapes on arr...'
     vec_row = vectorize_matrix(test_arr, order='C')
     vec_col = vectorize_matrix(test_arr, order='F')
     print 'vec row-by-row\n', vec_row
@@ -142,29 +180,40 @@ if __name__ == '__main__':
     print 'array row-by-row\n', matrixify_vector(vec_row, order='C')
     print 'array col-by-col\n', matrixify_vector(vec_col, order='F')
 
-    print 'testing kronecker products...'
+    print '\ntesting kronecker products...'
     AxI = arr_cross_eye(test_arr)
     IxA = eye_cross_arr(test_arr)
     print 'arr_cross_eye\n', AxI
     print 'eye_cross_arr\n', IxA
 
-    print 'testing permutation...'
+    print '\ntesting permutation...'
     P = permutation_from_transpose(N)
     print 'transposing permutation\n', P
     vec_arr_T = vectorize_matrix(test_arr.T)
     print 'P * vec_arr_T\n', np.dot(P, vec_arr_T)
     print 'vec_arr\n', vec_row
 
-    print 'testing Ax=b construction...'
+    print '\ntesting Ax=b construction...'
     test_C_arr_2d = np.array([[10.0, 4.0], [4.0, 7.0]])
     test_D_arr_2d = np.array([[2.0, 1.0], [1.0, 2.0]])
     test_C_arr_3d = np.array([[10.0, 4.0, 1.0], [4.0, 7.0, 2.0], [1.0, 2.0, 3.0]])
     test_D_arr_3d = np.array([[2.0, 1.0, 0.5], [1.0, 6.0, 2.0], [0.5, 2.0, 4.0]])
-
-    test_C_arr = test_C_arr_3d
-    test_D_arr = test_D_arr_3d
-    print 'test_C_arr\n', test_C_arr
-    print 'test_D_arr\n', test_D_arr
-    A, b = build_linear_problem(test_C_arr, test_D_arr)
+    C = test_C_arr_3d
+    D = test_D_arr_3d
+    print 'test_C_arr\n', C
+    print 'test_D_arr\n', D
+    A, b = build_linear_problem(C, D)
     print "A\n", A
     print "b\n", b
+
+    alpha = 0.026
+    print '\ntesting Ax=b solution for alpha=%.2e....' % alpha
+    x_est = solve_regularized_linear_problem(A, b, alpha=alpha)
+    J_est = matrixify_vector(x_est)
+    print "x*\n", x_est
+    print "J*\n", J_est
+    print "check J* solves generating equation JC + (JC)^T + D = 0"
+    print "JC + (JC)^T + D\n", np.dot(J_est, C) + np.dot(J_est, C).T + D
+
+    print "\nScanning alphas..."
+    errors = scan_hyperparameter_plot_error(C, D, alpha_low=1e-3, alpha_high=0.1, num=2000)
