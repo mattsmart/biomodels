@@ -58,7 +58,7 @@ def infer_interactions(C, D, alpha=0.1, tol=1e-4):
     """
     # TODO why is result so poor
     A, b = build_linear_problem(C, D, order='C')
-    x = solve_regularized_linear_problem(A, b, alpha=alpha, tol=tol)
+    x = solve_regularized_linear_problem(A, b, alpha=alpha, tol=tol, verbose=False)
     J = matrixify_vector(x, order='C')
     return J
 

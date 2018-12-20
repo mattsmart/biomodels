@@ -234,6 +234,24 @@ def langevin_dynamics(init_cond=INIT_COND, dt=TIMESTEP, num_steps=NUM_STEPS, ini
     return states, times
 
 
+def gen_multitraj(num_trials, init_cond=None, dt=TIMESTEP, num_steps=NUM_STEPS, init_time=0.0, params=DEFAULT_PARAMS,
+                  noise=1.0):
+    # TODO try init cond as FP
+    trials_states = np.zeros((num_steps, params.dim, num_trials))
+    trials_times = np.zeros((num_steps, num_trials))
+    # setup init cond
+    if init_cond is None:
+        steadystates, eigenvlaues = steadystate_info(params)
+        fp_mid = steadystates[:, 0]
+        init_cond = fp_mid
+    for traj in xrange(num_trials):
+        langevin_states, langevin_times = langevin_dynamics(init_cond=init_cond, dt=dt, num_steps=num_steps,
+                                                            init_time=init_time, params=params, noise=noise)
+        trials_states[:, :, traj] = langevin_states
+        trials_times[:, traj] = langevin_times
+    return trials_states, trials_times
+
+
 if __name__ == '__main__':
 
     # main settings
@@ -262,13 +280,8 @@ if __name__ == '__main__':
                                       params=params, noise=0.0)
 
     # get langevin trajectories
-    trials_states = np.zeros((num_steps, params.dim, num_trials))
-    trials_times = np.zeros((num_steps, num_trials))
-    for traj in xrange(num_trials):
-        langevin_states, langevin_times = langevin_dynamics(init_cond=init_cond, dt=dt, num_steps=num_steps,
-                                                            init_time=init_time, params=params, noise=noise)
-        trials_states[:, :, traj] = langevin_states
-        trials_times[:, traj] = langevin_times
+    trials_states, trials_times = gen_multitraj(num_trials, init_cond=init_cond, dt=TIMESTEP, num_steps=NUM_STEPS,
+                                                init_time=0.0, params=DEFAULT_PARAMS, noise=1.0)
 
     # plotting master genes
     if plot:

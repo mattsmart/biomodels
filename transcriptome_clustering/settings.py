@@ -11,6 +11,7 @@ HILL_COEFF = 1.0                                         # TODO not sure how to 
 GAMMA = 1.3
 
 # default model parameters (slave genes)
+# TODO randomize for large number, make FP near x,y FP
 DIM_SLAVE = 2
 ALPHAS = [0.2 for _ in xrange(DIM_SLAVE)]
 BETAS = [5.4 for _ in xrange(DIM_SLAVE)]
