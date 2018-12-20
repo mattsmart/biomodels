@@ -23,7 +23,8 @@ def build_diffusion_from_expt(params, state_means):
 
 def build_diffusion_from_langevin(params, noise):
     # TODO fix
-    D = noise*np.eye(params.dim)
+    D = noise**2 * np.eye(params.dim)
+    print "CHECK build_diffusion_from_langevin(params, noise)"
     return D
 
 
