@@ -8,8 +8,8 @@ def check_symmetric(arr, tol=1e-8):
 def vectorize_matrix(arr, order='C'):
     """
     Convert NxN matrix into N^2 1-dim array, row by row
-        C - C-style, do row-by-row (default)
-        F - Fortran-style, do column-by-column
+        'C' - C-style, do row-by-row (default)
+        'F' - Fortran-style, do column-by-column
     """
     assert all([len(arr.shape) == 2, arr.shape[0] == arr.shape[1], order in ['C', 'F']])
     vec = arr.flatten(order=order)
@@ -19,8 +19,8 @@ def vectorize_matrix(arr, order='C'):
 def matrixify_vector(vec, order='C'):
     """
     Convert N^2xN^2 vector (1-dim array) into NxN matrix (2-dim array), row by row
-        C - C-style, do row-by-row (default)
-        F - Fortran-style, do column-by-column
+        'C' - C-style, do row-by-row (default)
+        'F' - Fortran-style, do column-by-column
     """
     assert len(vec.shape) == 1 and order in ['C', 'F']
     N_sqr = vec.shape[0]
@@ -84,15 +84,17 @@ def permutation_from_transpose(N):
     return P
 
 
-def build_linear_problem(C, D):
+def build_linear_problem(C, D, order='C'):
     """
     Construct the 2D array A and 1D array b in Ax=b
     Based on fluctuation-dissipation relation JC +(JC)^T = -D
     TODO there are many redundant equations, may be better to use the half-vector (upper triangular) vectorize
+    Order arg for vectorization style:
+        'C' - C-style, do row-by-row (default)
+        'F' - Fortran-style, do column-by-column
     """
-    # TODO test output
     # shape checks
-    assert C.shape == D.shape and len(C.shape) == 2 and C.shape[0] == C.shape[1]
+    assert C.shape == D.shape and len(C.shape) == 2 and C.shape[0] == C.shape[1] and order in ['C', 'F']
     # symmetry checks
     assert check_symmetric(C) and check_symmetric(D)
     # prep array computation
@@ -103,8 +105,23 @@ def build_linear_problem(C, D):
     # make A matrix (LHS)
     CxI = arr_cross_eye(C)
     IxC = eye_cross_arr(C)
-    A = CxI + np.dot(IxC, P)
+    if order == 'C':
+        A = IxC + np.dot(CxI, P)  # use this is vec(M) is defined row-by-row, i.e. 'C'
+    else:
+        A = CxI + np.dot(IxC, P)  # use this is vec(M) is defined col-by-col, i.e. 'F'
     return A, b
+
+
+def solve_lasso(A, b, mult=1.0):
+    """
+    Finds x which minimzes: ||Ax-b||^2 + mult*|x|
+        - || . || denotes L2-norm
+        -  | . |  denotes L1-norm
+        - mult acts as a lagrange multiplier: larger mult means prioritize smaller J_ij values over ||Ax-b|| error
+    """
+    # TODO
+    x = 1  # solve lasso from some package?
+    return x
 
 
 if __name__ == '__main__':
@@ -117,7 +134,7 @@ if __name__ == '__main__':
     print 'N =', N
     print 'test_arr\n', test_arr
 
-    print 'testing array reshapes on C...'
+    print 'testing array reshapes on arr...'
     vec_row = vectorize_matrix(test_arr, order='C')
     vec_col = vectorize_matrix(test_arr, order='F')
     print 'vec row-by-row\n', vec_row
@@ -139,8 +156,13 @@ if __name__ == '__main__':
     print 'vec_arr\n', vec_row
 
     print 'testing Ax=b construction...'
-    test_C_arr = np.array([[10.0, 4.0], [4.0, 7.0]])
-    test_D_arr = np.array([[2.0, 1.0], [1.0, 2.0]])
+    test_C_arr_2d = np.array([[10.0, 4.0], [4.0, 7.0]])
+    test_D_arr_2d = np.array([[2.0, 1.0], [1.0, 2.0]])
+    test_C_arr_3d = np.array([[10.0, 4.0, 1.0], [4.0, 7.0, 2.0], [1.0, 2.0, 3.0]])
+    test_D_arr_3d = np.array([[2.0, 1.0, 0.5], [1.0, 6.0, 2.0], [0.5, 2.0, 4.0]])
+
+    test_C_arr = test_C_arr_3d
+    test_D_arr = test_D_arr_3d
     print 'test_C_arr\n', test_C_arr
     print 'test_D_arr\n', test_D_arr
     A, b = build_linear_problem(test_C_arr, test_D_arr)
