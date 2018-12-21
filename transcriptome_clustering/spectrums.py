@@ -13,7 +13,6 @@ def get_spectrum_from_J(J, real=True):
     return eig
 
 
-
 def get_spectrums(C, D, num_spectrums=10, method='U'):
     """
     Returns spectrums of J's generated from method and their labels
@@ -32,10 +31,19 @@ def get_spectrums(C, D, num_spectrums=10, method='U'):
     return spectrums, labels
 
 
-def plot_spectrum_hists(spectrums, labels, method='U'):
+def plot_spectrum_hists(spectrums, labels, method='U', hist='default'):
     # TODO violin plot of real part? others...
-    num_spectrums = len(spectrums)
-    # TODO fill
+    if hist == 'default':
+        _, bins, _ = plt.hist(spectrums[0, :], bins=10, range=[-6, 6], normed=True, label=labels[0])  # plot first to get bins
+        for idx in xrange(1, len(labels)):
+            _ = plt.hist(spectrums[idx, :], bins=bins, alpha=0.5, normed=True, label=labels[idx])
+    elif hist == 'violin':
+        print 'hist type %s not yet implemented in plot_spectrum_hists(...)' % hist
+        assert 1==2
+    else:
+        print 'hist type %s not supported in plot_spectrum_hists(...)' % hist
+        assert 1==2
     plt.title('Spectrums from %s' % method)
     plt.xlabel('Spectrums')
+    plt.show()
     return
