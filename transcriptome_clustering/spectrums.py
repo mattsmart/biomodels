@@ -1,0 +1,41 @@
+import matplotlib.pyplot as plt
+import numpy as np
+
+from inference import choose_J_from_general_form, infer_interactions
+
+
+def get_spectrum_from_J(J, real=True):
+    eig, V = np.linalg.eig(J)
+    if real:
+        print eig
+        eig = np.real(eig)
+        print eig
+    return eig
+
+
+
+def get_spectrums(C, D, num_spectrums=10, method='U'):
+    """
+    Returns spectrums of J's generated from method and their labels
+        Shape is num_spectrums X dim_spectrum
+    """
+    assert method in ['choose', 'infer']
+    spectrums = np.zeros((num_spectrums, D.shape[0]))
+    for idx in xrange(num_spectrums):
+        if method == 'choose':
+            J = choose_J_from_general_form(C, D, scale=10.0)
+        else:
+            J = infer_interactions(C, D, alpha=0.1)
+        eigs = get_spectrum_from_J(J)
+        spectrums[idx, :] = get_spectrum_from_J(J, real=True)
+    labels = [i for i in xrange(num_spectrums)]  # TODO more meaningful? e.g. vary scales or alphas
+    return spectrums, labels
+
+
+def plot_spectrum_hists(spectrums, labels, method='U'):
+    # TODO violin plot of real part? others...
+    num_spectrums = len(spectrums)
+    # TODO fill
+    plt.title('Spectrums from %s' % method)
+    plt.xlabel('Spectrums')
+    return
