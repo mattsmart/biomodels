@@ -31,14 +31,14 @@ if __name__ == '__main__':
 
     num_traj_set = [int(a) for a in np.linspace(10, 600, 6)]
     num_steps_set = [int(a) for a in np.linspace(10, 2000, 5)]
-    replicates = {'num_traj': num_traj_set, 'num_steps': num_steps_set}[mod]
+    param_vary_set = {'num_traj': num_traj_set, 'num_steps': num_steps_set}[mod]
 
-    true_errors_mid = np.zeros(len(num_traj_set))
-    true_errors_sd = np.zeros(len(num_traj_set))
-    infer_errors_mid = np.zeros(len(num_traj_set))
-    infer_errors_sd = np.zeros(len(num_traj_set))
+    true_errors_mid = np.zeros(len(param_vary_set))
+    true_errors_sd = np.zeros(len(param_vary_set))
+    infer_errors_mid = np.zeros(len(param_vary_set))
+    infer_errors_sd = np.zeros(len(param_vary_set))
     # compute errors and do inference
-    for i, elem in enumerate(replicates):
+    for i, elem in enumerate(param_vary_set):
         print "point %d (%s %d)" % (i, mod, elem)
         if mod == 'num_traj':
             true_errors, infer_errors = get_errors_for_replicates(num_traj=elem, replicates=2, noise=0.1)
@@ -49,9 +49,9 @@ if __name__ == '__main__':
         infer_errors_mid[i] = np.mean(infer_errors)
         infer_errors_sd[i] = np.std(infer_errors)
     # plot
-    plt.errorbar(num_traj_set, true_errors_mid, yerr=true_errors_sd, label='true J errors', fmt='o')
-    plt.errorbar(num_traj_set, infer_errors_mid, yerr=infer_errors_sd, label='infer J errors', fmt='o')
-    plt.title('Reconstrution error (true J vs inferred) for varying %s' % mod)
+    plt.errorbar(param_vary_set, true_errors_mid, yerr=true_errors_sd, label='true J errors', fmt='o')
+    plt.errorbar(param_vary_set, infer_errors_mid, yerr=infer_errors_sd, label='infer J errors', fmt='o')
+    plt.title('Reconstruction error (true J vs inferred) for varying %s' % mod)
     plt.xlabel('%s' % mod)
     plt.ylabel('F-norm of JC + (JC)^T + D')
     plt.legend()

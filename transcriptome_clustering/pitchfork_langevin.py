@@ -195,15 +195,16 @@ def noise_term(dt, params):
 
 
 def langevin_dynamics(init_cond=INIT_COND, dt=TIMESTEP, num_steps=NUM_STEPS, init_time=0.0, params=DEFAULT_PARAMS,
-                      noise=1.0):
+                      noise=1.0, perturb=False):
     """
     Uses Euler-Maruyama method: x(t+dt) = x_k + F(x_k, t_k) * dt + noise_term
     noise_term looks like B(x_k)*delta_w
         - B(x_k) describes possibly state dependent, possibly anisotropic diffusion
         - delta_w = Norm(0, sqrt(dt))
     Note: setting noise to 0.0 recovers deterministic dynamics
+    Perturb slightly shifts the initial condition proportional to the noise
 
-    return output of the form:
+    Return output of the form:
     - states: np.array of size num_times x STATE_DIM
     - times: np.array of size num_times
     - note on num_times: size pre-determined (for Euler-Maruyama method used here)
@@ -213,6 +214,10 @@ def langevin_dynamics(init_cond=INIT_COND, dt=TIMESTEP, num_steps=NUM_STEPS, ini
     times = np.zeros(num_steps)
     # fill init cond
     states[0, :] = init_cond
+    if perturb:
+        states[0, :] = init_cond + noise * noise_term(5*dt, params)
+    else:
+        states[0, :] = init_cond
     times[0] = init_time
 
     # build model
@@ -256,7 +261,8 @@ if __name__ == '__main__':
 
     # main settings
     plot = True
-    num_trials = 30
+    use_fp_as_init = True
+    num_trials = 3000
     num_to_plot = 3
 
     # setup params
@@ -268,20 +274,22 @@ if __name__ == '__main__':
     init_time = 0.0
     num_steps = 2000
     dt = 0.1
-    noise = 0.5
+    noise = 0.1
 
     # get predicted steady states and jacobian
     steadystates, eigenvlaues = steadystate_info(params)
     fp_mid = steadystates[:, 0]  # always linearize around middle branch FP
     J_true = jacobian_pitchfork(params, fp_mid)
+    if use_fp_as_init:
+        init_cond = fp_mid
 
     # get deterministic trajectory
     states, times = langevin_dynamics(init_cond=init_cond, dt=dt, num_steps=num_steps, init_time=init_time,
                                       params=params, noise=0.0)
 
     # get langevin trajectories
-    trials_states, trials_times = gen_multitraj(num_trials, init_cond=init_cond, dt=TIMESTEP, num_steps=NUM_STEPS,
-                                                init_time=0.0, params=DEFAULT_PARAMS, noise=1.0)
+    trials_states, trials_times = gen_multitraj(num_trials, init_cond=init_cond, dt=dt, num_steps=num_steps,
+                                                init_time=0.0, params=params, noise=noise)
 
     # plotting master genes
     if plot:
