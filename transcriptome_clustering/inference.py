@@ -134,6 +134,7 @@ def solve_regularized_linear_problem(A, b, alpha=0.1, tol=0.0001, verbose=True, 
     Default scikit: alpha=0.1, tol=0.0001
     """
     # TODO id ruggedness, algorithm determinism, use 'warm-start' from last tau iteration
+    # TODO re-frame A (using half vectorization? vech) so that its N(N+1)/2 x N^2 with rank N(N+1)/2
     if use_ridge:
         rgr = Ridge(alpha=alpha, tol=tol)
     else:
@@ -145,6 +146,19 @@ def solve_regularized_linear_problem(A, b, alpha=0.1, tol=0.0001, verbose=True, 
         print "rgr.tol =", rgr.tol
         print "rgr.coef_\n", rgr.coef_
     return rgr.coef_
+
+
+def infer_interactions(C, D, alpha=0.1, tol=1e-5):
+    """
+    Method to solve for J in JC + (JC)^T = -D
+    - convert problem to linear one: underdetermined Ax=b
+    - use lasso (lagrange multiplier with L1-norm on J) to find candidate J
+    """
+    # TODO why is result so poor
+    A, b = build_linear_problem(C, D, order='C')
+    x = solve_regularized_linear_problem(A, b, alpha=alpha, tol=tol, verbose=False)
+    J_infer = matrixify_vector(x, order='C')
+    return J_infer
 
 
 def choose_J_from_general_form(C, D, C_inv=None, scale=10.0):

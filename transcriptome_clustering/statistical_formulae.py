@@ -1,6 +1,6 @@
 import numpy as np
 
-from inference import build_linear_problem, solve_regularized_linear_problem, matrixify_vector
+from inference import infer_interactions
 
 
 def build_diffusion_from_expt(params, state_means):
@@ -47,19 +47,6 @@ def build_covariance(params, steadystate_samples, use_numpy=True, state_means=No
                     cov[i, j] += (sample[i, k] - state_means[i]) * (sample[j, k] - state_means[j])
                 cov[i, j] = cov[i, j] / denom_correction
     return cov
-
-
-def infer_interactions(C, D, alpha=0.1, tol=1e-4):
-    """
-    Method to solve for J in JC + (JC)^T = -D
-    - convert problem to linear one: underdetermined Ax=b
-    - use lasso (lagrange multiplier with L1-norm on J) to find candidate J
-    """
-    # TODO why is result so poor
-    A, b = build_linear_problem(C, D, order='C')
-    x = solve_regularized_linear_problem(A, b, alpha=alpha, tol=tol, verbose=False)
-    J = matrixify_vector(x, order='C')
-    return J
 
 
 def collect_multitraj_info(multitraj, params, noise, alpha=0.1, tol=1e-4, skip_infer=False):
