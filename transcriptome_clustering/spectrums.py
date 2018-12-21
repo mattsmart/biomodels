@@ -33,10 +33,11 @@ def get_spectrums(C, D, num_spectrums=10, method='U', print_errors=True):
     return spectrums, labels
 
 
-def plot_spectrum_hists(spectrums, labels, method='U', hist='default'):
+def plot_spectrum_hists(spectrums, labels, method='U', hist='default', title_mod=''):
     # TODO violin plot of real part? others...
     if hist == 'default':
-        _, bins, _ = plt.hist(spectrums[0, :], bins=10, range=[-6, 6], normed=True, label=labels[0])  # plot first to get bins
+        # plot first spectrum to get bins
+        _, bins, _ = plt.hist(spectrums[0, :], bins=10, range=[-6, 6], normed=True, label=labels[0])
         for idx in xrange(1, len(labels)):
             _ = plt.hist(spectrums[idx, :], bins=bins, alpha=0.5, normed=True, label=labels[idx])
     elif hist == 'violin':
@@ -45,7 +46,7 @@ def plot_spectrum_hists(spectrums, labels, method='U', hist='default'):
     else:
         print 'hist type %s not supported in plot_spectrum_hists(...)' % hist
         assert 1==2
-    plt.title('Spectrums from %s' % method)
+    plt.title('Spectrums from %s %s' % (method, title_mod))
     plt.xlabel('Spectrums')
     plt.show()
     return
