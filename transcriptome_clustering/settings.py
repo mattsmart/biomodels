@@ -44,6 +44,7 @@ TIMESTEP = 0.1
 NUM_TRAJ = 300
 NUM_STEPS = 2000
 
+
 class Params:
 
     def __init__(self, params_dict=PARAMS_DEFAULTS_DICT):
@@ -72,12 +73,15 @@ class Params:
         if self.alphas is None:
             print "Generating random U[0,1] alphas..."
             self.alphas = np.random.rand(self.dim_slave)  # U[0,1] samples
+            self.params_dict['alphas'] = self.alphas
         if self.betas is None:
             print "Generating random N[2*sqrt(BETA), 0.2*sqrt(BETA)] betas..."
             self.betas = np.random.normal(np.sqrt(2*self.beta), np.sqrt(self.beta)*0.2, self.dim_slave)
+            self.params_dict['betas'] = self.betas
         if self.taus is None:
             print "Generating random N[2*sqrt(BETA), 0.2*sqrt(BETA)] taus..."
             self.taus = np.random.normal(np.sqrt(2*self.beta), np.sqrt(self.beta)*0.2, self.dim_slave)
+            self.params_dict['taus'] = self.taus
         # housekeeping
         assert self.hill_coeff == 1.0  # unclear how to put in model otherwise (based on pdf)
         self.dim = self.dim_master + self.dim_slave
