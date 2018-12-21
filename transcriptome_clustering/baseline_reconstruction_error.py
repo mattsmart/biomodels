@@ -18,12 +18,11 @@ def get_errors_fixed_num_traj(num_traj, replicates=10, params=DEFAULT_PARAMS, no
     fp_mid = steadystate_pitchfork(params)[:, 0]
     J_true = jacobian_pitchfork(params, fp_mid, print_eig=False)
     for k in xrange(replicates):
-        trials_states, _ = gen_multitraj(num_traj, init_cond=fp_mid, dt=TIMESTEP, num_steps=NUM_STEPS, params=params, noise=1.0)
-        D, C_est, J_infer = collect_multitraj_info(trials_states, params, noise, alpha=0.01, tol=1e-6)
+        trials_states, _ = gen_multitraj(num_traj, init_cond=fp_mid, num_steps=2000, params=params, noise=noise)
+        D, C_est, J_infer = collect_multitraj_info(trials_states, params, noise, alpha=0.1, tol=1e-6)
         true_errors[k] = error_fn(C_est, D, J_true)
         infer_errors[k] = error_fn(C_est, D, J_infer)
     return true_errors, infer_errors
-
 
 
 if __name__ == '__main__':
@@ -35,7 +34,7 @@ if __name__ == '__main__':
     # compute errors and do inference
     for i, num_traj in enumerate(num_traj_set):
         print "i, num_traj", i, num_traj
-        true_errors, infer_errors = get_errors_fixed_num_traj(num_traj, replicates=2, noise=0.1)
+        true_errors, infer_errors = get_errors_fixed_num_traj(num_traj, replicates=4, noise=0.1)
         true_errors_mid[i] = np.mean(true_errors)
         true_errors_sd[i] = np.std(true_errors)
         infer_errors_mid[i] = np.mean(infer_errors)

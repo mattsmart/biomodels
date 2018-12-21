@@ -21,9 +21,8 @@ def build_diffusion_from_expt(params, state_means):
 
 def build_diffusion_from_langevin(params, noise):
     # TODO fix
-    D = noise ** 2 * np.eye(params.dim)                  # if N noise sampled independently for each gene
+    D = (noise ** 2) * np.eye(params.dim)                # if N noise sampled independently for each gene
     #D = noise ** 2 * np.ones((params.dim, params.dim))  # if same noise sample applied to all genes
-    print "CHECK build_diffusion_from_langevin(params, noise)"
     return D
 
 
@@ -63,7 +62,7 @@ def infer_interactions(C, D, alpha=0.1, tol=1e-4):
     return J
 
 
-def collect_multitraj_info(multitraj, params, noise, alpha=0.1, tol=1e-4):
+def collect_multitraj_info(multitraj, params, noise, alpha=0.1, tol=1e-4, skip_infer=False):
     """
     steadystate_samples: of the form STATE_DIM x NUM_TRAJ
     Note: assume last step is roughly at steady state, without testing
@@ -75,6 +74,9 @@ def collect_multitraj_info(multitraj, params, noise, alpha=0.1, tol=1e-4):
     assert len(state_means) == params.dim
     # obtain three matrices in fluctuation-dissipation relation
     D = build_diffusion_from_langevin(params, noise)
-    C = build_covariance(params, steadystate_samples, use_numpy=True)
-    J = infer_interactions(C, D, alpha=alpha, tol=tol)
+    C = build_covariance(params, steadystate_samples)
+    if skip_infer:
+        J = None
+    else:
+        J = infer_interactions(C, D, alpha=alpha, tol=tol)
     return D, C, J
