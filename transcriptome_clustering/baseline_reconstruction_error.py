@@ -11,7 +11,7 @@ Assess error in JC + (JC)^T + D = 0 as num_traj varies, since C computed from nu
 """
 
 
-def get_errors_for_replicates(num_traj=200, num_steps=500, replicates=10, params=DEFAULT_PARAMS, noise=1.0):
+def get_errors_for_replicates(num_traj=500, num_steps=500, replicates=10, params=DEFAULT_PARAMS, noise=1.0):
     true_errors = np.zeros(replicates)
     infer_errors = np.zeros(replicates)
     # get true J
@@ -19,13 +19,14 @@ def get_errors_for_replicates(num_traj=200, num_steps=500, replicates=10, params
     J_true = jacobian_pitchfork(params, fp_mid, print_eig=False)
     for k in xrange(replicates):
         trials_states, _ = gen_multitraj(num_traj, init_cond=fp_mid, num_steps=num_steps, params=params, noise=noise)
-        D, C_est, J_infer = collect_multitraj_info(trials_states, params, noise, alpha=0.1, tol=1e-6)
+        D, C_est, J_infer = collect_multitraj_info(trials_states, params, noise, alpha=0.01, tol=1e-6)
         true_errors[k] = error_fn(C_est, D, J_true)
         infer_errors[k] = error_fn(C_est, D, J_infer)
     return true_errors, infer_errors
 
 
 if __name__ == '__main__':
+    reps = 10
     mod = 'num_steps'
     assert mod in ['num_traj', 'num_steps']
 
@@ -41,9 +42,9 @@ if __name__ == '__main__':
     for i, elem in enumerate(param_vary_set):
         print "point %d (%s %d)" % (i, mod, elem)
         if mod == 'num_traj':
-            true_errors, infer_errors = get_errors_for_replicates(num_traj=elem, replicates=2, noise=0.1)
+            true_errors, infer_errors = get_errors_for_replicates(num_traj=elem, replicates=reps, noise=0.1)
         else:
-            true_errors, infer_errors = get_errors_for_replicates(num_steps=elem, replicates=2, noise=0.1)
+            true_errors, infer_errors = get_errors_for_replicates(num_steps=elem, replicates=reps, noise=0.1)
         true_errors_mid[i] = np.mean(true_errors)
         true_errors_sd[i] = np.std(true_errors)
         infer_errors_mid[i] = np.mean(infer_errors)
