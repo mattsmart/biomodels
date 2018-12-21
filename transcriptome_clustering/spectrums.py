@@ -37,7 +37,7 @@ def plot_spectrum_hists(spectrums, labels, method='U', hist='default', title_mod
     # TODO violin plot of real part? others...
     if hist == 'default':
         # plot first spectrum to get bins
-        _, bins, _ = plt.hist(spectrums[0, :], bins=10, range=[-6, 6], normed=True, label=labels[0])
+        _, bins, _ = plt.hist(spectrums[0, :], bins=10, range=[-6, 6], alpha=0.5, normed=True, label=labels[0])
         for idx in xrange(1, len(labels)):
             _ = plt.hist(spectrums[idx, :], bins=bins, alpha=0.5, normed=True, label=labels[idx])
     elif hist == 'violin':
@@ -48,5 +48,14 @@ def plot_spectrum_hists(spectrums, labels, method='U', hist='default', title_mod
         assert 1==2
     plt.title('Spectrums from %s %s' % (method, title_mod))
     plt.xlabel('Spectrums')
+    plt.legend()
     plt.show()
     return
+
+
+if __name__ == '__main__':
+    num_spectrum = 10
+    fake_spectrums = np.random.normal(0.0, 2.0, (num_spectrum, 100))
+    fake_labels = [str(a) for a in range(num_spectrum)]
+    plot_spectrum_hists(fake_spectrums, fake_labels, hist='default', title_mod='(fake_main)')
+    plot_spectrum_hists(fake_spectrums, fake_labels, hist='violin', title_mod='(fake_main)')
