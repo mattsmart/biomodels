@@ -103,7 +103,7 @@ def steadystate_pitchfork(params):
         return tau / (1 + yss**2)
 
     def vss_from_xss(xss, alpha_i, beta_i, tau_i):
-        return tau_i * beta_i * (alpha_i * xss**2 + 1 - alpha_i) / (1 + xss**2)
+        return tau_i * beta_i * (alpha_i * xss**2 + 1 - alpha_i) / (1 + xss**2)  # tau*beta when alpha = 0.5
 
     root_to_int = {0: yss_root_main, 1: yss_root_plus, 2: yss_root_minus}
 
@@ -262,7 +262,7 @@ if __name__ == '__main__':
     # main settings
     plot = True
     use_fp_as_init = True
-    num_trials = 3000
+    num_trials = 300
     num_to_plot = 3
 
     # setup params
@@ -272,7 +272,7 @@ if __name__ == '__main__':
     # trajectory settings
     init_cond = [7.0, 2.0] + [5.0 for _ in xrange(params.dim_slave)]
     init_time = 0.0
-    num_steps = 2000
+    num_steps = 200
     dt = 0.1
     noise = 0.1
 
