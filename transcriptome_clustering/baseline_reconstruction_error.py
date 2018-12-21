@@ -11,14 +11,14 @@ Assess error in JC + (JC)^T + D = 0 as num_traj varies, since C computed from nu
 """
 
 
-def get_errors_fixed_num_traj(num_traj, replicates=10, params=DEFAULT_PARAMS, noise=1.0):
+def get_errors_for_replicates(num_traj=200, num_steps=500, replicates=10, params=DEFAULT_PARAMS, noise=1.0):
     true_errors = np.zeros(replicates)
     infer_errors = np.zeros(replicates)
     # get true J
     fp_mid = steadystate_pitchfork(params)[:, 0]
     J_true = jacobian_pitchfork(params, fp_mid, print_eig=False)
     for k in xrange(replicates):
-        trials_states, _ = gen_multitraj(num_traj, init_cond=fp_mid, num_steps=2000, params=params, noise=noise)
+        trials_states, _ = gen_multitraj(num_traj, init_cond=fp_mid, num_steps=num_steps, params=params, noise=noise)
         D, C_est, J_infer = collect_multitraj_info(trials_states, params, noise, alpha=0.1, tol=1e-6)
         true_errors[k] = error_fn(C_est, D, J_true)
         infer_errors[k] = error_fn(C_est, D, J_infer)
@@ -26,15 +26,24 @@ def get_errors_fixed_num_traj(num_traj, replicates=10, params=DEFAULT_PARAMS, no
 
 
 if __name__ == '__main__':
+    mod = 'num_steps'
+    assert mod in ['num_traj', 'num_steps']
+
     num_traj_set = [int(a) for a in np.linspace(10, 600, 6)]
+    num_steps_set = [int(a) for a in np.linspace(10, 2000, 5)]
+    replicates = {'num_traj': num_traj_set, 'num_steps': num_steps_set}[mod]
+
     true_errors_mid = np.zeros(len(num_traj_set))
     true_errors_sd = np.zeros(len(num_traj_set))
     infer_errors_mid = np.zeros(len(num_traj_set))
     infer_errors_sd = np.zeros(len(num_traj_set))
     # compute errors and do inference
-    for i, num_traj in enumerate(num_traj_set):
-        print "i, num_traj", i, num_traj
-        true_errors, infer_errors = get_errors_fixed_num_traj(num_traj, replicates=4, noise=0.1)
+    for i, elem in enumerate(replicates):
+        print "point %d (%s %d)" % (i, mod, elem)
+        if mod == 'num_traj':
+            true_errors, infer_errors = get_errors_for_replicates(num_traj=elem, replicates=2, noise=0.1)
+        else:
+            true_errors, infer_errors = get_errors_for_replicates(num_steps=elem, replicates=2, noise=0.1)
         true_errors_mid[i] = np.mean(true_errors)
         true_errors_sd[i] = np.std(true_errors)
         infer_errors_mid[i] = np.mean(infer_errors)
@@ -42,8 +51,8 @@ if __name__ == '__main__':
     # plot
     plt.errorbar(num_traj_set, true_errors_mid, yerr=true_errors_sd, label='true J errors', fmt='o')
     plt.errorbar(num_traj_set, infer_errors_mid, yerr=infer_errors_sd, label='infer J errors', fmt='o')
-    plt.title('Reconstrution error (true J vs inferred) for varying num_traj')
-    plt.xlabel('num_traj')
+    plt.title('Reconstrution error (true J vs inferred) for varying %s' % mod)
+    plt.xlabel('%s' % mod)
     plt.ylabel('F-norm of JC + (JC)^T + D')
     plt.legend()
     plt.show()
