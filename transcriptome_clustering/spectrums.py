@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-from inference import choose_J_from_general_form, infer_interactions
+from inference import choose_J_from_general_form, infer_interactions, error_fn
 
 
 def get_spectrum_from_J(J, real=True):
@@ -13,7 +13,7 @@ def get_spectrum_from_J(J, real=True):
     return eig
 
 
-def get_spectrums(C, D, num_spectrums=10, method='U'):
+def get_spectrums(C, D, num_spectrums=10, method='U', print_errors=True):
     """
     Returns spectrums of J's generated from method and their labels
         Shape is num_spectrums X dim_spectrum
@@ -25,7 +25,9 @@ def get_spectrums(C, D, num_spectrums=10, method='U'):
             J = choose_J_from_general_form(C, D, scale=10.0)
         else:
             J = infer_interactions(C, D, alpha=0.1)
-        eigs = get_spectrum_from_J(J)
+            if print_errors:
+                err = error_fn(C, D, J)
+                print "Error in method %s, idx %d, is %.3f" % (method, idx, err)
         spectrums[idx, :] = get_spectrum_from_J(J, real=True)
     labels = [i for i in xrange(num_spectrums)]  # TODO more meaningful? e.g. vary scales or alphas
     return spectrums, labels
