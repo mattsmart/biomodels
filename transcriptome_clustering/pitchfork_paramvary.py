@@ -8,6 +8,9 @@ from spectrums import get_spectrums, plot_spectrum_hists
 from statistical_formulae import collect_multitraj_info
 
 
+# TODO store output and params in OUTPUT dir
+
+
 def many_traj_varying_params(params_list, num_steps=NUM_STEPS, dt=TIMESTEP, init_cond=INIT_COND,
                              num_traj=NUM_TRAJ, noise=NOISE):
     """
@@ -17,8 +20,8 @@ def many_traj_varying_params(params_list, num_steps=NUM_STEPS, dt=TIMESTEP, init
     """
     # TODO decide if dict would work better
     base_params = params_list[0]
-    print "Generating: num_steps x base_params.dim x num_traj x len(params_list)"
-    print num_steps, base_params.dim, num_traj, len(params_list)
+    print "Generating: num_steps x base_params.dim x num_traj x len(params_list) --", \
+        num_steps, base_params.dim, num_traj, len(params_list)
     multitraj_varying = np.zeros((num_steps, base_params.dim, num_traj, len(params_list)))
     t0 = time.time()
     for idx, p in enumerate(params_list):
@@ -50,11 +53,11 @@ if __name__ == '__main__':
     params_list, pv_range = gen_params_list(pv_name, 0.5, 3.0)
     multitraj_varying = many_traj_varying_params(params_list, noise=noise)
     for idx, pv in enumerate(pv_range):
-        title_mod = '$s_%.3f' % (pv_name, pv)
+        title_mod = '(%s_%.3f)' % (pv_name, pv)
         print "idx, pv:", idx, title_mod
         params = params_list[idx]
         C, D, _ = collect_multitraj_info(multitraj_varying[:, :, :, idx], params, noise, skip_infer=True)
-        fp_mid = steadystate_pitchfork(params)[0, :]
+        fp_mid = steadystate_pitchfork(params)[:, 0]
         J_true = jacobian_pitchfork(params, fp_mid, print_eig=False)
         # get U spectrums
         specs, labels = get_spectrums(C, D, method='U')
