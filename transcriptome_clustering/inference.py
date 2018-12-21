@@ -133,6 +133,7 @@ def solve_regularized_linear_problem(A, b, alpha=0.1, tol=0.0001, verbose=True, 
     Uses scikit-learn Lasso regression: https://scikit-learn.org/stable/modules/linear_model.html
     Default scikit: alpha=0.1, tol=0.0001
     """
+    # TODO id ruggedness, algorithm determinism, use 'warm-start' from last tau iteration
     if use_ridge:
         rgr = Ridge(alpha=alpha, tol=tol)
     else:
@@ -146,12 +147,26 @@ def solve_regularized_linear_problem(A, b, alpha=0.1, tol=0.0001, verbose=True, 
     return rgr.coef_
 
 
+def choose_J_from_general_form(C, D, C_inv=None, scale=10.0):
+    """
+    Need to find J st JC +(JC)^T = -D
+    General form of solution is: J = (-0.5*D + U)*C_inv, where U is arbitrary antisymmetric matrix
+    Chooses a J by constructing scale*U[0,1] and anti-symmetrizing -- U = 0.5*(R - R^T)
+    """
+    if C_inv is None:
+        C_inv = np.linalg.inv(C)
+    R = np.random.rand(D.shape[0], D.shape[0])
+    U = 0.5 * scale * (R - R.T)
+    J_choice = np.dot((-0.5*D + U), C_inv)
+    return J_choice
+
+
 def scan_hyperparameter_plot_error(C, D, alpha_low=1e-3, alpha_high=1.0, num=20, check_eig=True, order='C'):
     A, b = build_linear_problem(C, D, order=order)
     alphas = np.linspace(alpha_low, alpha_high, num)
     errors = np.zeros(alphas.shape)
     for idx, alpha in enumerate(alphas):
-        x = solve_regularized_linear_problem(A, b, alpha=alpha, tol=0.0001, verbose=False, use_ridge=False)
+        x = solve_regularized_linear_problem(A, b, alpha=alpha, tol=1e-7, verbose=False, use_ridge=False)
         J = matrixify_vector(x, order=order)
         if check_eig:
             E, V = np.linalg.eig(J)
@@ -212,7 +227,7 @@ if __name__ == '__main__':
 
     alpha = 0.026
     print '\ntesting Ax=b solution for alpha=%.2e....' % alpha
-    x_est = solve_regularized_linear_problem(A, b, alpha=alpha)
+    x_est = solve_regularized_linear_problem(A, b, alpha=alpha, tol=1e-7)
     J_est = matrixify_vector(x_est)
     print "x*\n", x_est
     print "J*\n", J_est
@@ -223,12 +238,10 @@ if __name__ == '__main__':
 
     print "\nCompare vs eqn (9) suggestion of [2017] ref..."
     scale = 10.0
-    R_trial = scale * np.random.rand(D.shape[0], D.shape[0])
-    U_trial = 0.5 * (R_trial - R_trial.T)
-    J_guess = -0.5*np.dot(D + U_trial, np.linalg.inv(C))
-    print J_guess
-    print "Error:", error_fn(C, D, J_guess)
-    print "Eigenvalues:",  np.linalg.eig(J_guess)[0]
+    J_choice = choose_J_from_general_form(C, D, C_inv=None, scale=scale)
+    print J_choice
+    print "Error:", error_fn(C, D, J_choice)
+    print "Eigenvalues:",  np.linalg.eig(J_choice)[0]
 
     print "\nScanning alphas..."
     alphas, errors = scan_hyperparameter_plot_error(C, D, alpha_low=1e-3, alpha_high=0.5, num=200, check_eig=False)
