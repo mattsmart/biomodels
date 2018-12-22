@@ -25,11 +25,12 @@ def many_traj_varying_params(params_list, num_steps=NUM_STEPS, dt=TIMESTEP, init
     multitraj_varying = np.zeros((num_steps, base_params.dim, num_traj, len(params_list)))
     t0 = time.time()
     for idx, p in enumerate(params_list):
+        print "on param_list %d of %d" % (idx, len(params_list))
         for traj in xrange(num_traj):
             langevin_states, _ = langevin_dynamics(init_cond=init_cond, dt=dt, num_steps=num_steps, params=p,
                                                    noise=noise)
             multitraj_varying[:, :, traj, idx] = langevin_states
-    print "Done, timer:", time.time() - t0
+    print "done, timer:", time.time() - t0
     return multitraj_varying
 
 
@@ -62,6 +63,8 @@ if __name__ == '__main__':
         # get U spectrums
         specs, labels = get_spectrums(C, D, method='U')
         plot_spectrum_hists(specs, labels, method='U', hist='default', title_mod=title_mod)
+        plot_spectrum_hists(specs, labels, method='U', hist='violin', title_mod=title_mod)
         # get infer spectrums
         specs, labels = get_spectrums(C, D, method='infer')
-        plot_spectrum_hists(specs, labels, method='U', hist='default', title_mod=title_mod)
+        plot_spectrum_hists(specs, labels, method='infer', hist='default', title_mod=title_mod)
+        plot_spectrum_hists(specs, labels, method='infer', hist='violin', title_mod=title_mod)

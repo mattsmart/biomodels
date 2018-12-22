@@ -36,19 +36,32 @@ def plot_spectrum_hists(spectrums, labels, method='U', hist='default', title_mod
     # TODO violin plot of real part? others...
     # TODO fix x axis range -6 6
     # TODO remove method from title since not used
+
+    def set_axis_style(ax, labels):
+        ax.get_xaxis().set_tick_params(direction='out')
+        ax.xaxis.set_ticks_position('bottom')
+        ax.set_xticks(np.arange(1, len(labels) + 1))
+        ax.set_xticklabels(labels)
+        ax.set_xlim(0.25, len(labels) + 0.75)
+        ax.set_xlabel('Sample name')
+
     if hist == 'default':
         # plot first spectrum to get bins
         _, bins, _ = plt.hist(spectrums[0, :], bins=10, range=[-6, 6], alpha=0.5, normed=True, label=labels[0])
         for idx in xrange(1, len(labels)):
             _ = plt.hist(spectrums[idx, :], bins=bins, alpha=0.5, normed=True, label=labels[idx])
+        plt.xlabel('Re(lambda)')
+        plt.ylabel('Spectrums')
     elif hist == 'violin':
         print 'hist type %s not yet implemented in plot_spectrum_hists(...)' % hist
-        assert 1==2
+        plt.violinplot(spectrums.T, showmeans=False, showmedians=True)
+        set_axis_style(plt.gca(), labels)
+        plt.ylabel('Re(lambda)')
     else:
         print 'hist type %s not supported in plot_spectrum_hists(...)' % hist
         assert 1==2
     plt.title('Spectrums from %s %s' % (method, title_mod))
-    plt.xlabel('Spectrums')
+
     plt.legend()
     plt.show()
     return
@@ -56,7 +69,7 @@ def plot_spectrum_hists(spectrums, labels, method='U', hist='default', title_mod
 
 if __name__ == '__main__':
     num_spectrum = 10
-    fake_spectrums = np.random.normal(0.0, 2.0, (num_spectrum, 100))
+    fake_spectrums = np.random.normal(0.0, 2.0, (num_spectrum, 500))
     fake_labels = [str(a) for a in range(num_spectrum)]
     plot_spectrum_hists(fake_spectrums, fake_labels, hist='default', title_mod='(fake_main)')
     plot_spectrum_hists(fake_spectrums, fake_labels, hist='violin', title_mod='(fake_main)')
