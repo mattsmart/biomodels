@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 from inference import choose_J_from_general_form, infer_interactions, error_fn
-
+from settings import FOLDER_OUTPUT
 
 def get_spectrum_from_J(J, real=True):
     # TODO deal with massive complex part if necessary
@@ -19,21 +20,26 @@ def get_spectrums(C, D, num_spectrums=10, method='U', print_errors=True):
     """
     assert method in ['U', 'infer']
     spectrums = np.zeros((num_spectrums, D.shape[0]))
+    # generate spectrum labels
+    if method == 'U':
+        labels = ['scale_%d' % i for i in xrange(num_spectrums)]
+        scales = [i for i in xrange(num_spectrums)]
+    else:
+        alphas = np.linspace(1e-3, 1.0, num_spectrums)
+        labels = ['alpha_%.3f' % a for a in alphas]
     for idx in xrange(num_spectrums):
         if method == 'U':
-            J = choose_J_from_general_form(C, D, scale=10.0)
+            J = choose_J_from_general_form(C, D, scale=scales[idx])
         else:
-            J = infer_interactions(C, D, alpha=0.01)
+            J = infer_interactions(C, D, alpha=alphas[idx])
             if print_errors:
                 err = error_fn(C, D, J)
                 print "Error in method %s, idx %d, is %.3f" % (method, idx, err)
         spectrums[idx, :] = get_spectrum_from_J(J, real=True)
-    labels = [str(i) for i in xrange(num_spectrums)]  # TODO more meaningful? e.g. vary scales or alphas
     return spectrums, labels
 
 
-def plot_spectrum_hists(spectrums, labels, method='U', hist='default', title_mod=''):
-    # TODO violin plot of real part? others...
+def plot_spectrum_hists(spectrums, labels, method='U', hist='default', title_mod='', show=True):
     # TODO fix x axis range -6 6
     # TODO remove method from title since not used
 
@@ -45,6 +51,7 @@ def plot_spectrum_hists(spectrums, labels, method='U', hist='default', title_mod
         ax.set_xlim(0.25, len(labels) + 0.75)
         ax.set_xlabel('Sample name')
 
+    f = plt.figure(figsize=(10, 6))
     if hist == 'default':
         # plot first spectrum to get bins
         _, bins, _ = plt.hist(spectrums[0, :], bins=10, range=[-6, 6], alpha=0.5, normed=True, label=labels[0])
@@ -61,9 +68,10 @@ def plot_spectrum_hists(spectrums, labels, method='U', hist='default', title_mod
         print 'hist type %s not supported in plot_spectrum_hists(...)' % hist
         assert 1==2
     plt.title('Spectrums from %s %s' % (method, title_mod))
-
     plt.legend()
-    plt.show()
+    plt.savefig(FOLDER_OUTPUT + os.sep + 'spectrum_hist_%s_%s_%s.png' % (hist, method, title_mod))
+    if show:
+        plt.show()
     return
 
 
