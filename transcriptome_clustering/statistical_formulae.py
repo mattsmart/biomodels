@@ -20,7 +20,6 @@ def build_diffusion_from_expt(params, state_means):
 
 
 def build_diffusion_from_langevin(params, noise):
-    # TODO fix
     D = (noise ** 2) * np.eye(params.dim)                # if N noise sampled independently for each gene
     #D = noise ** 2 * np.ones((params.dim, params.dim))  # if same noise sample applied to all genes
     return D
