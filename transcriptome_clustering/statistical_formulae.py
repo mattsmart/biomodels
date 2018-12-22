@@ -49,19 +49,19 @@ def build_covariance(params, steadystate_samples, use_numpy=True, state_means=No
     return cov
 
 
-def collect_multitraj_info(multitraj, params, noise, alpha=0.1, tol=1e-4, skip_infer=False):
+def build_covariance_at_step(multitraj, params, covstep=-1):
+    samples = multitraj[covstep, :, :]
+    return build_covariance(params, samples, use_numpy=True)
+
+
+def collect_multitraj_info(multitraj, params, noise, alpha=0.1, tol=1e-4, skip_infer=False, covstep=-1):
     """
     steadystate_samples: of the form STATE_DIM x NUM_TRAJ
-    Note: assume last step is roughly at steady state, without testing
+    Note: assume last step is roughly at steady state, without testing (call this "covstep")
     """
-    # identify steadystate time slice and compute sample means
-    steadystate_samples = multitraj[-1, :, :]
-    # compute means to pass to array functions
-    state_means = np.mean(steadystate_samples, axis=1)
-    assert len(state_means) == params.dim
     # obtain three matrices in fluctuation-dissipation relation
     D = build_diffusion_from_langevin(params, noise)
-    C = build_covariance(params, steadystate_samples)
+    C = build_covariance_at_step(multitraj, params, covstep=covstep)
     if skip_infer:
         J = None
     else:
