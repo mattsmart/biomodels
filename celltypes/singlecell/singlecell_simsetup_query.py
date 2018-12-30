@@ -168,7 +168,7 @@ if __name__ == '__main__':
         memories_genes = simsetup['GENE_LABELS']
         memories_genes_lowercase = [g.lower() for g in memories_genes]
         memories_genes_id, memories_hitcounts = collect_mygene_hits(memories_genes)
-        write_genelist_id_csv(memories_genes, memories_genes_id)
+        write_genelist_id_csv(memories_genes, memories_genes_id, outpath='entrez_id_2018scMCA.csv')
     else:
         path_to_compare_targets_to = '2014mehta_genelist_id_filled.csv'
         memories_genes_id = read_gene_list_csv(path_to_compare_targets_to, aliases=True)
