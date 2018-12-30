@@ -131,7 +131,6 @@ if __name__ == '__main__':
     else:
         memories_genes_id = read_gene_list_csv('2014mehta_genelist_id_filled.csv', aliases=True)
 
-
     # prep target csv
     targetgenes_dir = DATADIR + os.sep + 'misc' + os.sep + 'mir21_targets'
     targetgenes_id_dir = '.'
