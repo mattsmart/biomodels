@@ -123,7 +123,6 @@ if __name__ == '__main__':
 
     if write_memories_id:
         simsetup = singlecell_simsetup()
-        # print_simsetup_labels(simsetup
         memories_genes = simsetup['GENE_LABELS']
         memories_genes_lowercase = [g.lower() for g in memories_genes]
         memories_genes_id, memories_hitcounts = collect_mygene_hits(memories_genes)
