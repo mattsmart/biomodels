@@ -138,7 +138,7 @@ if __name__ == '__main__':
     pipeline = 'TF'
     assert pipeline in ['TF', 'mir_21']
     process_mouse_TFs = False
-    write_memories_id = True
+    write_memories_id = False
     write_targets_id = False
     find_matches = True
 
@@ -170,7 +170,7 @@ if __name__ == '__main__':
         memories_genes_id, memories_hitcounts = collect_mygene_hits(memories_genes)
         write_genelist_id_csv(memories_genes, memories_genes_id, outpath='entrez_id_2018scMCA.csv')
     else:
-        path_to_compare_targets_to = '2014mehta_genelist_id_filled.csv'
+        path_to_compare_targets_to = DATADIR + os.sep + 'misc' + os.sep + 'genelist_entrezids' + os.sep + 'entrez_id_2018scMCA_pruned.csv'
         memories_genes_id = read_gene_list_csv(path_to_compare_targets_to, aliases=True)
 
     # prep target csv
