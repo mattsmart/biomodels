@@ -141,7 +141,7 @@ def check_target_in_gene_id_dict(memories_genes_id, target_genes_id, outpath=Non
 
 
 if __name__ == '__main__':
-    pipeline = 'TF'
+    pipeline = 'mir_21'
     assert pipeline in ['TF', 'mir_21']
     process_mouse_TFs = False
     write_memories_id = False
@@ -168,15 +168,14 @@ if __name__ == '__main__':
         write_genelist_id_csv(gene_list, gene_hits, outpath=mouse_tf_id_csv_complete_path)
 
     if write_memories_id:
-        npzpath = DATADIR + os.sep + 'memories' + os.sep + '2018_scmca_mems_genes_types_boolean_compressed.npz'
-        npzpath_pruned = DATADIR + os.sep + 'memories' + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_pruned_A.npz'
+        npzpath = DATADIR + os.sep + 'memories' + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_TFonly.npz'
         simsetup = singlecell_simsetup(npzpath=npzpath)
         memories_genes = simsetup['GENE_LABELS']
         memories_genes_lowercase = [g.lower() for g in memories_genes]
         memories_genes_id, memories_hitcounts = collect_mygene_hits(memories_genes)
-        write_genelist_id_csv(memories_genes, memories_genes_id, outpath='entrez_id_2018scMCA.csv')
+        write_genelist_id_csv(memories_genes, memories_genes_id, outpath='entrez_id_2018scMCA_TFonly.csv')
     else:
-        path_to_compare_targets_to = DATADIR + os.sep + 'misc' + os.sep + 'genelist_entrezids' + os.sep + 'entrez_id_2018scMCA.csv'
+        path_to_compare_targets_to = DATADIR + os.sep + 'misc' + os.sep + 'genelist_entrezids' + os.sep + 'entrez_id_2018scMCA_pruned_TFonly.csv'
         memories_genes_id = read_gene_list_csv(path_to_compare_targets_to, aliases=True)
 
     # prep target csv
