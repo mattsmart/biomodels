@@ -21,7 +21,7 @@ DEFAULT_MEMORIES_NPZPATH = MEMS_SCMCA     # choose which memories to embed
 NETWORK_METHOD = "projection"             # supported: 'projection' or 'hopfield'
 BETA = 2.2                                # value used in Mehta 2014 (low temperature: BETA=2.2)
 EXT_FIELD_STRENGTH = 0.30                 # relative strength of exosome local field effect
-FIELD_PROTOCOL = None                     # e.g. None, 'yamanaka_OSKM', 'miR_21'
+FIELD_PROTOCOL = None                     # e.g. None, 'yamanaka', 'miR_21'
 APP_FIELD_STRENGTH = 1.0                  # relative strength of artificial applied fields
 FLAG_BOOL = True                          # use binarized states (up/down vs continuous)  # TODO unused remove/adjust
 FLAG_PRUNE_INTXN_MATRIX = False           # flag for non-eq dilution of the symmetric J intxn matrix

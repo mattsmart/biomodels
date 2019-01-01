@@ -438,7 +438,7 @@ if __name__ == '__main__':
         num_steps = 100
         num_proc = cpu_count() / 2  # seems best to use only physical core count (1 core ~ 3x slower than 4)
         anneal_protocol = "protocol_A"
-        field_protocol = "miR_21"  # "yamanaka_OSKM"
+        field_protocol = "miR_21"  # "yamanaka" or "miR_21" or None
         async_batch = True
         plot = True
         parallel = True
