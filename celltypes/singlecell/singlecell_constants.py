@@ -12,16 +12,16 @@ SINGLECELL = CELLTYPES + os.sep + "singlecell"
 DATADIR = CELLTYPES + os.sep + "input"
 MEMORIESDIR = DATADIR + os.sep + "memories"
 MEMS_MEHTA = MEMORIESDIR + os.sep + "2014_mehta_mems_genes_types_boolean_compressed_pruned_A.npz"
-MEMS_SCMCA = MEMORIESDIR + os.sep + "2018_scmca_mems_genes_types_boolean_compressed_pruned_A.npz"
+MEMS_SCMCA = MEMORIESDIR + os.sep + "2018_scmca_mems_genes_types_boolean_compressed_pruned_A_TFonly.npz"
 RUNS_FOLDER = SINGLECELL + os.sep + "runs"                      # store timestamped runs here
 SETTINGS_FILE = "run_info.txt"
 
 # MODEL SPECIFICATION -- TODO print used vars in simsetup dict, write to run_info.txt
-DEFAULT_MEMORIES_NPZPATH = MEMS_MEHTA     # choose which memories to embed
+DEFAULT_MEMORIES_NPZPATH = MEMS_SCMCA     # choose which memories to embed
 NETWORK_METHOD = "projection"             # supported: 'projection' or 'hopfield'
 BETA = 2.2                                # value used in Mehta 2014 (low temperature: BETA=2.2)
 EXT_FIELD_STRENGTH = 0.30                 # relative strength of exosome local field effect
-FIELD_PROTOCOL = None                     # e.g. None, 'yamanaka_OSKM', 'miR_21'
+FIELD_PROTOCOL = None                     # e.g. None, 'yamanaka', 'miR_21'
 APP_FIELD_STRENGTH = 1.0                  # relative strength of artificial applied fields
 FLAG_BOOL = True                          # use binarized states (up/down vs continuous)  # TODO unused remove/adjust
 FLAG_PRUNE_INTXN_MATRIX = False           # flag for non-eq dilution of the symmetric J intxn matrix

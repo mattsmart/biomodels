@@ -3,7 +3,7 @@ import numpy as np
 from singlecell_class import Cell
 from singlecell_constants import NUM_FULL_STEPS, BURST_ERROR_PERIOD, APP_FIELD_STRENGTH, BETA, ASYNC_BATCH
 from singlecell_data_io import run_subdir_setup, runinfo_append
-from singlecell_functions import field_setup
+from singlecell_fields import field_setup
 from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
 
 """
@@ -79,6 +79,7 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_FULL_STEPS, bet
             print "Writing state to file.."
         singlecell.write_state(io_dict['datadir'])
     if verbose:
+        print io_dict['basedir']
         print "Done"
     return singlecell.get_state_array(), io_dict
 
@@ -86,5 +87,5 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_FULL_STEPS, bet
 if __name__ == '__main__':
     flag_write = True
     simsetup = singlecell_simsetup()
-    singlecell_sim(init_id='macrophage', field_protocol='miR_21', plot_period=10, iterations=50,
+    singlecell_sim(init_id='Macrophage (D)', field_protocol='miR_21', plot_period=10, iterations=50,
                    simsetup=simsetup, flag_write=flag_write)

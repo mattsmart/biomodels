@@ -8,7 +8,7 @@ from analysis_basin_plotting import plot_proj_timeseries, plot_basin_occupancy_t
 from singlecell_class import Cell
 from singlecell_constants import RUNS_FOLDER, ASYNC_BATCH, FIELD_PROTOCOL
 from singlecell_data_io import run_subdir_setup, runinfo_append
-from singlecell_functions import field_setup
+from singlecell_fields import field_setup
 from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
 
 # analysis settings
@@ -438,7 +438,7 @@ if __name__ == '__main__':
         num_steps = 100
         num_proc = cpu_count() / 2  # seems best to use only physical core count (1 core ~ 3x slower than 4)
         anneal_protocol = "protocol_A"
-        field_protocol = "miR_21"  # "yamanaka_OSKM"
+        field_protocol = "miR_21"  # "yamanaka" or "miR_21" or None
         async_batch = True
         plot = True
         parallel = True

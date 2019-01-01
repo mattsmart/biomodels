@@ -11,6 +11,7 @@ Script to reduce row count (number of genes) in single-cell RNA expression data 
 TODO: less naive dimension reduction (PCA, others)
 """
 
+
 def prune_rows(npzpath, specified_rows=None, save_pruned=True, save_rows=True, del_A=True, del_B=True):
     """
     Delete rows from array and corresponding genes that are self-duplicates
@@ -75,9 +76,26 @@ def reduce_gene_set(xi, gene_labels):  # TODO: my removal ends with 1339 left bu
 
 if __name__ == '__main__':
     datadir = DATADIR
-    flag_prune_rows = True
+    flag_prune_rows = False
     flag_prune_duplicate_rows = False
+    flag_create_and_apply_rows_to_delete = True
 
     if flag_prune_rows:
         compressed_file = datadir + os.sep + "mems_genes_types_compressed.npz"
         prune_rows(compressed_file)
+
+    if flag_create_and_apply_rows_to_delete:
+        genes_to_keep_file = 'genes_to_keep_pruned_mouse_TF.txt'
+        mems_file_to_reduce = 'mems_genes_types_compressed_pruned_A.npz'
+        # load genes_to_keep_file
+        with open(genes_to_keep_file, 'r') as in_file:
+            genes_to_keep = in_file.read().split('\n')
+        # load arr genes cells
+        arr, genes, cells = load_npz_of_arr_genes_cells(mems_file_to_reduce)
+        # create list of indices to delete by comparing names
+        non_TF_rows = []
+        for idx, gene in enumerate(genes):
+            if gene not in genes_to_keep:
+                non_TF_rows.append(idx)
+        # select those indices from the numpy array
+        prune_rows(mems_file_to_reduce, specified_rows=non_TF_rows, save_pruned=True, save_rows=True)

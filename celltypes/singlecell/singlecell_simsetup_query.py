@@ -17,6 +17,7 @@ TAXID_MOUSE = 10090
 MIR_21_TARGETS = ['mir21_misc', 'mir21_wiki', 'mir21_targetscan']
 MOUSE_TFS = ['mouse_TF']
 
+
 def print_simsetup_labels(simsetup):
     print 'Genes:'
     for idx, label in enumerate(simsetup['GENE_LABELS']):
@@ -116,7 +117,7 @@ def write_genelist_id_csv(gene_list, gene_hits, outpath='genelist_id.csv'):
     return outpath
 
 
-def check_target_in_gene_id_dict(memories_genes_id, target_genes_id):
+def check_target_in_gene_id_dict(memories_genes_id, target_genes_id, outpath=None):
     """
     Returns:
         list of tuples (mem_symbol, target_symbol) if they are aliases
@@ -131,14 +132,19 @@ def check_target_in_gene_id_dict(memories_genes_id, target_genes_id):
                 for target_id in target_val:
                     if target_id in mem_val:
                         matches.append((mem_key, target_key))
+    if outpath is not None:
+        with open(outpath, 'w') as f:
+            lines = ['%s\n' % pair[0] for pair in matches]
+            lines[-1] = lines[-1].strip()
+            f.writelines(lines)
     return matches
 
 
 if __name__ == '__main__':
-    pipeline = 'TF'
+    pipeline = 'mir_21'
     assert pipeline in ['TF', 'mir_21']
     process_mouse_TFs = False
-    write_memories_id = True
+    write_memories_id = False
     write_targets_id = False
     find_matches = True
 
@@ -162,15 +168,14 @@ if __name__ == '__main__':
         write_genelist_id_csv(gene_list, gene_hits, outpath=mouse_tf_id_csv_complete_path)
 
     if write_memories_id:
-        npzpath = DATADIR + os.sep + 'memories' + os.sep + '2018_scmca_mems_genes_types_boolean_compressed.npz'
-        npzpath_pruned = DATADIR + os.sep + 'memories' + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_pruned_A.npz'
+        npzpath = DATADIR + os.sep + 'memories' + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_TFonly.npz'
         simsetup = singlecell_simsetup(npzpath=npzpath)
         memories_genes = simsetup['GENE_LABELS']
         memories_genes_lowercase = [g.lower() for g in memories_genes]
         memories_genes_id, memories_hitcounts = collect_mygene_hits(memories_genes)
-        write_genelist_id_csv(memories_genes, memories_genes_id)
+        write_genelist_id_csv(memories_genes, memories_genes_id, outpath='entrez_id_2018scMCA_TFonly.csv')
     else:
-        path_to_compare_targets_to = '2014mehta_genelist_id_filled.csv'
+        path_to_compare_targets_to = DATADIR + os.sep + 'misc' + os.sep + 'genelist_entrezids' + os.sep + 'entrez_id_2018scMCA_pruned_TFonly.csv'
         memories_genes_id = read_gene_list_csv(path_to_compare_targets_to, aliases=True)
 
     # prep target csv
@@ -197,7 +202,7 @@ if __name__ == '__main__':
         for name in target_names:
             target_genes_id = read_gene_list_csv(targetgenes_id_dir + os.sep + 'entrez_id_%s.csv' % name, aliases=True)
             # read target csv to compare gene list to target database
-            matches = check_target_in_gene_id_dict(memories_genes_id, target_genes_id)
+            matches = check_target_in_gene_id_dict(memories_genes_id, target_genes_id, outpath='genes_to_keep_%s.txt' % name)
             print "MATCHES for %s" % name
             for idx, match in enumerate(matches):
                 print match, memories_genes_id[match[0]], target_genes_id[match[1]]
