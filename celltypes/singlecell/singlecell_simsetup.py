@@ -1,7 +1,7 @@
 import os
 
 from singlecell_constants import NETWORK_METHOD, DEFAULT_MEMORIES_NPZPATH, J_RANDOM_DELETE_RATIO, \
-    FLAG_PRUNE_INTXN_MATRIX, DATADIR
+    FLAG_PRUNE_INTXN_MATRIX, MEMORIESDIR
 from singlecell_linalg import memory_corr_matrix_and_inv, interaction_matrix, predictivity_matrix
 from dataprocess.data_standardize import load_npz_of_arr_genes_cells
 
@@ -69,7 +69,7 @@ def unpack_simsetup(simsetup):
 
 if __name__ == '__main__':
     npzpath_override = True
-    npzpath_alternate = DATADIR + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_pruned_A.npz'
+    npzpath_alternate = MEMORIESDIR + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_TFonly.npz'
 
     if npzpath_override:
         simsetup = singlecell_simsetup(npzpath=npzpath_alternate)

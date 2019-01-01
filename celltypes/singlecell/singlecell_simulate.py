@@ -3,7 +3,7 @@ import numpy as np
 from singlecell_class import Cell
 from singlecell_constants import NUM_FULL_STEPS, BURST_ERROR_PERIOD, APP_FIELD_STRENGTH, BETA, ASYNC_BATCH
 from singlecell_data_io import run_subdir_setup, runinfo_append
-from singlecell_functions import field_setup
+from singlecell_fields import field_setup
 from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
 
 """

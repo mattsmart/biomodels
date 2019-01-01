@@ -8,7 +8,7 @@ from analysis_basin_plotting import plot_proj_timeseries, plot_basin_occupancy_t
 from singlecell_class import Cell
 from singlecell_constants import RUNS_FOLDER, ASYNC_BATCH, FIELD_PROTOCOL
 from singlecell_data_io import run_subdir_setup, runinfo_append
-from singlecell_functions import field_setup
+from singlecell_fields import field_setup
 from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
 
 # analysis settings
