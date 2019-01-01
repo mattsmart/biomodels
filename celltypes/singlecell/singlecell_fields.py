@@ -30,7 +30,7 @@ EXPT_FIELDS = {
                         'Sox7', 'Stat3', 'Suz12', 'Tbx2', 'Terf2', 'Thrb', 'Tnks', 'Trim33', 'Wwp1', 'Yap1', 'Zfp36l2',
                         'Zkscan5', 'Zfp367']}
     },
-    # yamanaka field notes
+    # yamanaka field notes: Pou5f1 is alias Oct4, these are OSKM + Nanog
     'yamanaka': {
         '2014mehta': {
             'level_1': ['Sox2', 'Pou5f1', 'Klf4', 'Myc'],
