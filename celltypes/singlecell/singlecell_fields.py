@@ -10,7 +10,7 @@ EXPT_FIELDS = {
     #   level 1 is main ref
     #   level 2 adds wiki mir21
     #   level 4 adds targetscan hits
-    'mir_21': {
+    'miR_21': {
         '2014mehta': {
             'level_1': ['Klf5'],
             'level_2': ['Klf5', 'Trp63', 'Mef2c'],
@@ -102,7 +102,7 @@ def field_setup(simsetup, protocol=FIELD_PROTOCOL):
         field_genes_effects = {label: 1.0 for label in field_genes}  # this ensure all should be OFF
         app_field_start = construct_app_field_from_genes(field_genes_effects, gene_id, num_steps=0)
         field_dict['app_field'] = app_field_start
-    elif protocol == 'mir_21':
+    elif protocol == 'miR_21':
         """
         - 2018 Nature comm macrophage -> fibroblast paper lists KLF-5 and PTEN as primary targets of miR-21
         - 2014 mehta dataset does not contain PTEN, but 2018 scMCA does
