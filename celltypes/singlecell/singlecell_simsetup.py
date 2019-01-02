@@ -72,7 +72,7 @@ if __name__ == '__main__':
     print_genes = True
     print_celltypes = True
     npzpath_override = True
-    npzpath_alternate = MEMORIESDIR + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_TFonly.npz'
+    npzpath_alternate = MEMORIESDIR + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_pruned_A_TFonly.npz'
     # print block
     if npzpath_override:
         simsetup = singlecell_simsetup(npzpath=npzpath_alternate)
@@ -87,18 +87,8 @@ if __name__ == '__main__':
         for idx, label in enumerate(simsetup['CELLTYPE_LABELS']):
             print idx, label
 
-    edit_npz = True
+    edit_npz = False
     # edit npz block
-
-    # TF only
-    # 2018_scmca_mems_genes_types_boolean_compressed
-    # 2018_scmca_mems_genes_types_boolean_compressed_pruned_A
-    #
-    # TODO
-    # 2018_scmca_mems_genes_types_boolean_compressed_pruned_A_TFonly
-    # 2018_scmca_mems_genes_types_boolean_compressed_pruned_AB
-    # also copy over to 2018 and upload, pull on bioserver
-
     if edit_npz:
         npz_to_edit = MEMORIESDIR + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_pruned_AB.npz'
         npz_outname = MEMORIESDIR + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_pruned_AB_edit.npz'
