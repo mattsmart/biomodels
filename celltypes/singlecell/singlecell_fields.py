@@ -58,9 +58,9 @@ def construct_app_field_from_genes(gene_name_effect, gene_id, num_steps=0):
     #app_field = np.zeros((N, num_steps))  $ TODO implement time based
     app_field = np.zeros(N)
     for label, effect in gene_name_effect.iteritems():
-        print label, gene_id[label], 'effect:', effect
         #app_field[gene_id[label], :] += effect
         if label in gene_id.keys():
+            print label, gene_id[label], 'effect:', effect
             app_field[gene_id[label]] += effect
         else:
             print "Field construction warning: label %s not in gene_id.keys()" % label
