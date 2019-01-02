@@ -71,9 +71,9 @@ if __name__ == '__main__':
 
     print_genes = True
     print_celltypes = True
-    print_gene_excpression_row = True
+    print_gene_excpression_row = False
     npzpath_override = True
-    npzpath_alternate = MEMORIESDIR + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_pruned_A.npz'
+    npzpath_alternate = MEMORIESDIR + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_pruned_A_TFonly.npz'
     # print block
     if npzpath_override:
         simsetup = singlecell_simsetup(npzpath=npzpath_alternate)
