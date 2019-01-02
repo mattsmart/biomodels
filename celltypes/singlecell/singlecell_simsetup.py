@@ -3,7 +3,7 @@ import os
 from singlecell_constants import NETWORK_METHOD, DEFAULT_MEMORIES_NPZPATH, J_RANDOM_DELETE_RATIO, \
     FLAG_PRUNE_INTXN_MATRIX, MEMORIESDIR
 from singlecell_linalg import memory_corr_matrix_and_inv, interaction_matrix, predictivity_matrix
-from dataprocess.data_standardize import load_npz_of_arr_genes_cells
+from dataprocess.data_standardize import load_npz_of_arr_genes_cells, save_npz_of_arr_genes_cells
 
 """
 Conventions follow from Lang & Mehta 2014, PLOS Comp. Bio
@@ -68,17 +68,46 @@ def unpack_simsetup(simsetup):
 
 
 if __name__ == '__main__':
+
+    print_genes = True
+    print_celltypes = True
     npzpath_override = True
     npzpath_alternate = MEMORIESDIR + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_TFonly.npz'
-
+    # print block
     if npzpath_override:
         simsetup = singlecell_simsetup(npzpath=npzpath_alternate)
     else:
         simsetup = singlecell_simsetup()
+    if print_genes:
+        print 'Genes:'
+        for idx, label in enumerate(simsetup['GENE_LABELS']):
+            print idx, label
+    if print_celltypes:
+        print 'Celltypes:'
+        for idx, label in enumerate(simsetup['CELLTYPE_LABELS']):
+            print idx, label
 
-    print 'Genes:'
-    for idx, label in enumerate(simsetup['GENE_LABELS']):
-        print idx, label
-    print 'Celltypes:'
-    for idx, label in enumerate(simsetup['CELLTYPE_LABELS']):
-        print idx, label
+    edit_npz = True
+    # edit npz block
+
+    # TF only
+    # 2018_scmca_mems_genes_types_boolean_compressed
+    # 2018_scmca_mems_genes_types_boolean_compressed_pruned_A
+    #
+    # TODO
+    # 2018_scmca_mems_genes_types_boolean_compressed_pruned_A_TFonly
+    # 2018_scmca_mems_genes_types_boolean_compressed_pruned_AB
+    # also copy over to 2018 and upload, pull on bioserver
+
+    if edit_npz:
+        npz_to_edit = MEMORIESDIR + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_pruned_AB.npz'
+        npz_outname = MEMORIESDIR + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_pruned_AB_edit.npz'
+        xi, gene_labels, celltype_labels = load_npz_of_arr_genes_cells(npz_to_edit, verbose=True)
+        # edits go here
+        celltype_labels[58] = 'Mixed NK T cell'
+        save_npz_of_arr_genes_cells(npz_outname, xi, gene_labels, celltype_labels)
+        xi, gene_labels, celltype_labels = load_npz_of_arr_genes_cells(npz_outname, verbose=True)
+        if print_celltypes:
+            print 'Celltypes:'
+            for idx, label in enumerate(celltype_labels):
+                print idx, label
