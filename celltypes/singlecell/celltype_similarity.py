@@ -85,7 +85,7 @@ def score_similarity(external_celltype, memories_npz, memories_entrez_path, cell
     simsetup = singlecell_simsetup(npzpath=memories_npz)
     xi_truncated, ext_gene_states_truncated = truncate_celltype_data(matches, simsetup, gene_labels_raw, gene_states_raw)
     # use truncated data to score overlaps
-    overlaps = np.dot(xi_truncated.T, ext_gene_states_truncated)  # TODO div by num truncated genes? make sure shapes match too
+    overlaps = np.dot(xi_truncated.T, ext_gene_states_truncated)
     for idx, label in enumerate(simsetup['CELLTYPE_LABELS']):
         print "Celltype %s, overlap %.3f" % (label, overlaps[idx])
     # plot overlaps
@@ -97,6 +97,7 @@ def score_similarity(external_celltype, memories_npz, memories_entrez_path, cell
 
 
 if __name__ == '__main__':
+    # TODO try projection instead of overlap, or both
     create_ext_celltype = False
     score_ext_celltype = True
     score_reference = True
@@ -125,4 +126,16 @@ if __name__ == '__main__':
         score_similarity(external_celltype, memories_npz, memories_entrez_path, celltype_name=ext_celltype_name)
 
     if score_reference:
-        print "TODO"
+        memories_npz = MEMORIESDIR + os.sep + '2014_mehta_mems_genes_types_boolean_compressed_pruned_A.npz'
+        simsetup = singlecell_simsetup(npzpath=memories_npz)
+        local_celltype = 'fibroblast - skin'
+        local_celltype_idx = simsetup['CELLTYPE_ID'][local_celltype]
+        # use truncated data to score overlaps
+        overlaps = np.dot(simsetup['XI'].T, simsetup['XI'][:, local_celltype_idx])
+        for idx, label in enumerate(simsetup['CELLTYPE_LABELS']):
+            print "Celltype %s, overlap %.3f" % (label, overlaps[idx])
+        # plot overlaps
+        plot_as_bar(overlaps, simsetup['CELLTYPE_LABELS'])
+        plt.title('Overlap between %s and local memories (num matching genes: %d)' % (local_celltype, simsetup['N']))
+        plt.savefig(os.path.join(os.path.dirname(external_celltype), 'score_%s_vs_localmems.png' % (local_celltype)))
+        plt.show()
