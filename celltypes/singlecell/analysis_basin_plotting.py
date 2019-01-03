@@ -2,6 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
+from singlecell_constants import RUNS_FOLDER
+
+
 def plot_proj_timeseries(proj_timeseries_array, num_steps, ensemble, memory_labels, savepath, highlights=None):
     """
     proj_timeseries_array is expected dim p x time
@@ -48,37 +51,53 @@ def plot_basin_occupancy_timeseries(basin_occupancy_timeseries, num_steps, ensem
     return
 
 
-def plot_basin_step(basin_step_data, step, ensemble, memory_labels, memory_id, spurious_list, savepath, highlights={}):
+def plot_basin_step(basin_step_data, step, ensemble, memory_labels, memory_id, spurious_list, savepath, highlights={},
+                    title_add='', autoscale=True, inset=False, init_mem=None):
     """
     basin_step_data: of length p or p + k where k tracks spurious states, p is encoded memories length
     highlights: dict of idx: color for certain memory projections to highlight
     """
     assert len(basin_step_data) in [len(memory_labels), len(memory_labels) + len(spurious_list)]
-    if len(basin_step_data) == len(memory_labels):
-        xticks = memory_labels
-        bar_colors = ['grey' if label not in [memory_labels[a] for a in highlights.keys()]
-                      else highlights[memory_id[label]]
-                      for label in xticks]
+    if highlights is not None:
+        if len(basin_step_data) == len(memory_labels):
+            xticks = memory_labels
+            bar_colors = ['grey' if label not in [memory_labels[a] for a in highlights.keys()]
+                          else highlights[memory_id[label]]
+                          for label in xticks]
+        else:
+            xticks = memory_labels + spurious_list
+            bar_colors = ['grey' if label not in [memory_labels[a] for a in highlights.keys()]
+                          else highlights[memory_id[label]]
+                          for label in xticks]
     else:
         xticks = memory_labels + spurious_list
-        bar_colors = ['grey' if label not in [memory_labels[a] for a in highlights.keys()]
-                      else highlights[memory_id[label]]
-                      for label in xticks]
+        bar_colors = ['blue' for _ in xticks]
+        bar_colors[xticks.index('mixed')] = 'gray'
+        if init_mem is not None:
+            bar_colors[xticks.index(init_mem)] = 'black'
     # plotting
     import matplotlib as mpl
     mpl.rcParams.update({'font.size': 12})
     plt.clf()
     fig = plt.figure(1)
-    fig.set_size_inches(18.5, 10.5)
+    fig.set_size_inches(21.5, 10.5)
     h = plt.bar(xrange(len(xticks)), basin_step_data, color=bar_colors)
     ax = plt.gca()
     plt.subplots_adjust(bottom=0.3)
     ax.set_xticks(np.arange(len(xticks)))
-    ax.set_xticklabels(xticks, ha='right', rotation=45, fontsize=11)
+    ax.set_xticklabels(xticks, ha='right', rotation=45, fontsize=10)
     ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
-    plt.title('Ensemble coordinate at step %d (%d cells)' % (step, ensemble))
+    if not autoscale:
+        ax.set_ylim(0.0, ensemble)
+    plt.title('Ensemble coordinate at step %d (%d cells) %s' % (step, ensemble, title_add))
     plt.ylabel('Class occupancy count')
     plt.xlabel('Class labels')
+    if inset:
+        from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+        axins = inset_axes(ax, 2.0, 2.0, loc='upper right', bbox_to_anchor=(0.85, 0.85),
+                           bbox_transform=ax.figure.transFigure)  # no zoom
+        h = axins.bar(xrange(len(xticks)), basin_step_data, color=bar_colors)
+        axins.set_ylim(0.0, ensemble)
     fig.savefig(savepath, bbox_inches='tight')
     return plt.gca()
 
@@ -266,3 +285,7 @@ def grid_video(rundir, vidname, imagedir=None, ext='.mp4', fps=20):
     make_video_ffmpeg(imagedir, videopath, fps=fps, ffmpeg_dir=None)
     print "Done"
     return videopath
+
+
+if __name__ == '__main__':
+    print "main not implemented"

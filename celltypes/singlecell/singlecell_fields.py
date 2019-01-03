@@ -116,3 +116,11 @@ def field_setup(simsetup, protocol=FIELD_PROTOCOL):
     else:
         assert protocol is None
     return field_dict
+
+
+if __name__ == '__main__':
+    plot_field_impact = True
+
+    if plot_field_impact:
+        # TODO = field affect on stability of every cell type: if a field aligns with a cell type it should not destabilize it and vice versa
+        print "plot_field_impact not implemented in main"

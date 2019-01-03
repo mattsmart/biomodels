@@ -422,9 +422,10 @@ def basin_transitions(init_cond, ensemble, num_steps, beta, simsetup):
 
 
 if __name__ == '__main__':
-    gen_basin_data = True
+    gen_basin_data = False
     plot_grouped_data = False
     profile = False
+    plot_groups_of_transitions = True
 
     # prep simulation globals
     simsetup = singlecell_simsetup()
@@ -537,3 +538,51 @@ if __name__ == '__main__':
                          ['occ_threshold', OCC_THRESHOLD], ['field_protocol', field_protocol],
                          ['async_batch', async_batch], ['time', t1], ['time_workers', worker_times]]
             runinfo_append(io_dict, info_list, multi=True)
+
+    # plot specific directory data from basin transitions run
+    if plot_groups_of_transitions:
+        groupdir = RUNS_FOLDER + os.sep + 'single_celltype_transitions'
+        basedirs = ['Macrophage (A)', 'Macrophage (B)', 'Macrophage (C)', 'Macrophage (D)']  # celltype labels
+        subdirs = ['noField', 'mir21_1', 'mir21_2', 'mir21_3']  # field labels
+        for basedir in basedirs:
+            for subdir in subdirs:
+                datadir = groupdir + os.sep + basedir + os.sep + subdir + os.sep + 'data'
+                print "working in", datadir
+                # load proj data and occ data
+                proj_data, occ_data = load_basinstats(datadir, basedir)
+                ens = float(np.sum(occ_data[:, 0]))
+                print proj_data.shape
+                # setup timepoints
+                total_steps = proj_data.shape[1]
+                num_timepoints = 0
+                timepoints = [a*int(total_steps/num_timepoints) for a in xrange(num_timepoints)]
+                timepoints.append(total_steps-1)
+                for step in timepoints:
+                    # sort proj and occ data at each timepoint
+                    projvec = proj_data[:, step]
+                    absprojvec = np.abs(projvec)
+                    occvec = occ_data[:, step]  # TODO
+                    # print some timestep proj ranking info
+                    print "\nRanking transitions (by proj) from %s, %s at step %d" % (basedir, subdir, step)
+                    sortedmems_smalltobig = np.argsort(absprojvec)
+                    sortedmems_bigtosmall = sortedmems_smalltobig[::-1]
+                    for rank in xrange(10):
+                        ranked_mem_idx = sortedmems_bigtosmall[rank]
+                        ranked_mem = simsetup['CELLTYPE_LABELS'][ranked_mem_idx]
+                        print rank, ranked_mem_idx, ranked_mem, projvec[ranked_mem_idx], absprojvec[ranked_mem_idx]
+                    # print some timestep occ ranking info
+                    print "\nRanking transitions (by occ) from %s, %s at step %d" % (basedir, subdir, step)
+                    occ_labels = simsetup['CELLTYPE_LABELS'] + SPURIOUS_LIST
+                    sortedmems_smalltobig = np.argsort(occvec)
+                    sortedmems_bigtosmall_occ = sortedmems_smalltobig[::-1]
+                    for rank in xrange(10):
+                        ranked_mem_idx = sortedmems_bigtosmall_occ[rank]
+                        ranked_mem = occ_labels[ranked_mem_idx]
+                        print rank, ranked_mem_idx, ranked_mem, occvec[ranked_mem_idx], occvec[ranked_mem_idx] / ens
+                    # plot sorted data with labels
+                    outpath = groupdir + os.sep + 'occ_%s_%s_step_%d.png' % (basedir, subdir, step)
+                    sorted_occ = [occ_data[idx, step] for idx in sortedmems_bigtosmall_occ]
+                    sorted_labels = [occ_labels[idx] for idx in sortedmems_bigtosmall_occ]
+                    print '\n', len(sorted_occ)
+                    plot_basin_step(sorted_occ, step, ens, sorted_labels, simsetup['CELLTYPE_ID'], [], outpath,
+                                    highlights=None, autoscale=True, inset=True, title_add='(%s)' % subdir, init_mem=basedir)
