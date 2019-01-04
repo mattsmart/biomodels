@@ -1,8 +1,12 @@
+from matplotlib import pyplot as plt
 import numpy as np
+import os
 from random import random
 
-from singlecell_constants import BETA, EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, MEMS_MEHTA, MEMS_SCMCA, FIELD_PROTOCOL
+from singlecell_constants import BETA, EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, MEMS_MEHTA, MEMS_SCMCA, FIELD_PROTOCOL, MEMORIESDIR
+from singlecell_functions import hamiltonian
 from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
+from singlecell_visualize import plot_as_bar
 
 
 EXPT_FIELDS = {
@@ -67,7 +71,7 @@ def construct_app_field_from_genes(gene_name_effect, gene_id, num_steps=0):
     return app_field
 
 
-def field_setup(simsetup, protocol=FIELD_PROTOCOL):
+def field_setup(simsetup, protocol=FIELD_PROTOCOL, level=None):
     """
     Construct applied field vector (either fixed or on varying under a field protocol) to bias the dynamics
     Notes on named fields
@@ -94,9 +98,11 @@ def field_setup(simsetup, protocol=FIELD_PROTOCOL):
     else:
         print "Note npz mems not supported:", simsetup['memories_path']
         npz_label = None
+    if level is None:
+        print "Warning: Arg 'level' is None -- setting field level to 'level_1'"
+        level = 'level_1'
 
     if protocol == "yamanaka":
-        level = 'level_1'  # TODO make nice input
         print "Note: field_setup using", protocol, npz_label, level
         field_genes = EXPT_FIELDS[protocol][npz_label][level]
         field_genes_effects = {label: 1.0 for label in field_genes}  # this ensure all should be OFF
@@ -107,7 +113,6 @@ def field_setup(simsetup, protocol=FIELD_PROTOCOL):
         - 2018 Nature comm macrophage -> fibroblast paper lists KLF-5 and PTEN as primary targets of miR-21
         - 2014 mehta dataset does not contain PTEN, but 2018 scMCA does
         """
-        level = 'level_1'  # TODO make nice input
         print "Note: field_setup using", protocol, npz_label, level
         field_genes = EXPT_FIELDS[protocol][npz_label][level]
         field_genes_effects = {label: -1.0 for label in field_genes}  # this ensure all should be OFF
@@ -122,5 +127,31 @@ if __name__ == '__main__':
     plot_field_impact = True
 
     if plot_field_impact:
-        # TODO = field affect on stability of every cell type: if a field aligns with a cell type it should not destabilize it and vice versa
-        print "plot_field_impact not implemented in main"
+        npz_mehta = MEMORIESDIR + os.sep + '2014_mehta_mems_genes_types_boolean_compressed_pruned_A.npz'
+        npz_scmca = MEMORIESDIR + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_pruned_A_TFonly.npz'
+        npz_type = '2018scMCA'
+        assert npz_type in ['2014mehta', '2018scMCA']
+        simsetup = singlecell_simsetup(npzpath=npz_scmca)
+        xi_orig = simsetup['XI']
+        for field_type in EXPT_FIELDS.keys():
+            if field_type is None:
+                continue
+            field_levels_dict = EXPT_FIELDS[field_type][npz_type]
+            for field_level in field_levels_dict.keys():
+                plot_subtitle = "Field effect of %s, %s on %s" % (field_type, field_level, npz_type)
+                print plot_subtitle
+                field_dict = field_setup(simsetup, protocol=field_type, level=field_level)
+                app_field_vector = field_dict['app_field']
+                xi_under_field = np.zeros(xi_orig.shape)
+                print app_field_vector.shape
+                for idx in xrange(app_field_vector.shape[0]):
+                    if app_field_vector[idx] == 0:
+                        xi_under_field[idx, :] = xi_orig[idx, :]
+                    else:
+                        xi_under_field[idx, :] = app_field_vector[idx]
+                energies = np.zeros(xi_orig.shape[1])
+                for col in xrange(xi_orig.shape[1]):
+                    energies[col] = -hamiltonian(xi_under_field[:, col], simsetup['J'])
+                plot_as_bar(energies, simsetup['CELLTYPE_LABELS'])
+                plt.title('%s minima depth' % plot_subtitle)
+                plt.show()
