@@ -173,18 +173,36 @@ def plot_all_grids(simsetup_A, simsetup_B, xi_truncated_A, xi_truncated_B, A_lab
     plot_overlap_grid(grid_data_pseudoproj_B_trunc, celltypes_B, outdir, ax=None, N=None, normalize=True, fs=9, relmax=True,
                       extragrid=False, plotname=B_label, ext='.pdf', vforce=None, namemod='_pseudoproj_truncated')
     # plot A vs B
-    # TODO
+    grid_data_overlap_B_trunc = np.dot(xi_truncated_B.T, xi_truncated_B) / xi_truncated_B.shape[0]
+    grid_data_pseudoproj_B_trunc = np.dot(simsetup_B['A_INV'], grid_data_overlap_B_trunc)
+    plot_overlap_grid(grid_data_overlap_B_trunc, celltypes_B, outdir, ax=None, N=None, normalize=True, fs=9, relmax=True,
+                      extragrid=False, plotname=B_label, ext='.pdf', vforce=None, namemod='_overlap_truncated')
+    plot_overlap_grid(grid_data_pseudoproj_B_trunc, celltypes_B, outdir, ax=None, N=None, normalize=True, fs=9, relmax=True,
+                      extragrid=False, plotname=B_label, ext='.pdf', vforce=None, namemod='_pseudoproj_truncated',)
+    # memory_labels_y=celltypes_B
+    # gen AB data
+    grid_B_overlap_A = np.dot(xi_truncated_A.T, xi_truncated_B) / np.sqrt(xi_truncated_A.shape[0] * xi_truncated_B.shape[0])
+    grid_B_apply_proj_A = np.dot(simsetup_A['A_INV'], grid_B_overlap_A)
+    grid_A_apply_proj_B = np.dot(simsetup_B['A_INV'], grid_B_overlap_A.T)
+    # plot AB data
+    label_1 = '%s_overlap_%s' % (B_label, A_label)
+    label_2 = '%s_apply_proj_%s' % (B_label, A_label)
+    label_3 = '%s_apply_proj_%s' % (A_label, B_label)
+    plot_overlap_grid(grid_B_overlap_A, celltypes_A, outdir, ax=None, N=None, normalize=True, fs=9, relmax=True,
+                      extragrid=False, plotname=label_1, ext='.pdf', vforce=None, namemod='_matching', memory_labels_x=celltypes_B)
+    plot_overlap_grid(grid_B_apply_proj_A, celltypes_A, outdir, ax=None, N=None, normalize=True, fs=9, relmax=True,
+                      extragrid=False, plotname=label_2, ext='.pdf', vforce=None, namemod='_matching', memory_labels_x=celltypes_B)
+    plot_overlap_grid(grid_A_apply_proj_B, celltypes_B, outdir, ax=None, N=None, normalize=True, fs=9, relmax=True,
+                      extragrid=False, plotname=label_3, ext='.pdf', vforce=None, namemod='_matching', memory_labels_x=celltypes_A)
     return
 
 
 if __name__ == '__main__':
-    # TODO try using other celltypes as reference, less ambiguous ones like neuron?
-    # TODO make rectangular grid p1 x p2 of projections and overlaps between two NPZ files
     create_ext_celltype = False
     score_ext_celltype = False
     score_local_celltype = False
-    check_npz_grids = True
-    compare_two_npz = False
+    check_npz_grids = False
+    compare_two_npz = True
 
     # local constants
     outdir = RUNS_FOLDER + os.sep + 'celltype_similarity'
@@ -236,12 +254,12 @@ if __name__ == '__main__':
 
     if compare_two_npz:
         # settings
-        label_A = '2014pruneA'
-        label_B = '2018pruneA_TF'
-        npz_A = MEMORIESDIR + os.sep + '2014_mehta_mems_genes_types_boolean_compressed_pruned_A.npz'
-        npz_B = MEMORIESDIR + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_pruned_A_TFonly.npz'
-        entrez_name_A = 'entrez_id_2014mehta.csv'
-        entrez_name_B = 'entrez_id_2018scMCA_pruned_TFonly.csv'
+        label_A = '2018pruneA_TF'
+        label_B = '2014pruneA'
+        npz_A = MEMORIESDIR + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_pruned_A_TFonly.npz'
+        npz_B = MEMORIESDIR + os.sep + '2014_mehta_mems_genes_types_boolean_compressed_pruned_A.npz'
+        entrez_name_A = 'entrez_id_2018scMCA_pruned_TFonly.csv'
+        entrez_name_B = 'entrez_id_2014mehta.csv'
         # perform simsetup
         simsetup_A = singlecell_simsetup(npzpath=npz_A)
         simsetup_B = singlecell_simsetup(npzpath=npz_B)
@@ -256,5 +274,4 @@ if __name__ == '__main__':
         # use matches to truncate ext gene states to match truncated memory states and
         xi_truncated_A, xi_truncated_B = truncate_celltype_data_for_dual_npz(matches, simsetup_A, simsetup_B)
         # do proj and overlaps for both
-        # TODO A vs B
         plot_all_grids(simsetup_A, simsetup_B, xi_truncated_A, xi_truncated_B, label_A, label_B, outdir=outdir)

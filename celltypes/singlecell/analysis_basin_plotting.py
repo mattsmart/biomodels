@@ -195,15 +195,18 @@ def plot_basin_grid(grid_data, ensemble, steps, memory_labels, plotdir, spurious
 
 def plot_overlap_grid(grid_data, memory_labels, plotdir, ax=None, N=None, normalize=True, fs=9, relmax=True,
                       rotate_standard=True, extragrid=False, plotname=None, ext='.pdf',
-                      hamming=False, vforce=None, namemod=''):
+                      hamming=False, vforce=None, namemod='', memory_labels_x=None):
     """
     Alteration of plot_basin_grid to support (simpler) overlap and hamming dist plots
     """
+    if memory_labels_x is None:
+        memory_labels_x = memory_labels
+    print 'plot_overlap_grid:', grid_data.shape, len(memory_labels_x), len(memory_labels), plotname, namemod
     plotnames = ['celltypes_overlap', 'celltypes_hamming']
     if plotname is None:
         plotname = plotnames[hamming]
     datalabels = ['Overlap', 'Hamming distance']
-    assert grid_data.shape == (len(memory_labels), len(memory_labels))
+    assert grid_data.shape == (len(memory_labels), len(memory_labels_x))
     datamax = np.max(grid_data)
     datamin = np.min(grid_data)
     # adjust colourbar max val
@@ -229,7 +232,7 @@ def plot_overlap_grid(grid_data, memory_labels, plotdir, ax=None, N=None, normal
     im = ax.imshow(grid_data, **imshow_kw)
     # create colorbar
     cbar_kw = {'aspect': 30, 'pad': 0.02}   # larger aspect, thinner bar
-    cbarlabel = '(Symmetric) %s between memory i and j' % datalabels[hamming]
+    cbarlabel = '%s between memory i and j' % datalabels[hamming]
     cbar = ax.figure.colorbar(im, ax=ax, **cbar_kw)
     cbar.ax.set_ylabel(cbarlabel, rotation=-90, va="bottom", fontsize=fs+2, labelpad=20)
     # hack title placement
@@ -238,7 +241,7 @@ def plot_overlap_grid(grid_data, memory_labels, plotdir, ax=None, N=None, normal
     ax.set_xticks(np.arange(grid_data.shape[1]))
     ax.set_yticks(np.arange(grid_data.shape[0]))
     # label them with the respective list entries.
-    ax.set_xticklabels(memory_labels, fontsize=fs)
+    ax.set_xticklabels(memory_labels_x, fontsize=fs)
     ax.set_yticklabels(memory_labels, fontsize=fs)
     # Rotate the tick labels and set their alignment.
     ax.tick_params(top=True, bottom=False, labeltop=True, labelbottom=False)
