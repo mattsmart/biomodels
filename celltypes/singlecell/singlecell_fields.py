@@ -105,7 +105,7 @@ def field_setup(simsetup, protocol=FIELD_PROTOCOL, level=None):
     if protocol == "yamanaka":
         print "Note: field_setup using", protocol, npz_label, level
         field_genes = EXPT_FIELDS[protocol][npz_label][level]
-        field_genes_effects = {label: 1.0 for label in field_genes}  # this ensure all should be OFF
+        field_genes_effects = {label: 1.0 for label in field_genes}  # this ensure all should be ON
         app_field_start = construct_app_field_from_genes(field_genes_effects, gene_id, num_steps=0)
         field_dict['app_field'] = app_field_start
     elif protocol == 'miR_21':
@@ -181,5 +181,13 @@ if __name__ == '__main__':
                 plt.title('%s projections (unperturbed=%.2f)' % (plot_subtitle, 1.0))
                 plt.ylim(0.8*np.min(self_proj), 1.01)
                 filepath = RUNS_FOLDER + os.sep + 'mems_%s_proj_under_field_%s_%s' % (npz_type, field_type, field_level)
+                plt.savefig(filepath, bbox_inches='tight')
+                plt.close()
+                # compute field term
+                field_term = np.dot(xi_orig.T, app_field_vector)
+                plot_as_bar(field_term, simsetup['CELLTYPE_LABELS'])
+                plt.axhline(y=0.0, linewidth=1, color='k', linestyle='--')
+                plt.title('%s field term xi^T dot h (unperturbed=%.2f)' % (plot_subtitle, 0.0))
+                filepath = RUNS_FOLDER + os.sep + 'mems_%s_field_term_%s_%s' % (npz_type, field_type, field_level)
                 plt.savefig(filepath, bbox_inches='tight')
                 plt.close()
