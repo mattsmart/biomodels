@@ -153,9 +153,9 @@ def stoch_from_distance(distance_data, kappa=None):
 
 
 if __name__ == '__main__':
-    run_basin_grid = False
+    run_basin_grid = True
     gen_overlap_grid = False
-    load_and_plot_basin_grid = True
+    load_and_plot_basin_grid = False
     load_and_compare_grids = False
     reanalyze_grid_over_time = False
     make_grid_video = False
@@ -196,8 +196,8 @@ if __name__ == '__main__':
     # direct data plotting
     if load_and_plot_basin_grid:
         # specify paths and load data / parameters
-        groupdir = RUNS_FOLDER + os.sep + "grids_finalstep_mirfield"
-        basedirs = ['noField', 'miR-21_level1', 'miR-21_level2', 'miR-21_level3']
+        groupdir = RUNS_FOLDER + os.sep + "gridmovie"
+        basedirs = ['grid_781444_1kx500_2018scMCA_mir21_lvl2']
         for basedir in basedirs:
             datadir = groupdir + os.sep + basedir
             filestr_data = datadir + os.sep + "grid_at_step_499.txt"
@@ -255,9 +255,8 @@ if __name__ == '__main__':
     # use labelled collection of timeseries from each row to generate multiple grids over time
     if reanalyze_grid_over_time:
         # step 0 specify ensemble, num steps, and location of row data
-        groupdir = RUNS_FOLDER + os.sep + 'biggrid_mir21_3fields_jan3_2019'
-        basedirs = ['grid_773536_1kx500_2018scMCA_noField', 'grid_773537_1kx500_2018scMCA_mir21_lvl1',
-                    'grid_773572_1kx500_2018scMCA_mir21_lvl2', 'grid_773573_1kx500_2018scMCA_mir21_lvl3']
+        groupdir = RUNS_FOLDER + os.sep + 'gridmovie'
+        basedirs = ['grid_781444_1kx500_2018scMCA_mir21_lvl2']
         for basedir in basedirs:
             datadir = groupdir + os.sep + basedir
             print "working in", datadir
@@ -287,9 +286,8 @@ if __name__ == '__main__':
 
     if make_grid_video:
         custom_fps = 5  # 1, 5, or 20 are good
-        groupdir = RUNS_FOLDER + os.sep + 'biggrid_mir21_3fields_jan3_2019'
-        basedirs = ['grid_773536_1kx500_2018scMCA_noField', 'grid_773537_1kx500_2018scMCA_mir21_lvl1',
-                    'grid_773572_1kx500_2018scMCA_mir21_lvl2', 'grid_773573_1kx500_2018scMCA_mir21_lvl3']
+        groupdir = RUNS_FOLDER + os.sep + 'gridmovie'
+        basedirs = ['grid_781444_1kx500_2018scMCA_mir21_lvl2']
         for basedir in basedirs:
             datadir = groupdir + os.sep + basedir
             vidname = "%s_vmax0.5_fps%d" % (basedir, custom_fps)

@@ -201,8 +201,8 @@ if __name__ == '__main__':
     create_ext_celltype = False
     score_ext_celltype = False
     score_local_celltype = False
-    check_npz_grids = False
-    compare_two_npz = True
+    check_npz_grids = True
+    compare_two_npz = False
 
     # local constants
     outdir = RUNS_FOLDER + os.sep + 'celltype_similarity'
