@@ -3,7 +3,7 @@ import numpy as np
 import os
 from random import random
 
-from singlecell_constants import BETA, EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, MEMS_MEHTA, MEMS_SCMCA, FIELD_PROTOCOL, MEMORIESDIR
+from singlecell_constants import BETA, EXT_FIELD_STRENGTH, RUNS_FOLDER, MEMS_MEHTA, MEMS_SCMCA, FIELD_PROTOCOL, MEMORIESDIR
 from singlecell_functions import hamiltonian
 from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
 from singlecell_visualize import plot_as_bar
@@ -149,9 +149,37 @@ if __name__ == '__main__':
                         xi_under_field[idx, :] = xi_orig[idx, :]
                     else:
                         xi_under_field[idx, :] = app_field_vector[idx]
+                # compute energies of shifted celltypes
                 energies = np.zeros(xi_orig.shape[1])
                 for col in xrange(xi_orig.shape[1]):
                     energies[col] = -hamiltonian(xi_under_field[:, col], simsetup['J'])
                 plot_as_bar(energies, simsetup['CELLTYPE_LABELS'])
-                plt.title('%s minima depth' % plot_subtitle)
-                plt.show()
+                plt.axhline(y=0.5*xi_orig.shape[0], linewidth=1, color='k', linestyle='--')
+                plt.title('%s minima depth (unperturbed=%.2f)' % (plot_subtitle, 0.5*xi_orig.shape[0]))
+                plt.ylim(0.8*np.min(energies), 0.5*xi_orig.shape[0]*1.05)
+                filepath = RUNS_FOLDER + os.sep + 'mems_%s_energy_under_field_%s_%s' % (npz_type, field_type, field_level)
+                plt.savefig(filepath, bbox_inches='tight')
+                plt.close()
+                # compute overlaps of shifted celltypes
+                self_overlaps = np.zeros(xi_orig.shape[1])
+                for idx in xrange(xi_orig.shape[1]):
+                    self_overlaps[idx] = np.dot(xi_orig[:, idx], xi_under_field[:, idx]) / xi_orig.shape[0]
+                plot_as_bar(self_overlaps, simsetup['CELLTYPE_LABELS'])
+                plt.axhline(y=1.0, linewidth=1, color='k', linestyle='--')
+                plt.title('%s overlaps (unperturbed=%.2f)' % (plot_subtitle, 1.0))
+                plt.ylim(0.8*np.min(self_overlaps), 1.01)
+                filepath = RUNS_FOLDER + os.sep + 'mems_%s_overlap_under_field_%s_%s' % (npz_type, field_type, field_level)
+                plt.savefig(filepath, bbox_inches='tight')
+                plt.close()
+                # compute projections of shifted celltypes
+                self_proj = np.zeros(xi_orig.shape[1])
+                for idx in xrange(xi_orig.shape[1]):
+                    proj_vector_of_shifted_mem = np.dot(simsetup['A_INV'], np.dot(xi_orig.T, xi_under_field[:, idx])) / xi_orig.shape[0]
+                    self_proj[idx] = proj_vector_of_shifted_mem[idx]
+                plot_as_bar(self_proj, simsetup['CELLTYPE_LABELS'])
+                plt.axhline(y=1.0, linewidth=1, color='k', linestyle='--')
+                plt.title('%s projections (unperturbed=%.2f)' % (plot_subtitle, 1.0))
+                plt.ylim(0.8*np.min(self_proj), 1.01)
+                filepath = RUNS_FOLDER + os.sep + 'mems_%s_proj_under_field_%s_%s' % (npz_type, field_type, field_level)
+                plt.savefig(filepath, bbox_inches='tight')
+                plt.close()
