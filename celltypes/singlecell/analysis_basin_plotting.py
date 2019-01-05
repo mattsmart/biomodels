@@ -104,7 +104,7 @@ def plot_basin_step(basin_step_data, step, ensemble, memory_labels, memory_id, s
 
 def plot_basin_grid(grid_data, ensemble, steps, memory_labels, plotdir, spurious_list, ax=None, normalize=True,
                     fs=9, relmax=True, rotate_standard=True, extragrid=False, plotname='plot_basin_grid', ext='.jpg',
-                    vforce=None, namemod=''):
+                    vforce=None, cmap_int=11, namemod=''):
     """
     plot matrix G_ij of size p x (p + k): grid of data between 0 and 1
     each row represents one of the p encoded basins as an initial condition
@@ -150,7 +150,11 @@ def plot_basin_grid(grid_data, ensemble, steps, memory_labels, plotdir, spurious
     note: fix vmax at 0.5 of max works nice
     note: aspect None, 'auto', scalar, or 'equal'
     """
-    imshow_kw = {'cmap': 'YlGnBu', 'aspect': None, 'vmin': 0.0, 'vmax': vmax}  # note: fix at 0.5 of max works nice
+    if cmap_int is not None:
+        cmap = plt.get_cmap('YlGnBu', cmap_int)
+    else:
+        cmap = plt.get_cmap('YlGnBu')
+    imshow_kw = {'cmap': cmap, 'aspect': None, 'vmin': 0.0, 'vmax': vmax}  # note: fix at 0.5 of max works nice
     im = ax.imshow(grid_data, **imshow_kw)
     # create colorbar
     cbar_kw = {'aspect': 30, 'pad': 0.02}   # larger aspect, thinner bar
@@ -195,7 +199,7 @@ def plot_basin_grid(grid_data, ensemble, steps, memory_labels, plotdir, spurious
 
 def plot_overlap_grid(grid_data, memory_labels, plotdir, ax=None, N=None, normalize=True, fs=9, relmax=True,
                       rotate_standard=True, extragrid=False, plotname=None, ext='.pdf',
-                      hamming=False, vforce=None, namemod='', memory_labels_x=None):
+                      hamming=False, vforce=None, cmap_int=11, namemod='', memory_labels_x=None):
     """
     Alteration of plot_basin_grid to support (simpler) overlap and hamming dist plots
     """
@@ -228,7 +232,12 @@ def plot_overlap_grid(grid_data, memory_labels, plotdir, ax=None, N=None, normal
         ax = plt.gca()
         plt.gcf().set_size_inches(18.5, 12.5)
     # plot the heatmap
-    imshow_kw = {'cmap': 'YlGnBu', 'aspect': None, 'vmin': datamin, 'vmax': vmax}  # note: fix at 0.5 of max works nice
+    if cmap_int is not None:
+        cmap = plt.get_cmap('YlGnBu', cmap_int)
+    else:
+        cmap = plt.get_cmap('YlGnBu')
+    imshow_kw = {'cmap': cmap, 'aspect': None, 'vmin': datamin, 'vmax': vmax}  # note: fix at 0.5 of max works nice
+    #imshow_kw = {'cmap': 'YlGnBu', 'aspect': None, 'vmin': datamin, 'vmax': vmax}  # note: fix at 0.5 of max works nice
     im = ax.imshow(grid_data, **imshow_kw)
     # create colorbar
     cbar_kw = {'aspect': 30, 'pad': 0.02}   # larger aspect, thinner bar
@@ -236,7 +245,7 @@ def plot_overlap_grid(grid_data, memory_labels, plotdir, ax=None, N=None, normal
     cbar = ax.figure.colorbar(im, ax=ax, **cbar_kw)
     cbar.ax.set_ylabel(cbarlabel, rotation=-90, va="bottom", fontsize=fs+2, labelpad=20)
     # hack title placement
-    plt.text(0.5, 1.3, '%s between memories' % datalabels[hamming], horizontalalignment='center',
+    plt.text(0.5, 1.3, '%s between memories (%s %s)' % (datalabels[hamming], plotname), horizontalalignment='center',
              transform=ax.transAxes, fontsize=fs+4)
     ax.set_xticks(np.arange(grid_data.shape[1]))
     ax.set_yticks(np.arange(grid_data.shape[0]))
