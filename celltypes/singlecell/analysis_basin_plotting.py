@@ -245,7 +245,7 @@ def plot_overlap_grid(grid_data, memory_labels, plotdir, ax=None, N=None, normal
     cbar = ax.figure.colorbar(im, ax=ax, **cbar_kw)
     cbar.ax.set_ylabel(cbarlabel, rotation=-90, va="bottom", fontsize=fs+2, labelpad=20)
     # hack title placement
-    plt.text(0.5, 1.3, '%s between memories (%s %s)' % (datalabels[hamming], plotname), horizontalalignment='center',
+    plt.text(0.5, 1.3, '%s between memories (%s)' % (datalabels[hamming], plotname), horizontalalignment='center',
              transform=ax.transAxes, fontsize=fs+4)
     ax.set_xticks(np.arange(grid_data.shape[1]))
     ax.set_yticks(np.arange(grid_data.shape[0]))
