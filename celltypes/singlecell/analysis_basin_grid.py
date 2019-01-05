@@ -155,8 +155,8 @@ def stoch_from_distance(distance_data, kappa=None):
 if __name__ == '__main__':
     run_basin_grid = False
     gen_overlap_grid = False
-    load_and_plot_basin_grid = False
-    load_and_compare_grids = True
+    load_and_plot_basin_grid = True
+    load_and_compare_grids = False
     reanalyze_grid_over_time = False
     make_grid_video = False
     print_grid_stats_from_file = False
@@ -196,16 +196,20 @@ if __name__ == '__main__':
     # direct data plotting
     if load_and_plot_basin_grid:
         # specify paths and load data / parameters
-        rundir = RUNS_FOLDER + os.sep + ANALYSIS_SUBDIR + os.sep + "grid_335324_5kx200_fieldYama"
-        latticedir = rundir + os.sep + "lattice"
-        filestr_data = latticedir + os.sep + "gen_basin_grid.txt"
-        basin_grid_data = load_basin_grid(filestr_data)
-        ensemble, num_steps = fetch_from_run_info(rundir + os.sep + 'run_info.txt', ['ensemble', 'num_steps'])
-        # build grid plots
-        plot_basin_grid(basin_grid_data, ensemble, num_steps, celltype_labels, latticedir, SPURIOUS_LIST,
-                        relmax=False, ext='.pdf', vforce=0.5)
-        plot_basin_grid(basin_grid_data, ensemble, num_steps, celltype_labels, latticedir, SPURIOUS_LIST,
-                        relmax=False, ext='.pdf', vforce=1.0)
+        groupdir = RUNS_FOLDER + os.sep + "grids_finalstep_mirfield"
+        basedirs = ['noField', 'miR-21_level1', 'miR-21_level2', 'miR-21_level3']
+        for basedir in basedirs:
+            datadir = groupdir + os.sep + basedir
+            filestr_data = datadir + os.sep + "grid_at_step_499.txt"
+            basin_grid_data = load_basin_grid(filestr_data)
+            ensemble, num_steps = fetch_from_run_info(datadir + os.sep + 'run_info.txt', ['ensemble', 'num_steps'])
+            # build grid plots
+            plot_basin_grid(basin_grid_data, ensemble, num_steps, celltype_labels, datadir, SPURIOUS_LIST,
+                            relmax=False, ext='.pdf', vforce=0.2, namemod=basedir)
+            plot_basin_grid(basin_grid_data, ensemble, num_steps, celltype_labels, datadir, SPURIOUS_LIST,
+                            relmax=False, ext='.pdf', vforce=0.5, namemod=basedir)
+            plot_basin_grid(basin_grid_data, ensemble, num_steps, celltype_labels, datadir, SPURIOUS_LIST,
+                            relmax=False, ext='.pdf', vforce=1.0, namemod=basedir)
 
     # direct data plotting
     if load_and_compare_grids:
@@ -251,36 +255,46 @@ if __name__ == '__main__':
     # use labelled collection of timeseries from each row to generate multiple grids over time
     if reanalyze_grid_over_time:
         # step 0 specify ensemble, num steps, and location of row data
-        rundir = RUNS_FOLDER + os.sep + ANALYSIS_SUBDIR + os.sep + "aug11 - 1000ens x 500step - fullRandomSteps"
-        ensemble, num_steps = fetch_from_run_info(rundir + os.sep + 'run_info.txt', ['ensemble', 'num_steps'])
-        # step 1 restructure data
-        rowdatadir = rundir + os.sep + "data"
-        latticedir = rundir + os.sep + "lattice"
-        plotlatticedir = rundir + os.sep + "plot_lattice"
-        p = len(celltype_labels)
-        k = len(SPURIOUS_LIST)
-        grid_over_time = np.zeros((p, p+k, num_steps))
-        for idx, celltype in enumerate(celltype_labels):
-            print "loading:", idx, celltype
-            proj_timeseries_array, basin_occupancy_timeseries = load_basinstats(rowdatadir, celltype)
-            grid_over_time[idx, :, :] += basin_occupancy_timeseries
-        # step 2 save and plot
-        vforce = 0.5
-        filename = 'grid_at_step'
-        for step in xrange(num_steps):
-            print "step", step
-            grid_at_step = grid_over_time[:, :, step]
-            namemod = '_%d' % step
-            np.savetxt(latticedir + os.sep + filename + namemod + '.txt', grid_at_step, delimiter=',', fmt='%.4f')
-            plot_basin_grid(grid_at_step, ensemble, step, celltype_labels, plotlatticedir, SPURIOUS_LIST,
-                            plotname=filename, relmax=False, vforce=vforce, namemod=namemod, ext='.jpg')
+        groupdir = RUNS_FOLDER + os.sep + 'biggrid_mir21_3fields_jan3_2019'
+        basedirs = ['grid_773536_1kx500_2018scMCA_noField', 'grid_773537_1kx500_2018scMCA_mir21_lvl1',
+                    'grid_773572_1kx500_2018scMCA_mir21_lvl2', 'grid_773573_1kx500_2018scMCA_mir21_lvl3']
+        for basedir in basedirs:
+            datadir = groupdir + os.sep + basedir
+            print "working in", datadir
+
+            ensemble, num_steps = fetch_from_run_info(datadir + os.sep + 'run_info.txt', ['ensemble', 'num_steps'])
+            # step 1 restructure data
+            rowdatadir = datadir + os.sep + "data"
+            latticedir = datadir + os.sep + "lattice"
+            plotlatticedir = datadir + os.sep + "plot_lattice"
+            p = len(celltype_labels)
+            k = len(SPURIOUS_LIST)
+            grid_over_time = np.zeros((p, p+k, num_steps))
+            for idx, celltype in enumerate(celltype_labels):
+                print "loading:", idx, celltype
+                proj_timeseries_array, basin_occupancy_timeseries = load_basinstats(rowdatadir, celltype)
+                grid_over_time[idx, :, :] += basin_occupancy_timeseries
+            # step 2 save and plot
+            vforce = 0.5
+            filename = 'grid_at_step'
+            for step in xrange(num_steps):
+                print "step", step
+                grid_at_step = grid_over_time[:, :, step]
+                namemod = '_%d' % step
+                np.savetxt(latticedir + os.sep + filename + namemod + '.txt', grid_at_step, delimiter=',', fmt='%.4f')
+                plot_basin_grid(grid_at_step, ensemble, step, celltype_labels, plotlatticedir, SPURIOUS_LIST,
+                                plotname=filename, relmax=False, vforce=vforce, namemod=namemod, ext='.jpg')
 
     if make_grid_video:
         custom_fps = 5  # 1, 5, or 20 are good
-        rundir = RUNS_FOLDER + os.sep + ANALYSIS_SUBDIR + os.sep + "aug11 - 1000ens x 500step - fullRandomSteps"
-        vidname = "grid_1000x500_vmax1.0_stepFullyRandom_fps%d" % custom_fps
-        latticedir = rundir + os.sep + "ARCHIVE_partial_vforce1.00_plot_lattice"
-        videopath = grid_video(rundir, vidname, imagedir=latticedir, fps=custom_fps)
+        groupdir = RUNS_FOLDER + os.sep + 'biggrid_mir21_3fields_jan3_2019'
+        basedirs = ['grid_773536_1kx500_2018scMCA_noField', 'grid_773537_1kx500_2018scMCA_mir21_lvl1',
+                    'grid_773572_1kx500_2018scMCA_mir21_lvl2', 'grid_773573_1kx500_2018scMCA_mir21_lvl3']
+        for basedir in basedirs:
+            datadir = groupdir + os.sep + basedir
+            vidname = "%s_vmax0.5_fps%d" % (basedir, custom_fps)
+            latticedir = datadir + os.sep + "plot_lattice"
+            videopath = grid_video(datadir, vidname, imagedir=latticedir, fps=custom_fps)
 
     if print_grid_stats_from_file:
         filestr_data = RUNS_FOLDER + os.sep + "gen_basin_grid_C.txt"
