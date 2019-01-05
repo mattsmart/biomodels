@@ -158,7 +158,7 @@ def plot_basin_grid(grid_data, ensemble, steps, memory_labels, plotdir, spurious
     cbar = ax.figure.colorbar(im, ax=ax, **cbar_kw)
     cbar.ax.set_ylabel(cbarlabel, rotation=-90, va="bottom", fontsize=fs+2, labelpad=20)
     # hack title placement
-    plt.text(0.5, 1.3, 'Basin grid transition data (%d cells per basin, %d steps)' % (ensemble, steps),
+    plt.text(0.5, 1.3, 'Basin grid transition data (%d cells per basin, %d steps) (%s)' % (ensemble, steps, plotname),
              horizontalalignment='center', transform=ax.transAxes, fontsize=fs+4)
     # axis labels
     plt.xlabel('Ensemble fraction after %d steps' % steps, fontsize=fs+2)
