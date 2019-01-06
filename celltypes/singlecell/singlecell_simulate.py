@@ -15,7 +15,7 @@ NOTES:
 
 
 def singlecell_sim(init_state=None, init_id=None, iterations=NUM_FULL_STEPS, beta=BETA, simsetup=None,
-                   field_protocol=None, flag_burst_error=False, flag_write=True,
+                   field_protocol=None, field_level=None, flag_burst_error=False, flag_write=True,
                    analysis_subdir=None, plot_period=10, verbose=True):
     """
     init_state: N x 1
@@ -52,7 +52,7 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_FULL_STEPS, bet
     singlecell = Cell(init_state, init_id, memories_list=memory_labels, gene_list=gene_labels)
 
     # Input checks
-    field_dict = field_setup(simsetup, protocol=field_protocol)
+    field_dict = field_setup(simsetup, protocol=field_protocol, level=field_level)
     assert not field_dict['time_varying']  # TODO not yet supported
     app_field = field_dict['app_field']
     app_field_strength = field_dict['app_field_strength']
@@ -87,5 +87,5 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_FULL_STEPS, bet
 if __name__ == '__main__':
     flag_write = True
     simsetup = singlecell_simsetup()
-    singlecell_sim(init_id='Macrophage (D)', field_protocol='miR_21', plot_period=10, iterations=50,
-                   simsetup=simsetup, flag_write=flag_write)
+    singlecell_sim(init_id='Macrophage (A)', field_protocol='miR_21', field_level='level_3', plot_period=10,
+                   iterations=50, simsetup=simsetup, flag_write=flag_write, beta=22.2)
