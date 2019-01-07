@@ -3,6 +3,7 @@ import numpy as np
 import os
 from random import random
 
+from analysis_basin_plotting import plot_overlap_grid
 from singlecell_constants import BETA, EXT_FIELD_STRENGTH, RUNS_FOLDER, MEMS_MEHTA, MEMS_SCMCA, FIELD_PROTOCOL, MEMORIESDIR
 from singlecell_functions import hamiltonian
 from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
@@ -62,9 +63,8 @@ def construct_app_field_from_genes(gene_name_effect, gene_id, num_steps=0):
     #app_field = np.zeros((N, num_steps))  $ TODO implement time based
     app_field = np.zeros(N)
     for label, effect in gene_name_effect.iteritems():
-        #app_field[gene_id[label], :] += effect
         if label in gene_id.keys():
-            print label, gene_id[label], 'effect:', effect
+            #print label, gene_id[label], 'effect:', effect
             app_field[gene_id[label]] += effect
         else:
             print "Field construction warning: label %s not in gene_id.keys()" % label
@@ -124,70 +124,124 @@ def field_setup(simsetup, protocol=FIELD_PROTOCOL, level=None):
 
 
 if __name__ == '__main__':
-    plot_field_impact = True
+    # local defs
+    npz_mehta = MEMORIESDIR + os.sep + '2014_mehta_mems_genes_types_boolean_compressed_pruned_A.npz'
+    npz_scmca = MEMORIESDIR + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_pruned_A_TFonly.npz'
+    FIELD_EFFECT_FOLDER = RUNS_FOLDER + os.sep + 'field_effect'
 
-    if plot_field_impact:
-        npz_mehta = MEMORIESDIR + os.sep + '2014_mehta_mems_genes_types_boolean_compressed_pruned_A.npz'
-        npz_scmca = MEMORIESDIR + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_pruned_A_TFonly.npz'
-        npz_type = '2018scMCA'
-        assert npz_type in ['2014mehta', '2018scMCA']
-        simsetup = singlecell_simsetup(npzpath=npz_scmca)
+    # settings
+    plot_field_impact_all = False
+    plot_specific_field = True
+
+    def make_field_plots(field_type, field_level, npz_type, simsetup, outdir=FIELD_EFFECT_FOLDER):
+        plot_subtitle = "Field effect of %s, %s on %s" % (field_type, field_level, npz_type)
+        print plot_subtitle
+        field_dict = field_setup(simsetup, protocol=field_type, level=field_level)
+        app_field_vector = field_dict['app_field']
         xi_orig = simsetup['XI']
+        xi_under_field = np.zeros(xi_orig.shape)
+        if app_field_vector is None:
+            app_field_vector = np.zeros(xi_orig.shape[0])
+        print app_field_vector.shape
+        for idx in xrange(app_field_vector.shape[0]):
+            if app_field_vector[idx] == 0:
+                xi_under_field[idx, :] = xi_orig[idx, :]
+            else:
+                xi_under_field[idx, :] = app_field_vector[idx]
+        # compute field term
+        field_term = np.dot(xi_orig.T, app_field_vector)
+        plot_as_bar(field_term, simsetup['CELLTYPE_LABELS'])
+        plt.axhline(y=0.0, linewidth=1, color='k', linestyle='--')
+        plt.title('%s field term xi^T dot h (unperturbed=%.2f)' % (plot_subtitle, 0.0))
+        filepath = outdir + os.sep + 'mems_%s_field_term_%s_%s' % (npz_type, field_type, field_level)
+        plt.savefig(filepath, bbox_inches='tight')
+        plt.close()
+        # compute energies of shifted celltypes
+        E0 = -0.5 * xi_orig.shape[0] + 0.5 * xi_orig.shape[1]  # i.e. -N/2 + p/2
+        energies = np.zeros(xi_orig.shape[1])
+        for col in xrange(xi_orig.shape[1]):
+            energies[col] = hamiltonian(xi_under_field[:, col], simsetup['J']) - field_term[col]
+        plot_as_bar(energies, simsetup['CELLTYPE_LABELS'])
+        plt.axhline(y=E0, linewidth=1, color='k', linestyle='--')
+        plt.title('%s minima depth (unperturbed=%.2f)' % (plot_subtitle, E0))
+        plt.ylim(E0 * 1.05, 0.8 * np.max(energies))
+        filepath = outdir + os.sep + 'mems_%s_energy_under_field_%s_%s' % (npz_type, field_type, field_level)
+        plt.savefig(filepath, bbox_inches='tight')
+        plt.close()
+        # compute overlaps of shifted celltypes
+        self_overlaps = np.zeros(xi_orig.shape[1])
+        for idx in xrange(xi_orig.shape[1]):
+            self_overlaps[idx] = np.dot(xi_orig[:, idx], xi_under_field[:, idx]) / xi_orig.shape[0]
+        plot_as_bar(self_overlaps, simsetup['CELLTYPE_LABELS'])
+        plt.axhline(y=1.0, linewidth=1, color='k', linestyle='--')
+        plt.title('%s overlaps (unperturbed=%.2f)' % (plot_subtitle, 1.0))
+        plt.ylim(0.8 * np.min(self_overlaps), 1.01)
+        filepath = outdir + os.sep + 'mems_%s_overlap_under_field_%s_%s' % (npz_type, field_type, field_level)
+        plt.savefig(filepath, bbox_inches='tight')
+        plt.close()
+        # compute projections of shifted celltypes
+        self_proj = np.zeros(xi_orig.shape[1])
+        for idx in xrange(xi_orig.shape[1]):
+            proj_vector_of_shifted_mem = np.dot(simsetup['A_INV'], np.dot(xi_orig.T, xi_under_field[:, idx])) / \
+                                         xi_orig.shape[0]
+            self_proj[idx] = proj_vector_of_shifted_mem[idx]
+        plot_as_bar(self_proj, simsetup['CELLTYPE_LABELS'])
+        plt.axhline(y=1.0, linewidth=1, color='k', linestyle='--')
+        plt.title('%s projections (unperturbed=%.2f)' % (plot_subtitle, 1.0))
+        plt.ylim(0.8 * np.min(self_proj), 1.01)
+        filepath = outdir + os.sep + 'mems_%s_proj_under_field_%s_%s' % (npz_type, field_type, field_level)
+        plt.savefig(filepath, bbox_inches='tight')
+        plt.close()
+        # compute celltype specific overlaps of shifted celltypes
+        cell_idx_A = 7
+        cell_idx_B = 86
+        print simsetup['CELLTYPE_LABELS'][cell_idx_A], simsetup['CELLTYPE_LABELS'][cell_idx_B]
+        hetero_overlaps_A = np.zeros(xi_orig.shape[1])
+        hetero_overlaps_B = np.zeros(xi_orig.shape[1])
+        for idx in xrange(xi_orig.shape[1]):
+            hetero_overlaps_A[idx] = np.dot(xi_orig[:, cell_idx_A], xi_under_field[:, idx]) / xi_orig.shape[0]
+            hetero_overlaps_B[idx] = np.dot(xi_orig[:, cell_idx_B], xi_under_field[:, idx]) / xi_orig.shape[0]
+        plot_as_bar(hetero_overlaps_A, simsetup['CELLTYPE_LABELS'], alpha=0.8)
+        plot_as_bar(hetero_overlaps_B, simsetup['CELLTYPE_LABELS'], alpha=0.8)
+        plt.axhline(y=1.0, linewidth=1, color='k', linestyle='--')
+        plt.title('%s hetero_overlaps (unperturbed=%.2f)' % (plot_subtitle, 1.0))
+        #plt.ylim(0.8 * np.min(self_overlaps), 1.01)
+        filepath = outdir + os.sep + 'mems_%s_hetero_overlaps_under_field_%s_%s' % (npz_type, field_type, field_level)
+        plt.savefig(filepath, bbox_inches='tight')
+        plt.close()
+        # compute grid under the field
+        grid_data = np.dot(xi_under_field.T, xi_under_field) - np.dot(xi_orig.T, xi_orig)
+        plot_overlap_grid(grid_data, simsetup['CELLTYPE_LABELS'], outdir, ax=None, N=None, normalize=True, fs=9,
+                          relmax=True, extragrid=False, ext='.pdf', vforce=None,
+                          plotname='overlap_diff_under_field_%s_%s_%s' % (npz_type, field_type, field_level))
+        return
+
+    if plot_field_impact_all:
+        npz = npz_scmca
+        if npz == npz_scmca:
+            npz_type = '2018scMCA'
+        else:
+            npz_type = '2014mehta'
+        simsetup = singlecell_simsetup(npzpath=npz)
         for field_type in EXPT_FIELDS.keys():
             if field_type is None:
                 continue
             field_levels_dict = EXPT_FIELDS[field_type][npz_type]
             for field_level in field_levels_dict.keys():
-                plot_subtitle = "Field effect of %s, %s on %s" % (field_type, field_level, npz_type)
-                print plot_subtitle
-                field_dict = field_setup(simsetup, protocol=field_type, level=field_level)
-                app_field_vector = field_dict['app_field']
-                xi_under_field = np.zeros(xi_orig.shape)
-                print app_field_vector.shape
-                for idx in xrange(app_field_vector.shape[0]):
-                    if app_field_vector[idx] == 0:
-                        xi_under_field[idx, :] = xi_orig[idx, :]
-                    else:
-                        xi_under_field[idx, :] = app_field_vector[idx]
-                # compute energies of shifted celltypes
-                energies = np.zeros(xi_orig.shape[1])
-                for col in xrange(xi_orig.shape[1]):
-                    energies[col] = -hamiltonian(xi_under_field[:, col], simsetup['J'])
-                plot_as_bar(energies, simsetup['CELLTYPE_LABELS'])
-                plt.axhline(y=0.5*xi_orig.shape[0], linewidth=1, color='k', linestyle='--')
-                plt.title('%s minima depth (unperturbed=%.2f)' % (plot_subtitle, 0.5*xi_orig.shape[0]))
-                plt.ylim(0.8*np.min(energies), 0.5*xi_orig.shape[0]*1.05)
-                filepath = RUNS_FOLDER + os.sep + 'mems_%s_energy_under_field_%s_%s' % (npz_type, field_type, field_level)
-                plt.savefig(filepath, bbox_inches='tight')
-                plt.close()
-                # compute overlaps of shifted celltypes
-                self_overlaps = np.zeros(xi_orig.shape[1])
-                for idx in xrange(xi_orig.shape[1]):
-                    self_overlaps[idx] = np.dot(xi_orig[:, idx], xi_under_field[:, idx]) / xi_orig.shape[0]
-                plot_as_bar(self_overlaps, simsetup['CELLTYPE_LABELS'])
-                plt.axhline(y=1.0, linewidth=1, color='k', linestyle='--')
-                plt.title('%s overlaps (unperturbed=%.2f)' % (plot_subtitle, 1.0))
-                plt.ylim(0.8*np.min(self_overlaps), 1.01)
-                filepath = RUNS_FOLDER + os.sep + 'mems_%s_overlap_under_field_%s_%s' % (npz_type, field_type, field_level)
-                plt.savefig(filepath, bbox_inches='tight')
-                plt.close()
-                # compute projections of shifted celltypes
-                self_proj = np.zeros(xi_orig.shape[1])
-                for idx in xrange(xi_orig.shape[1]):
-                    proj_vector_of_shifted_mem = np.dot(simsetup['A_INV'], np.dot(xi_orig.T, xi_under_field[:, idx])) / xi_orig.shape[0]
-                    self_proj[idx] = proj_vector_of_shifted_mem[idx]
-                plot_as_bar(self_proj, simsetup['CELLTYPE_LABELS'])
-                plt.axhline(y=1.0, linewidth=1, color='k', linestyle='--')
-                plt.title('%s projections (unperturbed=%.2f)' % (plot_subtitle, 1.0))
-                plt.ylim(0.8*np.min(self_proj), 1.01)
-                filepath = RUNS_FOLDER + os.sep + 'mems_%s_proj_under_field_%s_%s' % (npz_type, field_type, field_level)
-                plt.savefig(filepath, bbox_inches='tight')
-                plt.close()
-                # compute field term
-                field_term = np.dot(xi_orig.T, app_field_vector)
-                plot_as_bar(field_term, simsetup['CELLTYPE_LABELS'])
-                plt.axhline(y=0.0, linewidth=1, color='k', linestyle='--')
-                plt.title('%s field term xi^T dot h (unperturbed=%.2f)' % (plot_subtitle, 0.0))
-                filepath = RUNS_FOLDER + os.sep + 'mems_%s_field_term_%s_%s' % (npz_type, field_type, field_level)
-                plt.savefig(filepath, bbox_inches='tight')
-                plt.close()
+                make_field_plots(field_type, field_level, npz_type, simsetup)
+
+    if plot_specific_field:
+        # npz load
+        npz = npz_scmca
+        if npz == npz_scmca:
+            npz_type = '2018scMCA'
+        else:
+            npz_type = '2014mehta'
+        simsetup = singlecell_simsetup(npzpath=npz)
+        xi_orig = simsetup['XI']
+        # field choose
+        field_type = 'miR_21'
+        field_level = 'level_3'
+        if field_type is not None:
+            assert field_type in EXPT_FIELDS.keys() and field_level in EXPT_FIELDS[field_type][npz_type].keys()
+        make_field_plots(field_type, field_level, npz_type, simsetup)
