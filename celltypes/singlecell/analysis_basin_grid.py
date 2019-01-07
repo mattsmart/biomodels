@@ -8,7 +8,7 @@ from analysis_basin_plotting import plot_basin_grid, grid_video, plot_overlap_gr
 from analysis_basin_transitions import ensemble_projection_timeseries, get_basin_stats, fast_basin_stats, get_init_info, \
                                        ANNEAL_PROTOCOL, FIELD_PROTOCOL, ANALYSIS_SUBDIR, SPURIOUS_LIST, OCC_THRESHOLD, \
                                        save_and_plot_basinstats, load_basinstats, fetch_from_run_info
-from singlecell_constants import RUNS_FOLDER, ASYNC_BATCH
+from singlecell_constants import RUNS_FOLDER, ASYNC_BATCH, MEMS_MEHTA, MEMS_SCMCA
 from singlecell_data_io import run_subdir_setup, runinfo_append
 from singlecell_functions import hamming
 from singlecell_simsetup import singlecell_simsetup
@@ -153,16 +153,16 @@ def stoch_from_distance(distance_data, kappa=None):
 
 
 if __name__ == '__main__':
-    run_basin_grid = True
+    run_basin_grid = False
     gen_overlap_grid = False
     load_and_plot_basin_grid = False
     load_and_compare_grids = False
-    reanalyze_grid_over_time = False
-    make_grid_video = False
+    reanalyze_grid_over_time = True
+    make_grid_video = True
     print_grid_stats_from_file = False
 
     # prep simulation globals
-    simsetup = singlecell_simsetup()
+    simsetup = singlecell_simsetup(npzpath=MEMS_MEHTA)
     celltype_labels = simsetup['CELLTYPE_LABELS']
 
     if run_basin_grid:
@@ -256,7 +256,7 @@ if __name__ == '__main__':
     if reanalyze_grid_over_time:
         # step 0 specify ensemble, num steps, and location of row data
         groupdir = RUNS_FOLDER + os.sep + 'gridmovie'
-        basedirs = ['grid_781444_1kx500_2018scMCA_mir21_lvl2']
+        basedirs = ['grid_785963_1kx500_2014mehta_mir21_lvl3']
         for basedir in basedirs:
             datadir = groupdir + os.sep + basedir
             print "working in", datadir
@@ -287,7 +287,7 @@ if __name__ == '__main__':
     if make_grid_video:
         custom_fps = 5  # 1, 5, or 20 are good
         groupdir = RUNS_FOLDER + os.sep + 'gridmovie'
-        basedirs = ['grid_781444_1kx500_2018scMCA_mir21_lvl2']
+        basedirs = ['grid_785963_1kx500_2014mehta_mir21_lvl3']
         for basedir in basedirs:
             datadir = groupdir + os.sep + basedir
             vidname = "%s_vmax0.5_fps%d" % (basedir, custom_fps)

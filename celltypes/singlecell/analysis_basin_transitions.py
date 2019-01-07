@@ -57,6 +57,7 @@ def anneal_setup(protocol=ANNEAL_PROTOCOL):
 
 
 def anneal_iterate(proj_onto_init, beta_current, step, wandering, anneal_dict, verbose=False):
+    # TODO implement "acceleration" if it stays in basin or keeps re-entering basin
     if proj_onto_init < anneal_dict['wandering_threshold']:
         if verbose:
             print "+++++++++++++++++++++++++++++++++ Wandering condition passed at step %d" % step

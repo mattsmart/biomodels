@@ -137,7 +137,6 @@ def plot_overlaps_for_npz(xi, celltypes, plotname, outdir, namemod='_orig_overla
 
 
 def plot_all_grids(simsetup_A, simsetup_B, xi_truncated_A, xi_truncated_B, A_label, B_label, outdir=RUNS_FOLDER):
-    # TODO A vs B -- overlap may be v informative
     """
     Creates the following grids
     - A auto orig            - overlap only (skip proj, just diagonal)
