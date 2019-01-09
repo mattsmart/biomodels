@@ -1,14 +1,16 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import os
 
-from inference import error_fn, infer_interactions
+from inference import error_fn, infer_interactions, choose_J_from_general_form
 from pitchfork_langevin import jacobian_pitchfork, gen_multitraj, steadystate_pitchfork
-from settings import DEFAULT_PARAMS
+from settings import DEFAULT_PARAMS, FOLDER_OUTPUT, TAU
 from statistical_formulae import collect_multitraj_info, build_diffusion_from_langevin, build_covariance_at_step
 
 """
 Assess error in JC + (JC)^T + D = 0 as num_traj varies, since C computed from num_traj
 """
+# TODO plot heatmaps fn for each step in get_errors_from_one_traj
 
 
 def get_errors_for_replicates(num_traj=500, num_steps=500, replicates=10, params=DEFAULT_PARAMS, noise=1.0):
@@ -34,6 +36,8 @@ def get_errors_from_one_traj(covperiod=5, num_traj=500, num_steps=5000, params=D
     infer_errors = None
     if infer:
         infer_errors = np.zeros(num_pts)
+        J_infer_errors = np.zeros(num_pts)
+    J_U0choice_errors = np.zeros(num_pts)
     # get true J and D
     fp_mid = steadystate_pitchfork(params)[:, 0]
     J_true = jacobian_pitchfork(params, fp_mid, print_eig=False)
@@ -43,13 +47,16 @@ def get_errors_from_one_traj(covperiod=5, num_traj=500, num_steps=5000, params=D
     # get error for all covsteps
     for idx, step in enumerate(covsteps):
         C_est = build_covariance_at_step(multitraj, params, covstep=step)
+        J_U0choice = choose_J_from_general_form(C_est, D, scale=0.0)
         true_errors[idx] = error_fn(C_est, D, J_true)
+        J_U0choice_errors[idx] = np.linalg.norm(J_true - J_U0choice)
         if infer:
             print "inferring..."
             J_infer = infer_interactions(C_est, D, alpha=alpha, tol=1e-6)
             print "done"
             infer_errors[idx] = error_fn(C_est, D, J_infer)
-    return covsteps, true_errors, infer_errors
+            J_infer_errors[idx] = np.linalg.norm(J_true - J_infer)
+    return covsteps, true_errors, infer_errors, J_infer_errors, J_U0choice_errors
 
 
 if __name__ == '__main__':
@@ -92,14 +99,26 @@ if __name__ == '__main__':
 
     # alternate: errors for one long multi-traj at increasing timepoints points
     if one_rep_long:
-        alpha = 0.01
+        alpha = 1e-8
         num_steps = 500
-        num_traj = 5000
-        covsteps, true_errors, infer_errors = get_errors_from_one_traj(alpha=alpha, num_steps=num_steps, num_traj=num_traj)
+        num_traj = 500 #5000
+        covsteps, true_errors, infer_errors, J_infer_errors, J_U0choice_errors = \
+            get_errors_from_one_traj(alpha=alpha, num_steps=num_steps, num_traj=num_traj)
+        # plotting
+        f = plt.figure(figsize=(16, 8))
         plt.plot(covsteps, true_errors, '--k', label='true error')
         plt.plot(covsteps, infer_errors, '--b', label='inference error')
-        plt.title('Reconstruction error (true J vs inferred a=%.3f) for 1 multiraj (num_steps %s, num_traj %d)' % (alpha, num_steps, num_traj))
+        plt.title('Reconstruction error (true J vs inference alpha=%.1e) for 1 multiraj (num_steps %s, num_traj %d)' % (alpha, num_steps, num_traj))
         plt.xlabel('step')
         plt.ylabel('F-norm of JC + (JC)^T + D')
         plt.legend()
-        plt.show()
+        plt.savefig(FOLDER_OUTPUT + os.sep + 'fnorm_reconstruct_flucdiss_a%.1e_steps%d_tau%.2f.png' % (alpha, num_steps, TAU))
+        # ad right y-axis for J error
+        f2 = plt.figure(figsize=(16, 8))
+        plt.plot(covsteps, J_infer_errors, '--b', label='inference error')
+        plt.plot(covsteps, J_U0choice_errors, '--r', label='general form + choose U=0 error')
+        plt.title('Reconstruction error of J (U=0 choice vs inference alpha=%.1e) for 1 multiraj (num_steps %s, num_traj %d)' % (alpha, num_steps, num_traj))
+        plt.xlabel('step')
+        plt.ylabel('F-norm of J_true - J_method')
+        plt.legend()
+        plt.savefig(FOLDER_OUTPUT + os.sep + 'fnorm_reconstruct_J_a%.1e_steps%d_tau%.2f.png' % (alpha, num_steps, TAU))

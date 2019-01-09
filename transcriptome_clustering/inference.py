@@ -168,7 +168,14 @@ def choose_J_from_general_form(C, D, C_inv=None, scale=10.0):
     Chooses a J by constructing scale*U[0,1] and anti-symmetrizing -- U = 0.5*(R - R^T)
     """
     if C_inv is None:
-        C_inv = np.linalg.inv(C)
+        try:
+            C_inv = np.linalg.inv(C)
+        except np.linalg.LinAlgError as err:
+            if 'Singular matrix' in str(err):
+                print "Warning: setting C_inv to np.zeros", C.shape, '\n', str(err)
+                C_inv = np.zeros(C.shape)
+            else:
+                raise
     R = np.random.rand(D.shape[0], D.shape[0])
     U = 0.5 * scale * (R - R.T)
     J_choice = np.dot((-0.5*D + U), C_inv)
