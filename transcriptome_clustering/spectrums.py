@@ -34,7 +34,7 @@ def get_spectrums(C, D, num_spectrums=10, method='U', print_errors=True):
             J = infer_interactions(C, D, alpha=alphas[idx])
             if print_errors:
                 err = error_fn(C, D, J)
-                print "Error in method %s, idx %d, is %.3f" % (method, idx, err)
+                print "Error in method %s, idx %d, is %.3f (alpha=%.2e)" % (method, idx, err, alphas[idx])
         spectrums[idx, :] = get_spectrum_from_J(J, real=True)
     return spectrums, labels
 
