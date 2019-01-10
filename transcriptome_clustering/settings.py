@@ -41,8 +41,8 @@ PARAMS_DEFAULTS_DICT = {'dim_master': DIM_MASTER,
 assert DIM_MASTER == 2
 INIT_COND = [7.0, 2.0] + [5.0 for _ in xrange(DIM_SLAVE)]
 TIMESTEP = 0.1
-NUM_TRAJ = 300
-NUM_STEPS = 2000
+NUM_TRAJ = 5000
+NUM_STEPS = 200
 NOISE = 0.1
 
 

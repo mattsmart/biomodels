@@ -25,7 +25,7 @@ def get_spectrums(C, D, num_spectrums=10, method='U', print_errors=True):
         labels = ['scale_%d' % i for i in xrange(num_spectrums)]
         scales = [i for i in xrange(num_spectrums)]
     else:
-        alphas = np.linspace(1e-3, 1.0, num_spectrums)
+        alphas = np.linspace(1e-10, 1e-1, num_spectrums)
         labels = ['alpha_%.3f' % a for a in alphas]
     for idx in xrange(num_spectrums):
         if method == 'U':
@@ -39,7 +39,7 @@ def get_spectrums(C, D, num_spectrums=10, method='U', print_errors=True):
     return spectrums, labels
 
 
-def plot_spectrum_hists(spectrums, labels, method='U', hist='default', title_mod='', show=True):
+def plot_spectrum_hists(spectrums, labels, method='U', hist='default', title_mod='', show=False):
     # TODO fix x axis range -6 6
     # TODO remove method from title since not used
 
@@ -79,5 +79,5 @@ if __name__ == '__main__':
     num_spectrum = 10
     fake_spectrums = np.random.normal(0.0, 2.0, (num_spectrum, 500))
     fake_labels = [str(a) for a in range(num_spectrum)]
-    plot_spectrum_hists(fake_spectrums, fake_labels, hist='default', title_mod='(fake_main)')
-    plot_spectrum_hists(fake_spectrums, fake_labels, hist='violin', title_mod='(fake_main)')
+    plot_spectrum_hists(fake_spectrums, fake_labels, hist='default', title_mod='(fake_main)', show=True)
+    plot_spectrum_hists(fake_spectrums, fake_labels, hist='violin', title_mod='(fake_main)', show=True)
