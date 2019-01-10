@@ -25,7 +25,7 @@ def get_spectrums(C, D, num_spectrums=10, method='U', print_errors=True):
         labels = ['scale_%d' % i for i in xrange(num_spectrums)]
         scales = [i for i in xrange(num_spectrums)]
     else:
-        alphas = np.linspace(1e-10, 1e-1, num_spectrums)
+        alphas = np.logspace(-10, -1, num_spectrums)
         labels = ['alpha_%.3f' % a for a in alphas]
     for idx in xrange(num_spectrums):
         if method == 'U':
