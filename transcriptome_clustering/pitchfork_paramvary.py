@@ -4,7 +4,7 @@ import time
 
 from pitchfork_langevin import jacobian_pitchfork, steadystate_pitchfork, langevin_dynamics
 from settings import DEFAULT_PARAMS, PARAMS_ID, FOLDER_OUTPUT, TIMESTEP, INIT_COND, NUM_TRAJ, NUM_STEPS, NOISE
-from spectrums import get_spectrums, plot_spectrum_hists
+from spectrums import get_spectrums, plot_spectrum_hists, get_spectrum_from_J
 from statistical_formulae import collect_multitraj_info
 
 
@@ -51,7 +51,7 @@ def gen_params_list(pv_name, pv_low, pv_high, pv_num=10, params=DEFAULT_PARAMS):
 if __name__ == '__main__':
     noise = 0.1
     pv_name = 'tau'
-    params_list, pv_range = gen_params_list(pv_name, 0.5, 3.0)
+    params_list, pv_range = gen_params_list(pv_name, 0.1, 5.0, pv_num=50)
     multitraj_varying = many_traj_varying_params(params_list, noise=noise)
     for idx, pv in enumerate(pv_range):
         title_mod = '(%s_%.3f)' % (pv_name, pv)
@@ -68,3 +68,8 @@ if __name__ == '__main__':
         specs, labels = get_spectrums(C, D, method='infer')
         plot_spectrum_hists(specs, labels, method='infer', hist='default', title_mod=title_mod)
         plot_spectrum_hists(specs, labels, method='infer', hist='violin', title_mod=title_mod)
+        # get J_true spectrum
+        spectrums = np.zeros((1, D.shape[0]))
+        spectrums[0, :] = get_spectrum_from_J(J_true, real=True)
+        plot_spectrum_hists(spectrums, ['J_true'], method='true', hist='default', title_mod=title_mod)
+        plot_spectrum_hists(spectrums, ['J_true'], method='true', hist='violin', title_mod=title_mod)
