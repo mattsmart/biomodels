@@ -17,6 +17,7 @@ def hamming(s1, s2):
 
 
 def hamiltonian(state_vec, intxn_matrix):
+    # TODO add applied field
     return -0.5*reduce(np.dot, [state_vec.T, intxn_matrix, state_vec])  # plus some other field terms... do we care for these? ie. "-sum h_i*s_i"
 
 
