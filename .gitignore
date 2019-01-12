@@ -41,3 +41,5 @@ oncogenesis_dynamics/output/
 *.png
 
 celltypes/venv/
+
+celltypes/gpu/\.ipynb_checkpoints/
