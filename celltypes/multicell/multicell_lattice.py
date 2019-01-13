@@ -44,7 +44,7 @@ def build_lattice_memory_sequence(n, mem_list, simsetup):
             mem_idx = mem_list[idx % len(mem_list)]
             cellname = simsetup['CELLTYPE_LABELS'][mem_idx]
             cellstate = simsetup['XI'][:, mem_idx]
-            lattice[i][j] = SpatialCell(cellstate, "%d,%d_%s" % (i, j, cellname), [i, j])
+            lattice[i][j] = SpatialCell(cellstate, "%d,%d_%s" % (i, j, cellname), [i, j], simsetup)
             idx += 1
     return lattice
 

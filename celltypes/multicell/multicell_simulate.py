@@ -6,9 +6,9 @@ import matplotlib.pyplot as plt
 from multicell_constants import GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS, VALID_BUILDSTRINGS, VALID_EXOSOME_STRINGS, EXOSTRING, BUILDSTRING, LATTICE_PLOT_PERIOD, FIELD_REMOVE_RATIO
 from multicell_lattice import build_lattice_main, get_cell_locations, prep_lattice_data_dict, write_state_all_cells
 from multicell_visualize import lattice_uniplotter, reference_overlap_plotter, lattice_projection_composite
-from singlecell.singlecell_constants import EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, IPSC_CORE_GENES, IPSC_EXTENDED_GENES_EFFECTS
+from singlecell.singlecell_constants import EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH
 from singlecell.singlecell_data_io import run_subdir_setup, runinfo_append
-from singlecell.singlecell_functions import construct_app_field_from_genes
+from singlecell.singlecell_fields import construct_app_field_from_genes
 from singlecell.singlecell_simsetup import singlecell_simsetup # N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS, GENE_ID
 
 
@@ -63,13 +63,13 @@ def run_sim(lattice, num_lattice_steps, data_dict, simsetup, exosome_string=EXOS
             cell = lattice[loc[0]][loc[1]]
             if app_field is not None:
                 app_field_step = app_field[:, turn]
-            cell.update_with_signal_field(lattice, SEARCH_RADIUS_CELL, n, simsetup['J'], exosome_string=exosome_string, ratio_to_remove=field_remove_ratio,
+            cell.update_with_signal_field(lattice, SEARCH_RADIUS_CELL, n, simsetup['J'], simsetup, exosome_string=exosome_string, ratio_to_remove=field_remove_ratio,
                                           ext_field_strength=ext_field_strength, app_field=app_field_step, app_field_strength=app_field_strength)
             proj = cell.get_memories_projection(simsetup['A_INV'], simsetup['XI'])
             for mem_idx in memory_idx_list:
                 data_dict['memory_proj_arr'][mem_idx][loc_to_idx[loc], turn] = proj[mem_idx]
             if turn % (40*plot_period) == 0:  # plot proj visualization of each cell (takes a while; every k lat plots)
-                fig, ax, proj = cell.plot_projection(use_radar=False, pltdir=io_dict['latticedir'])
+                fig, ax, proj = cell.plot_projection(simsetup['A_INV'], simsetup['XI'], use_radar=False, pltdir=io_dict['latticedir'])
         if turn % plot_period == 0:  # plot the lattice
             lattice_projection_composite(lattice, turn, n, io_dict['latticedir'], simsetup)
             reference_overlap_plotter(lattice, turn, n, io_dict['latticedir'], simsetup)
@@ -94,8 +94,8 @@ def main(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=B
     assert 0.0 <= ext_field_strength < 10.0
 
     # setup lattice IC
-    type_1_idx = 42
-    type_2_idx = 33
+    type_1_idx = 0
+    type_2_idx = 1
     flag_uniplots = True
     if buildstring == "mono":
         list_of_type_idx = [type_1_idx]
@@ -136,14 +136,14 @@ def main(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=B
 
 
 if __name__ == '__main__':
-    simsetup = singlecell_simsetup()
+    simsetup = singlecell_simsetup(unfolding=True)
 
-    n = 6  # global GRIDSIZE
-    steps = 20  # global NUM_LATTICE_STEPS
-    buildstring = "dual"  # mono/dual/memory_sequence/
-    fieldstring = "on"  # on/off/all, note e.g. 'off' means send info about 'off' genes only
+    n = 20  # global GRIDSIZE
+    steps = 10  # global NUM_LATTICE_STEPS
+    buildstring = "memory_sequence"  # mono/dual/memory_sequence/
+    fieldstring = "no_exo_field"  # on/off/all, note e.g. 'off' means send info about 'off' genes only
     fieldprune = 0.8  # amount of external field idx to randomly prune from each cell
-    ext_field_strength = 0.6                                                  # global EXT_FIELD_STRENGTH
+    ext_field_strength = 0.05                                                  # global EXT_FIELD_STRENGTH tunes exosomes AND sent field
     #app_field = construct_app_field_from_genes(IPSC_EXTENDED_GENES_EFFECTS, simsetup['GENE_ID'], num_steps=steps)        # size N x timesteps or None
     app_field = None
     app_field_strength = 0.0  # 100.0 global APP_FIELD_STRENGTH

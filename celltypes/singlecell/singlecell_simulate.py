@@ -89,3 +89,4 @@ if __name__ == '__main__':
     simsetup = singlecell_simsetup()
     singlecell_sim(init_id='Macrophage (A)', field_protocol='miR_21', field_level='level_3', plot_period=10,
                    iterations=50, simsetup=simsetup, flag_write=flag_write, beta=22.2)
+    #singlecell_sim(init_id='mem_A', plot_period=10, iterations=50, simsetup=simsetup, flag_write=flag_write, beta=2.2)

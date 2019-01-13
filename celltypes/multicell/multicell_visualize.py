@@ -59,13 +59,18 @@ def lattice_uniplotter(lattice, time, n, lattice_plot_dir, uniplot_key, simsetup
 
 
 def lattice_projection_composite(lattice, time, n, lattice_plot_dir, simsetup):
-    assert simsetup['P'] == 63  # TODO: hardcoded rows and columns should change with P
-    empty_subplots = [[-1, -1]]
-    ncol = 8
-    nrow = 8
+    psqrt = np.sqrt(simsetup['P'])
+    intceil = int(np.ceil(psqrt))
+    if intceil * (intceil - 1) >= simsetup['P']:
+        ncol = intceil
+        nrow = intceil - 1
+    else:
+        ncol = intceil
+        nrow = intceil
+    empty_subplots = []
 
     # prep figure
-    fig, ax = plt.subplots(nrow, ncol)
+    fig, ax = plt.subplots(nrow, ncol, squeeze=False)
     fig.set_size_inches(16, 16)
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
     fig.suptitle('Lattice projection onto p=%d memories (Step=%d)' % (simsetup['P'], time), fontsize=20)
@@ -74,25 +79,26 @@ def lattice_projection_composite(lattice, time, n, lattice_plot_dir, simsetup):
     mem_idx = 0
     for row in xrange(nrow):
         for col in xrange(ncol):
-            subax = ax[row][col]
-            # plot data
-            proj_vals = get_lattice_uniproj(lattice, time, n, mem_idx, simsetup)
-            im = subax.imshow(proj_vals, cmap=colourmap, vmin=-1, vmax=1)
-            # hide axis nums
-            subax.set_title('%d (%s)' % (mem_idx, simsetup['CELLTYPE_LABELS'][mem_idx][:24]), fontsize=8)
-            labels = [item.get_text() for item in subax.get_xticklabels()]
-            empty_string_labels = [''] * len(labels)
-            subax.set_xticklabels(empty_string_labels)
-            labels = [item.get_text() for item in subax.get_yticklabels()]
-            empty_string_labels = [''] * len(labels)
-            subax.set_yticklabels(empty_string_labels)
-            # nice gridlines
-            subax.set_xticks(np.arange(-.5, n, 1))
-            subax.set_yticks(np.arange(-.5, n, 1))
-            subax.grid(which='major', axis='both', linestyle='-', color='k', linewidth=1)
-            mem_idx += 1
-            if mem_idx == simsetup['P']:
-                break
+            if mem_idx < simsetup['P']:
+                subax = ax[row][col]
+                # plot data
+                proj_vals = get_lattice_uniproj(lattice, time, n, mem_idx, simsetup)
+                im = subax.imshow(proj_vals, cmap=colourmap, vmin=-1, vmax=1)
+                # hide axis nums
+                subax.set_title('%d (%s)' % (mem_idx, simsetup['CELLTYPE_LABELS'][mem_idx][:24]), fontsize=8)
+                labels = [item.get_text() for item in subax.get_xticklabels()]
+                empty_string_labels = [''] * len(labels)
+                subax.set_xticklabels(empty_string_labels)
+                labels = [item.get_text() for item in subax.get_yticklabels()]
+                empty_string_labels = [''] * len(labels)
+                subax.set_yticklabels(empty_string_labels)
+                # nice gridlines
+                subax.set_xticks(np.arange(-.5, n, 1))
+                subax.set_yticks(np.arange(-.5, n, 1))
+                subax.grid(which='major', axis='both', linestyle='-', color='k', linewidth=1)
+                mem_idx += 1
+            else:
+                empty_subplots.append((row, col))
 
     # turn off empty boxes
     for pair in empty_subplots:
