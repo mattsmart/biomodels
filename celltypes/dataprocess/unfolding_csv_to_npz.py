@@ -38,14 +38,15 @@ def read_xi_with_row_col_labels(xi_path, verbose=True):
     return xi, gene_labels, cell_labels
 
 
-def read_no_headers_signal_csv(signal_csv, verbose=True):
+def read_no_headers_signal_csv(signal_csv):
     df = pd.read_csv(signal_csv)
     return df.values
 
 
 def conv_xi_and_signal_csv_to_npz(xi_path, signal_path, outpath='unfold_exp_mems_genes_types_signals.npz'):
     xi, gene_names, cell_names = read_xi_with_row_col_labels(xi_path, verbose=True)
-    signals = read_no_headers_signal_csv(signal_path, verbose=True)
+    signals = read_no_headers_signal_csv(signal_path)
+    assert signals.shape[0] == signals.shape[1] and signals.shape[0] == xi.shape[0]
     save_npz_of_xi_genes_cells_signal(outpath, xi, gene_names, cell_names, signals)
     return
 
