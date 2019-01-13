@@ -38,7 +38,7 @@ def read_xi_with_row_col_labels(xi_path, verbose=True):
 
 
 def read_no_headers_signal_csv(signal_csv):
-    df = pd.read_csv(signal_csv)
+    df = pd.read_csv(signal_csv, header=None)
     return df.values
 
 
