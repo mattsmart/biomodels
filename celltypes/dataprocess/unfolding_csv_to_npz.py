@@ -3,7 +3,6 @@ import os
 import pandas as pd
 
 from data_settings import DATADIR
-from data_standardize import read_datafile_manual, read_datafile_simple
 
 
 def save_npz_of_xi_genes_cells_signal(npzpath, arr, genes, cells, signals):
