@@ -4,6 +4,7 @@ from singlecell_constants import NETWORK_METHOD, DEFAULT_MEMORIES_NPZPATH, J_RAN
     FLAG_PRUNE_INTXN_MATRIX, MEMORIESDIR
 from singlecell_linalg import memory_corr_matrix_and_inv, interaction_matrix, predictivity_matrix
 from dataprocess.data_standardize import load_npz_of_arr_genes_cells, save_npz_of_arr_genes_cells
+from dataprocess.unfolding_csv_to_npz import load_npz_of_arr_genes_cells_signals
 
 """
 Conventions follow from Lang & Mehta 2014, PLOS Comp. Bio
@@ -11,7 +12,7 @@ Conventions follow from Lang & Mehta 2014, PLOS Comp. Bio
 """
 
 
-def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath=DEFAULT_MEMORIES_NPZPATH):
+def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath=DEFAULT_MEMORIES_NPZPATH, unfolding=False):
     """
     gene_labels, celltype_labels, xi = load_singlecell_data()
     """
@@ -19,8 +20,15 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath
     # comments
     if flag_prune_intxn_matrix:
         print "Note FLAG_PRUNE_INTXN_MATRIX is True with ratio %.2f" % J_RANDOM_DELETE_RATIO
+    # unfolding block
+    if unfolding:
+        print "Using unfolding npz"
+        xi, gene_labels, celltype_labels, signals = load_npz_of_arr_genes_cells_signals(npzpath, verbose=True)
+        FIELD_SEND = signals
+    else:
+        xi, gene_labels, celltype_labels = load_npz_of_arr_genes_cells(npzpath, verbose=True)
+        FIELD_SEND = None
     # data processing into sim object
-    xi, gene_labels, celltype_labels = load_npz_of_arr_genes_cells(npzpath, verbose=True)
     gene_labels = gene_labels.tolist()
     celltype_labels = celltype_labels.tolist()
     a, a_inv = memory_corr_matrix_and_inv(xi)
@@ -48,6 +56,8 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath
         'J': j,
         'ETA': eta,
         'NETWORK_METHOD': NETWORK_METHOD,
+        'FIELD_SEND': FIELD_SEND,
+        'bool_gpu': False
     }
     return simsetup
 
