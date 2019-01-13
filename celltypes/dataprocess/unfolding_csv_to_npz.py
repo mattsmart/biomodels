@@ -63,5 +63,5 @@ if __name__ == '__main__':
             xi = 'unfolding_%s_XI.csv' % expt
             signal = 'unfolding_%s_W.csv' % expt
             assert xi in expt_files and signal in expt_files
-            npzpath = expt_path + os.sep + 'unfold_%s_mems_genes_types_signals.npz' % expt
+            npzpath = UNFOLDINGDIR + os.sep + 'unfold_%s_mems_genes_types_signals.npz' % expt
             conv_xi_and_signal_csv_to_npz(expt_path + os.sep + xi, expt_path + os.sep + signal, outpath=npzpath)
