@@ -10,7 +10,7 @@ def save_npz_of_xi_genes_cells_signal(npzpath, arr, genes, cells, signals):
     return
 
 
-def load_npz_of_arr_genes_cell_signals(npzpath, verbose=True):
+def load_npz_of_arr_genes_cells_signals(npzpath, verbose=True):
     """
     Can also use for memory array, gene labels, and cell cluster names!
     """
