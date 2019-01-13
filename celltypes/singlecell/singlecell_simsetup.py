@@ -23,11 +23,10 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath
     # unfolding block
     if unfolding:
         print "Using unfolding npz"
-        xi, gene_labels, celltype_labels, signals = load_npz_of_arr_genes_cells_signals(npzpath, verbose=True)
-        FIELD_SEND = signals
+        xi, gene_labels, celltype_labels, field_send = load_npz_of_arr_genes_cells_signals(npzpath, verbose=True)
     else:
         xi, gene_labels, celltype_labels = load_npz_of_arr_genes_cells(npzpath, verbose=True)
-        FIELD_SEND = None
+        field_send = None
     # data processing into sim object
     gene_labels = gene_labels.tolist()
     celltype_labels = celltype_labels.tolist()
@@ -56,7 +55,7 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath
         'J': j,
         'ETA': eta,
         'NETWORK_METHOD': NETWORK_METHOD,
-        'FIELD_SEND': FIELD_SEND,
+        'FIELD_SEND': field_send,
         'bool_gpu': False
     }
     return simsetup
