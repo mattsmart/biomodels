@@ -1,10 +1,9 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import time
 
 from pitchfork_langevin import jacobian_pitchfork, steadystate_pitchfork, langevin_dynamics
 from settings import DEFAULT_PARAMS, PARAMS_ID, FOLDER_OUTPUT, TIMESTEP, INIT_COND, NUM_TRAJ, NUM_STEPS, NOISE
-from spectrums import get_spectrums, plot_spectrum_hists, get_spectrum_from_J
+from spectrums import get_spectrums, plot_spectrum_hists, get_spectrum_from_J, plot_rank_order_spectrum
 from statistical_formulae import collect_multitraj_info
 
 
@@ -49,9 +48,12 @@ def gen_params_list(pv_name, pv_low, pv_high, pv_num=10, params=DEFAULT_PARAMS):
 
 
 if __name__ == '__main__':
+    plot_hists_all = False
+    plot_rank_order_selection = True
+
     noise = 0.1
     pv_name = 'tau'
-    params_list, pv_range = gen_params_list(pv_name, 0.1, 5.0, pv_num=50)
+    params_list, pv_range = gen_params_list(pv_name, 0.1, 5.0, pv_num=5)
     multitraj_varying = many_traj_varying_params(params_list, noise=noise)
     for idx, pv in enumerate(pv_range):
         title_mod = '(%s_%.3f)' % (pv_name, pv)
@@ -61,15 +63,24 @@ if __name__ == '__main__':
         fp_mid = steadystate_pitchfork(params)[:, 0]
         J_true = jacobian_pitchfork(params, fp_mid, print_eig=False)
         # get U spectrums
-        specs, labels = get_spectrums(C, D, method='U')
-        plot_spectrum_hists(specs, labels, method='U', hist='default', title_mod=title_mod)
-        plot_spectrum_hists(specs, labels, method='U', hist='violin', title_mod=title_mod)
+        specs_u, labels_u = get_spectrums(C, D, method='U')
         # get infer spectrums
-        specs, labels = get_spectrums(C, D, method='infer')
-        plot_spectrum_hists(specs, labels, method='infer', hist='default', title_mod=title_mod)
-        plot_spectrum_hists(specs, labels, method='infer', hist='violin', title_mod=title_mod)
+        specs_infer, labels_infer = get_spectrums(C, D, method='infer')
         # get J_true spectrum
-        spectrums = np.zeros((1, D.shape[0]))
-        spectrums[0, :] = get_spectrum_from_J(J_true, real=True)
-        plot_spectrum_hists(spectrums, ['J_true'], method='true', hist='default', title_mod=title_mod)
-        plot_spectrum_hists(spectrums, ['J_true'], method='true', hist='violin', title_mod=title_mod)
+        spectrum_true = np.zeros((1, D.shape[0]))
+        spectrum_true[0, :] = get_spectrum_from_J(J_true, real=True)
+        label_true = 'J_true'
+
+        if plot_hists_all:
+            plot_spectrum_hists(specs_u, labels_u, method='U', hist='default', title_mod=title_mod)
+            plot_spectrum_hists(specs_u, labels_u, method='U', hist='violin', title_mod=title_mod)
+            plot_spectrum_hists(specs_infer, labels_infer, method='infer', hist='default', title_mod=title_mod)
+            plot_spectrum_hists(specs_infer, labels_infer, method='infer', hist='violin', title_mod=title_mod)
+            plot_spectrum_hists(spectrum_true, [label_true], method='true', hist='default', title_mod=title_mod)
+            plot_spectrum_hists(spectrum_true, [label_true], method='true', hist='violin', title_mod=title_mod)
+        if plot_rank_order_selection:
+            plot_rank_order_spectrum(specs_u[0, :], labels_u[0], method='U', title_mod=title_mod)
+            plot_rank_order_spectrum(specs_infer[0, :], labels_infer[0], method='infer', title_mod=title_mod)
+            plot_rank_order_spectrum(specs_infer[1, :], labels_infer[1], method='infer', title_mod=title_mod)
+            plot_rank_order_spectrum(specs_infer[4, :], labels_infer[4], method='infer', title_mod=title_mod)
+            plot_rank_order_spectrum(spectrum_true[0, :], label_true, method='true', title_mod=title_mod)

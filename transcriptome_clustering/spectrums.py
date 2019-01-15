@@ -26,7 +26,7 @@ def get_spectrums(C, D, num_spectrums=10, method='U', print_errors=True):
         scales = [i for i in xrange(num_spectrums)]
     else:
         alphas = np.logspace(-10, -1, num_spectrums)
-        labels = ['alpha_%.3f' % a for a in alphas]
+        labels = ['alpha_%.2e' % a for a in alphas]
     for idx in xrange(num_spectrums):
         if method == 'U':
             J = choose_J_from_general_form(C, D, scale=scales[idx])
@@ -70,6 +70,21 @@ def plot_spectrum_hists(spectrums, labels, method='U', hist='default', title_mod
     plt.title('Spectrums from %s %s' % (method, title_mod))
     plt.legend()
     plt.savefig(FOLDER_OUTPUT + os.sep + 'spectrum_hist_%s_%s_%s.png' % (hist, method, title_mod))
+    if show:
+        plt.show()
+    return
+
+
+def plot_rank_order_spectrum(spectrum, label, method='U', title_mod='', show=False):
+    f = plt.figure(figsize=(10, 6))
+    sorted_spectrums_low_to_high = np.sort(spectrum)
+    sorted_spectrums_high_to_low = sorted_spectrums_low_to_high[::-1]
+    plt.bar(range(len(sorted_spectrums_high_to_low)), sorted_spectrums_high_to_low)
+    plt.axhline(0.0, linewidth=1.0, color='k')
+    plt.ylabel('Re(lambda)')
+    plt.xlabel('Eigenvalue ranking')
+    plt.title('Spectrum from %s %s %s' % (method, label, title_mod))
+    plt.savefig(FOLDER_OUTPUT + os.sep + 'spectrum_ranking_%s_%s.png' % (method, title_mod))
     if show:
         plt.show()
     return
