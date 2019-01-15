@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import time
 
@@ -79,8 +80,9 @@ if __name__ == '__main__':
             plot_spectrum_hists(spectrum_true, [label_true], method='true', hist='default', title_mod=title_mod)
             plot_spectrum_hists(spectrum_true, [label_true], method='true', hist='violin', title_mod=title_mod)
         if plot_rank_order_selection:
-            plot_rank_order_spectrum(specs_u[0, :], labels_u[0], method='U', title_mod=title_mod)
-            plot_rank_order_spectrum(specs_infer[0, :], labels_infer[0], method='infer', title_mod=title_mod)
-            plot_rank_order_spectrum(specs_infer[1, :], labels_infer[1], method='infer', title_mod=title_mod)
-            plot_rank_order_spectrum(specs_infer[4, :], labels_infer[4], method='infer', title_mod=title_mod)
+            plot_rank_order_spectrum(specs_u[0, :], labels_u[0], method='U0', title_mod=title_mod)
+            plot_rank_order_spectrum(specs_infer[0, :], labels_infer[0], method='infer_%s' % (labels_infer[0]), title_mod=title_mod)
+            plot_rank_order_spectrum(specs_infer[1, :], labels_infer[1], method='infer_%s' % (labels_infer[1]), title_mod=title_mod)
+            plot_rank_order_spectrum(specs_infer[4, :], labels_infer[4], method='infer_%s' % (labels_infer[4]), title_mod=title_mod)
             plot_rank_order_spectrum(spectrum_true[0, :], label_true, method='true', title_mod=title_mod)
+            plt.close('all')

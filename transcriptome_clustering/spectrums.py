@@ -5,6 +5,7 @@ import os
 from inference import choose_J_from_general_form, infer_interactions, error_fn
 from settings import FOLDER_OUTPUT
 
+
 def get_spectrum_from_J(J, real=True):
     # TODO deal with massive complex part if necessary
     eig, V = np.linalg.eig(J)
