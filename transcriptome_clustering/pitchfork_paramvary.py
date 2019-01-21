@@ -96,7 +96,7 @@ if __name__ == '__main__':
             plot_spectrum_extremes(spec, spec_perturb, method='U', title_mod=title_mod, max=True)
             plot_spectrum_extremes(spec, spec_perturb, method='U', title_mod=title_mod, max=False)
             print "Scanning truncations for J inferred %s" % labels_infer[1]
-            spec, spec_perturb = scan_J_truncations(list_of_J_infer[1], verbose=verbosity, spectrum_unperturbed=specs_infer[0, :])
+            spec, spec_perturb = scan_J_truncations(list_of_J_infer[1], verbose=verbosity, spectrum_unperturbed=specs_infer[1, :])
             plot_spectrum_extremes(spec, spec_perturb, method='infer_%s' % (labels_infer[1]), title_mod=title_mod, max=True)
             plot_spectrum_extremes(spec, spec_perturb, method='infer_%s' % (labels_infer[1]), title_mod=title_mod, max=False)
             print "Scanning truncations for J_true"
