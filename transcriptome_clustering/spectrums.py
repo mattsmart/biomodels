@@ -6,21 +6,25 @@ from inference import choose_J_from_general_form, infer_interactions, error_fn
 from settings import FOLDER_OUTPUT
 
 
-def get_spectrum_from_J(J, real=True):
+def get_spectrum_from_J(J, real=True, sort=True):
     # TODO deal with massive complex part if necessary
     eig, V = np.linalg.eig(J)
     if real:
         eig = np.real(eig)
+        if sort:
+            eig = np.sort(eig)
     return eig
 
 
 def get_spectrums(C, D, num_spectrums=10, method='U', print_errors=True):
     """
-    Returns spectrums of J's generated from method and their labels
+    Returns J's (generated from method) and their spectrums and their labels
+        J's returned as list of arrays
         Shape is num_spectrums X dim_spectrum
     """
     assert method in ['U', 'infer']
     spectrums = np.zeros((num_spectrums, D.shape[0]))
+    list_of_J = [0]*num_spectrums
     # generate spectrum labels
     if method == 'U':
         labels = ['scale_%d' % i for i in xrange(num_spectrums)]
@@ -36,8 +40,39 @@ def get_spectrums(C, D, num_spectrums=10, method='U', print_errors=True):
             if print_errors:
                 err = error_fn(C, D, J)
                 print "Error in method %s, idx %d, is %.3f (alpha=%.2e)" % (method, idx, err, alphas[idx])
+        list_of_J[idx] = J
         spectrums[idx, :] = get_spectrum_from_J(J, real=True)
-    return spectrums, labels
+    return list_of_J, spectrums, labels
+
+
+def get_J_truncated_spectrum(J, idx):
+    """
+    Given an idx, removes row/col idx of J and computes the spectrum of the new (n-1)*(n-1) array
+    """
+    J_reduce = J.copy()
+    J_reduce = np.delete(J_reduce, (idx), axis=0)
+    J_reduce = np.delete(J_reduce, (idx), axis=1)
+    return get_spectrum_from_J(J_reduce, real=True)
+
+
+def scan_J_truncations(J):
+    """
+    Given a Jacobian matrix J
+    (1) compute the spectrum
+    (2) assess if the spectrum is a suitable starting point
+    (3) iteratively delete all row/col pairs and compute spectrum of each
+    (4) for each row/col pair, report if the spectrum has been sufficiently perturbed
+    """
+    assert J.shape[0] == J.shape[1]
+    n = J.shape[0]
+    spectrum_unperturbed = get_spectrum_from_J(J, real=True)
+    spectrums_perturbed = np.zeros((n, n-1))
+    print 'unperturbed', '\n', spectrum_unperturbed
+    for idx in xrange(n):
+        spectrum_idx = get_J_truncated_spectrum(J, idx)
+        spectrums_perturbed[idx, :] = spectrum_idx
+        print idx, '\n', spectrum_idx
+    return spectrum_unperturbed, spectrums_perturbed
 
 
 def plot_spectrum_hists(spectrums, labels, method='U', hist='default', title_mod='', show=False):
