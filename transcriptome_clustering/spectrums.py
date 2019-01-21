@@ -55,7 +55,7 @@ def get_J_truncated_spectrum(J, idx):
     return get_spectrum_from_J(J_reduce, real=True)
 
 
-def scan_J_truncations(J):
+def scan_J_truncations(J, verbose=False, spectrum_unperturbed=None):
     """
     Given a Jacobian matrix J
     (1) compute the spectrum
@@ -65,13 +65,16 @@ def scan_J_truncations(J):
     """
     assert J.shape[0] == J.shape[1]
     n = J.shape[0]
-    spectrum_unperturbed = get_spectrum_from_J(J, real=True)
+    if spectrum_unperturbed is None:
+        spectrum_unperturbed = get_spectrum_from_J(J, real=True)
     spectrums_perturbed = np.zeros((n, n-1))
-    print 'unperturbed', '\n', spectrum_unperturbed
+    if verbose:
+        print 'unperturbed', '\n', spectrum_unperturbed
     for idx in xrange(n):
         spectrum_idx = get_J_truncated_spectrum(J, idx)
         spectrums_perturbed[idx, :] = spectrum_idx
-        print idx, '\n', spectrum_idx
+        if verbose:
+            print idx, '\n', spectrum_idx
     return spectrum_unperturbed, spectrums_perturbed
 
 
@@ -121,6 +124,39 @@ def plot_rank_order_spectrum(spectrum, label, method='U', title_mod='', show=Fal
     plt.xlabel('Eigenvalue ranking')
     plt.title('Spectrum from %s %s %s' % (method, label, title_mod))
     plt.savefig(FOLDER_OUTPUT + os.sep + 'spectrum_ranking_%s_%s.png' % (method, title_mod))
+    if show:
+        plt.show()
+    return
+
+
+def plot_spectrum_extremes(spectrum_unperturbed, spectrums_perturbed, method='U', title_mod='', show=False, max=True):
+    n = len(spectrum_unperturbed)
+    bar_width = 0.45
+    plt.close('all')
+    f = plt.figure(figsize=(10, 6))
+    ax = plt.gca()
+    if max:
+        spectrum_unperturbed_max = np.max(spectrum_unperturbed)
+        spectrums_perturbed_maxes = np.max(spectrums_perturbed, axis=1)
+        plt.bar(np.arange(n), spectrums_perturbed_maxes, bar_width)
+        plt.axhline(spectrum_unperturbed_max, linewidth=1.0, color='g')
+        #plt.ylim(np.min(spectrums_perturbed_maxes) * 1.05, np.max(spectrums_perturbed_maxes) * 1.05)
+        plt.ylabel('Max Re(lambda)')
+        plt.title('Largest eigenvalue after row/col deletion (green = no deletion) from %s %s' % (method, title_mod))
+        figpath = FOLDER_OUTPUT + os.sep + 'spectrum_perturbed_max_%s_%s.png' % (method, title_mod)
+    else:
+        spectrum_unperturbed_min = np.min(spectrum_unperturbed)
+        spectrums_perturbed_mins = np.min(spectrums_perturbed, axis=1)
+        ax.bar(np.arange(n), spectrums_perturbed_mins, bar_width)
+        plt.axhline(spectrum_unperturbed_min, linewidth=1.0, color='g')
+        #plt.ylim(np.min(spectrums_perturbed_mins) * 1.05, np.max(spectrums_perturbed_mins) * 1.05)
+        plt.ylabel('Min Re(lambda)')
+        plt.title('Lowest eigenvalue after row/col deletion (green = no deletion) from %s %s' % (method, title_mod))
+        figpath = FOLDER_OUTPUT + os.sep + 'spectrum_perturbed_min_%s_%s.png' % (method, title_mod)
+    plt.axhline(0.0, linewidth=1.0, color='k')
+    ax.set_xticks(np.arange(n))
+    plt.xlabel('Index of deleted row/col')
+    plt.savefig(figpath)
     if show:
         plt.show()
     return

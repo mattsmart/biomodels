@@ -4,7 +4,7 @@ import time
 
 from pitchfork_langevin import jacobian_pitchfork, steadystate_pitchfork, langevin_dynamics
 from settings import DEFAULT_PARAMS, PARAMS_ID, FOLDER_OUTPUT, TIMESTEP, INIT_COND, NUM_TRAJ, NUM_STEPS, NOISE
-from spectrums import get_spectrums, plot_spectrum_hists, get_spectrum_from_J, plot_rank_order_spectrum, scan_J_truncations
+from spectrums import get_spectrums, plot_spectrum_hists, get_spectrum_from_J, plot_rank_order_spectrum, scan_J_truncations, plot_spectrum_extremes
 from statistical_formulae import collect_multitraj_info
 
 
@@ -51,7 +51,9 @@ def gen_params_list(pv_name, pv_low, pv_high, pv_num=10, params=DEFAULT_PARAMS):
 if __name__ == '__main__':
     plot_hists_all = False
     plot_rank_order_selection = False
-    scan_truncations = True
+    scan_truncations = False
+    verbosity = False
+    spectrum_extremes = True
 
     noise = 0.1
     pv_name = 'tau'
@@ -88,10 +90,16 @@ if __name__ == '__main__':
             plot_rank_order_spectrum(specs_infer[4, :], labels_infer[4], method='infer_%s' % (labels_infer[4]), title_mod=title_mod)
             plot_rank_order_spectrum(spectrum_true[0, :], label_true, method='true', title_mod=title_mod)
             plt.close('all')
-        if scan_truncations:
-            print "Scanning truncations for J_true"
-            scan_J_truncations(J_true)
-            print "Scanning truncations for J inferred %s" % labels_infer[1]
-            scan_J_truncations(list_of_J_infer[1])
+        if spectrum_extremes:
             print "Scanning truncations for J U method (U=0 choice)"
-            scan_J_truncations(list_of_J_u[0])
+            spec, spec_perturb = scan_J_truncations(list_of_J_u[0], verbose=verbosity, spectrum_unperturbed=specs_u[0, :])
+            plot_spectrum_extremes(spec, spec_perturb, method='U', title_mod=title_mod, max=True)
+            plot_spectrum_extremes(spec, spec_perturb, method='U', title_mod=title_mod, max=False)
+            print "Scanning truncations for J inferred %s" % labels_infer[1]
+            spec, spec_perturb = scan_J_truncations(list_of_J_infer[1], verbose=verbosity, spectrum_unperturbed=specs_infer[0, :])
+            plot_spectrum_extremes(spec, spec_perturb, method='infer_%s' % (labels_infer[1]), title_mod=title_mod, max=True)
+            plot_spectrum_extremes(spec, spec_perturb, method='infer_%s' % (labels_infer[1]), title_mod=title_mod, max=False)
+            print "Scanning truncations for J_true"
+            spec, spec_perturb = scan_J_truncations(J_true, verbose=verbosity, spectrum_unperturbed=spectrum_true[0, :])
+            plot_spectrum_extremes(spec, spec_perturb, method='true', title_mod=title_mod, max=True)
+            plot_spectrum_extremes(spec, spec_perturb, method='true', title_mod=title_mod, max=False)
