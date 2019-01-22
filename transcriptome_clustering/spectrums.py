@@ -27,8 +27,8 @@ def get_spectrums(C, D, num_spectrums=10, method='U', print_errors=True):
     list_of_J = [0]*num_spectrums
     # generate spectrum labels
     if method == 'U':
-        labels = ['scale_%d' % i for i in xrange(num_spectrums)]
-        scales = [i for i in xrange(num_spectrums)]
+        scales = np.linspace(0, 0.09, num_spectrums)
+        labels = ['scale_%.3f' % i for i in scales]
     else:
         alphas = np.logspace(-10, -1, num_spectrums)
         labels = ['alpha_%.2e' % a for a in alphas]

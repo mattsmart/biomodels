@@ -49,6 +49,7 @@ def gen_params_list(pv_name, pv_low, pv_high, pv_num=10, params=DEFAULT_PARAMS):
 
 
 if __name__ == '__main__':
+    skip_inference = True
     plot_hists_all = False
     plot_rank_order_selection = False
     scan_truncations = False
@@ -70,7 +71,8 @@ if __name__ == '__main__':
         # get U spectrums
         list_of_J_u, specs_u, labels_u = get_spectrums(C, D, method='U')
         # get infer spectrums
-        list_of_J_infer, specs_infer, labels_infer = get_spectrums(C, D, method='infer')
+        if not skip_inference:
+            list_of_J_infer, specs_infer, labels_infer = get_spectrums(C, D, method='infer')
         # get J_true spectrum
         spectrum_true = np.zeros((1, D.shape[0]))
         spectrum_true[0, :] = get_spectrum_from_J(J_true, real=True)
@@ -79,26 +81,37 @@ if __name__ == '__main__':
         if plot_hists_all:
             plot_spectrum_hists(specs_u, labels_u, method='U', hist='default', title_mod=title_mod)
             plot_spectrum_hists(specs_u, labels_u, method='U', hist='violin', title_mod=title_mod)
-            plot_spectrum_hists(specs_infer, labels_infer, method='infer', hist='default', title_mod=title_mod)
-            plot_spectrum_hists(specs_infer, labels_infer, method='infer', hist='violin', title_mod=title_mod)
+            if not skip_inference
+                plot_spectrum_hists(specs_infer, labels_infer, method='infer', hist='default', title_mod=title_mod)
+                plot_spectrum_hists(specs_infer, labels_infer, method='infer', hist='violin', title_mod=title_mod)
             plot_spectrum_hists(spectrum_true, [label_true], method='true', hist='default', title_mod=title_mod)
             plot_spectrum_hists(spectrum_true, [label_true], method='true', hist='violin', title_mod=title_mod)
         if plot_rank_order_selection:
             plot_rank_order_spectrum(specs_u[0, :], labels_u[0], method='U0', title_mod=title_mod)
-            plot_rank_order_spectrum(specs_infer[0, :], labels_infer[0], method='infer_%s' % (labels_infer[0]), title_mod=title_mod)
-            plot_rank_order_spectrum(specs_infer[1, :], labels_infer[1], method='infer_%s' % (labels_infer[1]), title_mod=title_mod)
-            plot_rank_order_spectrum(specs_infer[4, :], labels_infer[4], method='infer_%s' % (labels_infer[4]), title_mod=title_mod)
+            if not skip_inference:
+                plot_rank_order_spectrum(specs_infer[0, :], labels_infer[0], method='infer_%s' % (labels_infer[0]), title_mod=title_mod)
+                plot_rank_order_spectrum(specs_infer[1, :], labels_infer[1], method='infer_%s' % (labels_infer[1]), title_mod=title_mod)
+                plot_rank_order_spectrum(specs_infer[4, :], labels_infer[4], method='infer_%s' % (labels_infer[4]), title_mod=title_mod)
             plot_rank_order_spectrum(spectrum_true[0, :], label_true, method='true', title_mod=title_mod)
             plt.close('all')
         if spectrum_extremes:
             print "Scanning truncations for J U method (U=0 choice)"
             spec, spec_perturb = scan_J_truncations(list_of_J_u[0], verbose=verbosity, spectrum_unperturbed=specs_u[0, :])
-            plot_spectrum_extremes(spec, spec_perturb, method='U', title_mod=title_mod, max=True)
-            plot_spectrum_extremes(spec, spec_perturb, method='U', title_mod=title_mod, max=False)
-            print "Scanning truncations for J inferred %s" % labels_infer[1]
-            spec, spec_perturb = scan_J_truncations(list_of_J_infer[1], verbose=verbosity, spectrum_unperturbed=specs_infer[1, :])
-            plot_spectrum_extremes(spec, spec_perturb, method='infer_%s' % (labels_infer[1]), title_mod=title_mod, max=True)
-            plot_spectrum_extremes(spec, spec_perturb, method='infer_%s' % (labels_infer[1]), title_mod=title_mod, max=False)
+            plot_spectrum_extremes(spec, spec_perturb, method='U_%s' % labels_u[0], title_mod=title_mod, max=True)
+            plot_spectrum_extremes(spec, spec_perturb, method='U_%s' % labels_u[0], title_mod=title_mod, max=False)
+            print "Scanning truncations for J U method (U=uni[0,scale] antisym choice)"
+            spec, spec_perturb = scan_J_truncations(list_of_J_u[1], verbose=verbosity, spectrum_unperturbed=specs_u[1, :])
+            plot_spectrum_extremes(spec, spec_perturb, method='U_%s' % labels_u[1], title_mod=title_mod, max=True)
+            plot_spectrum_extremes(spec, spec_perturb, method='U_%s' % labels_u[1], title_mod=title_mod, max=False)
+            if not skip_inference:
+                print "Scanning truncations for J inferred %s" % labels_infer[1]
+                spec, spec_perturb = scan_J_truncations(list_of_J_infer[1], verbose=verbosity, spectrum_unperturbed=specs_infer[1, :])
+                plot_spectrum_extremes(spec, spec_perturb, method='infer_%s' % (labels_infer[1]), title_mod=title_mod, max=True)
+                plot_spectrum_extremes(spec, spec_perturb, method='infer_%s' % (labels_infer[1]), title_mod=title_mod, max=False)
+                print "Scanning truncations for J inferred %s" % labels_infer[3]
+                spec, spec_perturb = scan_J_truncations(list_of_J_infer[3], verbose=verbosity, spectrum_unperturbed=specs_infer[3, :])
+                plot_spectrum_extremes(spec, spec_perturb, method='infer_%s' % (labels_infer[3]), title_mod=title_mod, max=True)
+                plot_spectrum_extremes(spec, spec_perturb, method='infer_%s' % (labels_infer[3]), title_mod=title_mod, max=False)
             print "Scanning truncations for J_true"
             spec, spec_perturb = scan_J_truncations(J_true, verbose=verbosity, spectrum_unperturbed=spectrum_true[0, :])
             plot_spectrum_extremes(spec, spec_perturb, method='true', title_mod=title_mod, max=True)
