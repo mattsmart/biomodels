@@ -81,7 +81,7 @@ if __name__ == '__main__':
         if plot_hists_all:
             plot_spectrum_hists(specs_u, labels_u, method='U', hist='default', title_mod=title_mod)
             plot_spectrum_hists(specs_u, labels_u, method='U', hist='violin', title_mod=title_mod)
-            if not skip_inference
+            if not skip_inference:
                 plot_spectrum_hists(specs_infer, labels_infer, method='infer', hist='default', title_mod=title_mod)
                 plot_spectrum_hists(specs_infer, labels_infer, method='infer', hist='violin', title_mod=title_mod)
             plot_spectrum_hists(spectrum_true, [label_true], method='true', hist='default', title_mod=title_mod)
