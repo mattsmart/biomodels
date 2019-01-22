@@ -51,8 +51,7 @@ def gen_params_list(pv_name, pv_low, pv_high, pv_num=10, params=DEFAULT_PARAMS):
 if __name__ == '__main__':
     skip_inference = True
     plot_hists_all = False
-    plot_rank_order_selection = False
-    scan_truncations = False
+    plot_rank_order_selection = True
     verbosity = False
     spectrum_extremes = True
 
@@ -87,7 +86,8 @@ if __name__ == '__main__':
             plot_spectrum_hists(spectrum_true, [label_true], method='true', hist='default', title_mod=title_mod)
             plot_spectrum_hists(spectrum_true, [label_true], method='true', hist='violin', title_mod=title_mod)
         if plot_rank_order_selection:
-            plot_rank_order_spectrum(specs_u[0, :], labels_u[0], method='U0', title_mod=title_mod)
+            plot_rank_order_spectrum(specs_u[0, :], labels_u[0], method='U_%s' % labels_u[0], title_mod=title_mod)
+            plot_rank_order_spectrum(specs_u[1, :], labels_u[1], method='U_%s' % labels_u[1], title_mod=title_mod)
             if not skip_inference:
                 plot_rank_order_spectrum(specs_infer[0, :], labels_infer[0], method='infer_%s' % (labels_infer[0]), title_mod=title_mod)
                 plot_rank_order_spectrum(specs_infer[1, :], labels_infer[1], method='infer_%s' % (labels_infer[1]), title_mod=title_mod)
