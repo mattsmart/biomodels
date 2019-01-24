@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.linear_model import Lasso, Ridge
+from visualize_matrix import plot_matrix
 
 
 def check_symmetric(arr, tol=1e-8):

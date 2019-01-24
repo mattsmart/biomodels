@@ -4,6 +4,7 @@ import os
 
 from inference import choose_J_from_general_form, infer_interactions, error_fn
 from settings import FOLDER_OUTPUT
+from visualize_matrix import plot_matrix
 
 
 def get_spectrum_from_J(J, real=True, sort=True):
@@ -123,7 +124,7 @@ def plot_rank_order_spectrum(spectrum, label, method='U', title_mod='', show=Fal
     plt.ylabel('Re(lambda)')
     plt.xlabel('Eigenvalue ranking')
     plt.title('Spectrum from %s %s %s' % (method, label, title_mod))
-    plt.savefig(FOLDER_OUTPUT + os.sep + 'spectrum_ranking_%s_%s.png' % (method, title_mod))
+    plt.savefig(FOLDER_OUTPUT + os.sep + 'spectrum_ranking_%s_%s.pdf' % (method, title_mod))
     if show:
         plt.show()
     return
@@ -143,7 +144,7 @@ def plot_spectrum_extremes(spectrum_unperturbed, spectrums_perturbed, method='U'
         #plt.ylim(np.min(spectrums_perturbed_maxes) * 1.05, np.max(spectrums_perturbed_maxes) * 1.05)
         plt.ylabel('Max Re(lambda)')
         plt.title('Largest eigenvalue after row/col deletion (green = no deletion) from %s %s' % (method, title_mod))
-        figpath = FOLDER_OUTPUT + os.sep + 'spectrum_perturbed_max_%s_%s.png' % (method, title_mod)
+        figpath = FOLDER_OUTPUT + os.sep + 'spectrum_perturbed_max_%s_%s.pdf' % (method, title_mod)
     else:
         spectrum_unperturbed_min = np.min(spectrum_unperturbed)
         spectrums_perturbed_mins = np.min(spectrums_perturbed, axis=1)
@@ -152,7 +153,7 @@ def plot_spectrum_extremes(spectrum_unperturbed, spectrums_perturbed, method='U'
         #plt.ylim(np.min(spectrums_perturbed_mins) * 1.05, np.max(spectrums_perturbed_mins) * 1.05)
         plt.ylabel('Min Re(lambda)')
         plt.title('Lowest eigenvalue after row/col deletion (green = no deletion) from %s %s' % (method, title_mod))
-        figpath = FOLDER_OUTPUT + os.sep + 'spectrum_perturbed_min_%s_%s.png' % (method, title_mod)
+        figpath = FOLDER_OUTPUT + os.sep + 'spectrum_perturbed_min_%s_%s.pdf' % (method, title_mod)
     plt.axhline(0.0, linewidth=1.0, color='k')
     ax.set_xticks(np.arange(n))
     plt.xlabel('Index of deleted row/col')

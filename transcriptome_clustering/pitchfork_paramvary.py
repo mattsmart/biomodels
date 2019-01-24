@@ -6,6 +6,7 @@ from pitchfork_langevin import jacobian_pitchfork, steadystate_pitchfork, langev
 from settings import DEFAULT_PARAMS, PARAMS_ID, FOLDER_OUTPUT, TIMESTEP, INIT_COND, NUM_TRAJ, NUM_STEPS, NOISE
 from spectrums import get_spectrums, plot_spectrum_hists, get_spectrum_from_J, plot_rank_order_spectrum, scan_J_truncations, plot_spectrum_extremes
 from statistical_formulae import collect_multitraj_info
+from visualize_matrix import plot_matrix
 
 
 # TODO store output and params in OUTPUT dir

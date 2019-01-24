@@ -58,6 +58,7 @@ def plot_matrix(arr, method='U', title_mod='', show=False, rotate_standard=True,
     plt.savefig(FOLDER_OUTPUT + os.sep + 'matrix_%s_%s.png' % (method, title_mod), bbox_inches='tight')
     if show:
         plt.show()
+    plt.close('all')
     return
 
 
