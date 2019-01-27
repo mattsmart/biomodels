@@ -7,7 +7,7 @@ from settings import FOLDER_OUTPUT
 from visualize_matrix import plot_matrix
 
 
-def get_spectrum_from_J(J, real=True, sort=True):
+def get_spectrum_from_arr(J, real=True, sort=True):
     # TODO deal with massive complex part if necessary
     eig, V = np.linalg.eig(J)
     if real:
@@ -17,24 +17,24 @@ def get_spectrum_from_J(J, real=True, sort=True):
     return eig
 
 
-def get_spectrums(C, D, num_spectrums=10, method='U', print_errors=True):
+def get_spectrums(C, D, num_spectrums=10, method='U_data', print_errors=True):
     """
     Returns J's (generated from method) and their spectrums and their labels
         J's returned as list of arrays
         Shape is num_spectrums X dim_spectrum
     """
-    assert method in ['U', 'infer']
+    assert method in ['U_data', 'U_lyap', 'infer_data', 'infer_lyap']
     spectrums = np.zeros((num_spectrums, D.shape[0]))
     list_of_J = [0]*num_spectrums
     # generate spectrum labels
-    if method == 'U':
+    if method[0] == 'U':
         scales = np.linspace(0, 0.09, num_spectrums)
         labels = ['scale_%.3f' % i for i in scales]
     else:
         alphas = np.logspace(-10, -1, num_spectrums)
         labels = ['alpha_%.2e' % a for a in alphas]
     for idx in xrange(num_spectrums):
-        if method == 'U':
+        if method[0] == 'U':
             J = choose_J_from_general_form(C, D, scale=scales[idx])
         else:
             J = infer_interactions(C, D, alpha=alphas[idx])
@@ -42,7 +42,7 @@ def get_spectrums(C, D, num_spectrums=10, method='U', print_errors=True):
                 err = error_fn(C, D, J)
                 print "Error in method %s, idx %d, is %.3f (alpha=%.2e)" % (method, idx, err, alphas[idx])
         list_of_J[idx] = J
-        spectrums[idx, :] = get_spectrum_from_J(J, real=True)
+        spectrums[idx, :] = get_spectrum_from_arr(J, real=True)
     return list_of_J, spectrums, labels
 
 
@@ -53,7 +53,7 @@ def get_J_truncated_spectrum(J, idx):
     J_reduce = J.copy()
     J_reduce = np.delete(J_reduce, (idx), axis=0)
     J_reduce = np.delete(J_reduce, (idx), axis=1)
-    return get_spectrum_from_J(J_reduce, real=True)
+    return get_spectrum_from_arr(J_reduce, real=True)
 
 
 def scan_J_truncations(J, verbose=False, spectrum_unperturbed=None):
@@ -67,7 +67,7 @@ def scan_J_truncations(J, verbose=False, spectrum_unperturbed=None):
     assert J.shape[0] == J.shape[1]
     n = J.shape[0]
     if spectrum_unperturbed is None:
-        spectrum_unperturbed = get_spectrum_from_J(J, real=True)
+        spectrum_unperturbed = get_spectrum_from_arr(J, real=True)
     spectrums_perturbed = np.zeros((n, n-1))
     if verbose:
         print 'unperturbed', '\n', spectrum_unperturbed
@@ -77,6 +77,20 @@ def scan_J_truncations(J, verbose=False, spectrum_unperturbed=None):
         if verbose:
             print idx, '\n', spectrum_idx
     return spectrum_unperturbed, spectrums_perturbed
+
+
+def gene_control_scores(spectrum_unperturbed, spectrums_perturbed, use_min=True):
+    """
+    See Sid 2018 draft for idea
+    """
+    if use_min:
+        cg = np.min(spectrums_perturbed, axis=1)  # numerator left term
+        cg = cg - np.min(spectrum_unperturbed)  # numerator full
+    else:
+        cg = np.max(spectrums_perturbed, axis=1)  # numerator left term
+        cg = np.max(spectrum_unperturbed) - cg  # numerator full (note swap for index positivity)
+    cg = cg / np.sqrt( np.mean( (spectrum_unperturbed ** 2) ) )  # denominator
+    return cg
 
 
 def plot_spectrum_hists(spectrums, labels, method='U', hist='default', title_mod='', show=False):
@@ -115,7 +129,7 @@ def plot_spectrum_hists(spectrums, labels, method='U', hist='default', title_mod
     return
 
 
-def plot_rank_order_spectrum(spectrum, label, method='U', title_mod='', show=False):
+def plot_rank_order_spectrum(spectrum, method='U', title_mod='', show=False):
     f = plt.figure(figsize=(10, 6))
     sorted_spectrums_low_to_high = np.sort(spectrum)
     sorted_spectrums_high_to_low = sorted_spectrums_low_to_high[::-1]
@@ -123,7 +137,7 @@ def plot_rank_order_spectrum(spectrum, label, method='U', title_mod='', show=Fal
     plt.axhline(0.0, linewidth=1.0, color='k')
     plt.ylabel('Re(lambda)')
     plt.xlabel('Eigenvalue ranking')
-    plt.title('Spectrum from %s %s %s' % (method, label, title_mod))
+    plt.title('Spectrum from %s %s %s' % (method, title_mod))
     plt.savefig(FOLDER_OUTPUT + os.sep + 'spectrum_ranking_%s_%s.pdf' % (method, title_mod))
     if show:
         plt.show()
@@ -157,6 +171,29 @@ def plot_spectrum_extremes(spectrum_unperturbed, spectrums_perturbed, method='U'
     plt.axhline(0.0, linewidth=1.0, color='k')
     ax.set_xticks(np.arange(n))
     plt.xlabel('Index of deleted row/col')
+    plt.savefig(figpath)
+    if show:
+        plt.show()
+    return
+
+
+def plot_sliding_tau_scores(tau_range, gene_score_arr, gene_score_label, score_type, show=False):
+    assert gene_score_arr.shape[0] == tau_range.shape[0]
+    plt.close('all')
+    f = plt.figure(figsize=(12, 7))
+    plt.plot(tau_range, gene_score_arr, '--ok', alpha=0.3)
+    # add vertical line at tau = 2.0 bifurcation
+    plt.axvline(2.0, linewidth=1.0, color='k', alpha=0.7)
+    # highlight top k curves
+    top_k = 2
+    sorted_top_curves = np.argsort(np.sum(gene_score_arr, axis=0))[::-1]
+    for rank, k in enumerate(sorted_top_curves[0:top_k]):
+        plt.plot(tau_range, gene_score_arr[:, k], '--o', alpha=0.7, label='rank%d = gene %d' % (rank, k))
+    plt.legend()
+    plt.xlabel('tau')
+    plt.ylabel('%s index' % score_type)
+    plt.title('%s index from %s over all genes, approaching bifurcation (tau=2.0)' % (score_type, gene_score_label))
+    figpath = FOLDER_OUTPUT + os.sep + 'score_%s_%s.pdf' % (gene_score_label, score_type)
     plt.savefig(figpath)
     if show:
         plt.show()

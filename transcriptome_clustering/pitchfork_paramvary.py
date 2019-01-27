@@ -5,7 +5,8 @@ import time
 from inference import solve_true_covariance_from_true_J
 from pitchfork_langevin import jacobian_pitchfork, steadystate_pitchfork, langevin_dynamics
 from settings import DEFAULT_PARAMS, PARAMS_ID, FOLDER_OUTPUT, TIMESTEP, INIT_COND, NUM_TRAJ, NUM_STEPS, NOISE
-from spectrums import get_spectrums, plot_spectrum_hists, get_spectrum_from_J, plot_rank_order_spectrum, scan_J_truncations, plot_spectrum_extremes
+from spectrums import get_spectrums, plot_spectrum_hists, get_spectrum_from_arr, plot_rank_order_spectrum, \
+    scan_J_truncations, plot_spectrum_extremes, plot_sliding_tau_scores, gene_control_scores
 from statistical_formulae import collect_multitraj_info, build_diffusion_from_langevin
 from visualize_matrix import plot_matrix
 
@@ -51,19 +52,50 @@ def gen_params_list(pv_name, pv_low, pv_high, pv_num=10, params=DEFAULT_PARAMS):
 
 
 if __name__ == '__main__':
-    use_C_true = False
-    skip_inference = True
+    avoid_traj = False
+    skip_inference = False
     plot_hists_all = False
-    plot_rank_order_selection = True
+    plot_rank_order_selection = False
     verbosity = False
-    spectrum_extremes = True
+    spectrum_extremes = False
+    sliding_tau_cg_plot = True
 
     noise = 0.1
     pv_name = 'tau'
     #params_list, pv_range = gen_params_list(pv_name, 0.1, 5.0, pv_num=5)
-    params_list, pv_range = gen_params_list(pv_name, 1.2, 2.2, pv_num=5)
-    if not use_C_true:
+    #params_list, pv_range = gen_params_list(pv_name, 1.2, 2.2, pv_num=5)
+    params_list, pv_range = gen_params_list(pv_name, 1.2, 2.2, pv_num=10)
+    num_genes = params_list[0].dim
+
+    # prepare main scoring object TODO consider convert to class and data import/export method maybe pickle
+    score_labels = ['J_true']
+    int_U_to_use = [0, 1]
+    int_infer_to_use = [0, 1, 4]
+    # prep remainder of score labels depending on run flags
+    C_list = ['_lyap']
+    if not avoid_traj:
+        C_list.append('_data')
+    for mod in C_list:
+        score_labels.append('C%s' % mod)
+        for elem in int_U_to_use:
+            score_labels.append('J_U%d%s' % (elem, mod))
+        if not skip_inference:
+            for elem in int_infer_to_use:
+                score_labels.append('J_infer%d%s' % (elem, mod))
+    # now fill in rest, dependent on whether inference and C_data are being used
+    print "List of score labels that will be analyzed:\n", score_labels
+    score_dict = {label: {'skip': False,
+                          'method_list': [0]*len(pv_range),
+                          'matrix_list': [0]*len(pv_range),
+                          'spectrums_unperturbed': np.zeros((num_genes, len(pv_range))),
+                          'spectrums_perturbed': np.zeros((num_genes, num_genes - 1, len(pv_range))),
+                          'cg_min': np.zeros((num_genes, len(pv_range))),
+                          'cg_max': np.zeros((num_genes, len(pv_range)))} for label in score_labels}
+
+    # optionally skip generating trajectories and use theoretical covariance
+    if not avoid_traj:
         multitraj_varying = many_traj_varying_params(params_list, noise=noise)
+
     for idx, pv in enumerate(pv_range):
         title_mod = '(%s_%.3f)' % (pv_name, pv)
         print "idx, pv:", idx, title_mod
@@ -71,65 +103,77 @@ if __name__ == '__main__':
         fp_mid = steadystate_pitchfork(params)[:, 0]
         J_true = jacobian_pitchfork(params, fp_mid, print_eig=False)
         D_true = build_diffusion_from_langevin(params, noise)
-        #C, D, _ = collect_multitraj_info(multitraj_varying[:, :, :, idx], params, noise, skip_infer=True)
-
-        if use_C_true:
-            C_true = solve_true_covariance_from_true_J(J_true, D_true)
-            C = C_true
-        else:
+        # build data covariance or solve asymptotic covariance
+        C_lyap = solve_true_covariance_from_true_J(J_true, D_true)
+        if not avoid_traj:
             _, C_data, _ = collect_multitraj_info(multitraj_varying[:, :, :, idx], params, noise, skip_infer=True)
-            C = C_data
-        # get U spectrums
-        list_of_J_u, specs_u, labels_u = get_spectrums(C, D_true, method='U')
-        # get infer spectrums
-        if not skip_inference:
-            list_of_J_infer, specs_infer, labels_infer = get_spectrums(C, D_true, method='infer')
-        # get J_true spectrum
-        spectrum_true = np.zeros((1, D_true.shape[0]))
-        spectrum_true[0, :] = get_spectrum_from_J(J_true, real=True)
-        label_true = 'J_true'
 
-        if plot_hists_all:
-            plot_spectrum_hists(specs_u, labels_u, method='U', hist='default', title_mod=title_mod)
-            plot_spectrum_hists(specs_u, labels_u, method='U', hist='violin', title_mod=title_mod)
+        # score spectrum fill in begin
+        score_dict['J_true']['method_list'][idx] = 'J_true'
+        score_dict['J_true']['matrix_list'][idx] = J_true
+        score_dict['J_true']['spectrums_unperturbed'][:, idx] = get_spectrum_from_arr(J_true, real=True)
+
+        # now fill in rest, dependent on whether inference and C_data are being used
+        C_list = [(C_lyap, '_lyap')]
+        if not avoid_traj:
+            C_list.append((C_data, '_data'))
+        for C, mod in C_list:
+            # fill in C info
+            label = 'C%s' % mod
+            score_dict[label]['method_list'][idx] = 'covariance%s' % mod
+            score_dict[label]['matrix_list'][idx] = C
+            score_dict[label]['spectrums_unperturbed'][:, idx] = get_spectrum_from_arr(C, real=True)
+            # do J(U) method
+            list_of_J_u, specs_u, labels_u = get_spectrums(C, D_true, method='U%s' % mod)
+            if plot_hists_all:
+                plot_spectrum_hists(specs_u, labels_u, method='U%s' % mod, hist='violin', title_mod=title_mod)
+            # fill in J(U) info
+            for elem in int_U_to_use:
+                label = 'J_U%d%s' % (elem, mod)
+                score_dict[label]['method_list'][idx] = labels_u[elem]
+                score_dict[label]['matrix_list'][idx] = list_of_J_u[elem]
+                score_dict[label]['spectrums_unperturbed'][:, idx] = specs_u[elem, :]
+            # do inference method
             if not skip_inference:
-                plot_spectrum_hists(specs_infer, labels_infer, method='infer', hist='default', title_mod=title_mod)
-                plot_spectrum_hists(specs_infer, labels_infer, method='infer', hist='violin', title_mod=title_mod)
-            plot_spectrum_hists(spectrum_true, [label_true], method='true', hist='default', title_mod=title_mod)
-            plot_spectrum_hists(spectrum_true, [label_true], method='true', hist='violin', title_mod=title_mod)
+                list_of_J_infer, specs_infer, labels_infer = get_spectrums(C, D_true, method='infer%s' % mod)
+                if plot_hists_all:
+                    plot_spectrum_hists(specs_infer, labels_infer, method='infer%s' % mod, hist='violin', title_mod=title_mod)
+                # fill in inference info
+                for elem in int_infer_to_use:
+                    label = 'J_infer%d%s' % (elem, mod)
+                    score_dict[label]['method_list'][idx] = labels_infer[elem]
+                    score_dict[label]['matrix_list'][idx] = list_of_J_infer[elem]
+                    score_dict[label]['spectrums_unperturbed'][:, idx] = specs_infer[elem, :]
+
+        # plot sorted rank order distributions of each spectrum (for each tau)
         if plot_rank_order_selection:
-            plot_rank_order_spectrum(specs_u[0, :], labels_u[0], method='U_%s' % labels_u[0], title_mod=title_mod)
-            plot_rank_order_spectrum(specs_u[1, :], labels_u[1], method='U_%s' % labels_u[1], title_mod=title_mod)
-            plot_rank_order_spectrum(get_spectrum_from_J(C, real=True), 'covariance', method='cov_solve_%s' % str(use_C_true), title_mod=title_mod)
-            if not skip_inference:
-                plot_rank_order_spectrum(specs_infer[0, :], labels_infer[0], method='infer_%s' % (labels_infer[0]), title_mod=title_mod)
-                plot_rank_order_spectrum(specs_infer[1, :], labels_infer[1], method='infer_%s' % (labels_infer[1]), title_mod=title_mod)
-                plot_rank_order_spectrum(specs_infer[4, :], labels_infer[4], method='infer_%s' % (labels_infer[4]), title_mod=title_mod)
-            plot_rank_order_spectrum(spectrum_true[0, :], label_true, method='true', title_mod=title_mod)
-            plt.close('all')
-        if spectrum_extremes:
-            print "Scanning truncations for J U method (U=0 choice)"
-            spec, spec_perturb = scan_J_truncations(list_of_J_u[0], verbose=verbosity, spectrum_unperturbed=specs_u[0, :])
-            plot_spectrum_extremes(spec, spec_perturb, method='U_%s' % labels_u[0], title_mod=title_mod, max=True)
-            plot_spectrum_extremes(spec, spec_perturb, method='U_%s' % labels_u[0], title_mod=title_mod, max=False)
-            print "Scanning truncations for J U method (U=uni[0,scale] antisym choice)"
-            spec, spec_perturb = scan_J_truncations(list_of_J_u[1], verbose=verbosity, spectrum_unperturbed=specs_u[1, :])
-            plot_spectrum_extremes(spec, spec_perturb, method='U_%s' % labels_u[1], title_mod=title_mod, max=True)
-            plot_spectrum_extremes(spec, spec_perturb, method='U_%s' % labels_u[1], title_mod=title_mod, max=False)
-            print "Scanning truncations for covariance data (C instead of J) choice)"
-            spec, spec_perturb = scan_J_truncations(C, verbose=verbosity, spectrum_unperturbed=None)
-            plot_spectrum_extremes(spec, spec_perturb, method='cov_solve_%s' % str(use_C_true), title_mod=title_mod, max=True)
-            plot_spectrum_extremes(spec, spec_perturb, method='cov_solve_%s' % str(use_C_true), title_mod=title_mod, max=False)
-            if not skip_inference:
-                print "Scanning truncations for J inferred %s" % labels_infer[1]
-                spec, spec_perturb = scan_J_truncations(list_of_J_infer[1], verbose=verbosity, spectrum_unperturbed=specs_infer[1, :])
-                plot_spectrum_extremes(spec, spec_perturb, method='infer_%s' % (labels_infer[1]), title_mod=title_mod, max=True)
-                plot_spectrum_extremes(spec, spec_perturb, method='infer_%s' % (labels_infer[1]), title_mod=title_mod, max=False)
-                print "Scanning truncations for J inferred %s" % labels_infer[3]
-                spec, spec_perturb = scan_J_truncations(list_of_J_infer[3], verbose=verbosity, spectrum_unperturbed=specs_infer[3, :])
-                plot_spectrum_extremes(spec, spec_perturb, method='infer_%s' % (labels_infer[3]), title_mod=title_mod, max=True)
-                plot_spectrum_extremes(spec, spec_perturb, method='infer_%s' % (labels_infer[3]), title_mod=title_mod, max=False)
-            print "Scanning truncations for J_true"
-            spec, spec_perturb = scan_J_truncations(J_true, verbose=verbosity, spectrum_unperturbed=spectrum_true[0, :])
-            plot_spectrum_extremes(spec, spec_perturb, method='true', title_mod=title_mod, max=True)
-            plot_spectrum_extremes(spec, spec_perturb, method='true', title_mod=title_mod, max=False)
+            for label in score_dict.keys():
+                if not score_dict[label]['skip']:
+                    spec = score_dict[label]['spectrums_unperturbed'][:, idx]
+                    method = score_dict[label]['method_list'][idx]
+                    plot_rank_order_spectrum(spec, method=method, title_mod=title_mod)
+                    plt.close('all')
+
+        # perform spectrum perturbation scanning (slow step)
+        for label in score_dict.keys():
+            if not score_dict[label]['skip']:
+                print "Scanning truncations for matrix %s" % label
+                spec, spec_perturb = scan_J_truncations(score_dict[label]['matrix_list'][idx],
+                                                        spectrum_unperturbed=score_dict[label]['spectrums_unperturbed'][:, idx])
+                score_dict[label]['spectrums_perturbed'][:, :, idx] = spec_perturb
+                score_dict[label]['cg_min'][:, idx] = gene_control_scores(spec, spec_perturb, use_min=True)
+                score_dict[label]['cg_max'][:, idx] = gene_control_scores(spec, spec_perturb, use_min=False)
+                if spectrum_extremes:
+                    method = score_dict[label]['method_list'][idx]
+                    plot_spectrum_extremes(spec, spec_perturb, method=method, title_mod=title_mod, max=True)
+                    plot_spectrum_extremes(spec, spec_perturb, method=method, title_mod=title_mod, max=False)
+
+    if sliding_tau_cg_plot:
+        for label in score_dict.keys():
+            if score_dict[label]['skip']:
+                print 'Skipping label %s because skip flag is true' % label
+            else:
+                print "Generating sliding tau plot for label %s" % label
+                # TODO have full label in title somehow... e.g. alpha float U float
+                plot_sliding_tau_scores(pv_range, score_dict[label]['cg_min'].T, label, 'cg_min')
+                plot_sliding_tau_scores(pv_range, score_dict[label]['cg_max'].T, label, 'cg_max')
