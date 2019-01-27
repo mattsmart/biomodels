@@ -2,10 +2,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 
+from inference import solve_true_covariance_from_true_J
 from pitchfork_langevin import jacobian_pitchfork, steadystate_pitchfork, langevin_dynamics
 from settings import DEFAULT_PARAMS, PARAMS_ID, FOLDER_OUTPUT, TIMESTEP, INIT_COND, NUM_TRAJ, NUM_STEPS, NOISE
 from spectrums import get_spectrums, plot_spectrum_hists, get_spectrum_from_J, plot_rank_order_spectrum, scan_J_truncations, plot_spectrum_extremes
-from statistical_formulae import collect_multitraj_info
+from statistical_formulae import collect_multitraj_info, build_diffusion_from_langevin
 from visualize_matrix import plot_matrix
 
 
@@ -50,6 +51,7 @@ def gen_params_list(pv_name, pv_low, pv_high, pv_num=10, params=DEFAULT_PARAMS):
 
 
 if __name__ == '__main__':
+    use_C_true = False
     skip_inference = True
     plot_hists_all = False
     plot_rank_order_selection = True
@@ -60,21 +62,30 @@ if __name__ == '__main__':
     pv_name = 'tau'
     #params_list, pv_range = gen_params_list(pv_name, 0.1, 5.0, pv_num=5)
     params_list, pv_range = gen_params_list(pv_name, 1.2, 2.2, pv_num=5)
-    multitraj_varying = many_traj_varying_params(params_list, noise=noise)
+    if not use_C_true:
+        multitraj_varying = many_traj_varying_params(params_list, noise=noise)
     for idx, pv in enumerate(pv_range):
         title_mod = '(%s_%.3f)' % (pv_name, pv)
         print "idx, pv:", idx, title_mod
         params = params_list[idx]
-        C, D, _ = collect_multitraj_info(multitraj_varying[:, :, :, idx], params, noise, skip_infer=True)
         fp_mid = steadystate_pitchfork(params)[:, 0]
         J_true = jacobian_pitchfork(params, fp_mid, print_eig=False)
+        D_true = build_diffusion_from_langevin(params, noise)
+        #C, D, _ = collect_multitraj_info(multitraj_varying[:, :, :, idx], params, noise, skip_infer=True)
+
+        if use_C_true:
+            C_true = solve_true_covariance_from_true_J(J_true, D_true)
+            C = C_true
+        else:
+            _, C_data, _ = collect_multitraj_info(multitraj_varying[:, :, :, idx], params, noise, skip_infer=True)
+            C = C_data
         # get U spectrums
-        list_of_J_u, specs_u, labels_u = get_spectrums(C, D, method='U')
+        list_of_J_u, specs_u, labels_u = get_spectrums(C, D_true, method='U')
         # get infer spectrums
         if not skip_inference:
-            list_of_J_infer, specs_infer, labels_infer = get_spectrums(C, D, method='infer')
+            list_of_J_infer, specs_infer, labels_infer = get_spectrums(C, D_true, method='infer')
         # get J_true spectrum
-        spectrum_true = np.zeros((1, D.shape[0]))
+        spectrum_true = np.zeros((1, D_true.shape[0]))
         spectrum_true[0, :] = get_spectrum_from_J(J_true, real=True)
         label_true = 'J_true'
 
@@ -89,6 +100,7 @@ if __name__ == '__main__':
         if plot_rank_order_selection:
             plot_rank_order_spectrum(specs_u[0, :], labels_u[0], method='U_%s' % labels_u[0], title_mod=title_mod)
             plot_rank_order_spectrum(specs_u[1, :], labels_u[1], method='U_%s' % labels_u[1], title_mod=title_mod)
+            plot_rank_order_spectrum(get_spectrum_from_J(C, real=True), 'covariance', method='cov_solve_%s' % str(use_C_true), title_mod=title_mod)
             if not skip_inference:
                 plot_rank_order_spectrum(specs_infer[0, :], labels_infer[0], method='infer_%s' % (labels_infer[0]), title_mod=title_mod)
                 plot_rank_order_spectrum(specs_infer[1, :], labels_infer[1], method='infer_%s' % (labels_infer[1]), title_mod=title_mod)
@@ -104,6 +116,10 @@ if __name__ == '__main__':
             spec, spec_perturb = scan_J_truncations(list_of_J_u[1], verbose=verbosity, spectrum_unperturbed=specs_u[1, :])
             plot_spectrum_extremes(spec, spec_perturb, method='U_%s' % labels_u[1], title_mod=title_mod, max=True)
             plot_spectrum_extremes(spec, spec_perturb, method='U_%s' % labels_u[1], title_mod=title_mod, max=False)
+            print "Scanning truncations for covariance data (C instead of J) choice)"
+            spec, spec_perturb = scan_J_truncations(C, verbose=verbosity, spectrum_unperturbed=None)
+            plot_spectrum_extremes(spec, spec_perturb, method='cov_solve_%s' % str(use_C_true), title_mod=title_mod, max=True)
+            plot_spectrum_extremes(spec, spec_perturb, method='cov_solve_%s' % str(use_C_true), title_mod=title_mod, max=False)
             if not skip_inference:
                 print "Scanning truncations for J inferred %s" % labels_infer[1]
                 spec, spec_perturb = scan_J_truncations(list_of_J_infer[1], verbose=verbosity, spectrum_unperturbed=specs_infer[1, :])

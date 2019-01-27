@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy as sp
 from sklearn.linear_model import Lasso, Ridge
 from visualize_matrix import plot_matrix
 
@@ -123,6 +124,15 @@ def build_linear_problem(C, D, order='C'):
         print 'here'
         A = CxI + np.dot(IxC, P)  # use this is vec(M) is defined col-by-col, i.e. 'F'
     return A, b
+
+
+def solve_true_covariance_from_true_J(J_true, D_true):
+    """
+    See https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.linalg.solve_lyapunov.html
+    Need to give -D to match our setup: JC + (JC)^T + D = 0
+    """
+    C_true = sp.linalg.solve_lyapunov(J_true, -D_true)
+    return C_true
 
 
 def solve_regularized_linear_problem(A, b, alpha=0.1, tol=0.0001, verbose=True, use_ridge=False):
