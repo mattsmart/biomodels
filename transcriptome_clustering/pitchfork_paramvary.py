@@ -55,7 +55,7 @@ if __name__ == '__main__':
     avoid_traj = False
     skip_inference = False
     plot_hists_all = False
-    plot_rank_order_selection = False
+    plot_rank_order_selection = True
     verbosity = False
     spectrum_extremes = False
     sliding_tau_cg_plot = True
@@ -150,7 +150,7 @@ if __name__ == '__main__':
             for label in score_dict.keys():
                 if not score_dict[label]['skip']:
                     spec = score_dict[label]['spectrums_unperturbed'][:, idx]
-                    method = score_dict[label]['method_list'][idx]
+                    method = label + '_' + score_dict[label]['method_list'][idx]
                     plot_rank_order_spectrum(spec, method=method, title_mod=title_mod)
                     plt.close('all')
 
@@ -164,7 +164,7 @@ if __name__ == '__main__':
                 score_dict[label]['cg_min'][:, idx] = gene_control_scores(spec, spec_perturb, use_min=True)
                 score_dict[label]['cg_max'][:, idx] = gene_control_scores(spec, spec_perturb, use_min=False)
                 if spectrum_extremes:
-                    method = score_dict[label]['method_list'][idx]
+                    method = label + '_' + score_dict[label]['method_list'][idx]
                     plot_spectrum_extremes(spec, spec_perturb, method=method, title_mod=title_mod, max=True)
                     plot_spectrum_extremes(spec, spec_perturb, method=method, title_mod=title_mod, max=False)
 
