@@ -8,7 +8,7 @@ DIM_MASTER = 2
 BETA = 17.0
 TAU = 1.8
 HILL_COEFF = 1.0     # TODO incorporate as x, y power in master term 1 (xdot ydot)
-GAMMA = 1.3
+GAMMA = 0.1
 
 # default model parameters (slave genes)
 DIM_SLAVE = 20
@@ -82,9 +82,13 @@ class Params:
             print "min, max of betas:", np.min(self.betas), np.max(self.betas)
             self.params_dict['betas'] = self.betas
         if self.taus is None:
-            print "Generating random N[2*sqrt(BETA), 0.2*sqrt(BETA)] taus...",
-            self.taus = np.random.normal(np.sqrt(2*self.beta), np.sqrt(self.beta)*0.2, self.dim_slave)
+            main_eval_scale = (1+self.gamma)/2.0
+            taus_lower = 0.5*main_eval_scale
+            taus_upper = 4.0*main_eval_scale
+            print "Generating unirandom tau_i between taus_lower %.3f, taus_upper %.3f..." % (taus_lower, taus_upper),
+            self.taus = (taus_upper - taus_lower) * np.random.random(self.dim_slave) + taus_lower  # key for slave evals
             print "min, max of taus:", np.min(self.taus), np.max(self.taus)
+            print "min, max of corresp evals:", -1.0/np.min(self.taus), -1.0/np.max(self.taus)
             self.params_dict['taus'] = self.taus
         # housekeeping
         assert self.hill_coeff == 1.0  # unclear how to put in model otherwise (based on pdf)
