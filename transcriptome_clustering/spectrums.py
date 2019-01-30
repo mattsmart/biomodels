@@ -137,7 +137,7 @@ def plot_rank_order_spectrum(spectrum, method='U', title_mod='', show=False):
     plt.axhline(0.0, linewidth=1.0, color='k')
     plt.ylabel('Re(lambda)')
     plt.xlabel('Eigenvalue ranking')
-    plt.title('Spectrum from %s %s %s' % (method, title_mod))
+    plt.title('Spectrum from %s %s' % (method, title_mod))
     plt.savefig(FOLDER_OUTPUT + os.sep + 'spectrum_ranking_%s_%s.pdf' % (method, title_mod))
     if show:
         plt.show()
