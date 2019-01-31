@@ -1,10 +1,12 @@
 import numpy as np
+import os
 
 from multicell_class import SpatialCell
 from multicell_constants import VALID_BUILDSTRINGS
 from singlecell.singlecell_functions import state_to_label
 
 # TODO: could wrap all these lattice operations into Lattice class
+
 
 def build_lattice_mono(n, simsetup, type_1_idx=None):
     lattice = [[0 for _ in xrange(n)] for _ in xrange(n)]  # TODO: this can be made faster as np array
@@ -109,9 +111,20 @@ def printer_labels(lattice):
             print label, " | ",
         print
 
+
 def write_state_all_cells(lattice, data_folder):
     print "Writing states to file.."
     for i in xrange(len(lattice)):
         for j in xrange(len(lattice[0])):
             lattice[i][j].write_state(data_folder)
     print "Done"
+
+
+def write_grid_state_int(grid_state_int, data_folder):
+    """
+    For each timestep, writes the n x n grid of integer states
+    """
+    num_steps = grid_state_int.shape[-1]
+    for i in xrange (num_steps):
+        filename = data_folder + os.sep + 'grid_state_int_at_step_%d.txt' % i
+        np.savetxt(filename, grid_state_int[:, :, i], fmt='%d', delimiter=',')
