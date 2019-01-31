@@ -28,15 +28,20 @@ fast_flag = False  # True - fast / simple plotting
 #nutrient_text_flag = False  # True - plot nutrient quantity at each grid location (slow)  TODO: plot scalar at each location?
 
 
-# Functions
-# =================================================
-
 def get_lattice_uniproj(lattice, time, n, uniplot_key, simsetup):
     proj_vals = np.zeros((n,n))
     for i in xrange(n):
         for j in xrange(n):
             proj_vals[i, j] = single_memory_projection(lattice[i][j].get_state_array(), time, uniplot_key, simsetup['ETA'])
     return proj_vals
+
+
+def get_lattice_state_ints(lattice, n):
+    state_ints = np.zeros((n,n), dtype=int)
+    for i in xrange(n):
+        for j in xrange(n):
+            state_ints[i, j] = lattice[i][j].get_current_label()
+    return state_ints
 
 
 def lattice_uniplotter(lattice, time, n, lattice_plot_dir, uniplot_key, simsetup, dict_counts=None):
@@ -58,7 +63,10 @@ def lattice_uniplotter(lattice, time, n, lattice_plot_dir, uniplot_key, simsetup
     return
 
 
-def lattice_projection_composite(lattice, time, n, lattice_plot_dir, simsetup):
+def lattice_projection_composite(lattice, time, n, lattice_plot_dir, simsetup, state_int=False):
+    """
+    state_int: plot state integer rep inside cell (useful only for small state spaces e.g. fewer than 10 genes)
+    """
     psqrt = np.sqrt(simsetup['P'])
     intceil = int(np.ceil(psqrt))
     if intceil * (intceil - 1) >= simsetup['P']:
@@ -84,6 +92,10 @@ def lattice_projection_composite(lattice, time, n, lattice_plot_dir, simsetup):
                 # plot data
                 proj_vals = get_lattice_uniproj(lattice, time, n, mem_idx, simsetup)
                 im = subax.imshow(proj_vals, cmap=colourmap, vmin=-1, vmax=1)
+                if state_int:
+                    state_ints = get_lattice_state_ints(lattice, n)
+                    for (j, i), label in np.ndenumerate(state_ints):
+                        subax.text(i, j, label, color='black', ha='center', va='center')
                 # hide axis nums
                 subax.set_title('%d (%s)' % (mem_idx, simsetup['CELLTYPE_LABELS'][mem_idx][:24]), fontsize=8)
                 labels = [item.get_text() for item in subax.get_xticklabels()]
@@ -118,7 +130,7 @@ def site_site_overlap(lattice, loc_1, loc_2, time, N):
     return np.dot(cellstate_1.T, cellstate_2) / N
 
 
-def reference_overlap_plotter(lattice, time, n, lattice_plot_dir, simsetup, ref_site=(0,0)):
+def reference_overlap_plotter(lattice, time, n, lattice_plot_dir, simsetup, ref_site=(0,0), state_int=False):
     # get lattice size array of overlaps
     overlaps = np.zeros((n,n))
     for i in xrange(n):
@@ -127,8 +139,14 @@ def reference_overlap_plotter(lattice, time, n, lattice_plot_dir, simsetup, ref_
             state_overlap = site_site_overlap(lattice, [i,j], ref_site, time, simsetup['N'])
             overlaps[i,j] = state_overlap
     # plot
+    fig = plt.figure(figsize=(12, 12))
+    #fig.tight_layout(rect=[0, 0.03, 1, 0.95])
     colourmap = plt.get_cmap('Spectral')  # see https://matplotlib.org/examples/color/colormaps_reference.html... used 'PiYG',
     plt.imshow(overlaps, cmap=colourmap, vmin=-1,vmax=1)  # TODO: normalize? also use this for other lattice plot fn...
+    if state_int:
+        state_ints = get_lattice_state_ints(lattice, n)
+        for (j, i), label in np.ndenumerate(state_ints):
+            plt.gca().text(i, j, label, color='black', ha='center', va='center')
     plt.colorbar()
     plt.title('Lattice site-wise overlap with ref site %d,%d (Step=%d)' % (ref_site[0], ref_site[1], time))
     # draw gridlines

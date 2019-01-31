@@ -14,7 +14,7 @@ from singlecell.singlecell_simsetup import singlecell_simsetup # N, P, XI, CELLT
 
 def run_sim(lattice, num_lattice_steps, data_dict, simsetup, exosome_string=EXOSTRING, field_remove_ratio=0.0,
             ext_field_strength=EXT_FIELD_STRENGTH, app_field=None, app_field_strength=APP_FIELD_STRENGTH,
-            plot_period=LATTICE_PLOT_PERIOD, flag_uniplots=True):
+            plot_period=LATTICE_PLOT_PERIOD, flag_uniplots=True, state_int=False):
     """
     Form of data_dict:
         {'memory_proj_arr':
@@ -49,11 +49,11 @@ def run_sim(lattice, num_lattice_steps, data_dict, simsetup, exosome_string=EXOS
             proj = lattice[loc[0]][loc[1]].get_memories_projection(simsetup['A_INV'], simsetup['XI'])
             data_dict['memory_proj_arr'][mem_idx][loc_to_idx[loc], 0] = proj[mem_idx]
     # initial condition plot
-    lattice_projection_composite(lattice, 0, n, io_dict['latticedir'], simsetup)
-    reference_overlap_plotter(lattice, 0, n, io_dict['latticedir'], simsetup)
+    lattice_projection_composite(lattice, 0, n, io_dict['latticedir'], simsetup, state_int=state_int)
+    reference_overlap_plotter(lattice, 0, n, io_dict['latticedir'], simsetup, state_int=state_int)
     if flag_uniplots:
         for mem_idx in memory_idx_list:
-            lattice_uniplotter(lattice, 0, n, io_dict['latticedir'], mem_idx, simsetup)
+            lattice_uniplotter(lattice, 0, n, io_dict['latticedir'], mem_idx, simsetup, state_int=state_int)
 
 
     for turn in xrange(1, num_lattice_steps):
@@ -71,8 +71,8 @@ def run_sim(lattice, num_lattice_steps, data_dict, simsetup, exosome_string=EXOS
             if turn % (40*plot_period) == 0:  # plot proj visualization of each cell (takes a while; every k lat plots)
                 fig, ax, proj = cell.plot_projection(simsetup['A_INV'], simsetup['XI'], use_radar=False, pltdir=io_dict['latticedir'])
         if turn % plot_period == 0:  # plot the lattice
-            lattice_projection_composite(lattice, turn, n, io_dict['latticedir'], simsetup)
-            reference_overlap_plotter(lattice, turn, n, io_dict['latticedir'], simsetup)
+            lattice_projection_composite(lattice, turn, n, io_dict['latticedir'], simsetup, state_int=state_int)
+            reference_overlap_plotter(lattice, turn, n, io_dict['latticedir'], simsetup, state_int=state_int)
             if flag_uniplots:
                 for mem_idx in memory_idx_list:
                     lattice_uniplotter(lattice, turn, n, io_dict['latticedir'], mem_idx, simsetup)
@@ -82,7 +82,7 @@ def run_sim(lattice, num_lattice_steps, data_dict, simsetup, exosome_string=EXOS
 
 def main(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING, exosome_string=EXOSTRING,
          field_remove_ratio=FIELD_REMOVE_RATIO, ext_field_strength=EXT_FIELD_STRENGTH, app_field=None,
-         app_field_strength=APP_FIELD_STRENGTH, plot_period=LATTICE_PLOT_PERIOD):
+         app_field_strength=APP_FIELD_STRENGTH, plot_period=LATTICE_PLOT_PERIOD, state_int=False):
 
     # check args
     assert type(gridsize) is int
@@ -116,7 +116,7 @@ def main(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=B
     lattice, data_dict, io_dict = \
         run_sim(lattice, num_steps, data_dict, simsetup, exosome_string=exosome_string, field_remove_ratio=field_remove_ratio,
                 ext_field_strength=ext_field_strength, app_field=app_field, app_field_strength=app_field_strength,
-                plot_period=plot_period, flag_uniplots=flag_uniplots)
+                plot_period=plot_period, flag_uniplots=flag_uniplots, state_int=state_int)
 
     # check the data dict
     for data_idx, memory_idx in enumerate(data_dict['memory_proj_arr'].keys()):
@@ -148,6 +148,7 @@ if __name__ == '__main__':
     app_field = None
     app_field_strength = 0.0  # 100.0 global APP_FIELD_STRENGTH
     plot_period = 4
+    state_int = True
     main(simsetup, gridsize=n, num_steps=steps, buildstring=buildstring, exosome_string=fieldstring,
          field_remove_ratio=fieldprune, ext_field_strength=ext_field_strength, app_field=app_field,
-         app_field_strength=app_field_strength, plot_period=plot_period)
+         app_field_strength=app_field_strength, plot_period=plot_period, state_int=state_int)
