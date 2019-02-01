@@ -55,7 +55,7 @@ def run_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_st
     reference_overlap_plotter(lattice, 0, n, io_dict['latticedir'], simsetup, state_int=state_int)
     if flag_uniplots:
         for mem_idx in memory_idx_list:
-            lattice_uniplotter(lattice, 0, n, io_dict['latticedir'], mem_idx, simsetup, state_int=state_int)
+            lattice_uniplotter(lattice, 0, n, io_dict['latticedir'], mem_idx, simsetup)
 
     for turn in xrange(1, num_lattice_steps):
         print 'Turn ', turn
@@ -157,9 +157,9 @@ if __name__ == '__main__':
 
     n = 20  # global GRIDSIZE
     steps = 10  # global NUM_LATTICE_STEPS
-    buildstring = "memory_sequence"  # mono/dual/memory_sequence/
-    fieldstring = "no_exo_field"  # on/off/all, note e.g. 'off' means send info about 'off' genes only
-    fieldprune = 0.8  # amount of external field idx to randomly prune from each cell
+    buildstring = "mono"  # mono/dual/memory_sequence/
+    fieldstring = "no_exo_field"  # on/off/all/no_exo_field, note e.g. 'off' means send info about 'off' genes only
+    fieldprune = 0.0  # amount of external field idx to randomly prune from each cell
     ext_field_strength = 0.05                                                  # global EXT_FIELD_STRENGTH tunes exosomes AND sent field
     #app_field = construct_app_field_from_genes(IPSC_EXTENDED_GENES_EFFECTS, simsetup['GENE_ID'], num_steps=steps)        # size N x timesteps or None
     app_field = None
