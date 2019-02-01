@@ -157,3 +157,9 @@ def label_to_state(label, N, use_neg=True):
     else:
         state = np.array(bitlist)
     return state
+
+
+if __name__ == '__main__':
+    label = 511
+    N = 9
+    print label_to_state(label, N, use_neg=True)
