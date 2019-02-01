@@ -84,7 +84,7 @@ class Params:
         if self.taus is None:
             main_eval_scale = (1+self.gamma)/2.0
             taus_lower = 0.5*main_eval_scale      # inverse controls lower black bar
-            taus_upper = 0.1*1e3                  # inverse controls upper black bar
+            taus_upper = 0.75*1e2                  # inverse controls upper black bar
             print "Generating unirandom tau_i between taus_lower %.3f, taus_upper %.3f..." % (taus_lower, taus_upper),
             self.taus = (taus_upper - taus_lower) * np.random.random(self.dim_slave) + taus_lower  # key for slave evals
             print "min, max of taus:", np.min(self.taus), np.max(self.taus)
