@@ -94,7 +94,7 @@ def truncate_celltype_data_for_dual_npz(matches, simsetup_A, simsetup_B):
 def compute_and_plot_score(simsetup, xi_truncated, ext_gene_states_truncated, celltype_name='unspecified_celltype', use_proj=False):
     scorelabel = 'Overlaps'
     filemod = 'overlap'
-    scores = np.dot(xi_truncated.T, ext_gene_states_truncated) / len(ext_gene_states_truncated)
+    scores = np.dot(xi_truncated.T, ext_gene_states_truncated) / ext_gene_states_truncated.shape[0]
     if use_proj:
         scorelabel = 'Projections'
         filemod = 'proj'
