@@ -1,7 +1,7 @@
 import os
 
 from singlecell_constants import NETWORK_METHOD, DEFAULT_MEMORIES_NPZPATH, J_RANDOM_DELETE_RATIO, \
-    FLAG_PRUNE_INTXN_MATRIX, MEMORIESDIR
+    FLAG_PRUNE_INTXN_MATRIX, MEMORIESDIR, MEMS_UNFOLD
 from singlecell_linalg import memory_corr_matrix_and_inv, interaction_matrix, predictivity_matrix
 from dataprocess.data_standardize import load_npz_of_arr_genes_cells, save_npz_of_arr_genes_cells
 from dataprocess.unfolding_csv_to_npz import load_npz_of_arr_genes_cells_signals
@@ -25,6 +25,7 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath
         print "Using unfolding npz"
         xi, gene_labels, celltype_labels, field_send = load_npz_of_arr_genes_cells_signals(npzpath, verbose=True)
     else:
+        assert npzpath != MEMS_UNFOLD
         xi, gene_labels, celltype_labels = load_npz_of_arr_genes_cells(npzpath, verbose=True)
         field_send = None
     # data processing into sim object
@@ -81,13 +82,14 @@ if __name__ == '__main__':
     print_genes = True
     print_celltypes = True
     print_gene_excpression_row = False
-    npzpath_override = True
+    npzpath_override = False
     npzpath_alternate = MEMORIESDIR + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_pruned_A_TFonly.npz'
+    unfolding = True
     # print block
     if npzpath_override:
-        simsetup = singlecell_simsetup(npzpath=npzpath_alternate)
+        simsetup = singlecell_simsetup(npzpath=npzpath_alternate, unfolding=unfolding)
     else:
-        simsetup = singlecell_simsetup()
+        simsetup = singlecell_simsetup(unfolding=unfolding)
     if print_gene_excpression_row:
         gene_name = 'S100a4'
         gene_int = simsetup['GENE_ID'][gene_name]

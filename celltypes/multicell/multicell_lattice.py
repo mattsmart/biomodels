@@ -15,11 +15,11 @@ def build_lattice_mono(n, simsetup, type_1_idx=None):
             if type_1_idx is None:
                 celltype = np.random.choice(simsetup['CELLTYPE_LABELS'])
                 init_state = simsetup['XI'][:, simsetup['CELLTYPE_ID'][celltype]]
-                lattice[i][j] = SpatialCell(init_state, "%d,%d_%s" % (i, j, celltype), [i, j])
+                lattice[i][j] = SpatialCell(init_state, "%d,%d_%s" % (i, j, celltype), [i, j], simsetup)
             else:
                 celltype = simsetup['CELLTYPE_LABELS'][type_1_idx]
                 init_state = simsetup['XI'][:, type_1_idx]
-                lattice[i][j] = SpatialCell(init_state, "%d,%d_%s" % (i, j, celltype), [i, j])
+                lattice[i][j] = SpatialCell(init_state, "%d,%d_%s" % (i, j, celltype), [i, j], simsetup)
     return lattice
 
 
