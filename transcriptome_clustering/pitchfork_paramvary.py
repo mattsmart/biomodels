@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import time
 
 from inference import solve_true_covariance_from_true_J
@@ -90,7 +91,11 @@ if __name__ == '__main__':
                           'spectrums_unperturbed': np.zeros((num_genes, len(pv_range))),
                           'spectrums_perturbed': np.zeros((num_genes, num_genes - 1, len(pv_range))),
                           'cg_min': np.zeros((num_genes, len(pv_range))),
-                          'cg_max': np.zeros((num_genes, len(pv_range)))} for label in score_labels}
+                          'cg_max': np.zeros((num_genes, len(pv_range))),
+                          'outdir': FOLDER_OUTPUT + os.sep + label} for label in score_labels}
+    for label in score_labels:
+        if not os.path.exists(score_dict[label]['outdir']):
+            os.makedirs(score_dict[label]['outdir'])
 
     # optionally skip generating trajectories and use theoretical covariance
     if not avoid_traj:
@@ -126,7 +131,8 @@ if __name__ == '__main__':
             # do J(U) method
             list_of_J_u, specs_u, labels_u = get_spectrums(C, D_true, method='U%s' % mod)
             if plot_hists_all:
-                plot_spectrum_hists(specs_u, labels_u, method='U%s' % mod, hist='violin', title_mod=title_mod)
+                plot_spectrum_hists(specs_u, labels_u, method='U%s' % mod, hist='violin', title_mod=title_mod,
+                                    plotdir=score_dict[label]['outdir'])
             # fill in J(U) info
             for elem in int_U_to_use:
                 label = 'J_U%d%s' % (elem, mod)
@@ -137,7 +143,8 @@ if __name__ == '__main__':
             if not skip_inference:
                 list_of_J_infer, specs_infer, labels_infer = get_spectrums(C, D_true, method='infer%s' % mod)
                 if plot_hists_all:
-                    plot_spectrum_hists(specs_infer, labels_infer, method='infer%s' % mod, hist='violin', title_mod=title_mod)
+                    plot_spectrum_hists(specs_infer, labels_infer, method='infer%s' % mod, hist='violin',
+                                        title_mod=title_mod, plotdir=score_dict[label]['outdir'])
                 # fill in inference info
                 for elem in int_infer_to_use:
                     label = 'J_infer%d%s' % (elem, mod)
@@ -151,7 +158,7 @@ if __name__ == '__main__':
                 if not score_dict[label]['skip']:
                     spec = score_dict[label]['spectrums_unperturbed'][:, idx]
                     method = label + '_' + score_dict[label]['method_list'][idx]
-                    plot_rank_order_spectrum(spec, method=method, title_mod=title_mod)
+                    plot_rank_order_spectrum(spec, method=method, title_mod=title_mod, plotdir=score_dict[label]['outdir'])
                     plt.close('all')
 
         # perform spectrum perturbation scanning (slow step)
@@ -165,8 +172,10 @@ if __name__ == '__main__':
                 score_dict[label]['cg_max'][:, idx] = gene_control_scores(spec, spec_perturb, use_min=False)
                 if spectrum_extremes:
                     method = label + '_' + score_dict[label]['method_list'][idx]
-                    plot_spectrum_extremes(spec, spec_perturb, method=method, title_mod=title_mod, max=True)
-                    plot_spectrum_extremes(spec, spec_perturb, method=method, title_mod=title_mod, max=False)
+                    plot_spectrum_extremes(spec, spec_perturb, method=method, title_mod=title_mod, max=True,
+                                           plotdir=score_dict[label]['outdir'])
+                    plot_spectrum_extremes(spec, spec_perturb, method=method, title_mod=title_mod, max=False,
+                                           plotdir=score_dict[label]['outdir'])
 
     if sliding_tau_cg_plot:
         for label in score_dict.keys():
@@ -175,5 +184,5 @@ if __name__ == '__main__':
             else:
                 print "Generating sliding tau plot for label %s" % label
                 # TODO have full label in title somehow... e.g. alpha float U float
-                plot_sliding_tau_scores(pv_range, score_dict[label]['cg_min'].T, label, 'cg_min')
-                plot_sliding_tau_scores(pv_range, score_dict[label]['cg_max'].T, label, 'cg_max')
+                plot_sliding_tau_scores(pv_range, score_dict[label]['cg_min'].T, label, 'cg_min', score_dict[label]['outdir'])
+                plot_sliding_tau_scores(pv_range, score_dict[label]['cg_max'].T, label, 'cg_max', score_dict[label]['outdir'])

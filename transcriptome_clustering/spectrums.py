@@ -93,7 +93,7 @@ def gene_control_scores(spectrum_unperturbed, spectrums_perturbed, use_min=True)
     return cg
 
 
-def plot_spectrum_hists(spectrums, labels, method='U', hist='default', title_mod='', show=False):
+def plot_spectrum_hists(spectrums, labels, method='U', hist='default', title_mod='', plotdir=FOLDER_OUTPUT, show=False):
     # TODO fix x axis range -6 6
     # TODO remove method from title since not used
 
@@ -123,13 +123,13 @@ def plot_spectrum_hists(spectrums, labels, method='U', hist='default', title_mod
         assert 1==2
     plt.title('Spectrums from %s %s' % (method, title_mod))
     plt.legend()
-    plt.savefig(FOLDER_OUTPUT + os.sep + 'spectrum_hist_%s_%s_%s.png' % (hist, method, title_mod))
+    plt.savefig(plotdir + os.sep + 'spectrum_hist_%s_%s_%s.png' % (hist, method, title_mod))
     if show:
         plt.show()
     return
 
 
-def plot_rank_order_spectrum(spectrum, method='U', title_mod='', show=False):
+def plot_rank_order_spectrum(spectrum, method='U', title_mod='', plotdir=FOLDER_OUTPUT, show=False):
     f = plt.figure(figsize=(10, 6))
     sorted_spectrums_low_to_high = np.sort(spectrum)
     sorted_spectrums_high_to_low = sorted_spectrums_low_to_high[::-1]
@@ -138,13 +138,13 @@ def plot_rank_order_spectrum(spectrum, method='U', title_mod='', show=False):
     plt.ylabel('Re(lambda)')
     plt.xlabel('Eigenvalue ranking')
     plt.title('Spectrum from %s %s' % (method, title_mod))
-    plt.savefig(FOLDER_OUTPUT + os.sep + 'spectrum_ranking_%s_%s.pdf' % (method, title_mod))
+    plt.savefig(plotdir + os.sep + 'spectrum_ranking_%s_%s.pdf' % (method, title_mod))
     if show:
         plt.show()
     return
 
 
-def plot_spectrum_extremes(spectrum_unperturbed, spectrums_perturbed, method='U', title_mod='', show=False, max=True):
+def plot_spectrum_extremes(spectrum_unperturbed, spectrums_perturbed, method='U', title_mod='', plotdir=FOLDER_OUTPUT, show=False, max=True):
     n = len(spectrum_unperturbed)
     bar_width = 0.45
     plt.close('all')
@@ -158,7 +158,7 @@ def plot_spectrum_extremes(spectrum_unperturbed, spectrums_perturbed, method='U'
         #plt.ylim(np.min(spectrums_perturbed_maxes) * 1.05, np.max(spectrums_perturbed_maxes) * 1.05)
         plt.ylabel('Max Re(lambda)')
         plt.title('Largest eigenvalue after row/col deletion (green = no deletion) from %s %s' % (method, title_mod))
-        figpath = FOLDER_OUTPUT + os.sep + 'spectrum_perturbed_max_%s_%s.pdf' % (method, title_mod)
+        figpath = plotdir + os.sep + 'spectrum_perturbed_max_%s_%s.pdf' % (method, title_mod)
     else:
         spectrum_unperturbed_min = np.min(spectrum_unperturbed)
         spectrums_perturbed_mins = np.min(spectrums_perturbed, axis=1)
@@ -167,7 +167,7 @@ def plot_spectrum_extremes(spectrum_unperturbed, spectrums_perturbed, method='U'
         #plt.ylim(np.min(spectrums_perturbed_mins) * 1.05, np.max(spectrums_perturbed_mins) * 1.05)
         plt.ylabel('Min Re(lambda)')
         plt.title('Lowest eigenvalue after row/col deletion (green = no deletion) from %s %s' % (method, title_mod))
-        figpath = FOLDER_OUTPUT + os.sep + 'spectrum_perturbed_min_%s_%s.pdf' % (method, title_mod)
+        figpath = plotdir + os.sep + 'spectrum_perturbed_min_%s_%s.pdf' % (method, title_mod)
     plt.axhline(0.0, linewidth=1.0, color='k')
     ax.set_xticks(np.arange(n))
     plt.xlabel('Index of deleted row/col')
@@ -177,7 +177,7 @@ def plot_spectrum_extremes(spectrum_unperturbed, spectrums_perturbed, method='U'
     return
 
 
-def plot_sliding_tau_scores(tau_range, gene_score_arr, gene_score_label, score_type, show=False):
+def plot_sliding_tau_scores(tau_range, gene_score_arr, gene_score_label, score_type, plotdir=FOLDER_OUTPUT, show=False):
     assert gene_score_arr.shape[0] == tau_range.shape[0]
     plt.close('all')
     f = plt.figure(figsize=(12, 7))
@@ -193,7 +193,7 @@ def plot_sliding_tau_scores(tau_range, gene_score_arr, gene_score_label, score_t
     plt.xlabel('tau')
     plt.ylabel('%s index' % score_type)
     plt.title('%s index from %s over all genes, approaching bifurcation (tau=2.0)' % (score_type, gene_score_label))
-    figpath = FOLDER_OUTPUT + os.sep + 'score_%s_%s.pdf' % (gene_score_label, score_type)
+    figpath = plotdir + os.sep + 'score_%s_%s.pdf' % (gene_score_label, score_type)
     plt.savefig(figpath)
     if show:
         plt.show()
