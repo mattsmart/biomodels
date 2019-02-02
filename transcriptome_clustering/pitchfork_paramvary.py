@@ -15,8 +15,7 @@ from visualize_matrix import plot_matrix
 # TODO store output and params in OUTPUT dir
 
 
-def many_traj_varying_params(params_list, num_steps=NUM_STEPS, dt=TIMESTEP, init_cond=INIT_COND,
-                             num_traj=NUM_TRAJ, noise=NOISE):
+def many_traj_varying_params(params_list, num_steps=NUM_STEPS, dt=TIMESTEP, num_traj=NUM_TRAJ, noise=NOISE):
     """
     Computes num_traj langevin trajectories, for num_steps, for each params in params_list
     Returns:
@@ -31,7 +30,9 @@ def many_traj_varying_params(params_list, num_steps=NUM_STEPS, dt=TIMESTEP, init
     for idx, p in enumerate(params_list):
         print "on param_list %d of %d" % (idx, len(params_list))
         for traj in xrange(num_traj):
-            langevin_states, _ = langevin_dynamics(init_cond=init_cond, dt=dt, num_steps=num_steps, params=p,
+            steadystates = steadystate_pitchfork(p)
+            fp_mid = steadystates[:, 0]
+            langevin_states, _ = langevin_dynamics(init_cond=fp_mid, dt=dt, num_steps=num_steps, params=p,
                                                    noise=noise)
             multitraj_varying[:, :, traj, idx] = langevin_states
     print "done, timer:", time.time() - t0
