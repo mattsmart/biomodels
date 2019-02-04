@@ -64,8 +64,6 @@ if __name__ == '__main__':
 
     noise = 0.1
     pv_name = 'tau'
-    #params_list, pv_range = gen_params_list(pv_name, 0.1, 5.0, pv_num=5)
-    #params_list, pv_range = gen_params_list(pv_name, 1.2, 2.2, pv_num=5)
     params_list, pv_range = gen_params_list(pv_name, 1.2, 2.2, pv_num=10)
     num_genes = params_list[0].dim
 
