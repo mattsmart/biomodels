@@ -15,6 +15,7 @@ DIM_SLAVE = 20
 ALPHAS = None  # i.e. randomize
 BETAS = None  # i.e. randomize
 TAUS = None  # i.e. randomize
+clamp_taus_limits = True  # force min and max tau_i at specific values
 
 # param dicts
 # TODO maybe put noise and inference settings in here too? or parent class
@@ -83,10 +84,13 @@ class Params:
             self.params_dict['betas'] = self.betas
         if self.taus is None:
             main_eval_scale = (1+self.gamma)/2.0
-            taus_lower = 0.5*main_eval_scale      # inverse controls lower black bar
+            taus_lower = 0.5                       # inverse controls lower black bar
             taus_upper = 0.75*1e2                  # inverse controls upper black bar
             print "Generating unirandom tau_i between taus_lower %.3f, taus_upper %.3f..." % (taus_lower, taus_upper),
             self.taus = (taus_upper - taus_lower) * np.random.random(self.dim_slave) + taus_lower  # key for slave evals
+            if clamp_taus_limits:
+                self.taus[0] = taus_lower
+                self.taus[-1] = taus_upper
             print "min, max of taus:", np.min(self.taus), np.max(self.taus)
             print "min, max of corresp evals:", -1.0/np.min(self.taus), -1.0/np.max(self.taus)
             self.params_dict['taus'] = self.taus
