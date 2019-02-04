@@ -32,8 +32,7 @@ def many_traj_varying_params(params_list, num_steps=NUM_STEPS, dt=TIMESTEP, num_
         for traj in xrange(num_traj):
             steadystates = steadystate_pitchfork(p)
             fp_mid = steadystates[:, 0]
-            langevin_states, _ = langevin_dynamics(init_cond=fp_mid, dt=dt, num_steps=num_steps, params=p,
-                                                   noise=noise)
+            langevin_states, _ = langevin_dynamics(init_cond=fp_mid, dt=dt, num_steps=num_steps, params=p, noise=noise)
             multitraj_varying[:, :, traj, idx] = langevin_states
     print "done, timer:", time.time() - t0
     return multitraj_varying
