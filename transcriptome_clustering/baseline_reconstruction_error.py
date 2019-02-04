@@ -60,6 +60,7 @@ def get_errors_from_one_traj(covperiod=5, num_traj=500, num_steps=5000, params=D
 
 
 if __name__ == '__main__':
+    # TODO characterize reconstuction error in C_lyap from C_data
     # run settings
     many_reps_endpt = False
     one_rep_long = True
