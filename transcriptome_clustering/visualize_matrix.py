@@ -6,7 +6,7 @@ from settings import FOLDER_OUTPUT
 
 
 def plot_matrix(arr, method='U', title_mod='', show=False, rotate_standard=True, fs=10, ax=None, cmap_int=11,
-                xlabels=None, ylabels=None, nolabels=False):
+                xlabels=None, ylabels=None, nolabels=False, plotdir=FOLDER_OUTPUT):
     assert len(arr.shape) == 2
     if ax is None:
         f = plt.figure(figsize=(18.5, 12.5))
@@ -55,7 +55,7 @@ def plot_matrix(arr, method='U', title_mod='', show=False, rotate_standard=True,
     ax.set_yticks(np.arange(-.5, arr.shape[0], 1), minor=True)
     ax.grid(which='minor', color='w', linestyle='-', linewidth=1)  # grey good to split, white looks nice though
     # save and show
-    plt.savefig(FOLDER_OUTPUT + os.sep + 'matrix_%s_%s.png' % (method, title_mod), bbox_inches='tight')
+    plt.savefig(plotdir + os.sep + 'matrix_%s_%s.png' % (method, title_mod), bbox_inches='tight')
     if show:
         plt.show()
     plt.close('all')

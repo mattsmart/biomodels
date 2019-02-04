@@ -61,6 +61,7 @@ if __name__ == '__main__':
     verbosity = False
     spectrum_extremes = False
     sliding_tau_cg_plot = True
+    plot_matrices = True
 
     noise = 0.1
     pv_name = 'tau'
@@ -161,6 +162,15 @@ if __name__ == '__main__':
                     method = label + '_' + score_dict[label]['method_list'][idx]
                     plot_rank_order_spectrum(spec, method=method, title_mod=title_mod, plotdir=score_dict[label]['outdir'])
                     plt.close('all')
+
+        if plot_matrices:
+            for label in score_dict.keys():
+                if score_dict[label]['skip']:
+                    print 'Skipping label %s because skip flag is true' % label
+                else:
+                    arr = score_dict[label]['matrix_list'][idx]
+                    label_detailed = label + '_' + score_dict[label]['method_list'][idx]
+                    plot_matrix(arr, method=label_detailed, title_mod=title_mod, plotdir=score_dict[label]['outdir'])
 
         # perform spectrum perturbation scanning (slow step)
         for label in score_dict.keys():
