@@ -43,7 +43,7 @@ assert DIM_MASTER == 2
 INIT_COND = [7.0, 2.0] + [5.0 for _ in xrange(DIM_SLAVE)]
 TIMESTEP = 0.1
 NUM_TRAJ = 500
-NUM_STEPS = 200
+NUM_STEPS = 3000
 NOISE = 0.1
 
 
