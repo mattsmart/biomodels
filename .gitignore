@@ -43,3 +43,4 @@ oncogenesis_dynamics/output/
 celltypes/venv/
 
 celltypes/gpu/\.ipynb_checkpoints/
+transcriptome_clustering/output/
