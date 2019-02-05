@@ -6,6 +6,8 @@ from inference import error_fn, infer_interactions, choose_J_from_general_form, 
 from pitchfork_langevin import jacobian_pitchfork, gen_multitraj, steadystate_pitchfork
 from settings import DEFAULT_PARAMS, FOLDER_OUTPUT, TAU
 from statistical_formulae import collect_multitraj_info, build_diffusion_from_langevin, build_covariance_at_step
+from visualize_matrix import plot_matrix
+
 
 """
 Assess error in JC + (JC)^T + D = 0 as num_traj varies, since C computed from num_traj
@@ -31,6 +33,7 @@ def get_errors_from_one_traj(covperiod=5, num_traj=500, num_steps=5000, params=D
     # get points to measure at
     num_pts = int(num_steps/covperiod)
     covsteps = [a*covperiod for a in xrange(num_pts)]
+    plotperiod = covperiod * 100
     # prep error vectors
     true_errors = np.zeros(num_pts)
     infer_errors = None
@@ -45,7 +48,8 @@ def get_errors_from_one_traj(covperiod=5, num_traj=500, num_steps=5000, params=D
     J_true = jacobian_pitchfork(params, fp_mid, print_eig=False)
     D = build_diffusion_from_langevin(params, noise)
     C_lyap = solve_true_covariance_from_true_J(J_true, D)
-
+    print 'norm of C_lyap', np.linalg.norm(C_lyap)
+    plot_matrix(C_lyap, method='C_lyap', title_mod='static', plotdir=FOLDER_OUTPUT)
     # compute long traj
     multitraj, _ = gen_multitraj(num_traj, init_cond=fp_mid, num_steps=num_steps, params=params, noise=noise)
     # get error for all covsteps
@@ -54,6 +58,9 @@ def get_errors_from_one_traj(covperiod=5, num_traj=500, num_steps=5000, params=D
         J_U0choice = choose_J_from_general_form(C_est, D, scale=0.0)
         true_errors[idx] = error_fn(C_est, D, J_true)
         J_U0choice_errors[idx] = np.linalg.norm(J_true - J_U0choice)
+        print step, covperiod*100, step % covperiod*100
+        if step % plotperiod == 0:
+            plot_matrix(C_est, method='C_data', title_mod='step%d' % step, plotdir=FOLDER_OUTPUT)
         if infer:
             print "inferring..."
             J_infer = infer_interactions(C_est, D, alpha=alpha, tol=1e-6)
@@ -61,6 +68,7 @@ def get_errors_from_one_traj(covperiod=5, num_traj=500, num_steps=5000, params=D
             infer_errors[idx] = error_fn(C_est, D, J_infer)
             J_infer_errors[idx] = np.linalg.norm(J_true - J_infer)
         cov_lyap_errors[idx] = np.linalg.norm(C_lyap - C_est)
+        print idx, step, np.linalg.norm(C_est), cov_lyap_errors[idx]
     return covsteps, true_errors, infer_errors, J_infer_errors, J_U0choice_errors, cov_lyap_errors
 
 
@@ -107,7 +115,7 @@ if __name__ == '__main__':
     if one_rep_long:
         alpha = 1e-8
         num_steps = 5000
-        num_traj = 5000 #5000
+        num_traj = 500 #5000
         covsteps, true_errors, infer_errors, J_infer_errors, J_U0choice_errors, cov_errors = \
             get_errors_from_one_traj(alpha=alpha, num_steps=num_steps, num_traj=num_traj, infer=infer)
         # plotting
