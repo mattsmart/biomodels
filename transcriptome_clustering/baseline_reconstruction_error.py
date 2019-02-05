@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from inference import error_fn, infer_interactions, choose_J_from_general_form
+from inference import error_fn, infer_interactions, choose_J_from_general_form, solve_true_covariance_from_true_J
 from pitchfork_langevin import jacobian_pitchfork, gen_multitraj, steadystate_pitchfork
 from settings import DEFAULT_PARAMS, FOLDER_OUTPUT, TAU
 from statistical_formulae import collect_multitraj_info, build_diffusion_from_langevin, build_covariance_at_step
@@ -34,14 +34,18 @@ def get_errors_from_one_traj(covperiod=5, num_traj=500, num_steps=5000, params=D
     # prep error vectors
     true_errors = np.zeros(num_pts)
     infer_errors = None
+    J_infer_errors = None
     if infer:
         infer_errors = np.zeros(num_pts)
         J_infer_errors = np.zeros(num_pts)
     J_U0choice_errors = np.zeros(num_pts)
+    cov_lyap_errors = np.zeros(num_pts)
     # get true J and D
     fp_mid = steadystate_pitchfork(params)[:, 0]
     J_true = jacobian_pitchfork(params, fp_mid, print_eig=False)
     D = build_diffusion_from_langevin(params, noise)
+    C_lyap = solve_true_covariance_from_true_J(J_true, D)
+
     # compute long traj
     multitraj, _ = gen_multitraj(num_traj, init_cond=fp_mid, num_steps=num_steps, params=params, noise=noise)
     # get error for all covsteps
@@ -56,11 +60,11 @@ def get_errors_from_one_traj(covperiod=5, num_traj=500, num_steps=5000, params=D
             print "done"
             infer_errors[idx] = error_fn(C_est, D, J_infer)
             J_infer_errors[idx] = np.linalg.norm(J_true - J_infer)
-    return covsteps, true_errors, infer_errors, J_infer_errors, J_U0choice_errors
+        cov_lyap_errors[idx] = np.linalg.norm(C_lyap - C_est)
+    return covsteps, true_errors, infer_errors, J_infer_errors, J_U0choice_errors, cov_lyap_errors
 
 
 if __name__ == '__main__':
-    # TODO characterize reconstuction error in C_lyap from C_data
     # run settings
     many_reps_endpt = False
     one_rep_long = True
@@ -99,27 +103,41 @@ if __name__ == '__main__':
         plt.show()
 
     # alternate: errors for one long multi-traj at increasing timepoints points
+    infer = False
     if one_rep_long:
         alpha = 1e-8
-        num_steps = 500
-        num_traj = 500 #5000
-        covsteps, true_errors, infer_errors, J_infer_errors, J_U0choice_errors = \
-            get_errors_from_one_traj(alpha=alpha, num_steps=num_steps, num_traj=num_traj)
+        num_steps = 5000
+        num_traj = 5000 #5000
+        covsteps, true_errors, infer_errors, J_infer_errors, J_U0choice_errors, cov_errors = \
+            get_errors_from_one_traj(alpha=alpha, num_steps=num_steps, num_traj=num_traj, infer=infer)
         # plotting
         f = plt.figure(figsize=(16, 8))
         plt.plot(covsteps, true_errors, '--k', label='true error')
-        plt.plot(covsteps, infer_errors, '--b', label='inference error')
+        if infer:
+            plt.plot(covsteps, infer_errors, '--b', label='inference error')
         plt.title('Reconstruction error (true J vs inference alpha=%.1e) for 1 multiraj (num_steps %s, num_traj %d)' % (alpha, num_steps, num_traj))
         plt.xlabel('step')
         plt.ylabel('F-norm of JC + (JC)^T + D')
         plt.legend()
-        plt.savefig(FOLDER_OUTPUT + os.sep + 'fnorm_reconstruct_flucdiss_a%.1e_steps%d_tau%.2f.png' % (alpha, num_steps, TAU))
-        # ad right y-axis for J error
+        plt.savefig(FOLDER_OUTPUT + os.sep + 'fnorm_reconstruct_flucdiss_a%.1e_traj%d_steps%d_tau%.2f.png' % (alpha, num_traj, num_steps, TAU))
+        # J error
         f2 = plt.figure(figsize=(16, 8))
-        plt.plot(covsteps, J_infer_errors, '--b', label='inference error')
+        if infer:
+            plt.plot(covsteps, J_infer_errors, '--b', label='inference error')
         plt.plot(covsteps, J_U0choice_errors, '--r', label='general form + choose U=0 error')
         plt.title('Reconstruction error of J (U=0 choice vs inference alpha=%.1e) for 1 multiraj (num_steps %s, num_traj %d)' % (alpha, num_steps, num_traj))
         plt.xlabel('step')
         plt.ylabel('F-norm of J_true - J_method')
         plt.legend()
-        plt.savefig(FOLDER_OUTPUT + os.sep + 'fnorm_reconstruct_J_a%.1e_steps%d_tau%.2f.png' % (alpha, num_steps, TAU))
+        plt.savefig(FOLDER_OUTPUT + os.sep + 'fnorm_reconstruct_J_a%.1e_traj%d_steps%d_tau%.2f.png' % (alpha, num_traj, num_steps, TAU))
+        plt.close()
+        # C_lyap vs C_data error
+        f3 = plt.figure(figsize=(16, 8))
+        plt.plot(covsteps, cov_errors, '--b', label='cov error')
+        plt.title(
+            'Reconstruction error of C_lyap from asymptotic C_data for 1 multiraj (num_steps %s, num_traj %d)' %
+            (num_steps, num_traj))
+        plt.xlabel('step')
+        plt.ylabel('F-norm of C_lyap - C_data')
+        plt.legend()
+        plt.savefig(FOLDER_OUTPUT + os.sep + 'fnorm_reconstruct_C_lyap_traj%d_steps%d_tau%.2f.png' % (num_traj, num_steps, TAU))
