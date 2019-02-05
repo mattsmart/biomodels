@@ -28,7 +28,7 @@ def get_spectrums(C, D, num_spectrums=10, method='U_data', print_errors=True):
     list_of_J = [0]*num_spectrums
     # generate spectrum labels
     if method[0] == 'U':
-        scales = np.linspace(0, 0.09, num_spectrums)
+        scales = np.linspace(0, 0.009, num_spectrums)
         labels = ['scale_%.3f' % i for i in scales]
     else:
         alphas = np.logspace(-10, -1, num_spectrums)
@@ -189,6 +189,9 @@ def plot_sliding_tau_scores(tau_range, gene_score_arr, gene_score_label, score_t
     sorted_top_curves = np.argsort(np.sum(gene_score_arr, axis=0))[::-1]
     for rank, k in enumerate(sorted_top_curves[0:top_k]):
         plt.plot(tau_range, gene_score_arr[:, k], '--o', alpha=0.7, label='rank%d = gene %d' % (rank, k))
+    for rank, k in enumerate(sorted_top_curves[-top_k:]):
+        plt.plot(tau_range, gene_score_arr[:, k], '--x', alpha=0.7, label='rank%d = gene %d' %
+                                                                          (gene_score_arr.shape[1] - 1 - rank, k))
     plt.legend()
     plt.xlabel('tau')
     plt.ylabel('%s index' % score_type)
