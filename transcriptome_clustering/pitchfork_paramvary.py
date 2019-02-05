@@ -69,8 +69,8 @@ if __name__ == '__main__':
 
     # prepare main scoring object TODO consider convert to class and data import/export method maybe pickle
     score_labels = ['J_true']
-    int_U_to_use = [0, 1]
-    int_infer_to_use = [0, 1, 4]
+    int_U_to_use = [0, 1, 9]
+    int_infer_to_use = [0, 1, 2, 3, 4]
     # prep remainder of score labels depending on run flags
     C_list = ['_lyap']
     if not avoid_traj:
@@ -190,7 +190,12 @@ if __name__ == '__main__':
             if score_dict[label]['skip']:
                 print 'Skipping label %s because skip flag is true' % label
             else:
+                np.savetxt(score_dict[label]['outdir'] + os.sep + "%s_range.txt" % pv_name, pv_range, delimiter=',')
                 print "Generating sliding tau plot for label %s" % label
                 # TODO have full label in title somehow... e.g. alpha float U float
                 plot_sliding_tau_scores(pv_range, score_dict[label]['cg_min'].T, label, 'cg_min', score_dict[label]['outdir'])
                 plot_sliding_tau_scores(pv_range, score_dict[label]['cg_max'].T, label, 'cg_max', score_dict[label]['outdir'])
+                np.savetxt(score_dict[label]['outdir'] + os.sep + "%s_cg_min.txt" % label,
+                           score_dict[label]['cg_min'].T, delimiter=',')
+                np.savetxt(score_dict[label]['outdir'] + os.sep + "%s_cg_max.txt" % label,
+                           score_dict[label]['cg_max'].T, delimiter=',')
