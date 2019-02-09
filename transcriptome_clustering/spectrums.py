@@ -79,7 +79,7 @@ def scan_J_truncations(J, verbose=False, spectrum_unperturbed=None):
     return spectrum_unperturbed, spectrums_perturbed
 
 
-def gene_control_scores(spectrum_unperturbed, spectrums_perturbed, use_min=True):
+def gene_control_scores(spectrum_unperturbed, spectrums_perturbed, fixed_denom=None, use_min=True):
     """
     See Sid 2018 draft for idea
     """
@@ -89,7 +89,11 @@ def gene_control_scores(spectrum_unperturbed, spectrums_perturbed, use_min=True)
     else:
         cg = np.max(spectrums_perturbed, axis=1)  # numerator left term
         cg = np.max(spectrum_unperturbed) - cg  # numerator full (note swap for index positivity)
-    cg = cg / np.sqrt( np.mean( (spectrum_unperturbed ** 2) ) )  # denominator
+    if fixed_denom is not None:
+        assert fixed_denom.shape == spectrum_unperturbed.shape
+        cg = np.divide(cg, fixed_denom)
+    else:
+        cg = cg / np.sqrt(np.mean((spectrum_unperturbed ** 2)))
     return cg
 
 

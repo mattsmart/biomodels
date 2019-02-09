@@ -64,13 +64,14 @@ if __name__ == '__main__':
 
     noise = 0.1
     pv_name = 'tau'
-    params_list, pv_range = gen_params_list(pv_name, 1.2, 2.2, pv_num=10)
+    params_list, pv_range = gen_params_list(pv_name, 1.2, 2.2, pv_num=20)
     num_genes = params_list[0].dim
 
     # prepare main scoring object TODO consider convert to class and data import/export method maybe pickle
     score_labels = ['J_true']
     int_U_to_use = [0, 1, 9]
-    int_infer_to_use = [0, 1, 2, 3, 4]
+    int_infer_to_use = [0, 1, 2, 3, 4, 5, 6]
+    tau_step_anchor_score = 0
     # prep remainder of score labels depending on run flags
     C_list = ['_lyap']
     if not avoid_traj:
@@ -91,6 +92,10 @@ if __name__ == '__main__':
                           'spectrums_perturbed': np.zeros((num_genes, num_genes - 1, len(pv_range))),
                           'cg_min': np.zeros((num_genes, len(pv_range))),
                           'cg_max': np.zeros((num_genes, len(pv_range))),
+                          'cg_denom_anchor_min': np.zeros(num_genes),
+                          'cg_denom_anchor_max': np.zeros(num_genes),
+                          'cg_min_anchor': np.zeros((num_genes, len(pv_range))),
+                          'cg_max_anchor': np.zeros((num_genes, len(pv_range))),
                           'outdir': FOLDER_OUTPUT + os.sep + label} for label in score_labels}
     for label in score_labels:
         if not os.path.exists(score_dict[label]['outdir']):
@@ -176,8 +181,15 @@ if __name__ == '__main__':
                 spec, spec_perturb = scan_J_truncations(score_dict[label]['matrix_list'][idx],
                                                         spectrum_unperturbed=score_dict[label]['spectrums_unperturbed'][:, idx])
                 score_dict[label]['spectrums_perturbed'][:, :, idx] = spec_perturb
+                if idx == tau_step_anchor_score:
+                    perturbed_maxes = np.max(spec_perturb, axis=1)
+                    perturbed_mins = np.min(spec_perturb, axis=1)
+                    score_dict[label]['cg_denom_anchor_max'][:] = np.max(spec) - perturbed_maxes
+                    score_dict[label]['cg_denom_anchor_min'][:] = np.min(spec) - perturbed_mins
                 score_dict[label]['cg_min'][:, idx] = gene_control_scores(spec, spec_perturb, use_min=True)
                 score_dict[label]['cg_max'][:, idx] = gene_control_scores(spec, spec_perturb, use_min=False)
+                score_dict[label]['cg_min_anchor'][:, idx] = gene_control_scores(spec, spec_perturb, fixed_denom=score_dict[label]['cg_denom_anchor_min'], use_min=True)
+                score_dict[label]['cg_max_anchor'][:, idx] = gene_control_scores(spec, spec_perturb, fixed_denom=score_dict[label]['cg_denom_anchor_max'], use_min=False)
                 if spectrum_extremes:
                     method = label + '_' + score_dict[label]['method_list'][idx]
                     plot_spectrum_extremes(spec, spec_perturb, method=method, title_mod=title_mod, max=True,
@@ -192,10 +204,19 @@ if __name__ == '__main__':
             else:
                 np.savetxt(score_dict[label]['outdir'] + os.sep + "%s_range.txt" % pv_name, pv_range, delimiter=',')
                 print "Generating sliding tau plot for label %s" % label
-                # TODO have full label in title somehow... e.g. alpha float U float
+                # save plot and data for cg scores
                 plot_sliding_tau_scores(pv_range, score_dict[label]['cg_min'].T, label, 'cg_min', score_dict[label]['outdir'])
                 plot_sliding_tau_scores(pv_range, score_dict[label]['cg_max'].T, label, 'cg_max', score_dict[label]['outdir'])
                 np.savetxt(score_dict[label]['outdir'] + os.sep + "%s_cg_min.txt" % label,
                            score_dict[label]['cg_min'].T, delimiter=',')
                 np.savetxt(score_dict[label]['outdir'] + os.sep + "%s_cg_max.txt" % label,
                            score_dict[label]['cg_max'].T, delimiter=',')
+                # repeat for anchor cg scores
+                plot_sliding_tau_scores(pv_range, score_dict[label]['cg_min_anchor'].T, label, 'cg_min_anchor',
+                                        score_dict[label]['outdir'])
+                plot_sliding_tau_scores(pv_range, score_dict[label]['cg_max_anchor'].T, label, 'cg_max_anchor',
+                                        score_dict[label]['outdir'])
+                np.savetxt(score_dict[label]['outdir'] + os.sep + "%s_cg_min_anchor.txt" % label,
+                           score_dict[label]['cg_min_anchor'].T, delimiter=',')
+                np.savetxt(score_dict[label]['outdir'] + os.sep + "%s_cg_max_anchor.txt" % label,
+                           score_dict[label]['cg_max_anchor'].T, delimiter=',')
