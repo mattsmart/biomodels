@@ -133,6 +133,7 @@ if __name__ == '__main__':
             score_dict[label]['matrix_list'][idx] = C
             score_dict[label]['spectrums_unperturbed'][:, idx] = get_spectrum_from_arr(C, real=True)
             # do J(U) method
+            # TODO this means for one sliding tau run, each tau point will have different random U -- I think this is OK?
             list_of_J_u, specs_u, labels_u = get_spectrums(C, D_true, method='U%s' % mod)
             if plot_hists_all:
                 plot_spectrum_hists(specs_u, labels_u, method='U%s' % mod, hist='violin', title_mod=title_mod,
