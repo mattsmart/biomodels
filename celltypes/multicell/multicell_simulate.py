@@ -84,9 +84,9 @@ def run_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_st
     return lattice, data_dict, io_dict
 
 
-def main(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING, exosome_string=EXOSTRING,
-         field_remove_ratio=FIELD_REMOVE_RATIO, ext_field_strength=EXT_FIELD_STRENGTH, app_field=None,
-         app_field_strength=APP_FIELD_STRENGTH, plot_period=LATTICE_PLOT_PERIOD, state_int=False):
+def mc_sim(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING, exosome_string=EXOSTRING,
+           field_remove_ratio=FIELD_REMOVE_RATIO, ext_field_strength=EXT_FIELD_STRENGTH, app_field=None,
+           app_field_strength=APP_FIELD_STRENGTH, plot_period=LATTICE_PLOT_PERIOD, state_int=False):
 
     # check args
     assert type(gridsize) is int
@@ -100,10 +100,14 @@ def main(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=B
     # setup io dict
     io_dict = run_subdir_setup()
     info_list = [['memories_path', simsetup['memories_path']], ['script', 'multicell_simulate.py'], ['gridsize', gridsize],
-                 ['num_steps', num_steps], ['buildstring', buildstring], ['fieldstring', fieldstring],
+                 ['num_steps', num_steps], ['buildstring', buildstring], ['fieldstring', exosome_string],
                  ['field_remove_ratio', field_remove_ratio], ['app_field_strength', app_field_strength],
-                 ['ext_field_strength', ext_field_strength], ['app_field', app_field], ['GLOBAL_BETA', BETA]]
+                 ['ext_field_strength', ext_field_strength], ['app_field', app_field], ['GLOBAL_BETA', BETA],
+                 ['random_mem', simsetup['random_mem']], ['random_W', simsetup['random_W']]]
     runinfo_append(io_dict, info_list, multi=True)
+    # conditionally store random mem and W
+    np.savetxt(io_dict['simsetupdir'] + os.sep + 'simsetup_XI.txt', simsetup['XI'], delimiter=',', fmt='%d')
+    np.savetxt(io_dict['simsetupdir'] + os.sep + 'simsetup_W.txt', simsetup['FIELD_SEND'], delimiter=',', fmt='%.4f')
 
     # setup lattice IC
     flag_uniplots = True
@@ -153,20 +157,22 @@ def main(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=B
 
 
 if __name__ == '__main__':
-    simsetup = singlecell_simsetup(unfolding=True)
+    random_mem = False
+    random_W = False
+    simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W)
 
-    n = 20  # global GRIDSIZE
-    steps = 10  # global NUM_LATTICE_STEPS
+    n = 5  # global GRIDSIZE
+    steps = 5  # global NUM_LATTICE_STEPS
     buildstring = "mono"  # mono/dual/memory_sequence/
     fieldstring = "no_exo_field"  # on/off/all/no_exo_field, note e.g. 'off' means send info about 'off' genes only
     fieldprune = 0.0  # amount of external field idx to randomly prune from each cell
-    ext_field_strength = 0.05                                                  # global EXT_FIELD_STRENGTH tunes exosomes AND sent field
+    ext_field_strength = 0.19                                                  # global EXT_FIELD_STRENGTH tunes exosomes AND sent field
     #app_field = construct_app_field_from_genes(IPSC_EXTENDED_GENES_EFFECTS, simsetup['GENE_ID'], num_steps=steps)        # size N x timesteps or None
     app_field = None
     app_field_strength = 0.0  # 100.0 global APP_FIELD_STRENGTH
     plot_period = 1
     state_int = True
 
-    main(simsetup, gridsize=n, num_steps=steps, buildstring=buildstring, exosome_string=fieldstring,
-         field_remove_ratio=fieldprune, ext_field_strength=ext_field_strength, app_field=app_field,
-         app_field_strength=app_field_strength, plot_period=plot_period, state_int=state_int)
+    mc_sim(simsetup, gridsize=n, num_steps=steps, buildstring=buildstring, exosome_string=fieldstring,
+           field_remove_ratio=fieldprune, ext_field_strength=ext_field_strength, app_field=app_field,
+           app_field_strength=app_field_strength, plot_period=plot_period, state_int=state_int)

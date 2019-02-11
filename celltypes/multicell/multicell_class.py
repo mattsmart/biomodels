@@ -76,10 +76,11 @@ class SpatialCell(Cell):
                 else:
                     nbr_state_only_off = state_subsample(nbr_state_only_off, ratio_to_remove=ratio_to_remove)
                     field_state += nbr_state_only_off
-        elif exosome_string == "no_exo_field":
-            field_state = np.zeros(self.N)
+        #elif exosome_string == "no_exo_field":
+        #    field_state = np.zeros(self.N)
         else:
-            raise ValueError("exosome_string arg invalid, must be one of %s" % VALID_EXOSOME_STRINGS)
+            if exosome_string != "no_exo_field":
+                raise ValueError("exosome_string arg invalid, must be one of %s" % VALID_EXOSOME_STRINGS)
         # now add field from unfolding i.e. signalling gene matrix W
 
         return field_state, neighbours

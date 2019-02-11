@@ -9,30 +9,32 @@ def run_subdir_setup(run_subfolder=None):
     current_time = datetime.datetime.now().strftime("%Y-%m-%d %I.%M.%S%p")
     time_folder = current_time
     if run_subfolder is None:
-        current_run_folder = RUNS_FOLDER + os.sep + time_folder
+        current_run_dir = RUNS_FOLDER + os.sep + time_folder
     else:
-        current_run_folder = RUNS_FOLDER + os.sep + run_subfolder + os.sep + time_folder
+        current_run_dir = RUNS_FOLDER + os.sep + run_subfolder + os.sep + time_folder
 
     # make subfolders in the timestamped run directory:
-    data_folder = os.path.join(current_run_folder, "data")
-    plot_data_folder = os.path.join(current_run_folder, "plot_data")
-    lattice_folder = os.path.join(current_run_folder, "lattice")
-    plot_lattice_folder = os.path.join(current_run_folder, "plot_lattice")
-    dir_list = [RUNS_FOLDER, current_run_folder, plot_data_folder, data_folder, lattice_folder, plot_lattice_folder]
+    data_dir = os.path.join(current_run_dir, "data")
+    plot_data_dir = os.path.join(current_run_dir, "plot_data")
+    lattice_dir = os.path.join(current_run_dir, "lattice")
+    plot_lattice_dir = os.path.join(current_run_dir, "plot_lattice")
+    simsetup_dir = os.path.join(current_run_dir, "simsetup")
+    dir_list = [RUNS_FOLDER, current_run_dir, plot_data_dir, data_dir, lattice_dir, plot_lattice_dir, simsetup_dir]
     for dirs in dir_list:
         if not os.path.exists(dirs):
             os.makedirs(dirs)
 
     # io path storage to pass around
-    io_dict = {'basedir': current_run_folder,
-               'datadir': data_folder,
-               'plotdatadir': plot_data_folder,
-               'latticedir': lattice_folder,
-               'plotlatticedir': plot_lattice_folder,
-               'runinfo': current_run_folder + os.sep + SETTINGS_FILE}
+    io_dict = {'basedir': current_run_dir,
+               'datadir': data_dir,
+               'plotdatadir': plot_data_dir,
+               'latticedir': lattice_dir,
+               'plotlatticedir': plot_lattice_dir,
+               'simsetupdir': simsetup_dir,
+               'runinfo': current_run_dir + os.sep + SETTINGS_FILE}
 
     # make base settings file with first line as the base output dir
-    runinfo_append(io_dict, ('basedir', current_run_folder))
+    runinfo_append(io_dict, ('basedir', current_run_dir))
 
     return io_dict
 

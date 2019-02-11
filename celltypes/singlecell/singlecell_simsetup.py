@@ -1,3 +1,4 @@
+import numpy as np
 import os
 
 from singlecell_constants import NETWORK_METHOD, DEFAULT_MEMORIES_NPZPATH, J_RANDOM_DELETE_RATIO, \
@@ -12,7 +13,8 @@ Conventions follow from Lang & Mehta 2014, PLOS Comp. Bio
 """
 
 
-def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath=DEFAULT_MEMORIES_NPZPATH, unfolding=False):
+def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath=DEFAULT_MEMORIES_NPZPATH,
+                        unfolding=False, random_mem=False, random_W=False):
     """
     gene_labels, celltype_labels, xi = load_singlecell_data()
     """
@@ -28,6 +30,16 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath
         assert npzpath != MEMS_UNFOLD
         xi, gene_labels, celltype_labels = load_npz_of_arr_genes_cells(npzpath, verbose=True)
         field_send = None
+    N = gene_labels.shape[0]
+    P = celltype_labels.shape[0]
+    # optional random XI (memories)
+    if random_mem:
+        print "WARNING: simsetup random_mem, half -1 half 1, size %d x %d" % (N, P)
+        xi = np.random.choice([-1, 1], (N, P))
+    # optional random W (cell-cell signalling)
+    if random_W:
+        print "WARNING: simsetup random_W, creating U[-1,1], size %d x %d" % (N, N)
+        field_send = np.random.rand(N, N)*2 - 1  # scale to Uniform [-1, 1]
     # data processing into sim object
     gene_labels = gene_labels.tolist()
     celltype_labels = celltype_labels.tolist()
@@ -44,8 +56,8 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath
     # store in sim object (currently just a dict)
     simsetup = {
         'memories_path': npzpath,
-        'N': len(gene_labels),
-        'P': len(celltype_labels),
+        'N': N,
+        'P': P,
         'GENE_LABELS': gene_labels,
         'CELLTYPE_LABELS': celltype_labels,
         'GENE_ID': gene_id,
@@ -57,7 +69,9 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath
         'ETA': eta,
         'NETWORK_METHOD': NETWORK_METHOD,
         'FIELD_SEND': field_send,
-        'bool_gpu': False
+        'bool_gpu': False,
+        'random_mem': random_mem,
+        'random_W': random_W
     }
     return simsetup
 
