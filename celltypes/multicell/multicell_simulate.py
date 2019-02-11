@@ -161,12 +161,12 @@ if __name__ == '__main__':
     random_W = False
     simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W)
 
-    n = 5  # global GRIDSIZE
-    steps = 5  # global NUM_LATTICE_STEPS
-    buildstring = "mono"  # mono/dual/memory_sequence/
+    n = 20  # global GRIDSIZE
+    steps = 20  # global NUM_LATTICE_STEPS
+    buildstring = "dual"  # mono/dual/memory_sequence/
     fieldstring = "no_exo_field"  # on/off/all/no_exo_field, note e.g. 'off' means send info about 'off' genes only
     fieldprune = 0.0  # amount of external field idx to randomly prune from each cell
-    ext_field_strength = 0.19                                                  # global EXT_FIELD_STRENGTH tunes exosomes AND sent field
+    ext_field_strength = 0.15                                                  # global EXT_FIELD_STRENGTH tunes exosomes AND sent field
     #app_field = construct_app_field_from_genes(IPSC_EXTENDED_GENES_EFFECTS, simsetup['GENE_ID'], num_steps=steps)        # size N x timesteps or None
     app_field = None
     app_field_strength = 0.0  # 100.0 global APP_FIELD_STRENGTH
