@@ -40,6 +40,12 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath
     if random_W:
         print "WARNING: simsetup random_W, creating U[-1,1], size %d x %d" % (N, N)
         field_send = np.random.rand(N, N)*2 - 1  # scale to Uniform [-1, 1]
+        # subsample block -- randomly remove 2/3 of columns representing non-signalling genes
+        """
+        print "WARNING: subsampling random W"
+        cols_to_remove = np.random.choice(N, int(N*0.67), replace=False)
+        field_send[:, cols_to_remove] = 0
+        """
     # data processing into sim object
     gene_labels = gene_labels.tolist()
     celltype_labels = celltype_labels.tolist()
