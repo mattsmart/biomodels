@@ -28,6 +28,7 @@ def run_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_st
     # Input checks
     n = len(lattice)
     assert n == len(lattice[0])  # work with square lattice for simplicity
+    assert SEARCH_RADIUS_CELL < n / 2.0  # to prevent signal double counting
     if app_field is not None:
         assert len(app_field) == simsetup['N']
         assert len(app_field[0]) == num_lattice_steps
