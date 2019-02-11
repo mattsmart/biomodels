@@ -148,7 +148,7 @@ def mc_sim(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring
         plt.clf()  #plt.show()
 
     # write cell state TODO: and data_dict to file
-    write_state_all_cells(lattice, io_dict['datadir'])
+    #write_state_all_cells(lattice, io_dict['datadir'])
     if state_int:
         write_grid_state_int(data_dict['grid_state_int'], io_dict['datadir'])
 
