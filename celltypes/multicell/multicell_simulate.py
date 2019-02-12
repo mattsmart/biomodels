@@ -113,7 +113,7 @@ def mc_sim(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring
     np.savetxt(io_dict['simsetupdir'] + os.sep + 'simsetup_W.txt', simsetup['FIELD_SEND'], delimiter=',', fmt='%.4f')
 
     # setup lattice IC
-    flag_uniplots = True
+    flag_uniplots = False
     if buildstring == "mono":
         type_1_idx = 0
         list_of_type_idx = [type_1_idx]
