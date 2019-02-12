@@ -14,8 +14,8 @@ from singlecell.singlecell_simsetup import singlecell_simsetup # N, P, XI, CELLT
 
 
 def run_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_string=EXOSTRING, field_remove_ratio=0.0,
-            ext_field_strength=EXT_FIELD_STRENGTH, app_field=None, app_field_strength=APP_FIELD_STRENGTH,
-            plot_period=LATTICE_PLOT_PERIOD, flag_uniplots=True, state_int=False):
+            ext_field_strength=EXT_FIELD_STRENGTH, app_field=None, app_field_strength=APP_FIELD_STRENGTH, beta=BETA,
+            plot_period=LATTICE_PLOT_PERIOD, flag_uniplots=False, state_int=False):
     """
     Form of data_dict:
         {'memory_proj_arr':
@@ -65,8 +65,10 @@ def run_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_st
             cell = lattice[loc[0]][loc[1]]
             if app_field is not None:
                 app_field_step = app_field[:, turn]
-            cell.update_with_signal_field(lattice, SEARCH_RADIUS_CELL, n, simsetup['J'], simsetup, exosome_string=exosome_string, ratio_to_remove=field_remove_ratio,
-                                          ext_field_strength=ext_field_strength, app_field=app_field_step, app_field_strength=app_field_strength)
+            cell.update_with_signal_field(lattice, SEARCH_RADIUS_CELL, n, simsetup['J'], simsetup, beta=beta,
+                                          exosome_string=exosome_string, ratio_to_remove=field_remove_ratio,
+                                          ext_field_strength=ext_field_strength, app_field=app_field_step,
+                                          app_field_strength=app_field_strength)
             if state_int:
                 data_dict['grid_state_int'][loc[0], loc[1], turn] = cell.get_current_label()
             proj = cell.get_memories_projection(simsetup['A_INV'], simsetup['XI'])
@@ -78,16 +80,16 @@ def run_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_st
         if turn % plot_period == 0:  # plot the lattice
             lattice_projection_composite(lattice, turn, n, io_dict['latticedir'], simsetup, state_int=state_int)
             reference_overlap_plotter(lattice, turn, n, io_dict['latticedir'], simsetup, state_int=state_int)
-            if flag_uniplots:
-                for mem_idx in memory_idx_list:
-                    lattice_uniplotter(lattice, turn, n, io_dict['latticedir'], mem_idx, simsetup)
+            #if flag_uniplots:
+            #    for mem_idx in memory_idx_list:
+            #        lattice_uniplotter(lattice, turn, n, io_dict['latticedir'], mem_idx, simsetup)
 
     return lattice, data_dict, io_dict
 
 
 def mc_sim(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING, exosome_string=EXOSTRING,
            field_remove_ratio=FIELD_REMOVE_RATIO, ext_field_strength=EXT_FIELD_STRENGTH, app_field=None,
-           app_field_strength=APP_FIELD_STRENGTH, plot_period=LATTICE_PLOT_PERIOD, state_int=False):
+           app_field_strength=APP_FIELD_STRENGTH, beta=BETA, plot_period=LATTICE_PLOT_PERIOD, state_int=False):
 
     # check args
     assert type(gridsize) is int
@@ -103,7 +105,7 @@ def mc_sim(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring
     info_list = [['memories_path', simsetup['memories_path']], ['script', 'multicell_simulate.py'], ['gridsize', gridsize],
                  ['num_steps', num_steps], ['buildstring', buildstring], ['fieldstring', exosome_string],
                  ['field_remove_ratio', field_remove_ratio], ['app_field_strength', app_field_strength],
-                 ['ext_field_strength', ext_field_strength], ['app_field', app_field], ['GLOBAL_BETA', BETA],
+                 ['ext_field_strength', ext_field_strength], ['app_field', app_field], ['beta', beta],
                  ['random_mem', simsetup['random_mem']], ['random_W', simsetup['random_W']]]
     runinfo_append(io_dict, info_list, multi=True)
     # conditionally store random mem and W
@@ -136,7 +138,7 @@ def mc_sim(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring
     lattice, data_dict, io_dict = \
         run_sim(lattice, num_steps, data_dict, io_dict, simsetup, exosome_string=exosome_string, field_remove_ratio=field_remove_ratio,
                 ext_field_strength=ext_field_strength, app_field=app_field, app_field_strength=app_field_strength,
-                plot_period=plot_period, flag_uniplots=flag_uniplots, state_int=state_int)
+                beta=beta, plot_period=plot_period, flag_uniplots=flag_uniplots, state_int=state_int)
 
     # check the data dict
     for data_idx, memory_idx in enumerate(data_dict['memory_proj_arr'].keys()):
@@ -171,9 +173,11 @@ if __name__ == '__main__':
     #app_field = construct_app_field_from_genes(IPSC_EXTENDED_GENES_EFFECTS, simsetup['GENE_ID'], num_steps=steps)        # size N x timesteps or None
     app_field = None
     app_field_strength = 0.0  # 100.0 global APP_FIELD_STRENGTH
+    beta = BETA
     plot_period = 1
     state_int = True
 
-    mc_sim(simsetup, gridsize=n, num_steps=steps, buildstring=buildstring, exosome_string=fieldstring,
-           field_remove_ratio=fieldprune, ext_field_strength=ext_field_strength, app_field=app_field,
-           app_field_strength=app_field_strength, plot_period=plot_period, state_int=state_int)
+    for ext_field_strength in [0.01, 0.02, 0.03, 0.04]:
+        mc_sim(simsetup, gridsize=n, num_steps=steps, buildstring=buildstring, exosome_string=fieldstring,
+               field_remove_ratio=fieldprune, ext_field_strength=ext_field_strength, app_field=app_field,
+               app_field_strength=app_field_strength, beta=beta, plot_period=plot_period, state_int=state_int)
