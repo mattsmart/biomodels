@@ -177,7 +177,6 @@ if __name__ == '__main__':
     state_int = True
     beta = BETA
 
-
     for beta in [0.01, 0.1, 0.5, 1.0, 1.5, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0, 4.0, 5.0, 10.0, 100.0]:
         mc_sim(simsetup, gridsize=n, num_steps=steps, buildstring=buildstring, exosome_string=fieldstring,
                field_remove_ratio=fieldprune, ext_field_strength=ext_field_strength, app_field=app_field,
