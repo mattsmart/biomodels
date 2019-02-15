@@ -47,7 +47,7 @@ Model parameters (for master genes: x, y):
 Model parameters (for slave genes: v_i):
     - alpha_i: 0<=alpha<=1, one for each slave gene, controls activation (1) or repression (0) by a master gene
     - beta_i: scales the production term for a slave gene
-    - tau_i: exponential degradation rate  
+    - tau_i: exponential degradation rate (choose to bury control gene eigenvalues)
 """
 
 
