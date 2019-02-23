@@ -89,8 +89,14 @@ if __name__ == '__main__':
     print J_EXTEND
     print "Difference in core block"
     print J - J_EXTEND[:N, :N]
-    # now test h_stabilizer chosen as the anchor genes
+    # ame comparison for correlations
+    print "A orig"
+    print A
+    print "A extend"
+    print A_EXTEND
 
+
+    # now test h_stabilizer chosen as the anchor genes
     print "\nNaive stabilizer"
     hstb_naive = np.sum(XI_EXTEND, axis=1)
     print hstb_naive
