@@ -19,8 +19,8 @@ def presets(preset_label):
         feedback = "constant"  # "constant", "hill", "step", "pwlinear", "tanh"
         params_dict = {
             'alpha_plus': 0.2,
-            'alpha_minus': 0.5,  # 0.5
-            'mu': 0.001,  # 0.01
+            'alpha_minus': 1.0,  # 0.5
+            'mu': 0.0001,  # 0.01
             'a': 1.0,
             'b': 0.8,
             'c': 0.95,  # 1.2
@@ -61,10 +61,10 @@ def presets(preset_label):
         feedback = "hill"  # "constant", "hill", "step", "pwlinear", "tanh"
         params_dict = {
             'alpha_plus': 0.2,
-            'alpha_minus': 0.5,  # 0.5
-            'mu': 0.001,  # 0.01
+            'alpha_minus': 1.0,  # 0.5
+            'mu': 0.0001,  # 0.01
             'a': 1.0,
-            'b': 0.8,
+            'b': 1.0,
             'c': 0.95,  # 1.2
             'N': 100.0,  # 100.0
             'v_x': 0.0,

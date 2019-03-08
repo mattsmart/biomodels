@@ -296,7 +296,11 @@ class Params(object):
         #params_shift_list = self.params_list()
         params_dict_new = dict(self.params_dict)
         for k,v in new_values.iteritems():
-            params_dict_new[k] = v
+            if k == 'gamma':
+                params_dict_new['mult_inc'] = v
+                params_dict_new['mult_dec'] = v
+            else:
+                params_dict_new[k] = v
         if feedback is None:
             feedback = self.feedback
         return Params(params_dict_new, self.system, feedback=feedback)

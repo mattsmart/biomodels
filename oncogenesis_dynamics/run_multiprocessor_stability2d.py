@@ -10,27 +10,29 @@ from presets import presets
 from stability_diagram import plot_fp_count_2d, get_fp_count_2d, get_gap_data_2d, plot_gap_data_2d
 
 # CONSTANTS
-NUM_PROCESSES = -1 + cpu_count()
+NUM_PROCESSES = -1 + cpu_count()  # 16
 
 # DYNAMICS PARAMETERS
+#params = presets('preset_xyz_constant')
 params = presets('preset_xyz_tanh')
 
+
 # ARGS TO PASS
-param_1_name = "b"
-param_1_start = 0.95
-param_1_stop = 1.05
-param_1_steps = 63
+param_1_name = "gamma"  # b
+param_1_start = 1.0  # 0.2
+param_1_stop = 5.0  # 2.0
+param_1_steps = 129  # 8*32
 param_1_range = np.linspace(param_1_start, param_1_stop, param_1_steps)
 param_2_name = "c"
-param_2_start = 0.95 #0.7
-param_2_stop = 1.05 #0.95
-param_2_steps = 60
+param_2_start = 0.4 #0.7
+param_2_stop = 2.0 #0.95
+param_2_steps = 120  # 8*30
 param_2_range = np.linspace(param_2_start, param_2_stop, param_2_steps)
 
 #param_name_to_split = 2
 #assert param_name_to_split in [1,2]
 
-data_id = "fpcount"  # gapdist or fpcount
+data_id = "gapdist"  # gapdist or fpcount
 flag_physicalfp = True
 flag_stablefp = True
 flag_plot = True
