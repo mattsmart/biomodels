@@ -177,7 +177,8 @@ def plot_jump_data_2d(params_general, param_1_name, param_1_range, param_2_name,
 
 
 def get_fp_count_2d(params_general, param_1_name, param_1_range, param_2_name, param_2_range,
-                    flag_stable=True, flag_phys=True, flag_write=True, figname_mod=None):
+                    flag_stable=True, flag_phys=True, flag_sum=True, flag_write=True, figname_mod=None):
+    print "Running get_fp_count_2d with flag_sum =", flag_sum, "flag_phys =", flag_phys, "flag_phys =", flag_phys
     if flag_stable:
         fp_subidx = 0
         filemod = "Stable"
@@ -197,8 +198,12 @@ def get_fp_count_2d(params_general, param_1_name, param_1_range, param_2_name, p
         for j, p2 in enumerate(param_2_range):
             param_mod_dict = {param_1_name:p1, param_2_name: p2}
             params_step = params_general.mod_copy(param_mod_dict)
-            fp_list = fpcollector(params_step)[fp_subidx]
-            fp_count_array[i, j] = len(fp_list)
+            if flag_sum:
+                fp_list = fpcollector(params_step)
+                fp_count_array[i, j] = len(fp_list[0]) + len(fp_list[1])
+            else:
+                fp_list = fpcollector(params_step)[fp_subidx]
+                fp_count_array[i, j] = len(fp_list)
         print i, j, p1, p2
     if flag_write:
         write_matrix_data_and_idx_vals(fp_count_array, param_1_range, param_2_range, filestr, param_1_name, param_2_name, output_dir=OUTPUT_DIR)
@@ -209,24 +214,54 @@ def get_fp_count_2d(params_general, param_1_name, param_1_range, param_2_name, p
 
 
 def plot_fp_count_2d(fp_count_array, params_general, param_1_name, param_1_range, param_2_name,
-                     param_2_range, figname_mod="", flag_stable=True, flag_phys=True, flag_show=False):
+                     param_2_range, figname_mod="", flag_stable=True, flag_phys=True, flag_sum=True, flag_show=False):
     stable_str = 'unstable'
     if flag_stable:
         stable_str = 'stable'
-    if flag_phys:
-        plt_title = "Physical and %s FP count (vary %s, %s) %dx%d" % (stable_str, param_1_name, param_2_name, len(fp_count_array), len(fp_count_array[0]))
-        filestr = 'physfp_count_2d_%s_%s_%s_%s.png' % (stable_str, param_1_name, param_2_name, figname_mod)
+    if flag_sum:
+        plt_title = "Total physical FP count (vary %s, %s) %dx%d" % (
+        param_1_name, param_2_name, len(fp_count_array), len(fp_count_array[0]))
+        filestr = 'totalfp_count_2d_%s_%s_%s_%s.png' % (stable_str, param_1_name, param_2_name, figname_mod)
     else:
-        plt_title = "%s FP count (vary %s, %s) %dx%d" % (stable_str, param_1_name, param_2_name, len(fp_count_array), len(fp_count_array[0]))
-        filestr = 'fp_count_2d_%s_%s_%s_%s.png' % (stable_str, param_1_name, param_2_name, figname_mod)
+        if flag_phys:
+            plt_title = "Physical and %s FP count (vary %s, %s) %dx%d" % (stable_str, param_1_name, param_2_name, len(fp_count_array), len(fp_count_array[0]))
+            filestr = 'physfp_count_2d_%s_%s_%s_%s.png' % (stable_str, param_1_name, param_2_name, figname_mod)
+        else:
+            plt_title = "%s FP count (vary %s, %s) %dx%d" % (stable_str, param_1_name, param_2_name, len(fp_count_array), len(fp_count_array[0]))
+            filestr = 'fp_count_2d_%s_%s_%s_%s.png' % (stable_str, param_1_name, param_2_name, figname_mod)
 
-    plt.imshow(fp_count_array, cmap='seismic', interpolation="none", origin='lower', aspect='auto',
-               extent=[param_2_range[0], param_2_range[-1], param_1_range[0], param_1_range[-1]])
+    plt.imshow(fp_count_array, cmap='seismic', interpolation="none", origin='lower', aspect='auto', vmax=min(np.max(fp_count_array), 5))
     ax = plt.gca()
     ax.grid(which='major', axis='both', linestyle='-')
     ax.set_xlabel(param_2_name)
     ax.set_ylabel(param_1_name)
     plt.title(plt_title)
+    # determine if log axis or not
+    logx = False
+    logy = False
+    numxticks = 7  # may need to calibrate axis spacings if log plot... then change 10^{%.2f} to 10^{%.d}
+    numyticks = 7
+    if len(param_2_range) > 2:
+        if (param_2_range[1] - param_2_range[0]) != (param_2_range[2] - param_2_range[1]):
+            logx = True
+    if len(param_1_range) > 2:
+        if (param_1_range[1] - param_1_range[0]) != (param_1_range[2] - param_1_range[1]):
+            logy = True
+
+    # axes ticks
+    points_between_ticks_2 = max(int(len(param_2_range) / float(numxticks)), 1)
+    ax.set_xticks([i for i, xval in enumerate(param_2_range) if i % points_between_ticks_2 == 0])
+    points_between_ticks_1 = max(int(len(param_1_range) / float(numyticks)), 1)
+    ax.set_yticks([i for i, yval in enumerate(param_1_range) if i % points_between_ticks_1 == 0])
+    if logx:
+        ax.set_xticklabels([r'$10^{%.2f}$' % np.log10(xval) for i, xval in enumerate(param_2_range) if i % points_between_ticks_2 == 0])
+    else:
+        ax.set_xticklabels(['%.3f' % xval for i, xval in enumerate(param_2_range) if i % points_between_ticks_2 == 0])
+    if logy:
+        ax.set_yticklabels([r'$10^{%.2f}$' % np.log10(yval) for i, yval in enumerate(param_1_range) if i % points_between_ticks_1 == 0])
+    else:
+        ax.set_yticklabels(['%.3f' % yval for i, yval in enumerate(param_1_range) if i % points_between_ticks_1 == 0])
+
     # create table of params
     plot_table_params(ax, params_general, loc='best', bbox=(1.2, 0.2, 0.1, 0.75))
     #plt.subplots_adjust(left=0.2, bottom=0.2)
