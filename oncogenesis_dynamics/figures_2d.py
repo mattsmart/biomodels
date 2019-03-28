@@ -52,7 +52,7 @@ def figure_2d_gapdist(gap_data_2d, params_general, param_1_name, param_1_range, 
     # custom cmap for gap diagram
     if params_general.feedback == 'constant':
         colours = Z_TO_COLOUR_ORIG
-    xyz_cmap_gradient = LinearSegmentedColormap.from_list('xyz_cmap_gradient', colours, N=100)
+    xyz_cmap_gradient = LinearSegmentedColormap.from_list('xyz_cmap_gradient', colours, N=100000)
     # normalize
     N = params_general.N
     gap_data_2d = gap_data_2d / float(N)
