@@ -5,6 +5,7 @@ from multiprocessing import cpu_count
 from data_io import write_fpt_and_params
 from firstpassage import fast_fp_times, fpt_histogram
 from params import Params
+from formulae import map_init_name_to_init_cond
 from presets import presets
 
 
@@ -16,6 +17,8 @@ def fpt_argparser():
                         help='output filename modifier', default="main")
     parser.add_argument('-p', '--proc', metavar='P', type=str,
                         help='number of processes to distrbute job over', default=cpu_count())
+    parser.add_argument('-i', '--init_name', metavar='I', type=str,
+                        help='init name to map to init cond (e.g. "z_close")', default="x_all")
     return parser.parse_args()
 
 
@@ -26,34 +29,12 @@ if __name__ == "__main__":
     suffix = args.suffix
 
     # SCRIPT PARAMETERS
-    plot_flag = True
+    plot_flag = False
 
     # DYNAMICS PARAMETERS
-    """
-    system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
-    feedback = "hill"      # "constant", "hill", "step", "pwlinear"
-    params_dict = {
-        'alpha_plus': 0.2,
-        'alpha_minus': 0.5,  # 0.5
-        'mu': 0.001,  # 0.01
-        'a': 1.0,
-        'b': 0.8,
-        'c': 0.95,  # 1.2
-        'N': 10000.0,  # 100.0
-        'v_x': 0.0,
-        'v_y': 0.0,
-        'v_z': 0.0,
-        'mu_base': 0.0,
-        'c2': 0.0,
-        'v_z2': 0.0
-    }
-    params = Params(params_dict, system, feedback=feedback)
-    """
-    params = presets('preset_xyz_constant')  # TODO generalize preset in main args
-    params = params.mod_copy({'N': 20})
-
-    init_cond = np.zeros(params.numstates, dtype=int)  # TODO init cond from formulae builder
-    init_cond[0] = int(params.N)
+    params = presets('preset_xyz_tanh')  # TODO generalize preset in main args
+    #params = params.mod_copy({'N': 100})
+    init_cond = map_init_name_to_init_cond(params, args.init_name)
 
     fp_times = fast_fp_times(ensemble, init_cond, params, num_processes)
     write_fpt_and_params(fp_times, params, filename="fpt_%s_ens%d" % (params.system, ensemble), filename_mod=suffix)

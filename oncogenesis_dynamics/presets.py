@@ -22,8 +22,8 @@ def presets(preset_label):
             'alpha_minus': 1.0,  # 0.5
             'mu': 0.0001,  # 0.01
             'a': 1.0,
-            'b': 0.8,
-            'c': 0.95,  # 1.2
+            'b': 0.8,  # 0.8 and 1.2
+            'c': 0.9,  # 0.9 and 1.1
             'N': 100.0,  # 100.0
             'v_x': 0.0,
             'v_y': 0.0,
@@ -62,7 +62,7 @@ def presets(preset_label):
         params_dict = {
             'alpha_plus': 0.2,
             'alpha_minus': 1.0,  # 0.5
-            'mu': 0.5,  # 0.01
+            'mu': 0.0001,  # 0.01
             'a': 1.0,
             'b': 0.8,
             'c': 0.95,  # 1.2
