@@ -105,7 +105,7 @@ COLOURS_DARK_BLUE = [X_DARK, BLUE, Z_DARK]
 # bistability phase diagram colours
 Y_LOW = tuple([0.5 * (DEFAULT_X_COLOUR[idx] + DEFAULT_Y_COLOUR[idx]) for idx in xrange(3)])
 Y_HIGH = tuple([0.5 * (DEFAULT_Y_COLOUR[idx] + DEFAULT_Z_COLOUR[idx]) for idx in xrange(3)])
-Z_TO_COLOUR_BISTABLE_WIDE = [(0.0, GREY),             (1e-9, DEFAULT_X_COLOUR),   (0.15, Y_LOW),
+Z_TO_COLOUR_BISTABLE_WIDE = [(0.0, GREY),             (1e-11, DEFAULT_X_COLOUR),   (0.15, Y_LOW),
                              (0.5, DEFAULT_Y_COLOUR), (0.85, Y_HIGH),             (1.0, DEFAULT_Z_COLOUR)]
 Z_TO_COLOUR_BISTABLE = [(0.0, GREY), (1e-9, DEFAULT_X_COLOUR), (0.5, DEFAULT_Y_COLOUR), (1.0, DEFAULT_Z_COLOUR)]
 Z_TO_COLOUR_ORIG = [(0.0, DEFAULT_X_COLOUR), (0.5, DEFAULT_Y_COLOUR), (1.0, DEFAULT_Z_COLOUR)]

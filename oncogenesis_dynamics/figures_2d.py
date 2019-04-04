@@ -119,13 +119,13 @@ def figure_2d_fpcount(fp_data_2d, params_general, param_1_name, param_1_range, p
 
 
 if __name__ == "__main__":
-    gapdist = False
-    fpcount = True
+    gapdist = True
+    fpcount = False
     basedir = "figures"
 
     # loaf data
     if gapdist:
-        figdir = basedir + os.sep + "fig4" + os.sep + "b_c_optionAdata" + os.sep + "b_vs_c_feedback_mu0pt5_0210"
+        figdir = basedir + os.sep + "fig4" + os.sep + "b_c_optionWiderdata" + os.sep + "b_vs_c_feedback_WIDER_mu0pt5_0210" + os.sep + "gapdist"
         row_name = 'c'  # aka param 2 is row
         col_name = 'b'  # aka param 1 is col
         datapath = figdir + os.sep + "gapdist2d_full.txt"
@@ -140,13 +140,13 @@ if __name__ == "__main__":
         print params_general
         # truncate block
         gap_data_2d, param_1_range, param_2_range = truncate_data(gap_data_2d, param_1_range, param_2_range,
-                                                                  low_1=0.2, low_2=0.2, high_2=1.4)
+                                                                  low_1=0.2, low_2=0.2, high_1=2.0, high_2=2.0)
 
         figure_2d_gapdist(gap_data_2d, params_general, param_1_name, param_1_range, param_2_name, param_2_range,
                           axis_gap="z", figname_mod="", flag_show=True, outdir=figdir)
 
     if fpcount:
-        figdir = basedir + os.sep + "fig4" + os.sep + "b_c_optionAdata" + os.sep + "b_vs_c_feedback_mu0pt5_0210"
+        figdir = basedir + os.sep + "fig4" + os.sep + "b_c_optionWiderdata" + os.sep + "b_vs_c_feedback_WIDER_mu0pt5_0210" + os.sep + "gapdist"
         row_name = 'c'  # aka param 2 is row
         col_name = 'b'  # aka param 1 is col
         datapath = figdir + os.sep + "fpPhysStableSumfpcount2d_full.txt"
@@ -161,7 +161,7 @@ if __name__ == "__main__":
         print params_general
         # truncate block
         fpsum_data_2d, param_1_range, param_2_range = truncate_data(fpsum_data_2d, param_1_range, param_2_range,
-                                                                  low_1=0.2, low_2=0.2, high_1=1.65, high_2=1.205)
+                                                                  low_1=0.2, low_2=0.2, high_1=1.65, high_2=1.405)
 
         figure_2d_fpcount(fpsum_data_2d, params_general, param_1_name, param_1_range, param_2_name, param_2_range,
                           figname_mod="", flag_show=True, outdir=figdir)
