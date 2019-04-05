@@ -185,6 +185,53 @@ def stoch_gillespie(init_cond, num_steps, params, fpt_flag=False, establish_flag
     return r, times_stoch
 
 
+def stoch_gillespie_lowmem(init_cond, params, init_time=0, fpt_flag=False, establish_flag=False):
+    assert not (fpt_flag and establish_flag)
+
+    update_dict = params.update_dict
+    fpt_rxn_idx = len(update_dict.keys()) - 1  # always use last element as special FPT event
+
+    current_state = np.array(init_cond)
+    current_time = init_time
+    exit_flag = False
+
+    while not exit_flag:
+        r1 = random()  # used to determine time of next reaction
+        r2 = random()  # used to partition the probabilities of each reaction
+
+        # compute propensity functions (alpha) and the partitions for all 12 transitions
+        alpha = reaction_propensities_lowmem(current_state, params, fpt_flag=fpt_flag)
+        alpha_partitions = np.zeros(len(alpha) + 1)
+        alpha_sum = 0.0
+        for i in xrange(len(alpha)):
+            alpha_sum += alpha[i]
+            alpha_partitions[i + 1] = alpha_sum
+
+        # find time to first reaction
+        tau = np.log(1 / r1) / alpha_sum  # remove divison to neg? faster?
+        current_time += tau
+
+        # DIRECT SEARCH METHOD (faster for 14 or fewer rxns so far)
+        r2_scaled = alpha_sum * r2
+        for rxn_idx in xrange(len(alpha)):
+            if alpha_partitions[rxn_idx] <= r2_scaled < alpha_partitions[rxn_idx + 1]:  # i.e. rxn_idx has occurred
+                pop_updates = update_dict[rxn_idx]
+                current_state += pop_updates
+                break
+
+        # fpt exit conditions
+        if fpt_flag:
+            if fpt_rxn_idx == rxn_idx:
+                exit_flag = True
+
+        # establish exit condition
+        if establish_flag:
+            if current_state[-1] >= params.N:
+                exit_flag = True
+
+    return current_state, current_time
+
+
 def stoch_bnb(init_cond, num_steps, params, fpt_flag=False, establish_flag=False):
     # uses modified version of BNB algorithm for evolutionary dynamics (2012)
     # - exact algo assumes constant linear birth and death rates, here our death rates are functions of the state
