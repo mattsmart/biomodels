@@ -50,7 +50,8 @@ def figure_fpt_multihist(multi_fpt_list, labels, figname_mod="def", bin_linspace
         max_log = np.ceil(np.max(np.log10(multi_fpt_list)))
         bins = np.logspace(0.1, max_log, 100)
     if flag_ylog10:
-        ax.set_yscale("log", nonposx='clip')
+        #ax.set_yscale("log", nonposx='clip')
+        ax.set_yscale("log")
 
     # plot calls
     if flag_disjoint:
