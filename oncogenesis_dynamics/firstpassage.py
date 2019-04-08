@@ -97,9 +97,13 @@ def fast_mean_fpt_varying(param_vary_name, param_vary_values, params, num_proces
     return mean_fpt_varying, sd_fpt_varying
 
 
-def fpt_histogram(fpt_list, params, figname_mod="", flag_show=False, flag_norm=True, flag_xlog10=False, flag_ylog10=False, fs=12):
+def fpt_histogram(fpt_list, params, figname_mod="", flag_show=False, flag_norm=True, flag_xlog10=False,
+                  flag_ylog10=False, fs=16, outdir=OUTPUT_DIR, years=True):
     ensemble_size = len(fpt_list)
-    bins = np.linspace(np.min(fpt_list), np.max(fpt_list), 50) #50)
+
+    if years:
+        fpt_list = np.array(fpt_list)/365.0
+    bins = np.linspace(np.min(fpt_list), np.max(fpt_list), 50)
     #bins = np.arange(0, 3*1e4, 50)  # to plot against FSP
 
     # normalize
@@ -120,7 +124,8 @@ def fpt_histogram(fpt_list, params, figname_mod="", flag_show=False, flag_norm=T
         max_log = np.ceil(np.max(np.log10(fpt_list)))  # TODO check this matches multihist
         bins = np.logspace(0.1, max_log, 100)
     if flag_ylog10:
-        ax.set_yscale("log", nonposx='clip')
+        #ax.set_yscale("log", nonposx='clip')
+        ax.set_yscale("log")
 
     # plot
     plt.hist(fpt_list, bins=bins, alpha=0.6, weights=weights)
@@ -132,7 +137,10 @@ def fpt_histogram(fpt_list, params, figname_mod="", flag_show=False, flag_norm=T
 
     # labels
     plt.title('First-passage time histogram (%d runs) - %s' % (ensemble_size, params.system), fontsize=fs)
-    ax.set_xlabel('First-passage time (cell division timescale)', fontsize=fs)
+    if years:
+        ax.set_xlabel('First-passage time (years)', fontsize=fs)
+    else:
+        ax.set_xlabel('First-passage time (cell division timescale)', fontsize=fs)
     ax.set_ylabel(y_label, fontsize=fs)
     ax.tick_params(labelsize=fs)
     # plt.locator_params(axis='x', nbins=4)
@@ -141,7 +149,7 @@ def fpt_histogram(fpt_list, params, figname_mod="", flag_show=False, flag_norm=T
     plot_table_params(ax, params)
     # save and show
     plt_save = "fpt_histogram" + figname_mod
-    plt.savefig(OUTPUT_DIR + sep + plt_save + '.pdf', bbox_inches='tight')
+    plt.savefig(outdir + sep + plt_save + '.pdf', bbox_inches='tight')
     if flag_show:
         plt.show()
     return ax

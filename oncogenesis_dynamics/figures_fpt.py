@@ -4,20 +4,25 @@ import os
 
 from constants import OUTPUT_DIR, COLOURS_DARK_BLUE
 from data_io import read_matrix_data_and_idx_vals, read_params, read_fpt_and_params
+from firstpassage import fpt_histogram
 
 
 def subsample_data():
     # TODO
+    fpt_data_subsampled = 0
     return fpt_data_subsampled
 
 
-def figure_fpt_multihist(multi_fpt_list, labels, figname_mod="def", bin_linspace=80, colours=COLOURS_DARK_BLUE,
+def figure_fpt_multihist(multi_fpt_list, labels, figname_mod="def", bin_linspace=80, fs=16, colours=COLOURS_DARK_BLUE,
                          figsize=(8,6), ec='k', lw=0.5, flag_norm=False, flag_xlog10=False, flag_ylog10=False,
-                         flag_disjoint=False, flag_show=True, outdir=OUTPUT_DIR):
+                         flag_disjoint=False, flag_show=True, outdir=OUTPUT_DIR, years=True):
 
     # resize fpt lists if not all same size (to the min size)
     fpt_lengths = [len(fpt) for fpt in multi_fpt_list]
     ensemble_size = np.min(fpt_lengths)
+
+    if years:
+        multi_fpt_list = [np.array(arr) / 365.0 for arr in multi_fpt_list]
 
     # cleanup data to same size
     if sum(fpt_lengths - ensemble_size) > 0:
@@ -59,7 +64,10 @@ def figure_fpt_multihist(multi_fpt_list, labels, figname_mod="def", bin_linspace
 
     # labels
     plt.title('First-passage time histogram (%d runs)' % (ensemble_size), fontsize=fs)
-    ax.set_xlabel('First-passage time (cell division timescale)', fontsize=fs)
+    if years:
+        ax.set_xlabel('First-passage time (years)', fontsize=fs)
+    else:
+        ax.set_xlabel('First-passage time (cell division timescale)', fontsize=fs)
     ax.set_ylabel(y_label, fontsize=fs)
     plt.legend(loc='upper right', fontsize=fs)
     ax.tick_params(labelsize=fs)
@@ -80,22 +88,31 @@ if __name__ == "__main__":
     dbdir = basedir + os.sep + "data_fpt"
 
     if multihist:
-        # TODO
-        print 'generating multihist figure'
+        # plot settings
         flag_norm = True
-        #dbdir_c80 = dbdir + "fpt_feedback_z_ens1040_c0.80_params"
-        c80_header = "fpt_feedback_z_ens1040_c80_N100"
-        c88_header = "fpt_feedback_z_ens1040_c88_N100"
-        c95_header = "fpt_feedback_z_ens1040_c95_N100"
-        fp_times_xyz_c80, params_a = read_fpt_and_params(dbdir, "%s_data.txt" % c80_header, "%s_params.csv" % c80_header)
-        fp_times_xyz_c88, params_b = read_fpt_and_params(dbdir, "%s_data.txt" % c88_header, "%s_params.csv" % c88_header)
-        fp_times_xyz_c95, params_c = read_fpt_and_params(dbdir, "%s_data.txt" % c95_header, "%s_params.csv" % c95_header)
-        fpt_histogram(fp_times_xyz_c88, params_b, flag_ylog10=False, figname_mod="_xyz_feedbackz_N10k_c88_may25")
-        plt.close('all')
-        fpt_histogram(fp_times_xyz_c88, params_b, flag_ylog10=True, figname_mod="_xyz_feedbackz_N10k_c88_may25_logy")
-        plt.close('all')
-        multi_fpt = [fp_times_xyz_c80, fp_times_xyz_c88, fp_times_xyz_c95]
-        labels = ("c=0.80 (Region I)", "c=0.88 (Region IV)", "c=0.95 (Region III)")
-        fpt_histogram_multi(multi_fpt, labels, flag_show=True, flag_ylog10=False, flag_norm=flag_norm, fs=FS, ec=EC, lw=LW, figsize=FIGSIZE)
-        fpt_histogram_multi(multi_fpt, labels, flag_show=True, flag_ylog10=True, flag_norm=flag_norm, fs=FS, ec=EC, lw=LW, figsize=FIGSIZE)
-        fpt_histogram_multi(multi_fpt, labels, flag_show=True, flag_ylog10=True, flag_norm=False, fs=FS, ec=EC, lw=LW, figsize=FIGSIZE, flag_disjoint=True)
+        fs = 16
+        ec = 'k'
+        lw = 0.5
+        figsize = (8, 6)
+        # data setup
+        hist_headers = ("fpt_TR_ens2064", "fpt_BR_ens2064", "fpt_BL2_ens1024")
+        hist_labels = ("b=0.80, c=1.10 (Region II)", "b=1.20, c=1.10 (Region III)", "b=0.80, c=0.95 (Region IV)")
+        hist_data_and_params = [read_fpt_and_params(dbdir, "%s_data.txt" % header, "%s_params.csv" % header)
+                                for header in hist_headers]
+        hist_data = [pair[0] for pair in hist_data_and_params]
+        hist_params = [pair[1] for pair in hist_data_and_params]
+        num_hists = len(hist_headers)
+        # plot indiv histograms
+        # TODO port local custom single hist plotter function from firstpassage.py
+        for i, header in enumerate(hist_headers):
+            fpt_histogram(hist_data[i], hist_params[i], flag_ylog10=False, figname_mod="_%s" % header, outdir=basedir)
+            plt.close('all')
+            fpt_histogram(hist_data[i], hist_params[i], flag_ylog10=True, figname_mod="_%s_logy" % header, outdir=basedir)
+            plt.close('all')
+        # plot various multihists
+        figure_fpt_multihist(hist_data, hist_labels, figname_mod="def", flag_show=True, flag_ylog10=False,
+                             flag_norm=flag_norm, fs=fs, ec=ec, lw=lw, figsize=figsize, outdir=basedir)
+        figure_fpt_multihist(hist_data, hist_labels, figname_mod="logy", flag_show=True, flag_ylog10=True,
+                             flag_norm=flag_norm, fs=fs, ec=ec, lw=lw, figsize=figsize, outdir=basedir)
+        figure_fpt_multihist(hist_data, hist_labels, figname_mod="logy_nonorm", flag_show=True, flag_ylog10=True,
+                             flag_norm=False, fs=fs, ec=ec, lw=lw, figsize=figsize, flag_disjoint=True, outdir=basedir)
