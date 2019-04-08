@@ -89,6 +89,7 @@ if __name__ == "__main__":
     dbdir = basedir + os.sep + "data_fpt"
 
     if multihist:
+        # TODO improve presentation by having cell divison axis timescale [2,4,5...]*10^6 etc but then say mean time in years in caption
         # plot settings
         flag_norm = True
         fs = 16
