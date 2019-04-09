@@ -59,14 +59,14 @@ if __name__ == "__main__":
 
     # SCRIPT PARAMETERS
     plot_flag = False
-    establish_switch = True
+    establish_switch = False
 
     if param_to_vary == 'N':
         #param_set = [10,20,30,40,50,60,70,80,90,100,200,300,400,500,1000,2000,3000,4000,5000,10000]
         param_set = np.logspace(2.0, 7.0, num=size_linspace)
         param_set = [np.round(a) for a in param_set]
     elif param_to_vary == 'c':
-        param_set = np.linspace(0.75, 1.0, num=size_linspace)
+        param_set = np.linspace(0.75, 1.25, num=size_linspace)
     elif param_to_vary == 'mult_inc':
         param_set = np.linspace(1.0, 10.0, num=size_linspace)
     elif param_to_vary == 'mult_dec':
