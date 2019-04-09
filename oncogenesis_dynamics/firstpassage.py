@@ -97,6 +97,17 @@ def fast_mean_fpt_varying(param_vary_name, param_vary_values, params, num_proces
     return mean_fpt_varying, sd_fpt_varying
 
 
+def sample_exponential(size, scale):
+    return np.random.exponential(scale=scale, size=size)
+
+
+def exponential_scale_estimate(fpt_data):
+    """
+    Returns maximum likelihood estimator for rate 'a', from exponential: a*e^(-at) distribution
+    """
+    return len(fpt_data) / np.sum(fpt_data)
+
+
 def fpt_histogram(fpt_list, params, figname_mod="", flag_show=False, flag_norm=True, flag_xlog10=False,
                   flag_ylog10=False, fs=16, outdir=OUTPUT_DIR, years=True):
     ensemble_size = len(fpt_list)

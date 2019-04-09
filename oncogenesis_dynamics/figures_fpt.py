@@ -4,7 +4,7 @@ import os
 
 from constants import OUTPUT_DIR, COLOURS_DARK_BLUE
 from data_io import read_matrix_data_and_idx_vals, read_params, read_fpt_and_params
-from firstpassage import fpt_histogram
+from firstpassage import fpt_histogram, exponential_scale_estimate, sample_exponential
 
 
 def subsample_data():
@@ -111,10 +111,22 @@ if __name__ == "__main__":
             plt.close('all')
             fpt_histogram(hist_data[i], hist_params[i], flag_ylog10=True, figname_mod="_%s_logy" % header, outdir=basedir)
             plt.close('all')
-        # plot various multihists
+            # add model comparisons
+            exp_scale = exponential_scale_estimate(hist_data[i])
+            model_data = sample_exponential(len(hist_data[i]), 1/exp_scale)  # note diff convention inverse
+            print i, header, model_data.shape, exp_scale, 1/exp_scale
+            data_vs_model = [hist_data[i], model_data]
+            data_vs_model_labels = [hist_labels[i], r'$\frac{1}{\beta}e^{-t/\beta}, \beta=%.2e$ years' % (1/exp_scale / 365)]
+            figure_fpt_multihist(data_vs_model, data_vs_model_labels, figname_mod="compare_model%d" % i, flag_show=True,
+                                 flag_ylog10=True, flag_norm=flag_norm, fs=fs, ec=ec, lw=lw, figsize=figsize, outdir=basedir)
+            plt.close()
+
+        # plot various multihists from data
         figure_fpt_multihist(hist_data, hist_labels, figname_mod="def", flag_show=True, flag_ylog10=False,
                              flag_norm=flag_norm, fs=fs, ec=ec, lw=lw, figsize=figsize, outdir=basedir)
+        plt.close()
         figure_fpt_multihist(hist_data, hist_labels, figname_mod="logy", flag_show=True, flag_ylog10=True,
                              flag_norm=flag_norm, fs=fs, ec=ec, lw=lw, figsize=figsize, outdir=basedir)
+        plt.close()
         figure_fpt_multihist(hist_data, hist_labels, figname_mod="logy_nonorm", flag_show=True, flag_ylog10=True,
                              flag_norm=False, fs=fs, ec=ec, lw=lw, figsize=figsize, flag_disjoint=True, outdir=basedir)
