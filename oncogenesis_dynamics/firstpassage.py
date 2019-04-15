@@ -11,7 +11,7 @@ from formulae import stoch_gillespie, stoch_tauleap_lowmem, stoch_tauleap, get_p
     map_init_name_to_init_cond, stoch_gillespie_lowmem
 from params import Params
 from presets import presets
-from plotting import plot_table_params
+from plotting import plot_table_params, plot_simplex2D
 
 
 def get_fpt(ensemble, init_cond, params, num_steps=1000000, establish_switch=False, brief=True, tauleap=False):
@@ -23,6 +23,7 @@ def get_fpt(ensemble, init_cond, params, num_steps=1000000, establish_switch=Fal
         fpt_flag = True
         establish_flag = False
     fp_times = np.zeros(ensemble)
+    fp_states = np.zeros((ensemble, params.numstates))
     for i in xrange(ensemble):
         if brief:
             if tauleap:
@@ -35,17 +36,19 @@ def get_fpt(ensemble, init_cond, params, num_steps=1000000, establish_switch=Fal
             species, times = stoch_gillespie(init_cond, num_steps, params, fpt_flag=fpt_flag,
                                              establish_flag=establish_flag)
             times_end = times[-1]
+            species_end = species[-1, :]
             # plotting
             #plt.plot(times, species)
             #plt.show()
         fp_times[i] = times_end
+        fp_states[i, :] = species_end
         if establish_switch:
             print "establish time is", fp_times[i]
-    return fp_times
+    return fp_times, fp_states
 
 
 def get_mean_fpt(init_cond, params, samplesize=32, establish_switch=False):
-    fpt = get_fpt(samplesize, init_cond, params, establish_switch=establish_switch)
+    fpt, fpt_states = get_fpt(samplesize, init_cond, params, establish_switch=establish_switch)
     return np.mean(fpt)
 
 
@@ -79,9 +82,11 @@ def fast_fp_times(ensemble, init_cond, params, num_processes, num_steps='default
     print "TIMER:", time.time() - t0
 
     fp_times = np.zeros(ensemble)
-    for i, result in enumerate(results):
-        fp_times[i*subensemble:(i+1)*subensemble] = result
-    return fp_times
+    fp_states = np.zeros((ensemble, params.numstates))
+    for i, pair in enumerate(results):
+        fp_times[i*subensemble:(i+1)*subensemble] = pair[0]
+        fp_states[i*subensemble:(i+1)*subensemble, :] = pair[1]
+    return fp_times, fp_states
 
 
 def fast_mean_fpt_varying(param_vary_name, param_vary_values, params, num_processes, init_name="x_all", samplesize=30, establish_switch=False):
@@ -91,7 +96,7 @@ def fast_mean_fpt_varying(param_vary_name, param_vary_values, params, num_proces
     for idx, pv in enumerate(param_vary_values):
         params_step = params.mod_copy( {param_vary_name: pv} )
         init_cond = map_init_name_to_init_cond(params, init_name)
-        fp_times = fast_fp_times(samplesize, init_cond, params_step, num_processes, establish_switch=establish_switch)
+        fp_times, fp_states = fast_fp_times(samplesize, init_cond, params_step, num_processes, establish_switch=establish_switch)
         mean_fpt_varying[idx] = np.mean(fp_times)
         sd_fpt_varying[idx] = np.std(fp_times)
     return mean_fpt_varying, sd_fpt_varying
@@ -256,21 +261,50 @@ def plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_vary_name, par
     return ax
 
 
+def simplex_heatmap(fp_times, fp_states, params, fp=True, colour=True, flag_show=True, figname_mod=""):
+    # plot simplex (as 2D triangle face, equilateral)
+    fig = plot_simplex2D(params, fp=fp)
+
+    # normalize stochastic x y z st x + y + z = N
+    scales = params.N / np.sum(fp_states, axis=1)
+    x_norm = fp_states[:, 0] * scales
+    y_norm = fp_states[:, 1] * scales
+    z_norm = fp_states[:, 2] * scales
+    # conversion to 2D
+    #conv_x = (params.N + fp_states[:, 1] - fp_states[:, 0]) / 2.0  # old way, but points don't lie ON simplex unless normalized
+    conv_x = (params.N + y_norm - x_norm) / 2.0
+    conv_y = fp_states[:, 2]
+
+    # plot points
+    plt.scatter(conv_x, conv_y)  # TODO colour or size change for fp_times
+    # ...
+
+    # plot cbar if colour
+    # TODO
+
+    # save
+    plt_save = "simplex_heatmap" + figname_mod
+    plt.savefig(OUTPUT_DIR + sep + plt_save + '.png', bbox_inches='tight')
+    if flag_show:
+        plt.show()
+    return fig
+
+
 if __name__ == "__main__":
     # SCRIPT FLAGS
-    run_compute_fpt = False
+    run_compute_fpt = True
     run_read_fpt = False
     run_generate_hist_multi = False
     run_load_hist_multi = False
     run_collect = False
     run_means_read_and_plot = False
-    run_means_collect_and_plot = True
+    run_means_collect_and_plot = False
 
     # SCRIPT PARAMETERS
-    establish_switch = True
+    establish_switch = False
     brief = True
     num_steps = 1000000  # default 1000000
-    ensemble = 1  # default 100
+    ensemble = 24  # default 100
 
     # DYNAMICS PARAMETERS
     params = presets('preset_xyz_constant')  # preset_xyz_constant, preset_xyz_constant_fast, valley_2hit
@@ -286,9 +320,10 @@ if __name__ == "__main__":
     FIGSIZE=(8,6)
 
     if run_compute_fpt:
-        fp_times = get_fpt(ensemble, init_cond, params, num_steps=num_steps, establish_switch=establish_switch, brief=brief)
-        write_fpt_and_params(fp_times, params)
+        fp_times, fp_states = get_fpt(ensemble, init_cond, params, num_steps=num_steps, establish_switch=establish_switch, brief=brief)
+        write_fpt_and_params(fp_times, fp_states, params)
         fpt_histogram(fp_times, params, flag_show=True, figname_mod="XZ_model_withFeedback_mu1e-1")
+        simplex_heatmap(fp_times, fp_states, params, flag_show=True)
 
     if run_read_fpt:
         dbdir = OUTPUT_DIR
@@ -311,7 +346,7 @@ if __name__ == "__main__":
             param_val_string = "%s=%.3f" % (param_vary_id, param_val)
             params_step = params.mod_copy({param_vary_id: param_val})
             #fp_times = get_fpt(ensemble, init_cond, params_set[idx], num_steps=num_steps)
-            fp_times = fast_fp_times(ensemble, init_cond, params_step, num_proc, establish_switch=establish_switch)
+            fp_times, fp_states = fast_fp_times(ensemble, init_cond, params_step, num_proc, establish_switch=establish_switch)
             write_fpt_and_params(fp_times, params_step, filename="fpt_multi", filename_mod=param_val_string)
             multi_fpt[idx,:] = np.array(fp_times)
             multi_fpt_labels[idx] = "%s (%s)" % (param_vary_labels[idx], param_val_string)

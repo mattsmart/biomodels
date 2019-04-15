@@ -9,6 +9,7 @@ from os import sep
 
 from constants import X0_COL, X1_COL, X2_COL, OUTPUT_DIR, STATES_ID_INV, PARAMS_ID, \
                       DEFAULT_X_COLOUR, DEFAULT_Y_COLOUR, DEFAULT_Z_COLOUR
+from formulae import fp_location_fsolve, jacobian_numerical_2d
 
 
 # MATPLOTLIB GLOBAL SETTINGS
@@ -109,6 +110,52 @@ def plot_simplex(N):
 
     # note = 'A1 = %.2f \ngamma = %.2f \nh1 = %.2f, h2 = %.2f, h3 = %.2f' % (A[0,0], W[0,0], H[0,0], H[0,1], H[0,2])
     # ax.text(intercepts[0][0]*0.55, intercepts[1][1]*0.6, intercepts[2][2]*0.6, note, fontsize=7)
+    return fig
+
+
+def plot_simplex2D(params, streamlines=True, fp=True, plot_corners=False):
+    N = params.N
+    fig = plt.figure(figsize=(4,3))
+
+    X = np.array([[0.0, 0.0], [N, 0.0], [N / 2.0, N]])
+    if plot_corners:
+        Y = ['k', 'k', 'k']
+        #plt.scatter(X[:,0], X[:,1], s=170, color=Y[:], alpha=0.5)
+    t1 = plt.Polygon(X[:3, :], color='k', alpha=0.1)
+    plt.gca().add_patch(t1)
+
+    text_fs = 20
+    plt.text(-params.N*0.07, -params.N*0.05, r'$x$', fontsize=text_fs)
+    plt.text(params.N*1.03, -params.N*0.05, r'$y$', fontsize=text_fs)
+    plt.text(params.N/2.0*0.96, params.N*1.07, r'$z$', fontsize=text_fs)
+
+    if streamlines:
+        print 'streamlines not implemented'
+        # TODO
+
+    if fp:
+        ms = 10
+        stable_fps = []
+        unstable_fps = []
+        all_fps = fp_location_fsolve(params, check_near_traj_endpt=True, gridsteps=35, tol=10e-1, buffer=True)
+        for fp in all_fps:
+            J = jacobian_numerical_2d(params, fp[0:2])
+            eigenvalues, V = np.linalg.eig(J)
+            if eigenvalues[0] < 0 and eigenvalues[1] < 0:
+                print "Stable FP:", fp, "Evals:", eigenvalues
+                stable_fps.append(fp)
+            else:
+                print "Unstable FP:", fp, "Evals:", eigenvalues
+                unstable_fps.append(fp)
+        for fp in stable_fps:
+            fp_x = (N + fp[1] - fp[0]) / 2.0
+            plt.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3',
+                     color='k')
+        for fp in unstable_fps:
+            fp_x = (N + fp[1] - fp[0]) / 2.0
+            plt.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', markerfacecolor="None")
+
+    plt.axis('off')
     return fig
 
 
@@ -291,5 +338,7 @@ def plot_endpoint_mono(fp_list, param_list, param_varying_name, params, flag_sho
 
 
 if __name__ == '__main__':
-    fig = plot_simplex(100)
+    #fig = plot_simplex(100)
+    #plt.show()
+    fig = plot_simplex2D(100)
     plt.show()

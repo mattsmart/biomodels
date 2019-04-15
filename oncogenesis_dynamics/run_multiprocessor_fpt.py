@@ -36,7 +36,7 @@ if __name__ == "__main__":
     #params = params.mod_copy({'N': 100})
     init_cond = map_init_name_to_init_cond(params, args.init_name)
 
-    fp_times = fast_fp_times(ensemble, init_cond, params, num_processes)
-    write_fpt_and_params(fp_times, params, filename="fpt_%s_ens%d" % (params.system, ensemble), filename_mod=suffix)
+    fp_times, fp_states = fast_fp_times(ensemble, init_cond, params, num_processes)
+    write_fpt_and_params(fp_times, fp_states, params, filename="fpt_%s_ens%d" % (params.system, ensemble), filename_mod=suffix)
     if plot_flag:
         fpt_histogram(fp_times, params, flag_show=False, figname_mod="_%s_ens%d_%s" % (params.system, ensemble, suffix))

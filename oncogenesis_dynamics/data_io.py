@@ -49,19 +49,26 @@ def read_bifurc_data(filedir, filename):
     return data_dict
 
 
-def write_fpt_and_params(fpt, params, filedir=OUTPUT_DIR, filename="fpt", filename_mod=""):
+def write_fpt_and_params(fp_times, fp_states, params, filedir=OUTPUT_DIR, filename="fpt", filename_mod=""):
     if filename_mod != "":
         filename_params = filename + "_" + filename_mod + "_params.csv"
-        filename_fpt = filename + "_" + filename_mod + "_data.txt"
+        filename_fp_times = filename + "_" + filename_mod + "_times.txt"
+        filename_fp_states = filename + "_" + filename_mod + "_states.txt"
     else:
         filename_params = filename + "_params.csv"
-        filename_fpt = filename + "_data.txt"
+        filename_fp_times = filename + "_times.txt"
+        filename_fp_states = filename + "_states.txt"
     params.write(filedir, filename_params)
-    with open(filedir + sep + filename_fpt, "wb") as csv_file:
+    with open(filedir + sep + filename_fp_times, "wb") as csv_file:
         writer = csv.writer(csv_file, delimiter=',')
-        for idx in xrange(len(fpt)):
-            writer.writerow([str(fpt[idx])])
-    return filedir + sep + filename_fpt
+        for idx in xrange(len(fp_times)):
+            writer.writerow([str(fp_times[idx])])
+    if fp_states is not None:
+        with open(filedir + sep + filename_fp_states, "wb") as csv_file:
+            writer = csv.writer(csv_file, delimiter=',')
+            for idx in xrange(len(fp_states)):
+                writer.writerow([str(fp_states[idx])])
+    return filedir + sep + filename_fp_times
 
 
 def write_varying_mean_sd_fpt_and_params(fpt_mean, fpt_sd, param_vary_name, param_vary_set, params, filedir=OUTPUT_DIR, filename="fpt_stats", filename_mod=""):
@@ -82,27 +89,41 @@ def write_varying_mean_sd_fpt_and_params(fpt_mean, fpt_sd, param_vary_name, para
     return filedir + sep + filename_fpt, filedir + sep + filename_params
 
 
-def read_fpt_and_params(filedir, filename_data=None, filename_params=None):
+def read_fpt_and_params(filedir, filename_times=None, filename_states=None, filename_params=None):
     onlyfiles = [f for f in listdir(filedir) if isfile(join(filedir, f))]
-    datafiles = [f for f in onlyfiles if "data" == f[-8:-4]]
+    timefiles = [f for f in onlyfiles if "times" == f[-9:-4]]
+    statefiles = [f for f in onlyfiles if "states" == f[-10:-4]]
     paramfiles = [f for f in onlyfiles if "params" == f[-10:-4]]
-    if filename_data is None:
-        assert len(datafiles) == 1
-        filename_data = basename(datafiles[0])
+    if filename_times is None:
+        assert len(timefiles) == 1
+        filename_times = basename(timefiles[0])
+    if filename_states is None:
+        if len(statefiles) == 1:
+            filename_states = basename(statefiles[0])
     if filename_params is None:
         assert len(paramfiles) == 1
         filename_params = basename(paramfiles[0])
 
     params = read_params(filedir, filename_params)
     assert params.system in ODE_SYSTEMS
-    with open(filedir + sep + filename_data, 'rb') as csvfile:
+    with open(filedir + sep + filename_times, 'rb') as csvfile:
         datareader = csv.reader(csvfile, delimiter=',', quotechar='|')
         nn = sum(1 for row in datareader)
         csvfile.seek(0)
         fp_times = [0.0]*nn
         for idx, fpt in enumerate(datareader):
             fp_times[idx] = float(fpt[0])
-    return fp_times, params
+    if filename_states is None:
+        fp_states = None
+    else:
+        with open(filedir + sep + filename_states, 'rb') as csvfile:
+            datareader = csv.reader(csvfile, delimiter=',', quotechar='|')
+            nn = sum(1 for row in datareader)
+            csvfile.seek(0)
+            fp_states = np.zeros((nn, params.numstates))
+            for idx, row in enumerate(datareader):
+                fp_states[idx,:] = float(row[:])
+    return fp_times, fp_states, params
 
 
 def read_varying_mean_sd_fpt(datafile):
@@ -131,9 +152,9 @@ def read_varying_mean_sd_fpt_and_params(datafile, paramfile):
 def collect_fpt_and_params(filedir):
     # NOTE: assumes folder structure 8s N files of ..._data and N files of ..._params which ALL correspond
     onlydirs = [f for f in listdir(filedir) if isfile(join(filedir, f))]
-    datafiles = [f for f in onlydirs if "data" == f[-8:-4]]
+    timesfiles = [f for f in onlydirs if "times" == f[-9:-4]]
     paramfiles = [f for f in onlydirs if "params" == f[-10:-4]]
-    assert len(datafiles) == len(paramfiles)
+    assert len(timesfiles) == len(paramfiles)
 
     params_0 = read_params(filedir, basename(paramfiles[0]))
     for pf in paramfiles:
@@ -141,7 +162,7 @@ def collect_fpt_and_params(filedir):
         assert params == params_0
 
     fpt_collected = []
-    for idx, df in enumerate(datafiles):
+    for idx, df in enumerate(timesfiles):
         fp_times, params = read_fpt_and_params(filedir, df, basename(paramfiles[0]))
         fpt_collected += fp_times
 

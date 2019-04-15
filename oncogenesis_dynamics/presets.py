@@ -20,7 +20,7 @@ def presets(preset_label):
         params_dict = {
             'alpha_plus': 0.2,
             'alpha_minus': 1.0,  # 0.5
-            'mu': 0.0001,  # 0.01
+            'mu': 0.1,  # 0.01
             'a': 1.0,
             'b': 0.8,  # 0.8 and 1.2
             'c': 0.9,  # 0.9 and 1.1
