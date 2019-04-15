@@ -100,6 +100,7 @@ def plot_simplex(N):
     ax = fig.add_subplot(111, projection='3d')
     ax.plot_surface(xx, yy, z, alpha=0.4, cmap=cmap, color='blue')
     ax.scatter(intercepts[0], intercepts[1], intercepts[2], color=['red', 'green', 'blue'])
+    ax.view_init(5, 35)  # ax.view_init(-45, -15)
 
     ax.set_zlim(0.0, intercepts[2][2])
     ax.set_xlabel('x')
@@ -287,3 +288,8 @@ def plot_endpoint_mono(fp_list, param_list, param_varying_name, params, flag_sho
     if flag_save:
         fig_mono.savefig(OUTPUT_DIR + sep + plt_save + mono + '.pdf')
     return ax_mono
+
+
+if __name__ == '__main__':
+    fig = plot_simplex(100)
+    plt.show()
