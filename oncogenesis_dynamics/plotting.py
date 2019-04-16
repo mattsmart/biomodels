@@ -131,7 +131,6 @@ def plot_simplex2D(params, streamlines=True, fp=True, plot_corners=False, cbar=F
     plt.text(params.N/2.0*0.96, params.N*1.07, r'$z$', fontsize=text_fs)
 
     if streamlines:
-        print 'streamlines not implemented -- confirm with mathematica or traj py after'
         nn=100
         B, A = np.mgrid[0:N:nn*1j, 0:N:nn*1j]
         # need to mask outside of simplex
@@ -146,7 +145,6 @@ def plot_simplex2D(params, streamlines=True, fp=True, plot_corners=False, cbar=F
                 x = N - a - b/2.0  # TODO check
                 y = N - x - z
                 if b>2.0*a or b>2.0*(N-a):  # check if outside simplex
-                    # TODO check these conds are correct
                     ADOT[i, j] = np.nan
                     BDOT[i, j] = np.nan
                 else:
@@ -158,7 +156,6 @@ def plot_simplex2D(params, streamlines=True, fp=True, plot_corners=False, cbar=F
         strm = plt.streamplot(A, B, ADOT, BDOT, color=SPEEDS, linewidth=0.5, cmap=plt.cm.coolwarm)
         if cbar:
             plt.colorbar(strm.lines)
-
 
     if fp:
         ms = 10
@@ -174,12 +171,14 @@ def plot_simplex2D(params, streamlines=True, fp=True, plot_corners=False, cbar=F
                 unstable_fps.append(fp)
         for fp in stable_fps:
             fp_x = (N + fp[1] - fp[0]) / 2.0
-            plt.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3',
-                     color='k')
+            #plt.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', color='k')
+            plt.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', color=(0.212, 0.271, 0.31))
         for fp in unstable_fps:
             fp_x = (N + fp[1] - fp[0]) / 2.0
-            plt.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', markerfacecolor="None")
+            #plt.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', markerfacecolor="None")
+            plt.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', color=(0.902, 0.902, 0.902))
 
+    plt.ylim(-N*0.04, N*1.04)
     plt.axis('off')
     return fig
 
@@ -367,4 +366,5 @@ if __name__ == '__main__':
     #plt.show()
     params = presets('preset_xyz_tanh')
     fig = plot_simplex2D(params)
+    plt.savefig(OUTPUT_DIR + sep + 'simplex_plot.pdf')
     plt.show()
