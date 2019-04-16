@@ -114,24 +114,42 @@ def plot_simplex(N):
     return fig
 
 
-def plot_simplex2D(params, streamlines=True, fp=True, plot_corners=False, cbar=False):
+def plot_simplex2D(params, streamlines=True, fp=True, cbar=False, smallfig=False):
     N = params.N
-    fig = plt.figure(figsize=(4,3))
+
+    if smallfig:
+        figsize = (2.0, 1.6)
+        text_fs = 20
+        ms = 10
+        stlw = 0.5
+        nn = 20
+        ylim_mod = 0.08
+    else:
+        figsize=(4, 3)
+        text_fs = 20
+        ms = 10
+        stlw = 0.5
+        nn = 100
+        ylim_mod = 0.04
+
+    fig = plt.figure(figsize=figsize)
 
     X = np.array([[0.0, 0.0], [N, 0.0], [N / 2.0, N]])
-    if plot_corners:
-        Y = ['k', 'k', 'k']
-        #plt.scatter(X[:,0], X[:,1], s=170, color=Y[:], alpha=0.5)
-    t1 = plt.Polygon(X[:3, :], color='k', alpha=0.1)
-    plt.gca().add_patch(t1)
 
-    text_fs = 20
-    plt.text(-params.N*0.07, -params.N*0.05, r'$x$', fontsize=text_fs)
-    plt.text(params.N*1.03, -params.N*0.05, r'$y$', fontsize=text_fs)
-    plt.text(params.N/2.0*0.96, params.N*1.07, r'$z$', fontsize=text_fs)
+    if smallfig:
+        t1 = plt.Polygon(X[:3, :], color=(0.902, 0.902, 0.902), alpha=1.0, ec=(0.14, 0.14, 0.14), lw=1)
+        plt.gca().add_patch(t1)
+        plt.text(-params.N*0.12, -params.N*0.08, r'$x$', fontsize=text_fs)
+        plt.text(params.N*1.045, -params.N*0.08, r'$y$', fontsize=text_fs)
+        plt.text(params.N/2.0*0.93, params.N*1.115, r'$z$', fontsize=text_fs)
+    else:
+        t1 = plt.Polygon(X[:3, :], color='k', alpha=0.1)
+        plt.gca().add_patch(t1)
+        plt.text(-params.N * 0.07, -params.N * 0.05, r'$x$', fontsize=text_fs)
+        plt.text(params.N * 1.03, -params.N * 0.05, r'$y$', fontsize=text_fs)
+        plt.text(params.N / 2.0 * 0.96, params.N * 1.07, r'$z$', fontsize=text_fs)
 
     if streamlines:
-        nn=100
         B, A = np.mgrid[0:N:nn*1j, 0:N:nn*1j]
         # need to mask outside of simplex
         ADOT = np.zeros(np.shape(A))
@@ -144,7 +162,7 @@ def plot_simplex2D(params, streamlines=True, fp=True, plot_corners=False, cbar=F
                 z = b
                 x = N - a - b/2.0  # TODO check
                 y = N - x - z
-                if b>2.0*a or b>2.0*(N-a):  # check if outside simplex
+                if b > 2.0*a or b > 2.0*(N-a) or b == 0:  # check if outside simplex
                     ADOT[i, j] = np.nan
                     BDOT[i, j] = np.nan
                 else:
@@ -152,13 +170,14 @@ def plot_simplex2D(params, streamlines=True, fp=True, plot_corners=False, cbar=F
                     SPEEDS[i, j] = np.sqrt(dxvecdt[0]**2 + dxvecdt[1]**2 + dxvecdt[2]**2)
                     ADOT[i, j] = (-dxvecdt[0] + dxvecdt[1])/2.0  # (- xdot + ydot) / 2
                     BDOT[i, j] = dxvecdt[2]                      # zdot
-        # plt.streamplot(A, B, ADOT, BDOT, color='k', linewidth=0.5)
-        strm = plt.streamplot(A, B, ADOT, BDOT, color=SPEEDS, linewidth=0.5, cmap=plt.cm.coolwarm)
-        if cbar:
-            plt.colorbar(strm.lines)
+        if smallfig:
+            strm = plt.streamplot(A, B, ADOT, BDOT, color=(0.34, 0.34, 0.34), linewidth=stlw)
+        else:
+            strm = plt.streamplot(A, B, ADOT, BDOT, color=SPEEDS, linewidth=stlw, cmap=plt.cm.coolwarm)
+            if cbar:
+                plt.colorbar(strm.lines)
 
     if fp:
-        ms = 10
         stable_fps = []
         unstable_fps = []
         all_fps = fp_location_fsolve(params, check_near_traj_endpt=True, gridsteps=35, tol=10e-1, buffer=True)
@@ -178,7 +197,7 @@ def plot_simplex2D(params, streamlines=True, fp=True, plot_corners=False, cbar=F
             #plt.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', markerfacecolor="None")
             plt.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', color=(0.902, 0.902, 0.902))
 
-    plt.ylim(-N*0.04, N*1.04)
+    plt.ylim(-N*ylim_mod, N*(1+ylim_mod))
     plt.axis('off')
     return fig
 
@@ -365,6 +384,6 @@ if __name__ == '__main__':
     #fig = plot_simplex(100)
     #plt.show()
     params = presets('preset_xyz_tanh')
-    fig = plot_simplex2D(params)
+    fig = plot_simplex2D(params, smallfig=True)
     plt.savefig(OUTPUT_DIR + sep + 'simplex_plot.pdf')
     plt.show()
