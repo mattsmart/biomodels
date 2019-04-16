@@ -3,7 +3,7 @@ import numpy as np
 from multiprocessing import cpu_count
 
 from data_io import write_fpt_and_params
-from firstpassage import fast_fp_times, fpt_histogram
+from firstpassage import fast_fp_times, fpt_histogram, simplex_heatmap
 from params import Params
 from formulae import map_init_name_to_init_cond
 from presets import presets
@@ -40,3 +40,4 @@ if __name__ == "__main__":
     write_fpt_and_params(fp_times, fp_states, params, filename="fpt_%s_ens%d" % (params.system, ensemble), filename_mod=suffix)
     if plot_flag:
         fpt_histogram(fp_times, params, flag_show=False, figname_mod="_%s_ens%d_%s" % (params.system, ensemble, suffix))
+        simplex_heatmap(fp_times, fp_states, params, flag_show=True)

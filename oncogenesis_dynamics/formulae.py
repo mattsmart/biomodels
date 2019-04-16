@@ -222,6 +222,7 @@ def stoch_gillespie_lowmem(init_cond, params, init_time=0, fpt_flag=False, estab
         # fpt exit conditions
         if fpt_flag:
             if fpt_rxn_idx == rxn_idx:
+                current_state[2] += 1  # Note: this is so that final pop hasn't been decremented from the z->z2 swap
                 exit_flag = True
 
         # establish exit condition

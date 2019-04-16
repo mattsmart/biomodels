@@ -230,7 +230,7 @@ if __name__ == "__main__":
     if plot_vs_histogram:
         fpt_data = "fpt_feedback_z_ens300_main_data.txt"  # or try 300
         fpt_params = "fpt_feedback_z_ens300_main_params.csv"
-        fp_times, fp_times_params = read_fpt_and_params(OUTPUT_DIR, filename_data=fpt_data, filename_params=fpt_params)
+        fp_times, fp_states, fp_times_params = read_fpt_and_params(OUTPUT_DIR, filename_data=fpt_data, filename_params=fpt_params)
         hist_ax = fpt_histogram(fp_times, fp_times_params, figname_mod="", flag_show=False, flag_norm=True,
                                 flag_xlog10=False, flag_ylog10=False, fs=12)
         hist_ax.plot(trange, fpt_pdf, 'k--', lw=2)  # could have chunkier pdf by taking sum of chunks and replotting for wider bins

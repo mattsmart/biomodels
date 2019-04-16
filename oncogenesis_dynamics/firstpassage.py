@@ -261,9 +261,9 @@ def plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_vary_name, par
     return ax
 
 
-def simplex_heatmap(fp_times, fp_states, params, fp=True, colour=True, flag_show=True, figname_mod=""):
+def simplex_heatmap(fp_times, fp_states, params, fp=True, streamlines=True, colour=True, flag_show=True, figname_mod=""):
     # plot simplex (as 2D triangle face, equilateral)
-    fig = plot_simplex2D(params, fp=fp)
+    fig = plot_simplex2D(params, fp=fp, streamlines=streamlines)  # TODO streamlines
 
     # normalize stochastic x y z st x + y + z = N
     scales = params.N / np.sum(fp_states, axis=1)
@@ -276,11 +276,11 @@ def simplex_heatmap(fp_times, fp_states, params, fp=True, colour=True, flag_show
     conv_y = fp_states[:, 2]
 
     # plot points
-    plt.scatter(conv_x, conv_y)  # TODO colour or size change for fp_times
-    # ...
-
-    # plot cbar if colour
-    # TODO
+    if colour:
+        plt.scatter(conv_x, conv_y, c=fp_times)  # TODO colour or size change for fp_times
+        plt.colorbar()
+    else:
+        plt.scatter(conv_x, conv_y)
 
     # save
     plt_save = "simplex_heatmap" + figname_mod
@@ -328,9 +328,9 @@ if __name__ == "__main__":
     if run_read_fpt:
         dbdir = OUTPUT_DIR
         dbdir_100 = dbdir + sep + "fpt_mean" + sep + "100_c95"
-        fp_times_xyz_100, params_a = read_fpt_and_params(dbdir_100)
+        fp_times_xyz_100, fp_states_xyz_100, params_a = read_fpt_and_params(dbdir_100)
         dbdir_10k = dbdir + sep + "fpt_mean" + sep + "10k_c95"
-        fp_times_xyz_10k, params_b = read_fpt_and_params(dbdir_10k)
+        fp_times_xyz_10k, fp_states_xyz_10k, params_b = read_fpt_and_params(dbdir_10k)
 
     if run_generate_hist_multi:
         ensemble = 21
@@ -359,9 +359,9 @@ if __name__ == "__main__":
         c80_header = "fpt_feedback_z_ens1040_c80_N100"
         c88_header = "fpt_feedback_z_ens1040_c88_N100"
         c95_header = "fpt_feedback_z_ens1040_c95_N100"
-        fp_times_xyz_c80, params_a = read_fpt_and_params(dbdir, "%s_data.txt" % c80_header, "%s_params.csv" % c80_header)
-        fp_times_xyz_c88, params_b = read_fpt_and_params(dbdir, "%s_data.txt" % c88_header, "%s_params.csv" % c88_header)
-        fp_times_xyz_c95, params_c = read_fpt_and_params(dbdir, "%s_data.txt" % c95_header, "%s_params.csv" % c95_header)
+        fp_times_xyz_c80, fp_times_xyz_c80, params_a = read_fpt_and_params(dbdir, filename_times="%s_data.txt" % c80_header, filename_params="%s_params.csv" % c80_header)
+        fp_times_xyz_c88, fp_states_xyz_c88, params_b = read_fpt_and_params(dbdir, filename_times="%s_data.txt" % c88_header, filename_params="%s_params.csv" % c88_header)
+        fp_times_xyz_c95, fp_states_xyz_c95, params_c = read_fpt_and_params(dbdir, filename_times="%s_data.txt" % c95_header, filename_params="%s_params.csv" % c95_header)
         fpt_histogram(fp_times_xyz_c88, params_b, flag_ylog10=False, figname_mod="_xyz_feedbackz_N10k_c88_may25")
         plt.close('all')
         fpt_histogram(fp_times_xyz_c88, params_b, flag_ylog10=True, figname_mod="_xyz_feedbackz_N10k_c88_may25_logy")

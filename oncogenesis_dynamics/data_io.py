@@ -67,7 +67,7 @@ def write_fpt_and_params(fp_times, fp_states, params, filedir=OUTPUT_DIR, filena
         with open(filedir + sep + filename_fp_states, "wb") as csv_file:
             writer = csv.writer(csv_file, delimiter=',')
             for idx in xrange(len(fp_states)):
-                writer.writerow([str(fp_states[idx])])
+                writer.writerow(fp_states[idx, :])
     return filedir + sep + filename_fp_times
 
 
@@ -122,7 +122,7 @@ def read_fpt_and_params(filedir, filename_times=None, filename_states=None, file
             csvfile.seek(0)
             fp_states = np.zeros((nn, params.numstates))
             for idx, row in enumerate(datareader):
-                fp_states[idx,:] = float(row[:])
+                fp_states[idx,:] = [float(a) for a in row]
     return fp_times, fp_states, params
 
 
@@ -163,13 +163,14 @@ def collect_fpt_and_params(filedir):
 
     fpt_collected = []
     for idx, df in enumerate(timesfiles):
-        fp_times, params = read_fpt_and_params(filedir, df, basename(paramfiles[0]))
+        fp_times, fp_states, params = read_fpt_and_params(filedir, filename_times=df, filename_params=basename(paramfiles[0]))
         fpt_collected += fp_times
 
     collected_dirname = "collected_%d" % len(fpt_collected)
     collected_dir = filedir + sep + collected_dirname
     mkdir(collected_dir)
-    write_fpt_and_params(fpt_collected, params_0, filedir=collected_dir, filename="fpt", filename_mod=collected_dirname)
+    print 'TODO implement fp_states from None in collect_fpt_and_params()'
+    write_fpt_and_params(fpt_collected, None, params_0, filedir=collected_dir, filename="fpt", filename_mod=collected_dirname)
     return collected_dir
 
 

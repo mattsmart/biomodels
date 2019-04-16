@@ -10,6 +10,7 @@ from os import sep
 from constants import X0_COL, X1_COL, X2_COL, OUTPUT_DIR, STATES_ID_INV, PARAMS_ID, \
                       DEFAULT_X_COLOUR, DEFAULT_Y_COLOUR, DEFAULT_Z_COLOUR
 from formulae import fp_location_fsolve, jacobian_numerical_2d
+from presets import presets
 
 
 # MATPLOTLIB GLOBAL SETTINGS
@@ -113,7 +114,7 @@ def plot_simplex(N):
     return fig
 
 
-def plot_simplex2D(params, streamlines=True, fp=True, plot_corners=False):
+def plot_simplex2D(params, streamlines=True, fp=True, plot_corners=False, cbar=False):
     N = params.N
     fig = plt.figure(figsize=(4,3))
 
@@ -130,8 +131,34 @@ def plot_simplex2D(params, streamlines=True, fp=True, plot_corners=False):
     plt.text(params.N/2.0*0.96, params.N*1.07, r'$z$', fontsize=text_fs)
 
     if streamlines:
-        print 'streamlines not implemented'
-        # TODO
+        print 'streamlines not implemented -- confirm with mathematica or traj py after'
+        nn=100
+        B, A = np.mgrid[0:N:nn*1j, 0:N:nn*1j]
+        # need to mask outside of simplex
+        ADOT = np.zeros(np.shape(A))
+        BDOT = np.zeros(np.shape(A))
+        SPEEDS = np.zeros(np.shape(A))
+        for i in xrange(nn):
+            for j in xrange(nn):
+                a = A[i, j]
+                b = B[i, j]
+                z = b
+                x = N - a - b/2.0  # TODO check
+                y = N - x - z
+                if b>2.0*a or b>2.0*(N-a):  # check if outside simplex
+                    # TODO check these conds are correct
+                    ADOT[i, j] = np.nan
+                    BDOT[i, j] = np.nan
+                else:
+                    dxvecdt = params.ode_system_vector([x,y,z], None)
+                    SPEEDS[i, j] = np.sqrt(dxvecdt[0]**2 + dxvecdt[1]**2 + dxvecdt[2]**2)
+                    ADOT[i, j] = (-dxvecdt[0] + dxvecdt[1])/2.0  # (- xdot + ydot) / 2
+                    BDOT[i, j] = dxvecdt[2]                      # zdot
+        # plt.streamplot(A, B, ADOT, BDOT, color='k', linewidth=0.5)
+        strm = plt.streamplot(A, B, ADOT, BDOT, color=SPEEDS, linewidth=0.5, cmap=plt.cm.coolwarm)
+        if cbar:
+            plt.colorbar(strm.lines)
+
 
     if fp:
         ms = 10
@@ -142,10 +169,8 @@ def plot_simplex2D(params, streamlines=True, fp=True, plot_corners=False):
             J = jacobian_numerical_2d(params, fp[0:2])
             eigenvalues, V = np.linalg.eig(J)
             if eigenvalues[0] < 0 and eigenvalues[1] < 0:
-                print "Stable FP:", fp, "Evals:", eigenvalues
                 stable_fps.append(fp)
             else:
-                print "Unstable FP:", fp, "Evals:", eigenvalues
                 unstable_fps.append(fp)
         for fp in stable_fps:
             fp_x = (N + fp[1] - fp[0]) / 2.0
@@ -340,5 +365,6 @@ def plot_endpoint_mono(fp_list, param_list, param_varying_name, params, flag_sho
 if __name__ == '__main__':
     #fig = plot_simplex(100)
     #plt.show()
-    fig = plot_simplex2D(100)
+    params = presets('preset_xyz_tanh')
+    fig = plot_simplex2D(params)
     plt.show()

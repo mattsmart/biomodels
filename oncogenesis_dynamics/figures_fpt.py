@@ -99,34 +99,34 @@ if __name__ == "__main__":
         # data setup
         hist_headers = ("fpt_TR_ens2064", "fpt_BR_ens2064", "fpt_BL2_ens1024")
         hist_labels = ("b=0.80, c=1.10 (Region II)", "b=1.20, c=1.10 (Region III)", "b=0.80, c=0.95 (Region IV)")
-        hist_data_and_params = [read_fpt_and_params(dbdir, "%s_data.txt" % header, "%s_params.csv" % header)
+        hist_data_and_params = [read_fpt_and_params(dbdir, filename_times="%s_data.txt" % header, filename_params="%s_params.csv" % header)
                                 for header in hist_headers]
-        hist_data = [pair[0] for pair in hist_data_and_params]
-        hist_params = [pair[1] for pair in hist_data_and_params]
+        hist_times = [triple[0] for triple in hist_data_and_params]
+        hist_params = [triple[2] for triple in hist_data_and_params]
         num_hists = len(hist_headers)
         # plot indiv histograms
         # TODO port local custom single hist plotter function from firstpassage.py
         for i, header in enumerate(hist_headers):
-            fpt_histogram(hist_data[i], hist_params[i], flag_ylog10=False, figname_mod="_%s" % header, outdir=basedir)
+            fpt_histogram(hist_times[i], hist_params[i], flag_ylog10=False, figname_mod="_%s" % header, outdir=basedir)
             plt.close('all')
-            fpt_histogram(hist_data[i], hist_params[i], flag_ylog10=True, figname_mod="_%s_logy" % header, outdir=basedir)
+            fpt_histogram(hist_times[i], hist_params[i], flag_ylog10=True, figname_mod="_%s_logy" % header, outdir=basedir)
             plt.close('all')
             # add model comparisons
-            exp_scale = exponential_scale_estimate(hist_data[i])
-            model_data = sample_exponential(len(hist_data[i]), 1/exp_scale)  # note diff convention inverse
+            exp_scale = exponential_scale_estimate(hist_times[i])
+            model_data = sample_exponential(len(hist_times[i]), 1/exp_scale)  # note diff convention inverse
             print i, header, model_data.shape, exp_scale, 1/exp_scale
-            data_vs_model = [hist_data[i], model_data]
+            data_vs_model = [hist_times[i], model_data]
             data_vs_model_labels = [hist_labels[i], r'$\frac{1}{\beta}e^{-t/\beta}, \beta=%.2e$ years' % (1/exp_scale / 365)]
             figure_fpt_multihist(data_vs_model, data_vs_model_labels, figname_mod="compare_model%d" % i, flag_show=True,
                                  flag_ylog10=True, flag_norm=flag_norm, fs=fs, ec=ec, lw=lw, figsize=figsize, outdir=basedir)
             plt.close()
 
         # plot various multihists from data
-        figure_fpt_multihist(hist_data, hist_labels, figname_mod="def", flag_show=True, flag_ylog10=False,
+        figure_fpt_multihist(hist_times, hist_labels, figname_mod="def", flag_show=True, flag_ylog10=False,
                              flag_norm=flag_norm, fs=fs, ec=ec, lw=lw, figsize=figsize, outdir=basedir)
         plt.close()
-        figure_fpt_multihist(hist_data, hist_labels, figname_mod="logy", flag_show=True, flag_ylog10=True,
+        figure_fpt_multihist(hist_times, hist_labels, figname_mod="logy", flag_show=True, flag_ylog10=True,
                              flag_norm=flag_norm, fs=fs, ec=ec, lw=lw, figsize=figsize, outdir=basedir)
         plt.close()
-        figure_fpt_multihist(hist_data, hist_labels, figname_mod="logy_nonorm", flag_show=True, flag_ylog10=True,
+        figure_fpt_multihist(hist_times, hist_labels, figname_mod="logy_nonorm", flag_show=True, flag_ylog10=True,
                              flag_norm=False, fs=fs, ec=ec, lw=lw, figsize=figsize, flag_disjoint=True, outdir=basedir)

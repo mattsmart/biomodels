@@ -53,7 +53,7 @@ if __name__ == "__main__":
         pv2_idx = int(args.right_idx)
     if args.preset is None:
         # params = presets('preset_xyz_hill')
-        params = presets('valley_2hit')
+        params = presets('preset_xyz_constant')
     else:
         params = presets(args.preset)
 
