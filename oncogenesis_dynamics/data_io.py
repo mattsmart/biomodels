@@ -149,21 +149,27 @@ def read_varying_mean_sd_fpt_and_params(datafile, paramfile):
     return mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params
 
 
-def collect_fpt_and_params(filedir):
-    # NOTE: assumes folder structure 8s N files of ..._data and N files of ..._params which ALL correspond
-    onlydirs = [f for f in listdir(filedir) if isfile(join(filedir, f))]
-    timesfiles = [f for f in onlydirs if "times" == f[-9:-4]]
-    paramfiles = [f for f in onlydirs if "params" == f[-10:-4]]
+def collect_fpt_and_params_deprecated(filedir):
+    onlydirs = [join(filedir, subdir) for subdir in listdir(filedir) if isdir(join(filedir, subdir))]
+    timesfiles = []
+    paramfiles = []
+    for subdir in onlydirs:
+        files = listdir(subdir)
+        for f in files:
+            if "data" == f[-8:-4]:
+                timesfiles.append(join(subdir, f))
+            if "params" == f[-10:-4]:
+                paramfiles.append(join(subdir, f))
     assert len(timesfiles) == len(paramfiles)
 
-    params_0 = read_params(filedir, basename(paramfiles[0]))
+    params_0 = read_params(dirname(paramfiles[0]), basename(paramfiles[0]))
     for pf in paramfiles:
-        params = read_params(filedir, basename(pf))
-        assert params == params_0
+        params = read_params(dirname(pf), basename(pf))
+        assert params.params_list == params_0.params_list
 
     fpt_collected = []
     for idx, df in enumerate(timesfiles):
-        fp_times, fp_states, params = read_fpt_and_params(filedir, filename_times=df, filename_params=basename(paramfiles[0]))
+        fp_times, fp_states, params = read_fpt_and_params(dirname(df), filename_times=basename(df), filename_params=basename(paramfiles[0]))
         fpt_collected += fp_times
 
     collected_dirname = "collected_%d" % len(fpt_collected)
@@ -171,6 +177,48 @@ def collect_fpt_and_params(filedir):
     mkdir(collected_dir)
     print 'TODO implement fp_states from None in collect_fpt_and_params()'
     write_fpt_and_params(fpt_collected, None, params_0, filedir=collected_dir, filename="fpt", filename_mod=collected_dirname)
+    return collected_dir
+
+
+def collect_fpt_and_params(filedir):
+    #TODO collect states also
+    onlydirs = [join(filedir, subdir) for subdir in listdir(filedir) if isdir(join(filedir, subdir))]
+    timesfiles = []
+    statesfiles = []
+    paramfiles = []
+    for subdir in onlydirs:
+        files = listdir(subdir)
+        for f in files:
+            if "data" == f[-8:-4]:
+                timesfiles.append(join(subdir, f))
+            if "states" == f[-10:-4]:
+                statesfiles.append(join(subdir, f))
+            if "params" == f[-10:-4]:
+                paramfiles.append(join(subdir, f))
+    assert len(timesfiles) == len(paramfiles)
+    assert len(timesfiles) == len(statesfiles)
+
+    params_0 = read_params(dirname(paramfiles[0]), basename(paramfiles[0]))
+    for pf in paramfiles:
+        params = read_params(dirname(pf), basename(pf))
+        assert params.params_list == params_0.params_list
+
+    fpt_collected = []
+    fpstate_collected = np.empty((1, params_0.numstates))
+    for idx, df in enumerate(timesfiles):
+        fp_times, fp_states, params = read_fpt_and_params(dirname(df), filename_times=basename(df),
+                                                          filename_params=basename(paramfiles[0]))
+        fpt_collected += fp_times
+        fpstate_collected = np.append(fpstate_collected, fp_states, axis=0)  # TODO check form is correct
+    assert fpstate_collected.shape[0] == len(fpt_collected)
+    assert fpstate_collected.shape[1] == 3
+
+    collected_dirname = "collected_%d" % len(fpt_collected)
+    collected_dir = filedir + sep + collected_dirname
+    mkdir(collected_dir)
+    print 'TODO implement fp_states from None in collect_fpt_and_params()'
+    write_fpt_and_params(fpt_collected, fpstate_collected, params_0, filedir=collected_dir, filename="fpt",
+                         filename_mod=collected_dirname)
     return collected_dir
 
 
@@ -247,3 +295,8 @@ def read_matrix_data_and_idx_vals(datapath, rowpath, colpath, binary=False):
         row = np.loadtxt(rowpath, delimiter=",", dtype=float)
         col = np.loadtxt(colpath, delimiter=",", dtype=float)
     return arr, row, col
+
+
+if __name__ == '__main__':
+    collect_dir = OUTPUT_DIR + sep + 'TLset'
+    collect_fpt_and_params_deprecated(collect_dir)
