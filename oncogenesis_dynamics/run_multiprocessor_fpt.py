@@ -33,7 +33,15 @@ if __name__ == "__main__":
 
     # DYNAMICS PARAMETERS
     params = presets('preset_xyz_tanh')  # TODO generalize preset in main args
-    #params = params.mod_copy({'N': 100})
+    if args.init_name in ['BR', 'BL', 'TR', 'TL']:
+        if args.init_name == 'BL':
+            params = params.mod_copy({'b': 0.8, 'c': 0.9})
+        if args.init_name == 'BR':
+            params = params.mod_copy({'b': 0.8, 'c': 1.1})
+        if args.init_name == 'TL':
+            params = params.mod_copy({'b': 1.2, 'c': 0.9})
+        if args.init_name == 'TR':
+            params = params.mod_copy({'b': 1.2, 'c': 1.1})
     init_cond = map_init_name_to_init_cond(params, args.init_name)
 
     fp_times, fp_states = fast_fp_times(ensemble, init_cond, params, num_processes)
