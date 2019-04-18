@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import seaborn
 import time
 from os import sep
 from multiprocessing import Pool, cpu_count
@@ -8,7 +9,7 @@ from constants import OUTPUT_DIR, PARAMS_ID, PARAMS_ID_INV, COLOURS_DARK_BLUE
 from data_io import read_varying_mean_sd_fpt_and_params, collect_fpt_mean_stats_and_params, read_fpt_and_params,\
                     write_fpt_and_params
 from formulae import stoch_gillespie, stoch_tauleap_lowmem, stoch_tauleap, get_physical_fp_stable_and_not, \
-    map_init_name_to_init_cond, stoch_gillespie_lowmem
+    map_init_name_to_init_cond, stoch_gillespie_lowmem, fp_location_fsolve, jacobian_numerical_2d
 from params import Params
 from presets import presets
 from plotting import plot_table_params, plot_simplex2D
@@ -261,9 +262,11 @@ def plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_vary_name, par
     return ax
 
 
-def simplex_heatmap(fp_times, fp_states, params, fp=True, streamlines=True, colour=True, flag_show=True, outdir=OUTPUT_DIR, figname_mod=""):
+def simplex_heatmap(fp_times, fp_states, params, ax=None, fp=True, streamlines=True, colour=True, cbar=True,
+                    flag_show=True, outdir=OUTPUT_DIR, figname_mod="", save=True, smallfig=False):
+    seaborn.reset_orig()
     # plot simplex (as 2D triangle face, equilateral)
-    fig = plot_simplex2D(params, fp=fp, streamlines=streamlines)  # TODO streamlines
+    ax = plot_simplex2D(params, smallfig=smallfig, fp=fp, streamlines=streamlines, ax=ax)  # TODO streamlines
 
     # normalize stochastic x y z st x + y + z = N
     scales = params.N / np.sum(fp_states, axis=1)
@@ -277,17 +280,73 @@ def simplex_heatmap(fp_times, fp_states, params, fp=True, streamlines=True, colo
 
     # plot points
     if colour:
-        plt.scatter(conv_x, conv_y, c=fp_times)  # TODO colour or size change for fp_times
-        plt.colorbar()
+        paths = ax.scatter(conv_x, conv_y, c=fp_times, marker='o', s=3, zorder=3)  # TODO colour or size change for fp_times
+        # LEFT
+        #cbaxes = fig.add_axes([0.1, 0.1, 0.03, 0.8])
+        #plt.colorbar(cax=cbaxes, pad=-0.1)
+        # RIGHT
+        if cbar:
+            plt.colorbar(paths, pad=0.18)
     else:
-        plt.scatter(conv_x, conv_y)
+        ax.scatter(conv_x, conv_y)
 
     # save
-    plt_save = "simplex_heatmap" + figname_mod
-    plt.savefig(outdir + sep + plt_save + '.pdf', bbox_inches='tight')
+    if save:
+        plt_save = "simplex_heatmap" + figname_mod
+        plt.savefig(outdir + sep + plt_save + '.pdf', bbox_inches='tight')
     if flag_show:
         plt.show()
-    return fig
+    return ax
+
+
+def fp_state_zloc_hist(fp_times, fp_states, params, ax=None, fp=True, kde=True, flag_show=True, outdir=OUTPUT_DIR, figname_mod="", save=True):
+
+    N = params.N
+    seaborn.set_context("notebook", font_scale=1.9)  # TODO this breaks edges of the markers for FP but it is needed for font size?
+
+    # plot fp_states z coord histogram
+    fp_zcoord = fp_states[:, 2]
+    if kde:
+        ax = seaborn.kdeplot(fp_zcoord, shade=True, cut=0.0, vertical=True, ax=ax)
+    else:
+        ax = seaborn.distplot(fp_zcoord, vertical=True, ax=ax)
+    ax.set_ylabel(r'$z(\tau)$')
+    ax.set_xticklabels([])
+    #ax.set_yticklabels([])
+    ax.set_yticks([0, N])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    #ax.spines['bottom'].set_visible(False)
+    #ax.spines['left'].set_visible(False)
+
+    # plot fp horizontal line
+    if fp:
+        stable_fps = []
+        unstable_fps = []
+        all_fps = fp_location_fsolve(params, check_near_traj_endpt=True, gridsteps=35, tol=10e-1, buffer=True)
+        for fp in all_fps:
+            J = jacobian_numerical_2d(params, fp[0:2])
+            eigenvalues, V = np.linalg.eig(J)
+            if eigenvalues[0] < 0 and eigenvalues[1] < 0:
+                stable_fps.append(fp)
+            else:
+                unstable_fps.append(fp)
+        for fp in stable_fps:
+            ax.axhline(fp[2], linestyle='--', linewidth=1.0, color='k')
+        """
+        for fp in unstable_fps:
+            fp_x = (N + fp[1] - fp[0]) / 2.0
+            #plt.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', markerfacecolor="None")
+            plt.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', color=(0.902, 0.902, 0.902))
+        """
+
+    # save
+    if save:
+        plt_save = "fp_state_zloc_hist" + figname_mod
+        plt.savefig(outdir + sep + plt_save + '.pdf', bbox_inches='tight')
+    if flag_show:
+        plt.show()
+    return ax
 
 
 if __name__ == "__main__":

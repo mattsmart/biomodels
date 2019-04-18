@@ -4,7 +4,7 @@ import os
 
 from constants import OUTPUT_DIR, COLOURS_DARK_BLUE
 from data_io import read_matrix_data_and_idx_vals, read_params, read_fpt_and_params
-from firstpassage import fpt_histogram, exponential_scale_estimate, sample_exponential, simplex_heatmap
+from firstpassage import fpt_histogram, exponential_scale_estimate, sample_exponential, simplex_heatmap, fp_state_zloc_hist
 
 
 def subsample_data():
@@ -144,17 +144,21 @@ if __name__ == "__main__":
         hist_labels = ("b=1.20, c=1.10 (Region III)", "b=0.80, c=0.95 (Region IV)")
         num_hists = len(hist_labels)
 
+        # simplex/distro individual plots
         for i, header in enumerate(hist_id):
-            simplex_heatmap(hist_times[i], hist_states[i], hist_params[i], flag_show=False, figname_mod='_%s' % hist_id[i], outdir=basedir)
+            # TODO fix normalization to avoid weird stripe neat allz (note it may be the actual data since when it hits all z there are no more x or y it just moves on the z pole)
+            # TODO idea maybe to have special case for when x, y, or z are the whole pop? or just z at least?
+            # TODO 2 - fix cutoff top of composite figures and the grid issue which wasn't there with smallfig OFF
+            ax1 = simplex_heatmap(hist_times[i], hist_states[i], hist_params[i], smallfig=False, flag_show=False, figname_mod='_%s' % hist_id[i], outdir=basedir)
             plt.close('all')
-            # add model comparisons
-            """
-            exp_scale = exponential_scale_estimate(hist_times[i])
-            model_data = sample_exponential(len(hist_times[i]), 1/exp_scale)  # note diff convention inverse
-            print i, header, model_data.shape, exp_scale, 1/exp_scale
-            data_vs_model = [hist_times[i], model_data]
-            data_vs_model_labels = [hist_labels[i], r'$\frac{1}{\beta}e^{-t/\beta}, \beta=%.2e$ years' % (1/exp_scale / 365)]
-            figure_fpt_multihist(data_vs_model, data_vs_model_labels, figname_mod="compare_model%d" % i, flag_show=True,
-                                 flag_ylog10=True, flag_norm=flag_norm, fs=fs, ec=ec, lw=lw, figsize=figsize, outdir=basedir)
-            plt.close()
-            """
+            ax2 = fp_state_zloc_hist(hist_times[i], hist_states[i], hist_params[i], flag_show=False, kde=True, figname_mod='_%s' % hist_id[i], outdir=basedir)
+            plt.close('all')
+        # as subplots
+        for i, header in enumerate(hist_id):
+            f, axarr = plt.subplots(1, 2, sharey=True, figsize=(8, 2.5))
+            ax1 = simplex_heatmap(hist_times[i], hist_states[i], hist_params[i], flag_show=False, smallfig=True,
+                                  ax=axarr[0], cbar=False, save=False)
+            ax2 = fp_state_zloc_hist(hist_times[i], hist_states[i], hist_params[i], flag_show=False, kde=True,
+                                     ax=axarr[1], save=False)
+            #plt.subplots_adjust()
+            plt.savefig(basedir + os.sep + 'simplex_composite_%s.pdf' % hist_id[i], bbox_inches='tight')

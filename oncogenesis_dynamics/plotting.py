@@ -114,7 +114,7 @@ def plot_simplex(N):
     return fig
 
 
-def plot_simplex2D(params, streamlines=True, fp=True, cbar=False, smallfig=False):
+def plot_simplex2D(params, streamlines=True, fp=True, cbar=False, smallfig=False, ax=None):
     N = params.N
 
     if smallfig:
@@ -132,22 +132,24 @@ def plot_simplex2D(params, streamlines=True, fp=True, cbar=False, smallfig=False
         nn = 100
         ylim_mod = 0.04
 
-    fig = plt.figure(figsize=figsize)
+    if ax is None:
+        fig = plt.figure(figsize=figsize)
+        ax = plt.gca()
 
     X = np.array([[0.0, 0.0], [N, 0.0], [N / 2.0, N]])
 
     if smallfig:
-        t1 = plt.Polygon(X[:3, :], color=(0.902, 0.902, 0.902), alpha=1.0, ec=(0.14, 0.14, 0.14), lw=1)
-        plt.gca().add_patch(t1)
-        plt.text(-params.N*0.12, -params.N*0.08, r'$x$', fontsize=text_fs)
-        plt.text(params.N*1.045, -params.N*0.08, r'$y$', fontsize=text_fs)
-        plt.text(params.N/2.0*0.93, params.N*1.115, r'$z$', fontsize=text_fs)
+        t1 = plt.Polygon(X[:3, :], color=(0.902, 0.902, 0.902), alpha=1.0, ec=(0.14, 0.14, 0.14), lw=1, zorder=1)
+        ax.add_patch(t1)
+        ax.text(-params.N*0.12, -params.N*0.08, r'$x$', fontsize=text_fs)
+        ax.text(params.N*1.045, -params.N*0.08, r'$y$', fontsize=text_fs)
+        ax.text(params.N/2.0*0.93, params.N*1.115, r'$z$', fontsize=text_fs)
     else:
-        t1 = plt.Polygon(X[:3, :], color='k', alpha=0.1)
-        plt.gca().add_patch(t1)
-        plt.text(-params.N * 0.07, -params.N * 0.05, r'$x$', fontsize=text_fs)
-        plt.text(params.N * 1.03, -params.N * 0.05, r'$y$', fontsize=text_fs)
-        plt.text(params.N / 2.0 * 0.96, params.N * 1.07, r'$z$', fontsize=text_fs)
+        t1 = plt.Polygon(X[:3, :], color='k', alpha=0.1, zorder=1)
+        ax.add_patch(t1)
+        ax.text(-params.N * 0.07, -params.N * 0.05, r'$x$', fontsize=text_fs)
+        ax.text(params.N * 1.03, -params.N * 0.05, r'$y$', fontsize=text_fs)
+        ax.text(params.N / 2.0 * 0.96, params.N * 1.07, r'$z$', fontsize=text_fs)
 
     if streamlines:
         B, A = np.mgrid[0:N:nn*1j, 0:N:nn*1j]
@@ -171,9 +173,9 @@ def plot_simplex2D(params, streamlines=True, fp=True, cbar=False, smallfig=False
                     ADOT[i, j] = (-dxvecdt[0] + dxvecdt[1])/2.0  # (- xdot + ydot) / 2
                     BDOT[i, j] = dxvecdt[2]                      # zdot
         if smallfig:
-            strm = plt.streamplot(A, B, ADOT, BDOT, color=(0.34, 0.34, 0.34), linewidth=stlw)
+            strm = ax.streamplot(A, B, ADOT, BDOT, color=(0.34, 0.34, 0.34), linewidth=stlw)
         else:
-            strm = plt.streamplot(A, B, ADOT, BDOT, color=SPEEDS, linewidth=stlw, cmap=plt.cm.coolwarm)
+            strm = ax.streamplot(A, B, ADOT, BDOT, color=SPEEDS, linewidth=stlw, cmap=plt.cm.coolwarm)
             if cbar:
                 plt.colorbar(strm.lines)
 
@@ -191,15 +193,15 @@ def plot_simplex2D(params, streamlines=True, fp=True, cbar=False, smallfig=False
         for fp in stable_fps:
             fp_x = (N + fp[1] - fp[0]) / 2.0
             #plt.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', color='k')
-            plt.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', color=(0.212, 0.271, 0.31))
+            ax.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', color=(0.212, 0.271, 0.31), zorder=10)
         for fp in unstable_fps:
             fp_x = (N + fp[1] - fp[0]) / 2.0
             #plt.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', markerfacecolor="None")
-            plt.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', color=(0.902, 0.902, 0.902))
+            ax.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', color=(0.902, 0.902, 0.902), zorder=10)
 
-    plt.ylim(-N*ylim_mod, N*(1+ylim_mod))
-    plt.axis('off')
-    return fig
+    ax.set_ylim(-N*ylim_mod, N*(1+ylim_mod))
+    ax.axis('off')
+    return ax
 
 
 def plot_fp_curves_simple(x0, x0_stab, x1, x1_stab, x2, x2_stab, N, plt_title, flag_show, flag_save, plt_save="bifurcation_curves", colourbinary=False):
@@ -384,6 +386,6 @@ if __name__ == '__main__':
     #fig = plot_simplex(100)
     #plt.show()
     params = presets('preset_xyz_tanh')
-    fig = plot_simplex2D(params, smallfig=True)
+    ax = plot_simplex2D(params, smallfig=True)
     plt.savefig(OUTPUT_DIR + sep + 'simplex_plot.pdf')
     plt.show()
