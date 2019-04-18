@@ -276,7 +276,7 @@ def simplex_heatmap(fp_times, fp_states, params, ax=None, fp=True, streamlines=T
     # conversion to 2D
     #conv_x = (params.N + fp_states[:, 1] - fp_states[:, 0]) / 2.0  # old way, but points don't lie ON simplex unless normalized
     conv_x = (params.N + y_norm - x_norm) / 2.0
-    conv_y = fp_states[:, 2]
+    conv_y = z_norm#fp_states[:, 2]
 
     # plot points
     if colour:
@@ -299,18 +299,24 @@ def simplex_heatmap(fp_times, fp_states, params, ax=None, fp=True, streamlines=T
     return ax
 
 
-def fp_state_zloc_hist(fp_times, fp_states, params, ax=None, fp=True, kde=True, flag_show=True, outdir=OUTPUT_DIR, figname_mod="", save=True):
+def fp_state_zloc_hist(fp_times, fp_states, params, ax=None, normalize=False, fp=True, kde=True, flag_show=True, outdir=OUTPUT_DIR, figname_mod="", save=True):
 
     N = params.N
     seaborn.set_context("notebook", font_scale=1.9)  # TODO this breaks edges of the markers for FP but it is needed for font size?
 
     # plot fp_states z coord histogram
-    fp_zcoord = fp_states[:, 2]
+    if normalize:
+        scales = params.N / np.sum(fp_states, axis=1)
+        fp_zcoord = fp_states[:, 2] * scales
+        zlabel = r'$z(\tau)/N$'  # how to denote that it is normalized here?
+    else:
+        fp_zcoord = fp_states[:, 2]
+        zlabel = r'$z(\tau)$'
     if kde:
         ax = seaborn.kdeplot(fp_zcoord, shade=True, cut=0.0, vertical=True, ax=ax)
     else:
         ax = seaborn.distplot(fp_zcoord, vertical=True, ax=ax)
-    ax.set_ylabel(r'$z(\tau)$')
+    ax.set_ylabel(zlabel)
     ax.set_xticklabels([])
     #ax.set_yticklabels([])
     ax.set_yticks([0, N])

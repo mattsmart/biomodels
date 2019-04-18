@@ -151,14 +151,14 @@ if __name__ == "__main__":
             # TODO 2 - fix cutoff top of composite figures and the grid issue which wasn't there with smallfig OFF
             ax1 = simplex_heatmap(hist_times[i], hist_states[i], hist_params[i], smallfig=False, flag_show=False, figname_mod='_%s' % hist_id[i], outdir=basedir)
             plt.close('all')
-            ax2 = fp_state_zloc_hist(hist_times[i], hist_states[i], hist_params[i], flag_show=False, kde=True, figname_mod='_%s' % hist_id[i], outdir=basedir)
+            ax2 = fp_state_zloc_hist(hist_times[i], hist_states[i], hist_params[i], normalize=True, flag_show=False, kde=True, figname_mod='_%s' % hist_id[i], outdir=basedir)
             plt.close('all')
         # as subplots
         for i, header in enumerate(hist_id):
             f, axarr = plt.subplots(1, 2, sharey=True, figsize=(8, 2.5))
             ax1 = simplex_heatmap(hist_times[i], hist_states[i], hist_params[i], flag_show=False, smallfig=True,
                                   ax=axarr[0], cbar=False, save=False)
-            ax2 = fp_state_zloc_hist(hist_times[i], hist_states[i], hist_params[i], flag_show=False, kde=True,
-                                     ax=axarr[1], save=False)
+            ax2 = fp_state_zloc_hist(hist_times[i], hist_states[i], hist_params[i], normalize=True, flag_show=False,
+                                     kde=True, ax=axarr[1], save=False)
             #plt.subplots_adjust()
             plt.savefig(basedir + os.sep + 'simplex_composite_%s.pdf' % hist_id[i], bbox_inches='tight')

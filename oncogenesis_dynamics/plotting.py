@@ -175,9 +175,19 @@ def plot_simplex2D(params, streamlines=True, fp=True, cbar=False, smallfig=False
         if smallfig:
             strm = ax.streamplot(A, B, ADOT, BDOT, color=(0.34, 0.34, 0.34), linewidth=stlw)
         else:
+            # this will color lines
+            """
             strm = ax.streamplot(A, B, ADOT, BDOT, color=SPEEDS, linewidth=stlw, cmap=plt.cm.coolwarm)
             if cbar:
                 plt.colorbar(strm.lines)
+            """
+            # this will change line thickness
+            stlw_low = stlw
+            stlw_high = 1.0
+            speeds_low = np.min(SPEEDS)
+            speeds_high = np.max(SPEEDS)
+            speeds_conv = 0.3 + SPEEDS / speeds_high
+            strm = ax.streamplot(A, B, ADOT, BDOT, color=(0.34, 0.34, 0.34), linewidth=speeds_conv)
 
     if fp:
         stable_fps = []
@@ -193,7 +203,7 @@ def plot_simplex2D(params, streamlines=True, fp=True, cbar=False, smallfig=False
         for fp in stable_fps:
             fp_x = (N + fp[1] - fp[0]) / 2.0
             #plt.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', color='k')
-            ax.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', color=(0.212, 0.271, 0.31), zorder=10)
+            ax.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', color=(0.212, 0.271, 0.31), zorder=10)  # #b88c8c is pastel reddish, (0.212, 0.271, 0.31) blueish
         for fp in unstable_fps:
             fp_x = (N + fp[1] - fp[0]) / 2.0
             #plt.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', markerfacecolor="None")
