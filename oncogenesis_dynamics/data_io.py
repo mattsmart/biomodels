@@ -189,7 +189,7 @@ def collect_fpt_and_params(filedir):
     for subdir in onlydirs:
         files = listdir(subdir)
         for f in files:
-            if "data" == f[-8:-4]:
+            if "times" == f[-9:-4]:
                 timesfiles.append(join(subdir, f))
             if "states" == f[-10:-4]:
                 statesfiles.append(join(subdir, f))
@@ -204,7 +204,7 @@ def collect_fpt_and_params(filedir):
         assert params.params_list == params_0.params_list
 
     fpt_collected = []
-    fpstate_collected = np.empty((1, params_0.numstates))
+    fpstate_collected = np.empty((0, params_0.numstates))
     for idx, df in enumerate(timesfiles):
         fp_times, fp_states, params = read_fpt_and_params(dirname(df), filename_times=basename(df),
                                                           filename_params=basename(paramfiles[0]))
@@ -298,5 +298,5 @@ def read_matrix_data_and_idx_vals(datapath, rowpath, colpath, binary=False):
 
 
 if __name__ == '__main__':
-    collect_dir = OUTPUT_DIR + sep + 'TLset'
-    collect_fpt_and_params_deprecated(collect_dir)
+    collect_dir = OUTPUT_DIR + sep + 'BRstate'
+    collect_fpt_and_params(collect_dir)
