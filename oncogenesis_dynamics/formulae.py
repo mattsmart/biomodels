@@ -22,6 +22,7 @@ from sympy import Symbol, solve, re
 
 from constants import PARAMS_ID, CSV_DATA_TYPES, SIM_METHODS_VALID, INIT_COND, TIME_START, TIME_END, NUM_STEPS
 from params import Params
+from presets import presets
 
 
 def ode_system_vector(init_cond, times, params):
@@ -1103,7 +1104,11 @@ def map_init_name_to_init_cond(params, init_name):
                     "mixed": [int(0.7 * N), int(0.2 *N ), int(0.1 * N)],
                     "midpoint": [N/3, N/3, N - 2*N/3],
                     "z_close": [int(N*0.05), int(N*0.05), int(N*0.9)],
-                    "random": random_init_cond(params)}
+                    "random": random_init_cond(params),
+                    "BL": [int(round(0.850818*N)), int(round(0.1489696*N)), int(round(0.000212*N))],
+                    "BR": [0, 0, N],
+                    "TL": [int(round(0.803405*N)), int(round(0.196454*N)), int(round(0.000141*N))],
+                    "TR": [int(round(0.2458805*N)), int(round(0.246366*N)), int(0.507754*N)]}
     elif params.numstates == 2:
         init_map = {"x_all": [N, 0],
                     "z_all": [0, N],
@@ -1121,3 +1126,26 @@ def map_init_name_to_init_cond(params, init_name):
     else:
         init_map = None
     return init_map[init_name]
+
+
+if __name__ == '__main__':
+    params = presets('preset_xyz_tanh')  # TODO generalize preset in main args
+    print params.feedback
+    BL = params.mod_copy({'b': 0.8, 'c': 0.9})
+    BR = params.mod_copy({'b': 0.8, 'c': 1.1})
+    TL = params.mod_copy({'b': 1.2, 'c': 0.9})
+    TR = params.mod_copy({'b': 1.2, 'c': 1.1})
+
+    print get_physical_fp_stable_and_not(BL)
+    print
+    print get_physical_fp_stable_and_not(BR)
+    print
+    print get_physical_fp_stable_and_not(TL)
+    print
+    print get_physical_fp_stable_and_not(TR)
+    print
+
+    print map_init_name_to_init_cond(BL, 'BL')
+    print map_init_name_to_init_cond(BR, 'BR')
+    print map_init_name_to_init_cond(TL, 'TL')
+    print map_init_name_to_init_cond(TR, 'TR')
