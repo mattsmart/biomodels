@@ -261,7 +261,7 @@ def plot_mean_fpt_varying(mean_fpt_varying, sd_fpt_varying, param_vary_name, par
     return ax
 
 
-def simplex_heatmap(fp_times, fp_states, params, fp=True, streamlines=True, colour=True, flag_show=True, figname_mod=""):
+def simplex_heatmap(fp_times, fp_states, params, fp=True, streamlines=True, colour=True, flag_show=True, outdir=OUTPUT_DIR, figname_mod=""):
     # plot simplex (as 2D triangle face, equilateral)
     fig = plot_simplex2D(params, fp=fp, streamlines=streamlines)  # TODO streamlines
 
@@ -284,7 +284,7 @@ def simplex_heatmap(fp_times, fp_states, params, fp=True, streamlines=True, colo
 
     # save
     plt_save = "simplex_heatmap" + figname_mod
-    plt.savefig(OUTPUT_DIR + sep + plt_save + '.png', bbox_inches='tight')
+    plt.savefig(outdir + sep + plt_save + '.pdf', bbox_inches='tight')
     if flag_show:
         plt.show()
     return fig

@@ -101,7 +101,7 @@ X_DARK = [i - COLOUR_EPS for i in DEFAULT_X_COLOUR]
 Z_DARK = [i - COLOUR_EPS for i in DEFAULT_Z_COLOUR]
 COLOURS_GREY = [DEFAULT_X_COLOUR, GREY, DEFAULT_Z_COLOUR]
 COLOURS_DARK_GREY = [X_DARK, GREY_DARK, Z_DARK]
-COLOURS_DARK_BLUE = [X_DARK, BLUE, Z_DARK]
+COLOURS_DARK_BLUE = [X_DARK, BLUE, Z_DARK, '#9799BA']
 # bistability phase diagram colours
 Y_LOW = tuple([0.5 * (DEFAULT_X_COLOUR[idx] + DEFAULT_Y_COLOUR[idx]) for idx in xrange(3)])
 Y_HIGH = tuple([0.5 * (DEFAULT_Y_COLOUR[idx] + DEFAULT_Z_COLOUR[idx]) for idx in xrange(3)])

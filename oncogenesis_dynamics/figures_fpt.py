@@ -4,7 +4,7 @@ import os
 
 from constants import OUTPUT_DIR, COLOURS_DARK_BLUE
 from data_io import read_matrix_data_and_idx_vals, read_params, read_fpt_and_params
-from firstpassage import fpt_histogram, exponential_scale_estimate, sample_exponential
+from firstpassage import fpt_histogram, exponential_scale_estimate, sample_exponential, simplex_heatmap
 
 
 def subsample_data():
@@ -82,9 +82,10 @@ def figure_fpt_multihist(multi_fpt_list, labels, figname_mod="def", bin_linspace
     return plt.gca()
 
 
-
 if __name__ == "__main__":
-    multihist = True
+    multihist = False
+    simplices = True
+
     basedir = "figures"
     dbdir = basedir + os.sep + "data_fpt"
 
@@ -97,8 +98,8 @@ if __name__ == "__main__":
         lw = 0.5
         figsize = (8, 6)
         # data setup
-        hist_headers = ("fpt_TR_ens2064", "fpt_BR_ens2064", "fpt_BL2_ens1024")
-        hist_labels = ("b=0.80, c=1.10 (Region II)", "b=1.20, c=1.10 (Region III)", "b=0.80, c=0.95 (Region IV)")
+        hist_headers = ("fpt_TL_ens1848", "fpt_TR_ens2064", "fpt_BR_ens2064", "fpt_BL_ens2048")
+        hist_labels = ("b=0.80, c=0.90 (Region I)", "b=0.80, c=1.10 (Region II)", "b=1.20, c=1.10 (Region III)", "b=0.80, c=0.95 (Region IV)")
         hist_data_and_params = [read_fpt_and_params(dbdir, filename_times="%s_data.txt" % header, filename_params="%s_params.csv" % header)
                                 for header in hist_headers]
         hist_times = [triple[0] for triple in hist_data_and_params]
@@ -130,3 +131,30 @@ if __name__ == "__main__":
         plt.close()
         figure_fpt_multihist(hist_times, hist_labels, figname_mod="logy_nonorm", flag_show=True, flag_ylog10=True,
                              flag_norm=False, fs=fs, ec=ec, lw=lw, figsize=figsize, flag_disjoint=True, outdir=basedir)
+
+    if simplices:
+
+        fpt_BR, fps_BR, params_BR = read_fpt_and_params(dbdir + os.sep + 'BRstate')
+        fpt_TR, fps_TR, params_TR = read_fpt_and_params(dbdir + os.sep + 'TRstate')
+
+        hist_id = ['BRstate', 'TRstate']
+        hist_times = [fpt_BR, fpt_TR]
+        hist_states = [fps_BR, fps_TR]
+        hist_params = [params_BR, params_TR]
+        hist_labels = ("b=1.20, c=1.10 (Region III)", "b=0.80, c=0.95 (Region IV)")
+        num_hists = len(hist_labels)
+
+        for i, header in enumerate(hist_id):
+            simplex_heatmap(hist_times[i], hist_states[i], hist_params[i], flag_show=False, figname_mod='_%s' % hist_id[i], outdir=basedir)
+            plt.close('all')
+            # add model comparisons
+            """
+            exp_scale = exponential_scale_estimate(hist_times[i])
+            model_data = sample_exponential(len(hist_times[i]), 1/exp_scale)  # note diff convention inverse
+            print i, header, model_data.shape, exp_scale, 1/exp_scale
+            data_vs_model = [hist_times[i], model_data]
+            data_vs_model_labels = [hist_labels[i], r'$\frac{1}{\beta}e^{-t/\beta}, \beta=%.2e$ years' % (1/exp_scale / 365)]
+            figure_fpt_multihist(data_vs_model, data_vs_model_labels, figname_mod="compare_model%d" % i, flag_show=True,
+                                 flag_ylog10=True, flag_norm=flag_norm, fs=fs, ec=ec, lw=lw, figsize=figsize, outdir=basedir)
+            plt.close()
+            """
