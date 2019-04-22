@@ -13,9 +13,31 @@ def subsample_data():
     return fpt_data_subsampled
 
 
+def corner_to_flux(corner, params):
+    df = {'BL': 0.000212,
+          'BR': 1.0,
+          'TL': 0.000141,
+          'TR': 0.507754}
+    z_fp = df[corner] * params.N  # number entering zhat state per unit time
+    avg_flux = 1/(z_fp * params.mu)
+    return avg_flux
+
+
+def load_datadict(basedir="figures" + os.sep + "data_fpt"):
+    # form is {'BL_N100_xall': {'states': X, 'times': Y, 'params': Z},
+    #          'TR_N10k_icfp':  {'states': X, 'times': Y, 'params': Z}, etc. }
+    datadict = {}
+    # TODO maybe convert to non loop form and just explicitly name subdirs and desired plot headers?
+    subdirs = [sd for sd in os.listdir(basedir) if os.path.isdir(os.path.join(basedir, sd))]
+    for subdir in subdirs:
+        fpt, fps, params = read_fpt_and_params(basedir + os.sep + subdir)
+        datadict[subdir] = {'times': fpt, 'states': fps, 'params': params}
+    return datadict
+
+
 def figure_fpt_multihist(multi_fpt_list, labels, figname_mod="def", bin_linspace=80, fs=16, colours=COLOURS_DARK_BLUE,
                          figsize=(8,6), ec='k', lw=0.5, flag_norm=False, flag_xlog10=False, flag_ylog10=False,
-                         flag_disjoint=False, flag_show=True, outdir=OUTPUT_DIR, years=True):
+                         flag_disjoint=False, flag_show=True, outdir=OUTPUT_DIR, years=True, save=True, ax=None):
 
     # resize fpt lists if not all same size (to the min size)
     fpt_lengths = [len(fpt) for fpt in multi_fpt_list]
@@ -34,15 +56,16 @@ def figure_fpt_multihist(multi_fpt_list, labels, figname_mod="def", bin_linspace
 
     # normalize
     if flag_norm:
-        y_label = 'Probability'
+        y_label = r'$P(\tau)$'  #'Probability'
         weights = np.ones_like(multi_fpt_list) / ensemble_size
     else:
         y_label = 'Frequency'
         weights = np.ones_like(multi_fpt_list)
 
     # prep fig before axes mod
-    fig = plt.figure(figsize=figsize, dpi=120)
-    ax = plt.gca()
+    if ax is None:
+        fig = plt.figure(figsize=figsize, dpi=120)
+        ax = plt.gca()
 
     # mod axes (log)
     if flag_xlog10:
@@ -55,28 +78,30 @@ def figure_fpt_multihist(multi_fpt_list, labels, figname_mod="def", bin_linspace
 
     # plot calls
     if flag_disjoint:
-        plt.hist(multi_fpt_list, bins=bins, color=colours, label=labels, weights=weights, edgecolor=ec, linewidth=lw)
+        ax.hist(multi_fpt_list, bins=bins, color=colours, label=labels, weights=weights, edgecolor=ec, linewidth=lw)
     else:
         for idx, fpt_list in enumerate(multi_fpt_list):
-            plt.hist(fpt_list, bins=bins, alpha=0.6, color=colours[idx], label=labels[idx],
+            ax.hist(fpt_list, bins=bins, alpha=0.6, color=colours[idx], label=labels[idx],
                      weights=weights[idx,:])
-            plt.hist(fpt_list, histtype='step', bins=bins, alpha=0.6, color=colours[idx],
+            ax.hist(fpt_list, histtype='step', bins=bins, alpha=0.6, color=colours[idx],
                      label=None,weights=weights[idx,:], edgecolor=ec, linewidth=lw, fill=False)
 
     # labels
-    plt.title('First-passage time histogram (%d runs)' % (ensemble_size), fontsize=fs)
+    ax.set_title(r'$\tau$ histogram (%d samples)' % (ensemble_size), fontsize=fs)
     if years:
-        ax.set_xlabel('First-passage time (years)', fontsize=fs)
+        label = r'$\tau$ (years)' # 'First-passage time (years)'
+        ax.set_xlabel(label, fontsize=fs)
     else:
         ax.set_xlabel('First-passage time (cell division timescale)', fontsize=fs)
     ax.set_ylabel(y_label, fontsize=fs)
-    plt.legend(loc='upper right', fontsize=fs)
+    ax.legend(loc='upper right', fontsize=fs)
     ax.tick_params(labelsize=fs)
     # plt.locator_params(axis='x', nbins=4)
 
     # save and show
-    plt_save = 'fig_fpt_multihist_%s.pdf' % figname_mod
-    plt.savefig(outdir + os.sep + plt_save, bbox_inches='tight')
+    if save:
+        plt_save = 'fig_fpt_multihist_%s.pdf' % figname_mod
+        plt.savefig(outdir + os.sep + plt_save, bbox_inches='tight')
     if flag_show:
         plt.show()
     return plt.gca()
@@ -84,13 +109,25 @@ def figure_fpt_multihist(multi_fpt_list, labels, figname_mod="def", bin_linspace
 
 if __name__ == "__main__":
     multihist = False
-    simplices = True
+    simplex_and_zdist = False
+    composite_simplex_zdist = False
+    composite_hist_simplex_zdist = False
+    inspect_fpt_flux = True
 
     basedir = "figures"
     dbdir = basedir + os.sep + "data_fpt"
+    datdict = load_datadict(basedir=dbdir)
+
+    title = "N100_xall"
+    keys = ['TL_N100_xall', 'BR_N100_xall', 'TR_N100_xall', 'BL_N100_xall']
+    labels = ["b=1.20, c=0.90 (Region I)", "b=0.80, c=1.10 (Region II)", "b=1.20, c=1.10 (Region III)",
+              "b=0.80, c=0.90 (Region IV)"]
+    corners = ['TL', 'BR', 'TR', 'BL']
+    num_hists = len(keys)
 
     if multihist:
         # TODO improve presentation by having cell divison axis timescale [2,4,5...]*10^6 etc but then say mean time in years in caption
+        # TODO convert to new datadict io format
         # plot settings
         flag_norm = True
         fs = 16
@@ -132,33 +169,61 @@ if __name__ == "__main__":
         figure_fpt_multihist(hist_times, hist_labels, figname_mod="logy_nonorm", flag_show=True, flag_ylog10=True,
                              flag_norm=False, fs=fs, ec=ec, lw=lw, figsize=figsize, flag_disjoint=True, outdir=basedir)
 
-    if simplices:
-
-        fpt_BR, fps_BR, params_BR = read_fpt_and_params(dbdir + os.sep + 'BRstate')
-        fpt_TR, fps_TR, params_TR = read_fpt_and_params(dbdir + os.sep + 'TRstate')
-
-        hist_id = ['BRstate', 'TRstate']
-        hist_times = [fpt_BR, fpt_TR]
-        hist_states = [fps_BR, fps_TR]
-        hist_params = [params_BR, params_TR]
-        hist_labels = ("b=1.20, c=1.10 (Region III)", "b=0.80, c=0.95 (Region IV)")
-        num_hists = len(hist_labels)
-
+    if simplex_and_zdist:
         # simplex/distro individual plots
-        for i, header in enumerate(hist_id):
+        for i, key in enumerate(keys):
             # TODO fix normalization to avoid weird stripe neat allz (note it may be the actual data since when it hits all z there are no more x or y it just moves on the z pole)
             # TODO idea maybe to have special case for when x, y, or z are the whole pop? or just z at least?
             # TODO 2 - fix cutoff top of composite figures and the grid issue which wasn't there with smallfig OFF
-            ax1 = simplex_heatmap(hist_times[i], hist_states[i], hist_params[i], smallfig=False, flag_show=False, figname_mod='_%s' % hist_id[i], outdir=basedir)
+            # TODO add fpt  hist to the composite?
+            fpt, fps, params = datdict[key]['times'], datdict[key]['states'], datdict[key]['params']
+            label = labels[i]
+            ax1 = simplex_heatmap(fpt, fps, params, smallfig=False, flag_show=False, figname_mod='_%s' % key, outdir=basedir)
             plt.close('all')
-            ax2 = fp_state_zloc_hist(hist_times[i], hist_states[i], hist_params[i], normalize=True, flag_show=False, kde=True, figname_mod='_%s' % hist_id[i], outdir=basedir)
+            ax2 = fp_state_zloc_hist(fpt, fps, params, normalize=True, flag_show=False, kde=True, figname_mod='_%s' % key, outdir=basedir)
             plt.close('all')
-        # as subplots
-        for i, header in enumerate(hist_id):
+    if composite_simplex_zdist:
+        # as 2 subplots
+        for i, key in enumerate(keys):
+            fpt, fps, params = datdict[key]['times'], datdict[key]['states'], datdict[key]['params']
             f, axarr = plt.subplots(1, 2, sharey=True, figsize=(8, 2.5))
-            ax1 = simplex_heatmap(hist_times[i], hist_states[i], hist_params[i], flag_show=False, smallfig=True,
-                                  ax=axarr[0], cbar=False, save=False)
-            ax2 = fp_state_zloc_hist(hist_times[i], hist_states[i], hist_params[i], normalize=True, flag_show=False,
-                                     kde=True, ax=axarr[1], save=False)
+            ax1 = simplex_heatmap(fpt, fps, params, flag_show=False, smallfig=True, ax=axarr[0], cbar=False, save=False)
+            ax2 = fp_state_zloc_hist(fpt, fps, params, normalize=True, flag_show=False, kde=True, ax=axarr[1], save=False)
             #plt.subplots_adjust()
-            plt.savefig(basedir + os.sep + 'simplex_composite_%s.pdf' % hist_id[i], bbox_inches='tight')
+            plt.savefig(basedir + os.sep + 'simplex_composite_%s.pdf' % key, bbox_inches='tight')
+    if composite_hist_simplex_zdist:
+        # as 3 subplots
+        for i, key in enumerate(keys):
+            fpt, fps, params = datdict[key]['times'], datdict[key]['states'], datdict[key]['params']
+            f, axarr = plt.subplots(1, 3, sharey=False, figsize=(8, 2.5))
+            # prep exp model hist
+            fs = 16
+            ec = 'k'
+            lw = 0.5
+            exp_scale = exponential_scale_estimate(fpt)
+            model_data = sample_exponential(len(fpt), 1 / exp_scale)  # note diff convention inverse
+            print i, key, model_data.shape, exp_scale, 1 / exp_scale, corner_to_flux(corners[i], params)
+            data_vs_model = [fpt, model_data]
+            data_vs_model_labels_long = [labels[i], r'$\frac{1}{\beta}e^{-t/\beta}, \beta=%.2e$ years' % (1 / exp_scale / 365)]
+            data_vs_model_labels = ['data', r'$\frac{1}{\beta}e^{-t/\beta}, \beta=%.2e$ years' % (1 / exp_scale / 365)]
+
+            ax1 = figure_fpt_multihist(data_vs_model, data_vs_model_labels, flag_show=False, flag_ylog10=True,
+                                       flag_norm=True, fs=fs, ec=ec, lw=lw, outdir=basedir, save=False, ax=axarr[0])
+            ax2 = simplex_heatmap(fpt, fps, params, flag_show=False, smallfig=True, ax=axarr[1], cbar=False, save=False)
+            ax3 = fp_state_zloc_hist(fpt, fps, params, normalize=True, flag_show=False, kde=True, ax=axarr[2], save=False)
+            plt.subplots_adjust(wspace=0.3)  # 0.2 default width
+            plt.savefig(basedir + os.sep + 'triple_composite_%s.pdf' % key, bbox_inches='tight')
+            plt.close('all')
+
+    if inspect_fpt_flux:
+        print "Running inspect_fpt_flux"
+        print "Note: expect xall data to overestimate the FPT timescale beta"
+        print "Note: expect init cond at FP (icfp) data to correspond to the FPT timescale beta, except in Region IV"
+        print "Remark: in Region IV trajectories jumping between stable FPs (for low N) causes the FPT to be faster " \
+              "than one would expect for exponential flux from the lower stable FP (compare N=100 to N=10,000)"
+        for flavor in ['N100_xall', 'N100_icfp', 'N10k_xall', 'N10k_icfp']:
+            for corner in corners:
+                key = corner + '_' + flavor
+                fpt, fps, params = datdict[key]['times'], datdict[key]['states'], datdict[key]['params']
+                exp_scale = exponential_scale_estimate(fpt)
+                print key, len(fpt), exp_scale, 1/exp_scale, corner_to_flux(corner, params)
