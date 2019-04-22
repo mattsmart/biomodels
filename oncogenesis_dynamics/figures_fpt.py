@@ -222,6 +222,7 @@ if __name__ == "__main__":
         print "Remark: in Region IV trajectories jumping between stable FPs (for low N) causes the FPT to be faster " \
               "than one would expect for exponential flux from the lower stable FP (compare N=100 to N=10,000)"
         for flavor in ['N100_xall', 'N100_icfp', 'N10k_xall', 'N10k_icfp']:
+            print
             for corner in corners:
                 key = corner + '_' + flavor
                 fpt, fps, params = datdict[key]['times'], datdict[key]['states'], datdict[key]['params']
