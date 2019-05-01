@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 from constants import OUTPUT_DIR, COLOURS_DARK_BLUE
-from data_io import read_matrix_data_and_idx_vals, read_params, read_fpt_and_params
+from data_io import read_matrix_data_and_idx_vals, read_params, read_fpt_and_params, read_varying_mean_sd_fpt_and_params
 from firstpassage import fpt_histogram, exponential_scale_estimate, sample_exponential, simplex_heatmap, fp_state_zloc_hist
 
 
@@ -107,23 +107,107 @@ def figure_fpt_multihist(multi_fpt_list, labels, figname_mod="def", bin_linspace
     return plt.gca()
 
 
+def figure_mfpt_varying(mean_fpt_varying, sd_fpt_varying, param_vary_name, param_set, params, samplesize, SEM_flag=True,
+                        show_flag=False, figname_mod="", outdir=OUTPUT_DIR, fs=16):
+    if SEM_flag:
+        sd_fpt_varying = sd_fpt_varying / np.sqrt(samplesize)  # s.d. from CLT since sample mean is approx N(mu, sd**2/n)
+    plt.errorbar(param_set, mean_fpt_varying, yerr=sd_fpt_varying, label="sim")
+    plt.title("Mean FP Time, %s varying (sample=%d)" % (param_vary_name, samplesize))
+    ax = plt.gca()
+    ax.set_xlabel(r'$%s$' % param_vary_name, fontsize=fs)
+    ax.set_ylabel(r'$\langle\tau\rangle$', fontsize=fs)
+
+    # log options
+    for i in xrange(len(mean_fpt_varying)):
+        print i, param_set[i], mean_fpt_varying[i], sd_fpt_varying[i]
+    flag_xlog10 = True
+    flag_ylog10 = True
+    if flag_xlog10:
+        ax.set_xscale("log", nonposx='clip')
+        #ax.set_xlim([0.8*1e2, 1*1e7])
+    if flag_ylog10:
+        ax.set_yscale("log", nonposx='clip')
+        #ax.set_ylim([0.8*1e2, 3*1e5])
+
+    # create table of params
+    plt_save = "mean_fpt_varying" + figname_mod
+    plt.savefig(outdir + os.sep + plt_save + '.pdf', bbox_inches='tight')
+    if show_flag:
+        plt.show()
+    return ax
+
+
+def figure_mfpt_varying_dual(mean_fpt_varying, sd_fpt_varying, param_vary_name, param_set, params, samplesize, SEM_flag=True,
+                        show_flag=False, figname_mod="", outdir=OUTPUT_DIR, fs=20, ax=None):
+    if SEM_flag:
+        sd_fpt_varying = sd_fpt_varying / np.sqrt(samplesize)  # s.d. from CLT since sample mean is approx N(mu, sd**2/n)
+    if ax is None:
+        plt.figure()
+        ax = plt.gca()
+    #ax_dual = ax.twinx()
+
+    heuristic_x = np.logspace(np.log10(np.min(param_set)), np.log10(np.max(param_set)), 100)
+    heuristic_y = [corner_to_flux('BL', params.mod_copy({param_vary_name: p})) for p in heuristic_x]
+
+    ax.plot(param_set, mean_fpt_varying, '--', marker='o', color='k', label=r'$\langle\tau\rangle$ (simulation)')
+    ax.plot(param_set, sd_fpt_varying, '-.', marker='^', color='r', label=r'$\delta\tau$ (simulation)')
+    ax.plot(heuristic_x, heuristic_y, 'k', label=r"Flux to $\hat z$ from FP")
+    #plt.title("Mean FP Time, %s varying (sample=%d)" % (param_vary_name, samplesize))
+    ax.set_xlabel(r'$%s$' % param_vary_name, fontsize=fs)
+    ax.set_ylabel(r'$\tau$', fontsize=fs)
+    #ax.set_ylabel(r'$\langle\tau\rangle$', fontsize=fs)
+    #ax.set_ylabel(r'$\delta\tau$', fontsize=fs)
+
+    plt.xticks(fontsize=fs-2)
+    plt.yticks(fontsize=fs-2)
+
+    # hacky fix to sharey
+    #print "HACKY"
+    #print ax.get_ylim()
+    #ax_dual.set_ylim(ax.get_ylim())
+
+    # log options
+    for i in xrange(len(mean_fpt_varying)):
+        print i, param_set[i], mean_fpt_varying[i], sd_fpt_varying[i]
+    flag_xlog10 = True
+    flag_ylog10 = True
+    if flag_xlog10:
+        ax.set_xscale("log", nonposx='clip')
+        #ax_dual.set_xscale("log", nonposx='clip')
+        #ax.set_xlim([0.8*1e2, 1*1e7])
+    if flag_ylog10:
+        ax.set_yscale("log", nonposx='clip')
+        #ax_dual.set_yscale("log", nonposx='clip')
+        #ax.set_ylim([0.8*1e2, 3*1e5])
+
+    # create table of params
+    ax.legend(fontsize=fs-2)
+    plt_save = "mean_fpt_varying_dual" + figname_mod
+    plt.savefig(outdir + os.sep + plt_save + '.pdf', bbox_inches='tight')
+    if show_flag:
+        plt.show()
+    return ax
+
+
 if __name__ == "__main__":
     multihist = False
     simplex_and_zdist = False
     composite_simplex_zdist = False
     composite_hist_simplex_zdist = False
-    inspect_fpt_flux = True
+    inspect_fpt_flux = False
+    mfpt = True
 
     basedir = "figures"
-    dbdir = basedir + os.sep + "data_fpt"
-    datdict = load_datadict(basedir=dbdir)
+    if any([multihist, simplex_and_zdist, composite_simplex_zdist, composite_hist_simplex_zdist, inspect_fpt_flux]):
+        dbdir = basedir + os.sep + "data_fpt"
+        datdict = load_datadict(basedir=dbdir)
 
-    title = "N100_xall"
-    keys = ['TL_N100_xall', 'BR_N100_xall', 'TR_N100_xall', 'BL_N100_xall']
-    labels = ["b=1.20, c=0.90 (Region I)", "b=0.80, c=1.10 (Region II)", "b=1.20, c=1.10 (Region III)",
-              "b=0.80, c=0.90 (Region IV)"]
-    corners = ['TL', 'BR', 'TR', 'BL']
-    num_hists = len(keys)
+        title = "N100_xall"
+        keys = ['TL_N100_xall', 'BR_N100_xall', 'TR_N100_xall', 'BL_N100_xall']
+        labels = ["b=1.20, c=0.90 (Region I)", "b=0.80, c=1.10 (Region II)", "b=1.20, c=1.10 (Region III)",
+                  "b=0.80, c=0.90 (Region IV)"]
+        corners = ['TL', 'BR', 'TR', 'BL']
+        num_hists = len(keys)
 
     if multihist:
         # TODO improve presentation by having cell divison axis timescale [2,4,5...]*10^6 etc but then say mean time in years in caption
@@ -228,3 +312,14 @@ if __name__ == "__main__":
                 fpt, fps, params = datdict[key]['times'], datdict[key]['states'], datdict[key]['params']
                 exp_scale = exponential_scale_estimate(fpt)
                 print key, len(fpt), exp_scale, 1/exp_scale, corner_to_flux(corner, params)
+    if mfpt:
+        samplesize = 240
+        mfpt_dir = basedir + os.sep + 'data_mfpt' + os.sep + 'mfpt_Nvary_mu1e-4_BL_ens240'
+        mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params = \
+            read_varying_mean_sd_fpt_and_params(mfpt_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N.txt',
+                                                mfpt_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N_params.csv')
+        figure_mfpt_varying(mean_fpt_varying, sd_fpt_varying, 'N', param_set, params, samplesize,
+                            SEM_flag=False, show_flag=False, figname_mod="", outdir=basedir)
+        figure_mfpt_varying_dual(mean_fpt_varying, sd_fpt_varying, 'N', param_set, params, samplesize,
+                                 SEM_flag=False, show_flag=False, figname_mod="", outdir=basedir)
+
