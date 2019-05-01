@@ -298,5 +298,10 @@ def read_matrix_data_and_idx_vals(datapath, rowpath, colpath, binary=False):
 
 
 if __name__ == '__main__':
-    collect_dir = OUTPUT_DIR + sep + 'BRstate'
-    collect_fpt_and_params(collect_dir)
+    means_instead = True
+    collect_dir = OUTPUT_DIR + sep + 'tocollect' + sep + 'runset_april23_FPT_Nvary_mu1e-4_BL_ens240'
+
+    if means_instead:
+        collect_fpt_mean_stats_and_params(collect_dir, dirbase="means")
+    else:
+        collect_fpt_and_params(collect_dir)
