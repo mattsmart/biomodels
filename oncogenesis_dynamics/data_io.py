@@ -230,12 +230,13 @@ def collect_fpt_mean_stats_and_params(filedir, dirbase="means"):
         # input: location of filedir/means1 for example
         outputdir = fptdir + sep + "output"
         outputdirfiles = listdir(outputdir)
-        assert len(outputdirfiles) == 2
+        #assert len(outputdirfiles) == 2
         for f in outputdirfiles:
-            if f[-10:-4] == "params":
-                paramfile = f
-            else:
-                datafile = f
+            if f[0:9] == "fpt_stats":
+                if f[-10:-4] == "params":
+                    paramfile = f
+                else:
+                    datafile = f
         return outputdir + sep + datafile, outputdir + sep + paramfile
 
     onlydirs = [f for f in listdir(filedir) if isdir(join(filedir, f))]
@@ -299,7 +300,7 @@ def read_matrix_data_and_idx_vals(datapath, rowpath, colpath, binary=False):
 
 if __name__ == '__main__':
     means_instead = True
-    collect_dir = OUTPUT_DIR + sep + 'tocollect' + sep + 'runset_april23_FPT_Nvary_mu1e-4_BL_ens240'
+    collect_dir = OUTPUT_DIR + sep + 'tocollect' + sep + 'runset_may2_FPT_Nvary_mu1e-4_TR_ens240'
 
     if means_instead:
         collect_fpt_mean_stats_and_params(collect_dir, dirbase="means")

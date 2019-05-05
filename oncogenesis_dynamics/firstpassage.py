@@ -96,7 +96,7 @@ def fast_mean_fpt_varying(param_vary_name, param_vary_values, params, num_proces
     sd_fpt_varying = [0]*len(param_vary_values)
     for idx, pv in enumerate(param_vary_values):
         params_step = params.mod_copy( {param_vary_name: pv} )
-        init_cond = map_init_name_to_init_cond(params, init_name)
+        init_cond = map_init_name_to_init_cond(params_step, init_name)
         fp_times, fp_states = fast_fp_times(samplesize, init_cond, params_step, num_processes, establish_switch=establish_switch)
         mean_fpt_varying[idx] = np.mean(fp_times)
         sd_fpt_varying[idx] = np.std(fp_times)
