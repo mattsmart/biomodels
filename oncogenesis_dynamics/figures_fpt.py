@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from constants import OUTPUT_DIR, COLOURS_DARK_BLUE
+from constants import OUTPUT_DIR, COLOURS_DARK_BLUE, COLOURS_DARK_BLUE_YELLOW
 from data_io import read_matrix_data_and_idx_vals, read_params, read_fpt_and_params, read_varying_mean_sd_fpt_and_params
 from firstpassage import fpt_histogram, exponential_scale_estimate, sample_exponential, simplex_heatmap, fp_state_zloc_hist
 
@@ -35,9 +35,9 @@ def load_datadict(basedir="figures" + os.sep + "data_fpt"):
     return datadict
 
 
-def figure_fpt_multihist(multi_fpt_list, labels, figname_mod="def", bin_linspace=80, fs=16, colours=COLOURS_DARK_BLUE,
+def figure_fpt_multihist(multi_fpt_list, labels, figname_mod="def", bin_linspace=80, fs=16, colours=COLOURS_DARK_BLUE_YELLOW,
                          figsize=(8,6), ec='k', lw=0.5, flag_norm=False, flag_xlog10=False, flag_ylog10=False,
-                         flag_disjoint=False, flag_show=True, outdir=OUTPUT_DIR, years=True, save=True, ax=None):
+                         flag_disjoint=False, flag_show=True, outdir=OUTPUT_DIR, years=False, save=True, ax=None, reframe=False):
 
     # resize fpt lists if not all same size (to the min size)
     fpt_lengths = [len(fpt) for fpt in multi_fpt_list]
@@ -69,16 +69,21 @@ def figure_fpt_multihist(multi_fpt_list, labels, figname_mod="def", bin_linspace
 
     # mod axes (log)
     if flag_xlog10:
-        ax.set_xscale("log", nonposx='clip')
+        #ax.set_xscale("log", nonposx='clip')
+        ax.set_xscale("log")
+        min_log = np.floor(np.min(np.log10(multi_fpt_list)))
         max_log = np.ceil(np.max(np.log10(multi_fpt_list)))
-        bins = np.logspace(0.1, max_log, 100)
+        bins = np.logspace(min_log, max_log, bin_linspace)
     if flag_ylog10:
         #ax.set_yscale("log", nonposx='clip')
         ax.set_yscale("log")
+    if reframe:
+        ax.set_xlim(0.5, np.max(multi_fpt_list))
+        ax.set_ylim(0.0, 0.16)
 
     # plot calls
     if flag_disjoint:
-        ax.hist(multi_fpt_list, bins=bins, color=colours, label=labels, weights=weights, edgecolor=ec, linewidth=lw)
+        ax.hist(multi_fpt_list, bins=bins, color=colours, label=labels, weights=weights.T, edgecolor=ec, linewidth=lw)
     else:
         for idx, fpt_list in enumerate(multi_fpt_list):
             ax.hist(fpt_list, bins=bins, alpha=0.6, color=colours[idx], label=labels[idx],
@@ -87,14 +92,15 @@ def figure_fpt_multihist(multi_fpt_list, labels, figname_mod="def", bin_linspace
                      label=None,weights=weights[idx,:], edgecolor=ec, linewidth=lw, fill=False)
 
     # labels
-    ax.set_title(r'$\tau$ histogram (%d samples)' % (ensemble_size), fontsize=fs)
+    #ax.set_title(r'$\tau$ histogram (%d samples)' % (ensemble_size), fontsize=fs)
     if years:
         label = r'$\tau$ (years)' # 'First-passage time (years)'
         ax.set_xlabel(label, fontsize=fs)
     else:
-        ax.set_xlabel('First-passage time (cell division timescale)', fontsize=fs)
+        #ax.set_xlabel('First-passage time (cell division timescale)', fontsize=fs)
+        ax.set_xlabel(r'$\tau$', fontsize=fs)
     ax.set_ylabel(y_label, fontsize=fs)
-    ax.legend(loc='upper right', fontsize=fs)
+    ax.legend(fontsize=fs-2)  # loc='upper right'
     ax.tick_params(labelsize=fs)
     # plt.locator_params(axis='x', nbins=4)
 
@@ -202,11 +208,11 @@ if __name__ == "__main__":
         dbdir = basedir + os.sep + "data_fpt"
         datdict = load_datadict(basedir=dbdir)
 
-        title = "N100_xall"
-        keys = ['TL_N100_xall', 'BR_N100_xall', 'TR_N100_xall', 'BL_N100_xall']
-        labels = ["b=1.20, c=0.90 (Region I)", "b=0.80, c=1.10 (Region II)", "b=1.20, c=1.10 (Region III)",
-                  "b=0.80, c=0.90 (Region IV)"]
-        corners = ['TL', 'BR', 'TR', 'BL']
+        title = "N100_icfp"
+        keys = ['BR_%s' % title, 'TR_%s' % title, 'BL_%s' % title, 'TL_%s' % title]
+        #labels = ["b=0.80, c=1.10 (Region II)", "b=1.20, c=1.10 (Region III)", "b=0.80, c=0.90 (Region IV)", "b=1.20, c=0.90 (Region I)"]
+        labels = [r"(II)  $b=0.8$, $c=1.1$", r"(III) $b=1.2$, $c=1.1$", r"(IV) $b=0.8$, $c=0.9$", r"(I)   $b=1.2$, $c=0.9$"]
+        corners = ['BR', 'TR', 'BL', 'TL']
         num_hists = len(keys)
 
     if multihist:
@@ -226,6 +232,7 @@ if __name__ == "__main__":
         num_hists = len(hist_times)
         # plot indiv histograms
         # TODO port local custom single hist plotter function from firstpassage.py
+        """
         for i, header in enumerate(keys):
             fpt_histogram(hist_times[i], hist_params[i], flag_ylog10=False, figname_mod="_%s" % header, outdir=basedir)
             plt.close('all')
@@ -237,19 +244,28 @@ if __name__ == "__main__":
             print i, header, model_data.shape, exp_scale, 1/exp_scale
             data_vs_model = [hist_times[i], model_data]
             data_vs_model_labels = [labels[i], r'$\frac{1}{\beta}e^{-t/\beta}, \beta=%.2e$ years' % (1/exp_scale / 365)]
-            figure_fpt_multihist(data_vs_model, data_vs_model_labels, figname_mod="compare_model%d" % i, flag_show=True,
+            figure_fpt_multihist(data_vs_model, data_vs_model_labels, figname_mod="compare_model%d" % i, flag_show=False,
                                  flag_ylog10=True, flag_norm=flag_norm, fs=fs, ec=ec, lw=lw, figsize=figsize, outdir=basedir)
             plt.close()
-
+        """
         # plot various multihists from data
-        figure_fpt_multihist(hist_times, labels, figname_mod="def", flag_show=True, flag_ylog10=False,
+        figure_fpt_multihist(hist_times, labels, figname_mod="def", flag_show=False, flag_ylog10=False,
                              flag_norm=flag_norm, fs=fs, ec=ec, lw=lw, figsize=figsize, outdir=basedir)
         plt.close()
-        figure_fpt_multihist(hist_times, labels, figname_mod="logy", flag_show=True, flag_ylog10=True,
+        figure_fpt_multihist(hist_times, labels, figname_mod="logy", flag_show=False, flag_ylog10=True,
                              flag_norm=flag_norm, fs=fs, ec=ec, lw=lw, figsize=figsize, outdir=basedir)
         plt.close()
-        figure_fpt_multihist(hist_times, labels, figname_mod="logy_nonorm", flag_show=True, flag_ylog10=True,
-                             flag_norm=False, fs=fs, ec=ec, lw=lw, figsize=figsize, flag_disjoint=True, outdir=basedir)
+        figure_fpt_multihist(hist_times, labels, figname_mod="logx", flag_show=False, flag_xlog10=True,
+                             flag_norm=flag_norm, fs=fs, ec=ec, lw=lw, figsize=figsize, outdir=basedir)
+        plt.close()
+        figure_fpt_multihist(hist_times, labels, figname_mod="logx_reframe", flag_show=False, flag_xlog10=True,
+                             flag_norm=flag_norm, fs=fs, ec=ec, lw=lw, figsize=figsize, outdir=basedir, reframe=True)
+        plt.close()
+        figure_fpt_multihist(hist_times, labels, figname_mod="logBoth", flag_show=False, flag_ylog10=True, flag_xlog10=True,
+                             flag_norm=flag_norm, fs=fs, ec=ec, lw=lw, figsize=figsize, outdir=basedir)
+        plt.close()
+        figure_fpt_multihist(hist_times, labels, figname_mod="logy_nonorm", flag_show=False, flag_ylog10=True,
+                             flag_norm=False, fs=fs, ec=ec, lw=0.0, figsize=figsize, flag_disjoint=True, outdir=basedir)
 
     if simplex_and_zdist:
         # simplex/distro individual plots
