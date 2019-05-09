@@ -49,6 +49,7 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath
     # data processing into sim object
     gene_labels = gene_labels.tolist()
     celltype_labels = celltype_labels.tolist()
+    xi = xi.astype(np.float64)
     a, a_inv = memory_corr_matrix_and_inv(xi)
     j = interaction_matrix(xi, a_inv, method=NETWORK_METHOD, flag_prune_intxn_matrix=flag_prune_intxn_matrix)
     eta = predictivity_matrix(xi, a_inv)
