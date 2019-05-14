@@ -33,7 +33,7 @@ class SpatialCell(Cell):
         surroundings.remove(self.location)  # TODO test behaviour
         return surroundings
 
-    def get_neighbour_sent_field(self, lattice, neighbour_locs, simsetup):
+    def get_local_paracrine_field(self, lattice, neighbour_locs, simsetup):
         sent_signals = np.zeros(self.N)
         for loc in neighbour_locs:
             nbr_cell_state = lattice[loc[0]][loc[1]].get_current_state()
@@ -41,17 +41,20 @@ class SpatialCell(Cell):
             sent_signals += np.dot(simsetup['FIELD_SEND'], nbr_cell_state_01_rep)
         return sent_signals
 
-    def get_local_exosome_and_paracrine_field(self, lattice, search_radius, gridsize, exosome_string=EXOSTRING, ratio_to_remove=0.0):
+    def get_local_exosome_field(self, lattice, search_radius, gridsize, exosome_string=EXOSTRING, ratio_to_remove=0.0,
+                                neighbours=None):
         """
         # TODO: try other methods, currently sample from on genes in nearby states
         A - sample from only 'on' genes
         B - sample from whole gene state vector
         """
-        neighbours = self.get_surroundings_square(search_radius, gridsize)
+        if neighbours is not None:
+            neighbours = self.get_surroundings_square(search_radius, gridsize)
         field_state = np.zeros(self.N)
         if exosome_string == "on":
             for loc in neighbours:
-                nbr_cell_state = lattice[loc[0]][loc[1]].get_current_state()
+                nbr_cell_state = np.zeros(self.N)
+                nbr_cell_state[:] = lattice[loc[0]][loc[1]].get_current_state()[:]
                 nbr_state_only_on = state_only_on(nbr_cell_state)
                 if ratio_to_remove == 0.0:
                     field_state += nbr_state_only_on
@@ -69,25 +72,26 @@ class SpatialCell(Cell):
                     field_state += nbr_state_subsample
         elif exosome_string == "off":
             for loc in neighbours:
-                nbr_cell_state = lattice[loc[0]][loc[1]].get_current_state()
+                nbr_cell_state = np.zeros(self.N)
+                nbr_cell_state[:] = lattice[loc[0]][loc[1]].get_current_state()[:]
                 nbr_state_only_off = state_only_off(nbr_cell_state)
                 if ratio_to_remove == 0.0:
                     field_state += nbr_state_only_off
                 else:
                     nbr_state_only_off = state_subsample(nbr_state_only_off, ratio_to_remove=ratio_to_remove)
                     field_state += nbr_state_only_off
-        #elif exosome_string == "no_exo_field":
-        #    field_state = np.zeros(self.N)
         else:
             if exosome_string != "no_exo_field":
                 raise ValueError("exosome_string arg invalid, must be one of %s" % VALID_EXOSOME_STRINGS)
-        # now add field from unfolding i.e. signalling gene matrix W
-
         return field_state, neighbours
 
     def update_with_signal_field(self, lattice, search_radius, gridsize, intxn_matrix, simsetup, beta=BETA, exosome_string=EXOSTRING, ratio_to_remove=0.0,
                                  ext_field_strength=EXT_FIELD_STRENGTH, app_field=None, app_field_strength=APP_FIELD_STRENGTH):
-        ext_field, neighbours = self.get_local_exosome_and_paracrine_field(lattice, search_radius, gridsize, exosome_string=exosome_string, ratio_to_remove=ratio_to_remove)
+        ext_field, neighbours = self.get_local_exosome_field(lattice, search_radius, gridsize, exosome_string=exosome_string, ratio_to_remove=ratio_to_remove)
         if simsetup['FIELD_SEND'] is not None:
-            ext_field += self.get_neighbour_sent_field(lattice, neighbours, simsetup)
+            ext_field += self.get_local_paracrine_field(lattice, neighbours, simsetup)
         self.update_state(beta=beta, intxn_matrix=intxn_matrix, ext_field=ext_field, ext_field_strength=ext_field_strength, app_field=app_field, app_field_strength=app_field_strength)
+
+    def update_with_meanfield(self, intxn_matrix, ext_field_mean, beta=BETA, app_field=None,
+                                 ext_field_strength=EXT_FIELD_STRENGTH, app_field_strength=APP_FIELD_STRENGTH):
+        self.update_state(beta=beta, intxn_matrix=intxn_matrix, ext_field=ext_field_mean, ext_field_strength=ext_field_strength, app_field=app_field, app_field_strength=app_field_strength)

@@ -3,7 +3,7 @@ import os
 import random
 import matplotlib.pyplot as plt
 
-from multicell_constants import GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS, VALID_BUILDSTRINGS, \
+from multicell_constants import GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS, VALID_BUILDSTRINGS, MEANFIELD, \
     VALID_EXOSOME_STRINGS, EXOSTRING, BUILDSTRING, LATTICE_PLOT_PERIOD, FIELD_REMOVE_RATIO
 from multicell_lattice import build_lattice_main, get_cell_locations, prep_lattice_data_dict, write_state_all_cells, write_grid_state_int
 from multicell_visualize import lattice_uniplotter, reference_overlap_plotter, lattice_projection_composite
@@ -15,7 +15,7 @@ from singlecell.singlecell_simsetup import singlecell_simsetup # N, P, XI, CELLT
 
 def run_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_string=EXOSTRING, field_remove_ratio=0.0,
             ext_field_strength=EXT_FIELD_STRENGTH, app_field=None, app_field_strength=APP_FIELD_STRENGTH, beta=BETA,
-            plot_period=LATTICE_PLOT_PERIOD, flag_uniplots=False, state_int=False):
+            plot_period=LATTICE_PLOT_PERIOD, flag_uniplots=False, state_int=False, meanfield=MEANFIELD):
     """
     Form of data_dict:
         {'memory_proj_arr':
@@ -28,6 +28,7 @@ def run_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_st
     # Input checks
     n = len(lattice)
     assert n == len(lattice[0])  # work with square lattice for simplicity
+    num_cells = n * n
     assert SEARCH_RADIUS_CELL < n / 2.0  # to prevent signal double counting
     if app_field is not None:
         assert len(app_field) == simsetup['N']
@@ -58,6 +59,26 @@ def run_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_st
         for mem_idx in memory_idx_list:
             lattice_uniplotter(lattice, 0, n, io_dict['latticedir'], mem_idx, simsetup)
 
+    # special update method for meanfield case (infinite search radius)
+    if meanfield:
+        assert exosome_string == 'no_exo_field'  # TODO careful: not clear best way to update exo field as cell state changes in a time step, refactor exo fn?
+        print 'Initializing mean field...'
+        # TODO decode of want scale factor to be rescaled by total popsize (i.e. *mean*field or total field?)
+        state_total = np.zeros(simsetup['N'])
+        field_global = np.zeros(simsetup['N'])
+        neighbours = [[a, b] for a in xrange(len(lattice[0])) for b in xrange(len(lattice))]
+        if simsetup['FIELD_SEND'] is not None:
+            for loc in neighbours:
+                state_total += lattice[loc[0]][loc[1]].get_current_state()
+            state_total_01 = (state_total + num_cells) / 2
+            field_paracrine = np.dot(simsetup['FIELD_SEND'], state_total_01)
+            field_global += field_paracrine
+        if exosome_string != 'no_exo_field':
+            field_exo, _ = lattice[0][0].get_local_exosome_field(lattice, None, None, exosome_string=exosome_string,
+                                                                 ratio_to_remove=field_remove_ratio,
+                                                                 neighbours=neighbours)
+            field_global += field_exo
+
     for turn in xrange(1, num_lattice_steps):
         print 'Turn ', turn
         random.shuffle(cell_locations)
@@ -65,10 +86,20 @@ def run_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_st
             cell = lattice[loc[0]][loc[1]]
             if app_field is not None:
                 app_field_step = app_field[:, turn]
-            cell.update_with_signal_field(lattice, SEARCH_RADIUS_CELL, n, simsetup['J'], simsetup, beta=beta,
-                                          exosome_string=exosome_string, ratio_to_remove=field_remove_ratio,
-                                          ext_field_strength=ext_field_strength, app_field=app_field_step,
-                                          app_field_strength=app_field_strength)
+            if meanfield:
+                cellstate_pre = np.copy(cell.get_current_state())
+                cell.update_with_meanfield(simsetup['J'], field_global, beta=beta, app_field=app_field_step,
+                                           ext_field_strength=ext_field_strength, app_field_strength=app_field_strength)
+                state_total += (cell.get_current_state() - cellstate_pre)  # TODO update field_avg based on new state TODO test
+                state_total_01 = (state_total + num_cells) / 2
+                field_global = np.dot(simsetup['FIELD_SEND'], state_total_01)
+                print field_global
+                print state_total
+            else:
+                cell.update_with_signal_field(lattice, SEARCH_RADIUS_CELL, n, simsetup['J'], simsetup, beta=beta,
+                                              exosome_string=exosome_string, ratio_to_remove=field_remove_ratio,
+                                              ext_field_strength=ext_field_strength, app_field=app_field_step,
+                                              app_field_strength=app_field_strength)
             if state_int:
                 data_dict['grid_state_int'][loc[0], loc[1], turn] = cell.get_current_label()
             proj = cell.get_memories_projection(simsetup['A_INV'], simsetup['XI'])
@@ -89,7 +120,8 @@ def run_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_st
 
 def mc_sim(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING, exosome_string=EXOSTRING,
            field_remove_ratio=FIELD_REMOVE_RATIO, ext_field_strength=EXT_FIELD_STRENGTH, app_field=None,
-           app_field_strength=APP_FIELD_STRENGTH, beta=BETA, plot_period=LATTICE_PLOT_PERIOD, state_int=False):
+           app_field_strength=APP_FIELD_STRENGTH, beta=BETA, plot_period=LATTICE_PLOT_PERIOD, state_int=False,
+           meanfield=MEANFIELD):
 
     # check args
     assert type(gridsize) is int
@@ -106,7 +138,7 @@ def mc_sim(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring
                  ['num_steps', num_steps], ['buildstring', buildstring], ['fieldstring', exosome_string],
                  ['field_remove_ratio', field_remove_ratio], ['app_field_strength', app_field_strength],
                  ['ext_field_strength', ext_field_strength], ['app_field', app_field], ['beta', beta],
-                 ['random_mem', simsetup['random_mem']], ['random_W', simsetup['random_W']]]
+                 ['random_mem', simsetup['random_mem']], ['random_W', simsetup['random_W']], ['meanfield', meanfield]]
     runinfo_append(io_dict, info_list, multi=True)
     # conditionally store random mem and W
     np.savetxt(io_dict['simsetupdir'] + os.sep + 'simsetup_XI.txt', simsetup['XI'], delimiter=',', fmt='%d')
@@ -138,7 +170,7 @@ def mc_sim(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring
     lattice, data_dict, io_dict = \
         run_sim(lattice, num_steps, data_dict, io_dict, simsetup, exosome_string=exosome_string, field_remove_ratio=field_remove_ratio,
                 ext_field_strength=ext_field_strength, app_field=app_field, app_field_strength=app_field_strength,
-                beta=beta, plot_period=plot_period, flag_uniplots=flag_uniplots, state_int=state_int)
+                beta=beta, plot_period=plot_period, flag_uniplots=flag_uniplots, state_int=state_int, meanfield=meanfield)
 
     # check the data dict
     for data_idx, memory_idx in enumerate(data_dict['memory_proj_arr'].keys()):
@@ -168,16 +200,22 @@ if __name__ == '__main__':
     steps = 20  # global NUM_LATTICE_STEPS
     buildstring = "dual"  # mono/dual/memory_sequence/
     fieldstring = "no_exo_field"  # on/off/all/no_exo_field, note e.g. 'off' means send info about 'off' genes only
+    meanfield = True  # set to true to use infinite signal distance (no neighbour searching; track mean field)
     fieldprune = 0.0  # amount of external field idx to randomly prune from each cell
-    ext_field_strength = 0.15                                                  # global EXT_FIELD_STRENGTH tunes exosomes AND sent field
+    ext_field_strength = 0.15 / (n*n) * 8                                                 # global EXT_FIELD_STRENGTH tunes exosomes AND sent field
     #app_field = construct_app_field_from_genes(IPSC_EXTENDED_GENES_EFFECTS, simsetup['GENE_ID'], num_steps=steps)        # size N x timesteps or None
     app_field = None
     app_field_strength = 0.0  # 100.0 global APP_FIELD_STRENGTH
     plot_period = 1
     state_int = True
-    beta = BETA
-
+    beta = BETA  # 2.0
+    mc_sim(simsetup, gridsize=n, num_steps=steps, buildstring=buildstring, exosome_string=fieldstring,
+           field_remove_ratio=fieldprune, ext_field_strength=ext_field_strength, app_field=app_field,
+           app_field_strength=app_field_strength, beta=beta, plot_period=plot_period, state_int=state_int,
+           meanfield=meanfield)
+    """
     for beta in [0.01, 0.1, 0.5, 1.0, 1.5, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0, 4.0, 5.0, 10.0, 100.0]:
         mc_sim(simsetup, gridsize=n, num_steps=steps, buildstring=buildstring, exosome_string=fieldstring,
                field_remove_ratio=fieldprune, ext_field_strength=ext_field_strength, app_field=app_field,
-               app_field_strength=app_field_strength, beta=beta, plot_period=plot_period, state_int=state_int)
+               app_field_strength=app_field_strength, beta=beta, plot_period=plot_period, state_int=state_int, meanfield=meanfield)
+    """

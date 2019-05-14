@@ -8,3 +8,4 @@ VALID_BUILDSTRINGS = ["mono", "dual", "memory_sequence"]
 VALID_EXOSOME_STRINGS = ["on", "off", "all", "no_exo_field"]  # TODO: implement no_ext_field runtime savings
 BUILDSTRING = "dual"
 EXOSTRING = "on"
+MEANFIELD = False
