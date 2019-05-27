@@ -48,7 +48,7 @@ class SpatialCell(Cell):
         A - sample from only 'on' genes
         B - sample from whole gene state vector
         """
-        if neighbours is not None:
+        if neighbours is None:
             neighbours = self.get_surroundings_square(search_radius, gridsize)
         field_state = np.zeros(self.N)
         if exosome_string == "on":

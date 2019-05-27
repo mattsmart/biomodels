@@ -128,3 +128,10 @@ def write_grid_state_int(grid_state_int, data_folder):
     for i in xrange (num_steps):
         filename = data_folder + os.sep + 'grid_state_int_at_step_%d.txt' % i
         np.savetxt(filename, grid_state_int[:, :, i], fmt='%d', delimiter=',')
+
+
+def read_grid_state_int(fname):
+    """
+    Reads the n x n grid of integer states (for a single timestep)
+    """
+    return np.loadtxt(fname, dtype='int', delimiter=',')
