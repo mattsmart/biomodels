@@ -120,8 +120,8 @@ def plot_simplex2D(params, streamlines=True, fp=True, cbar=False, smallfig=False
     if smallfig:
         figsize = (2.0, 1.6)
         text_fs = 20
-        ms = 10
-        stlw = 0.5
+        ms = 8
+        stlw = 0.75
         nn = 20
         ylim_mod = 0.08
     else:
@@ -164,7 +164,7 @@ def plot_simplex2D(params, streamlines=True, fp=True, cbar=False, smallfig=False
                 z = b
                 x = N - a - b/2.0  # TODO check
                 y = N - x - z
-                if b > 2.0*a or b > 2.0*(N-a) or b == 0:  # check if outside simplex
+                if b > 2.1*a or b > 2.05*(N-a) or b == 0:  # check if outside simplex
                     ADOT[i, j] = np.nan
                     BDOT[i, j] = np.nan
                 else:
@@ -173,7 +173,7 @@ def plot_simplex2D(params, streamlines=True, fp=True, cbar=False, smallfig=False
                     ADOT[i, j] = (-dxvecdt[0] + dxvecdt[1])/2.0  # (- xdot + ydot) / 2
                     BDOT[i, j] = dxvecdt[2]                      # zdot
         if smallfig:
-            strm = ax.streamplot(A, B, ADOT, BDOT, color=(0.34, 0.34, 0.34), linewidth=stlw)
+            strm = ax.streamplot(A, B, ADOT, BDOT, color=(0.34, 0.34, 0.34), linewidth=stlw, arrowsize=1.3, density=0.5), #maxlength=1.0)
         else:
             # this will color lines
             """
