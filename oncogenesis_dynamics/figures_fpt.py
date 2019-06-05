@@ -2,9 +2,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from constants import OUTPUT_DIR, COLOURS_DARK_BLUE, COLOURS_DARK_BLUE_YELLOW
+from constants import OUTPUT_DIR, COLOURS_DARK_BLUE, COLOURS_DARK_BLUE_YELLOW, X_DARK, Z_DARK, BLUE
 from data_io import read_matrix_data_and_idx_vals, read_params, read_fpt_and_params, read_varying_mean_sd_fpt_and_params
 from firstpassage import fpt_histogram, exponential_scale_estimate, sample_exponential, simplex_heatmap, fp_state_zloc_hist
+
+
+Z_FRACTIONS = {'BL': 0.000212,
+               'BR': 1.0,
+               'TL': 0.000141,
+               'TR': 0.507754}
 
 
 def subsample_data():
@@ -14,11 +20,7 @@ def subsample_data():
 
 
 def corner_to_flux(corner, params):
-    df = {'BL': 0.000212,
-          'BR': 1.0,
-          'TL': 0.000141,
-          'TR': 0.507754}
-    z_fp = df[corner] * params.N  # number entering zhat state per unit time
+    z_fp = Z_FRACTIONS[corner] * params.N  # number entering zhat state per unit time
     avg_flux = 1/(z_fp * params.mu)
     return avg_flux
 
@@ -129,10 +131,12 @@ def figure_mfpt_varying(mean_fpt_varying, sd_fpt_varying, param_vary_name, param
     flag_xlog10 = True
     flag_ylog10 = True
     if flag_xlog10:
-        ax.set_xscale("log", nonposx='clip')
+        #ax.set_xscale("log", nonposx='clip')
+        ax.set_xscale("log")
         #ax.set_xlim([0.8*1e2, 1*1e7])
     if flag_ylog10:
-        ax.set_yscale("log", nonposx='clip')
+        #ax.set_yscale("log", nonposx='clip')
+        ax.set_yscale("log")
         #ax.set_ylim([0.8*1e2, 3*1e5])
 
     # create table of params
@@ -178,11 +182,13 @@ def figure_mfpt_varying_dual(mean_fpt_varying, sd_fpt_varying, param_vary_name, 
     flag_xlog10 = True
     flag_ylog10 = True
     if flag_xlog10:
-        ax.set_xscale("log", nonposx='clip')
+        #ax.set_xscale("log", nonposx='clip')
+        ax.set_xscale("log")
         #ax_dual.set_xscale("log", nonposx='clip')
         #ax.set_xlim([0.8*1e2, 1*1e7])
     if flag_ylog10:
-        ax.set_yscale("log", nonposx='clip')
+        #ax.set_yscale("log", nonposx='clip')
+        ax.set_yscale("log")
         #ax_dual.set_yscale("log", nonposx='clip')
         #ax.set_ylim([0.8*1e2, 3*1e5])
 
@@ -195,13 +201,119 @@ def figure_mfpt_varying_dual(mean_fpt_varying, sd_fpt_varying, param_vary_name, 
     return ax
 
 
+def figure_mfpt_varying_composite(means, sds, param_vary_name, param_set, params,
+                        show_flag=False, figname_mod="", outdir=OUTPUT_DIR, fs=20, ax=None):
+    if ax is None:
+        plt.figure()
+        ax = plt.gca()
+
+    num_sets = 4
+    colours = [X_DARK, Z_DARK, '#ffd966', BLUE]  #['black', 'red', 'green', 'blue']
+    #TODO markers =
+    region_labels = ['I', 'II', 'III', 'IV']
+    corners = ['TL', 'BR', 'TR', 'BL']
+
+    heuristic_x = np.logspace(np.log10(np.min(param_set)), np.log10(np.max(param_set)), 100)
+    for idx in xrange(num_sets):
+        print idx, len(param_set), len(means[idx]), len(sds[idx])
+        ax.plot(param_set, means[idx], '.-', marker='o', markeredgecolor='k', color=colours[idx], label=r'%s: $\langle\tau\rangle$' % region_labels[idx], zorder=3)
+        ax.plot(param_set, sds[idx], '-.', marker='^', markeredgecolor='k', color=colours[idx], label=r'%s: $\delta\tau$' % region_labels[idx], zorder=2)
+        #ax.plot(param_set, sds[idx], '-.', marker='^', markeredgecolor='k', color=colours[idx], zorder=2)
+        heuristic_y = [corner_to_flux(corners[idx], params.mod_copy({param_vary_name: p})) for p in heuristic_x]
+        ax.plot(heuristic_x, heuristic_y, '--k', zorder=1) #, label=r"Flux to $\hat z$ from FP (Region %s)" % region_labels[idx])
+        #plt.title("Mean FP Time, %s varying (sample=%d)" % (param_vary_name, samplesize))
+
+    ax.set_xlabel(r'$%s$' % param_vary_name, fontsize=fs)
+    ax.set_ylabel(r'$\tau$', fontsize=fs)
+    #ax.set_ylabel(r'$\langle\tau\rangle$', fontsize=fs)
+    #ax.set_ylabel(r'$\delta\tau$', fontsize=fs)
+
+    plt.xticks(fontsize=fs-2)
+    plt.yticks(fontsize=fs-2)
+
+    # log options
+    flag_xlog10 = True
+    flag_ylog10 = True
+    if flag_xlog10:
+        #ax.set_xscale("log", nonposx='clip')
+        ax.set_xscale("log")
+        #ax_dual.set_xscale("log", nonposx='clip')
+        ax.set_xlim([np.min(param_set)*0.9, 1.5*1e4])
+    if flag_ylog10:
+        #ax.set_yscale("log", nonposx='clip')
+        ax.set_yscale("log")
+        #ax_dual.set_yscale("log", nonposx='clip')
+        #ax.set_ylim([0.8*1e2, 3*1e5])
+
+    ax.legend(fontsize=fs-6, ncol=2)
+    plt_save = "mean_fpt_varying_composite" + figname_mod
+    plt.savefig(outdir + os.sep + plt_save + '.pdf', bbox_inches='tight')
+    if show_flag:
+        plt.show()
+    return ax
+
+
+def figure_mfpt_varying_collapsed(means, sds, param_vary_name, param_set, params,
+                        show_flag=False, figname_mod="", outdir=OUTPUT_DIR, fs=20, ax=None):
+    if ax is None:
+        plt.figure()
+        ax = plt.gca()
+
+    num_sets = 4
+    colours = [X_DARK, Z_DARK, '#ffd966', BLUE]  #['black', 'red', 'green', 'blue']
+    #TODO markers =
+    region_labels = ['I', 'II', 'III', 'IV']
+    corners = ['TL', 'BR', 'TR', 'BL']
+
+    for idx in xrange(num_sets):
+        print idx, len(param_set), len(means[idx]), len(sds[idx])
+        means_scaled = [means[idx][i] / corner_to_flux(corners[idx], params.mod_copy({param_vary_name: param_set[i]})) for i in xrange(len(means[idx]))]
+        ax.plot(param_set, means_scaled, '.-', marker='o', markeredgecolor='k', color=colours[idx], label=r'$\langle\tau\rangle$ (Region %s)' % region_labels[idx], zorder=3)
+        #ax.plot(param_set, sd_scaled, '-.', marker='^', markeredgecolor='k', color=colours[idx], label=r'$\delta\tau$ (Region %s)' % region_labels[idx], zorder=2)
+
+        #ax.plot(heuristic_x, heuristic_y, '--k', zorder=1) #, label=r"Flux to $\hat z$ from FP (Region %s)" % region_labels[idx])
+        #plt.title("Mean FP Time, %s varying (sample=%d)" % (param_vary_name, samplesize))
+        plt.axhline(1.0, color='k', ls='--', lw=1.0)
+
+    ax.set_xlabel(r'$%s$' % param_vary_name, fontsize=fs)
+    ax.set_ylabel(r'$\mu z^{\ast} \langle\tau\rangle_{sim}$', fontsize=fs)
+    #ax.set_ylabel(r'$\langle\tau\rangle$', fontsize=fs)
+    #ax.set_ylabel(r'$\delta\tau$', fontsize=fs)
+
+    plt.xticks(fontsize=fs-2)
+    plt.yticks(fontsize=fs-2)
+
+    # log options
+
+    flag_xlog10 = True
+    flag_ylog10 = True
+    if flag_xlog10:
+        #ax.set_xscale("log", nonposx='clip')
+        ax.set_xscale("log")
+        #ax_dual.set_xscale("log", nonposx='clip')
+        ax.set_xlim([np.min(param_set)*0.9, 1.5*1e4])
+    if flag_ylog10:
+        #ax.set_yscale("log", nonposx='clip')
+        ax.set_yscale("log")
+        #ax_dual.set_yscale("log", nonposx='clip')
+        #ax.set_ylim([0.0, 10])
+
+    ax.legend(fontsize=fs-6)
+    plt_save = "mean_fpt_varying_collapsed" + figname_mod
+    plt.savefig(outdir + os.sep + plt_save + '.pdf', bbox_inches='tight')
+    if show_flag:
+        plt.show()
+    return ax
+
+
 if __name__ == "__main__":
-    multihist = True
+    multihist = False
     simplex_and_zdist = False
     composite_simplex_zdist = False
     composite_hist_simplex_zdist = False
     inspect_fpt_flux = False
-    mfpt = False
+    mfpt_single = False
+    mfpt_composite = True
 
     basedir = "figures"
     if any([multihist, simplex_and_zdist, composite_simplex_zdist, composite_hist_simplex_zdist, inspect_fpt_flux]):
@@ -326,7 +438,8 @@ if __name__ == "__main__":
                 fpt, fps, params = datdict[key]['times'], datdict[key]['states'], datdict[key]['params']
                 exp_scale = exponential_scale_estimate(fpt)
                 print key, len(fpt), exp_scale, 1/exp_scale, corner_to_flux(corner, params)
-    if mfpt:
+
+    if mfpt_single:
         samplesize = 240
         mfpt_dir = basedir + os.sep + 'data_mfpt' + os.sep + 'mfpt_Nvary_mu1e-4_BL_ens240'
         mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params = \
@@ -337,3 +450,18 @@ if __name__ == "__main__":
         figure_mfpt_varying_dual(mean_fpt_varying, sd_fpt_varying, 'N', param_set, params, samplesize,
                                  SEM_flag=False, show_flag=False, figname_mod="", outdir=basedir)
 
+    if mfpt_composite:
+        subdirs = ['mfpt_Nvary_mu1e-4_TL_ens240', 'mfpt_Nvary_mu1e-4_BR_ens240', 'mfpt_Nvary_mu1e-4_TR_ens240', 'mfpt_Nvary_mu1e-4_BL_ens240']
+        means = []
+        sds = []
+        for subdir in subdirs:
+            mfpt_dir = basedir + os.sep + 'data_mfpt' + os.sep + subdir
+            mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params = \
+                read_varying_mean_sd_fpt_and_params(mfpt_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N.txt',
+                                                    mfpt_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N_params.csv')
+            means.append(mean_fpt_varying)
+            sds.append(sd_fpt_varying)
+        figure_mfpt_varying_composite(means, sds, 'N', param_set, params, show_flag=False, figname_mod="",
+                                      outdir=OUTPUT_DIR, fs=20)
+        figure_mfpt_varying_collapsed(means, sds, 'N', param_set, params, show_flag=False, figname_mod="",
+                                      outdir=OUTPUT_DIR, fs=20)
