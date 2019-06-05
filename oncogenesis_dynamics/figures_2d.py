@@ -47,7 +47,7 @@ def truncate_data(arr, param_1_range, param_2_range, low_1=None, high_1=None, lo
 
 def figure_2d_gapdist(gap_data_2d, params_general, param_1_name, param_1_range, param_2_name, param_2_range,
                       axis_gap="z", figname_mod="", flag_show=True, colours=Z_TO_COLOUR_BISTABLE_WIDE,
-                      outdir=OUTPUT_DIR):
+                      outdir=OUTPUT_DIR, custom_axis=True, cbar=True):
     fs = 16
     # custom cmap for gap diagram
     if params_general.feedback == 'constant':
@@ -58,28 +58,59 @@ def figure_2d_gapdist(gap_data_2d, params_general, param_1_name, param_1_range, 
     gap_data_2d = gap_data_2d / float(N)
     # plot image
     plt.figure(figsize=(4,8))
-    plt.imshow(gap_data_2d, cmap=xyz_cmap_gradient, interpolation="none", origin='lower', aspect = 0.8,
-               extent=[param_2_range[0], param_2_range[-1], param_1_range[0], param_1_range[-1]])
-    #plt.imshow(gap_data_2d, cmap=xyz_cmap_gradient, interpolation="none", origin='lower', aspect='auto',
-    #           extent=[param_2_range[0], param_2_range[-1], param_1_range[0], param_1_range[-1]])
+    if custom_axis:
+        plt.imshow(gap_data_2d, cmap=xyz_cmap_gradient, interpolation="none", origin='lower', aspect=1.1)#, extent=[param_2_range[0], param_2_range[-1], param_1_range[0], param_1_range[-1]])
+    else:
+        plt.imshow(gap_data_2d, cmap=xyz_cmap_gradient, interpolation="none", origin='lower', aspect='auto',
+                   extent=[param_2_range[0], param_2_range[-1], param_1_range[0], param_1_range[-1]])
     ax = plt.gca()
     #ax.grid(which='major', axis='both', linestyle='-')
     #plt.title("Gap in %s between FPs, vary %s, %s" % (axis_gap, param_1_name, param_2_name), fontsize=fs)
     ax.set_xlabel(param_2_name, fontsize=fs)
     ax.set_ylabel(param_1_name, fontsize=fs)
     ax.tick_params(axis='both', which='major', labelsize=fs)
-    # Now adding the colorbar
-    cbar = plt.colorbar(orientation='horizontal', pad=0.115, aspect=15)
-    #cbar = plt.colorbar(orientation='vertical', pad=0.08)
-    cbar.ax.tick_params(labelsize=fs)
-    cbar.set_label(r'$z/N$', rotation=0.0, fontsize=fs)
 
-    """
-    plt.locator_params(axis='x', nbins=6)
-    plt.locator_params(axis='y', nbins=6)
-    """
+    if custom_axis:
+        print param_2_name, np.min(param_2_range), np.max(param_2_range)
+        print param_1_name, np.min(param_1_range), np.max(param_1_range)
 
-    plt.savefig(outdir + os.sep + 'fig_gap_data_2d_%s_%s_%s.pdf' % (param_1_name, param_2_name, figname_mod), bbox_inches='tight')
+        yints = [1.0, 2.0, 3.0, 4.0, 5.0]
+        yticks = [0] * len(yints)
+        yticklabels = [0] * len(yints)
+
+        xints_log = [-4, -2, 0]
+        xticks = [0] * len(xints_log)
+        xticklabels = [0] * len(xints_log)
+
+        for i, yint in enumerate(yints):
+            for j, yval in enumerate(param_1_range):
+                if np.abs(yval - yint) < 1e-1:
+                    yticks[i] = j
+                    print i, j
+                    yticklabels[i] = r'$%d$' % yint
+                    continue
+        ax.set_yticks(yticks)
+        ax.set_yticklabels(yticklabels)
+
+        for i, xint in enumerate(xints_log):
+            for j, xval in enumerate(param_2_range):
+                if np.abs(np.log10(xval) - xint) < 1e-1:
+                    xticks[i] = j
+                    xticklabels[i] = r'$10^{%d}$' % xint
+                    continue
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(xticklabels)
+    else:
+        plt.locator_params(axis='x', nbins=6)
+        plt.locator_params(axis='y', nbins=6)
+
+    if cbar:
+        cbar = plt.colorbar(orientation='horizontal', pad=0.115, aspect=15)
+        #cbar = plt.colorbar(orientation='vertical', pad=0.08)
+        cbar.ax.tick_params(labelsize=fs)
+        cbar.set_label(r'$z/N$', rotation=0.0, fontsize=fs)
+
+    plt.savefig(outdir + os.sep + 'fig_gap_data_2d_%s.pdf' % (figname_mod), bbox_inches='tight')
     if flag_show:
         plt.show()
     return plt.gca()
@@ -125,25 +156,23 @@ if __name__ == "__main__":
 
     # loaf data
     if gapdist:
-        figdir = basedir + os.sep + "fig4" + os.sep + "b_c_optionWiderdata" + os.sep + "b_vs_c_feedback_WIDER_mu0pt5_0210" + os.sep + "gapdist"
-        row_name = 'c'  # aka param 2 is row
-        col_name = 'b'  # aka param 1 is col
+        figdir = basedir + os.sep + "fig2" + os.sep + "mu_vs_gamma"
+        row_name = 'mu'     # aka param 2 is row
+        col_name = 'gamma'  # aka param 1 is col
         datapath = figdir + os.sep + "gapdist2d_full.txt"
         rowpath = figdir + os.sep + "gapdist2d_full_%s.txt" % row_name
         colpath = figdir + os.sep + "gapdist2d_full_%s.txt" % col_name
         paramsname = "gapdist2d_full_params.csv"
 
         gap_data_2d, param_2_range, param_1_range = read_matrix_data_and_idx_vals(datapath, rowpath, colpath)
-        param_1_name = col_name
-        param_2_name = row_name
+        param_1_name = r'$\gamma$'
+        param_2_name = r'$\mu$'
         params_general = read_params(figdir, paramsname)
         print params_general
         # truncate block
-        gap_data_2d, param_1_range, param_2_range = truncate_data(gap_data_2d, param_1_range, param_2_range,
-                                                                  low_1=0.2, low_2=0.2, high_1=2.0, high_2=2.0)
-
+        gap_data_2d, param_1_range, param_2_range = truncate_data(gap_data_2d, param_1_range, param_2_range,low_1=param_1_range[0], low_2=10**(-4.99), high_1=6.0, high_2=10.0)
         figure_2d_gapdist(gap_data_2d, params_general, param_1_name, param_1_range, param_2_name, param_2_range,
-                          axis_gap="z", figname_mod="", flag_show=True, outdir=figdir)
+                          axis_gap="z", figname_mod="", flag_show=True, outdir=figdir, cbar=False)
 
     if fpcount:
         figdir = basedir + os.sep + "fig4" + os.sep + "b_c_optionWiderdata" + os.sep + "b_vs_c_feedback_WIDER_mu0pt5_0210" + os.sep + "gapdist"
