@@ -268,7 +268,7 @@ def figure_mfpt_varying_collapsed(means, sds, param_vary_name, param_set, params
     for idx in xrange(num_sets):
         print idx, len(param_set), len(means[idx]), len(sds[idx])
         means_scaled = [means[idx][i] / corner_to_flux(corners[idx], params.mod_copy({param_vary_name: param_set[i]})) for i in xrange(len(means[idx]))]
-        ax.plot(param_set, means_scaled, '.-', marker='o', markeredgecolor='k', color=colours[idx], label=r'$\langle\tau\rangle$ (Region %s)' % region_labels[idx], zorder=3)
+        ax.plot(param_set, means_scaled, '.-', marker='o', markeredgecolor='k', color=colours[idx], label=r'Region %s' % region_labels[idx], zorder=3)
         #ax.plot(param_set, sd_scaled, '-.', marker='^', markeredgecolor='k', color=colours[idx], label=r'$\delta\tau$ (Region %s)' % region_labels[idx], zorder=2)
 
         #ax.plot(heuristic_x, heuristic_y, '--k', zorder=1) #, label=r"Flux to $\hat z$ from FP (Region %s)" % region_labels[idx])
