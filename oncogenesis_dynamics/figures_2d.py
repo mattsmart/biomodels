@@ -57,7 +57,7 @@ def figure_2d_gapdist(gap_data_2d, params_general, param_1_name, param_1_range, 
     N = params_general.N
     gap_data_2d = gap_data_2d / float(N)
     # plot image
-    plt.figure(figsize=(4,8))
+    plt.figure(figsize=(4,4))
     if custom_axis:
         plt.imshow(gap_data_2d, cmap=xyz_cmap_gradient, interpolation="none", origin='lower', aspect=1.1)#, extent=[param_2_range[0], param_2_range[-1], param_1_range[0], param_1_range[-1]])
     else:

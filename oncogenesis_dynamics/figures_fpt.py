@@ -204,7 +204,7 @@ def figure_mfpt_varying_dual(mean_fpt_varying, sd_fpt_varying, param_vary_name, 
 def figure_mfpt_varying_composite(means, sds, param_vary_name, param_set, params,
                         show_flag=False, figname_mod="", outdir=OUTPUT_DIR, fs=20, ax=None):
     if ax is None:
-        plt.figure()
+        plt.figure(figsize=(5,4))
         ax = plt.gca()
 
     num_sets = 4
@@ -243,9 +243,9 @@ def figure_mfpt_varying_composite(means, sds, param_vary_name, param_set, params
         #ax.set_yscale("log", nonposx='clip')
         ax.set_yscale("log")
         #ax_dual.set_yscale("log", nonposx='clip')
-        #ax.set_ylim([0.8*1e2, 3*1e5])
+        ax.set_ylim([2*1e-1, 3*1e7])
 
-    ax.legend(fontsize=fs-6, ncol=2)
+    ax.legend(fontsize=fs-6, ncol=2, loc='upper right')
     plt_save = "mean_fpt_varying_composite" + figname_mod
     plt.savefig(outdir + os.sep + plt_save + '.pdf', bbox_inches='tight')
     if show_flag:
@@ -307,13 +307,13 @@ def figure_mfpt_varying_collapsed(means, sds, param_vary_name, param_set, params
 
 
 if __name__ == "__main__":
-    multihist = False
+    multihist = True
     simplex_and_zdist = False
     composite_simplex_zdist = False
     composite_hist_simplex_zdist = False
     inspect_fpt_flux = False
     mfpt_single = False
-    mfpt_composite = True
+    mfpt_composite = False
 
     basedir = "figures"
     if any([multihist, simplex_and_zdist, composite_simplex_zdist, composite_hist_simplex_zdist, inspect_fpt_flux]):
@@ -335,7 +335,7 @@ if __name__ == "__main__":
         fs = 16
         ec = 'k'
         lw = 0.5
-        figsize = (8, 6)
+        figsize = (4, 4)
         # data setup
         hist_times = [0] * len(keys)
         hist_params = [0] * len(keys)
