@@ -299,62 +299,47 @@ def read_matrix_data_and_idx_vals(datapath, rowpath, colpath, binary=False):
 
 
 if __name__ == '__main__':
-    means_instead = True
-    collect_dir = OUTPUT_DIR + sep + 'tocollect' + sep + 'runset_may9_FPT_Nvary_mu1e-4_TL_ens240_v1'
-    
-    if means_instead:
-        collect_fpt_mean_stats_and_params(collect_dir, dirbase="means")
-    else:
+    collect_fpt = False
+    collect_means = False
+    collect_multiple_means = True
+    collect_dir = OUTPUT_DIR + sep + 'tocollect' + sep + 'varygamma_MP2_june13'
+
+    if collect_fpt:
         collect_fpt_and_params(collect_dir)
 
-    """
-    def data_and_param_files_from_fptdir(fptdir):
-        # input: location of filedir/means1 for example
-        outputdir = fptdir + sep + "output"
-        outputdirfiles = listdir(outputdir)
-        #assert len(outputdirfiles) == 2
-        print outputdir
-        print outputdirfiles
-        for f in outputdirfiles:
-            print f
-            if f[0:9] == "fpt_stats":
-                if f[-10:-4] == "params":
-                    paramfile = f
-                else:
-                    datafile = f
-        return outputdir + sep + datafile, outputdir + sep + paramfile
+    if collect_means:
+        collect_fpt_mean_stats_and_params(collect_dir, dirbase="means")
 
-    dirname = OUTPUT_DIR + sep + 'tocollect' + sep + 'mfptTL'
-    subdirs = [join(dirname, f) for f in listdir(dirname) if isdir(join(dirname, f))]
-    means_data = {}  # form is nval key to {ens, mean}
-    ENS = 80
-    for subdir in subdirs:
-        for Ndir in listdir(subdir):
-            print subdir, Ndir
-            df, pf = data_and_param_files_from_fptdir(join(subdir, Ndir))
-            #Nval, meanval, sdval = load_data()
-            print df
+    if collect_multiple_means:
+        dirname = collect_dir
+        subdirs = [join(dirname, f) for f in listdir(dirname) if isdir(join(dirname, f))]
+        means_data = {}  # form is nval key to {ens, mean}
+        ENS = 72
+        for subdir in subdirs:
+            print subdir
+            df = subdir + sep + 'fpt_stats_collected_mean_sd_varying_gamma.txt'
             mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set = read_varying_mean_sd_fpt(df)
-            print 'param_to_vary', param_to_vary
-            print mean_fpt_varying, sd_fpt_varying, param_set
-            Nval = param_set[0]
-            meanval = mean_fpt_varying[0]
-            sdval = sd_fpt_varying[0]
-            if Nval in means_data.keys():
-                print Nval
-                print means_data[Nval]
-                means_data[Nval][1] = (means_data[Nval][0] * means_data[Nval][1] + meanval) / (1 + means_data[Nval][0])
-                means_data[Nval][2] = np.sqrt((means_data[Nval][0] * (means_data[Nval][1] ** 2) + sdval ** 2) / \
-                                      (1 + means_data[Nval][0]))
-                means_data[Nval][0] += 1
-            else:
-                means_data[Nval] = np.array([1, meanval, sdval])
+            for idx, elem in enumerate(mean_fpt_varying):
+                Nval = param_set[idx]
+                meanval = mean_fpt_varying[idx]
+                sdval = sd_fpt_varying[idx]
 
-    nsorted = sorted(means_data.keys())
-    for Nval in nsorted:
-        print Nval, means_data[Nval][0], means_data[Nval][1], means_data[Nval][2]
+                print 'dataline', Nval, meanval, sdval
 
-    print 'formatted'
-    for Nval in nsorted:
-        print '%.2f,%.8f,%.8f' % (Nval, means_data[Nval][1], means_data[Nval][2])
-    """
+                if Nval in means_data.keys():
+                    print Nval
+                    print means_data[Nval]
+                    means_data[Nval][1] = (means_data[Nval][0] * means_data[Nval][1] + meanval) / (1 + means_data[Nval][0])
+                    means_data[Nval][2] = np.sqrt((means_data[Nval][0] * (means_data[Nval][1] ** 2) + sdval ** 2) / \
+                                          (1 + means_data[Nval][0]))
+                    means_data[Nval][0] += 1
+                else:
+                    means_data[Nval] = np.array([1, meanval, sdval])
+
+        nsorted = sorted(means_data.keys())
+        for Nval in nsorted:
+            print Nval, means_data[Nval][0], means_data[Nval][1], means_data[Nval][2]
+
+        print 'formatted'
+        for Nval in nsorted:
+            print '%.2f,%.8f,%.8f' % (Nval, means_data[Nval][1], means_data[Nval][2])
