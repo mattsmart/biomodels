@@ -299,19 +299,22 @@ def read_matrix_data_and_idx_vals(datapath, rowpath, colpath, binary=False):
 
 
 if __name__ == '__main__':
-    collect_fpt = False
+    collect_fpt = True
     collect_means = False
-    collect_multiple_means = True
-    collect_dir = OUTPUT_DIR + sep + 'tocollect' + sep + 'varygamma_MP2_june13'
+    collect_multiple_means = False
 
     if collect_fpt:
+        collect_dir = OUTPUT_DIR + sep + 'tocollect' + sep + 'varygamma_MP2_june13'
         collect_fpt_and_params(collect_dir)
 
     if collect_means:
-        collect_fpt_mean_stats_and_params(collect_dir, dirbase="means")
+        subdirs = []
+        collect_dirs = [OUTPUT_DIR + sep + 'tocollect' + sep + 'varygamma_MP2_june13_p2' + sep + a for a in subdirs]
+        for collect_dir in collect_dirs:
+            collect_fpt_mean_stats_and_params(collect_dir, dirbase="means")
 
     if collect_multiple_means:
-        dirname = collect_dir
+        dirname = OUTPUT_DIR + sep + 'tocollect' + sep + 'varygamma_MP2_june13_p2'
         subdirs = [join(dirname, f) for f in listdir(dirname) if isdir(join(dirname, f))]
         means_data = {}  # form is nval key to {ens, mean}
         ENS = 72
