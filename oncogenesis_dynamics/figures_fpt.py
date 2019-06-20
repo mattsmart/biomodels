@@ -4,7 +4,8 @@ import os
 
 from constants import OUTPUT_DIR, COLOURS_DARK_BLUE, COLOURS_DARK_BLUE_YELLOW, X_DARK, Z_DARK, BLUE
 from data_io import read_matrix_data_and_idx_vals, read_params, read_fpt_and_params, read_varying_mean_sd_fpt_and_params
-from firstpassage import fpt_histogram, exponential_scale_estimate, sample_exponential, simplex_heatmap, fp_state_zloc_hist
+from firstpassage import fpt_histogram, exponential_scale_estimate, sample_exponential, simplex_heatmap, \
+    fp_state_zloc_hist, fp_zloc_times_joint
 
 
 Z_FRACTIONS = {'BL': 0.000212,
@@ -307,8 +308,9 @@ def figure_mfpt_varying_collapsed(means, sds, param_vary_name, param_set, params
 
 
 if __name__ == "__main__":
-    multihist = True
+    multihist = False
     simplex_and_zdist = False
+    only_fp_zloc_times_joint = True
     composite_simplex_zdist = False
     composite_hist_simplex_zdist = False
     inspect_fpt_flux = False
@@ -316,7 +318,7 @@ if __name__ == "__main__":
     mfpt_composite = False
 
     basedir = "figures"
-    if any([multihist, simplex_and_zdist, composite_simplex_zdist, composite_hist_simplex_zdist, inspect_fpt_flux]):
+    if any([multihist, only_fp_zloc_times_joint, simplex_and_zdist, composite_simplex_zdist, composite_hist_simplex_zdist, inspect_fpt_flux]):
         dbdir = basedir + os.sep + "data_fpt"
         datdict = load_datadict(basedir=dbdir)
 
@@ -391,6 +393,13 @@ if __name__ == "__main__":
             ax1 = simplex_heatmap(fpt, fps, params, smallfig=False, flag_show=False, figname_mod='_%s' % key, outdir=basedir)
             plt.close('all')
             ax2 = fp_state_zloc_hist(fpt, fps, params, normalize=True, flag_show=False, kde=True, figname_mod='_%s' % key, outdir=basedir)
+            plt.close('all')
+    if only_fp_zloc_times_joint:
+        for i, key in enumerate(keys):
+            # TODO all
+            fpt, fps, params = datdict[key]['times'], datdict[key]['states'], datdict[key]['params']
+            print key, np.min(fpt), np.max(fpt), np.mean(fpt), len(fpt)
+            ax1 = fp_zloc_times_joint(fpt, fps, params, normalize=True, flag_show=False, kde=False, figname_mod='_%s' % key, outdir=basedir)
             plt.close('all')
     if composite_simplex_zdist:
         # as 2 subplots

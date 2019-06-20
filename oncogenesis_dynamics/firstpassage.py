@@ -355,6 +355,76 @@ def fp_state_zloc_hist(fp_times, fp_states, params, ax=None, normalize=False, fp
     return ax
 
 
+def fp_zloc_times_joint(fp_times, fp_states, params, ax=None, normalize=False, fp=True, kde=False, flag_show=True, outdir=OUTPUT_DIR, figname_mod="", save=True):
+    """
+    seaborn documentation: https://seaborn.pydata.org/generated/seaborn.jointplot.html
+    "Intended to be a fairly lightweight wrapper; if you need more flexibility, you should use JointGrid directly."
+    """
+    N = params.N
+    seaborn.set_context("notebook", font_scale=1.9)  # TODO this breaks edges of the markers for FP but it is needed for font size?
+
+    # TODO cleanup these, maybe use jointgrid
+    fig = plt.figure()
+    ax = plt.gca()
+
+    # plot fp_states z coord histogram
+    if normalize:
+        scales = params.N / np.sum(fp_states, axis=1)
+        fp_zcoord = fp_states[:, 2] * scales
+        zlabel = r'$z(\tau)/N$'  # how to denote that it is normalized here?
+    else:
+        fp_zcoord = fp_states[:, 2]
+        zlabel = r'$z(\tau)$'
+    if kde:
+        jointgrid = seaborn.kdeplot(x=fp_times, y=fp_zcoord, kind='kde')
+    else:
+        jointgrid = seaborn.jointplot(x=fp_times, y=fp_zcoord)
+
+    jointgrid.ax_joint.set_xscale('log')
+    jointgrid.ax_joint.set_ylabel(zlabel)
+    jointgrid.ax_joint.set_xlabel(r'$\tau$')
+
+    jointgrid.ax_joint.set_xlim((np.min(fp_times), np.max(fp_times)))
+
+
+    #ax.set_xticklabels([])
+    #ax.set_yticklabels([])
+    #ax.set_yticks([0, N])
+    #ax.spines['top'].set_visible(False)
+    #ax.spines['right'].set_visible(False)
+    #ax.spines['bottom'].set_visible(False)
+    #ax.spines['left'].set_visible(False)
+
+    # plot fp horizontal line
+    if fp:
+        stable_fps = []
+        unstable_fps = []
+        all_fps = fp_location_fsolve(params, check_near_traj_endpt=True, gridsteps=35, tol=10e-1, buffer=True)
+        for fp in all_fps:
+            J = jacobian_numerical_2d(params, fp[0:2])
+            eigenvalues, V = np.linalg.eig(J)
+            if eigenvalues[0] < 0 and eigenvalues[1] < 0:
+                stable_fps.append(fp)
+            else:
+                unstable_fps.append(fp)
+        for fp in stable_fps:
+            ax.axhline(fp[2], linestyle='--', linewidth=1.0, color='k')
+        """
+        for fp in unstable_fps:
+            fp_x = (N + fp[1] - fp[0]) / 2.0
+            #plt.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', markerfacecolor="None")
+            plt.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', color=(0.902, 0.902, 0.902))
+        """
+
+    # save
+    if save:
+        plt_save = "fp_zloc_times_joint" + figname_mod
+        plt.savefig(outdir + sep + plt_save + '.pdf', bbox_inches='tight')
+    if flag_show:
+        plt.show()
+    return ax
+
+
 if __name__ == "__main__":
     # SCRIPT FLAGS
     run_compute_fpt = True
