@@ -11,7 +11,9 @@ from firstpassage import fpt_histogram, exponential_scale_estimate, sample_expon
 Z_FRACTIONS = {'BL': 0.000212,
                'BR': 1.0,
                'TL': 0.000141,
-               'TR': 0.507754}
+               'TR': 0.507754,
+               'BL100g': 0.0004085,
+               'TR100g': 0.16514}
 
 
 def subsample_data():
