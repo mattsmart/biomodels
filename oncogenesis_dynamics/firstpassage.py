@@ -368,24 +368,49 @@ def fp_zloc_times_joint(fp_times, fp_states, params, ax=None, normalize=False, f
     ax = plt.gca()
 
     # plot fp_states z coord histogram
+    ymin = 0.0
+    ymax = 1.0
+
+    """
+    if figname_mod == '_TR_N100_icfp':
+        Q = len(fp_times)
+        a = []
+        b = []
+        for idx in xrange(Q):
+            if fp_times[idx] > 10 ** 3:
+                a.append(fp_times[idx])
+                b.append(fp_states[idx])
+        print Q, len(a)
+        fp_times = np.array(a)
+        fp_states = np.array(b)
+    """
+
     if normalize:
-        scales = params.N / np.sum(fp_states, axis=1)
+        scales = 1 / np.sum(fp_states, axis=1)
         fp_zcoord = fp_states[:, 2] * scales
         zlabel = r'$z(\tau)/N$'  # how to denote that it is normalized here?
     else:
         fp_zcoord = fp_states[:, 2]
         zlabel = r'$z(\tau)$'
-    if kde:
-        jointgrid = seaborn.kdeplot(x=fp_times, y=fp_zcoord, kind='kde')
-    else:
-        jointgrid = seaborn.jointplot(x=fp_times, y=fp_zcoord)
+        ymax = params.N
 
-    jointgrid.ax_joint.set_xscale('log')
-    jointgrid.ax_joint.set_ylabel(zlabel)
-    jointgrid.ax_joint.set_xlabel(r'$\tau$')
+    nbins = 20
+    xbins = np.logspace(np.log10(np.min(fp_times)), np.log10(np.max(fp_times)), nbins)
 
-    jointgrid.ax_joint.set_xlim((np.min(fp_times), np.max(fp_times)))
+    g = seaborn.JointGrid(x=fp_times, y=fp_zcoord)
+    g = g.plot_joint(plt.scatter, color="grey", alpha=0.6, s=40)#, edgecolor="white")
+    #g = g.plot_marginals(seaborn.distplot, kde=kde, color="g")
+    _ = g.ax_marg_x.hist(fp_times, color="grey", alpha=.6, bins=xbins)
+    _ = g.ax_marg_y.hist(fp_zcoord, color="grey", alpha=.6, orientation="horizontal", bins=nbins)
 
+    g.ax_joint.set_xscale('log')
+    #g.ax_marg_x.set_xscale('log')
+
+    g.ax_joint.set_ylabel(zlabel)
+    g.ax_joint.set_xlabel(r'$\tau$')
+
+    g.ax_joint.set_xlim((np.min(fp_times), np.max(fp_times)))
+    g.ax_joint.set_ylim((ymin, ymax*1.01))
 
     #ax.set_xticklabels([])
     #ax.set_yticklabels([])
@@ -408,7 +433,10 @@ def fp_zloc_times_joint(fp_times, fp_states, params, ax=None, normalize=False, f
             else:
                 unstable_fps.append(fp)
         for fp in stable_fps:
-            ax.axhline(fp[2], linestyle='--', linewidth=1.0, color='k')
+            coord = fp[2]
+            if normalize:
+                coord = coord / params.N
+            ax.axhline(coord, linestyle='--', linewidth=1.0, color='k')
         """
         for fp in unstable_fps:
             fp_x = (N + fp[1] - fp[0]) / 2.0
