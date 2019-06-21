@@ -355,7 +355,8 @@ def fp_state_zloc_hist(fp_times, fp_states, params, ax=None, normalize=False, fp
     return ax
 
 
-def fp_zloc_times_joint(fp_times, fp_states, params, ax=None, normalize=False, fp=True, kde=False, flag_show=True, outdir=OUTPUT_DIR, figname_mod="", save=True):
+def fp_zloc_times_joint(fp_times, fp_states, params, ax=None, normalize=False, fp=True, kde=False, flag_show=True,
+                        logx=True, outdir=OUTPUT_DIR, figname_mod="", fluxval=None, save=True):
     """
     seaborn documentation: https://seaborn.pydata.org/generated/seaborn.jointplot.html
     "Intended to be a fairly lightweight wrapper; if you need more flexibility, you should use JointGrid directly."
@@ -395,22 +396,30 @@ def fp_zloc_times_joint(fp_times, fp_states, params, ax=None, normalize=False, f
         ymax = params.N
 
     nbins = 20
-    xbins = np.logspace(np.log10(np.min(fp_times)), np.log10(np.max(fp_times)), nbins)
+    if logx:
+        xbins = np.logspace(np.log10(np.min(fp_times)), np.log10(np.max(fp_times)), nbins)
 
     g = seaborn.JointGrid(x=fp_times, y=fp_zcoord)
     g = g.plot_joint(plt.scatter, color="grey", alpha=0.6, s=40)#, edgecolor="white")
     #g = g.plot_marginals(seaborn.distplot, kde=kde, color="g")
-    _ = g.ax_marg_x.hist(fp_times, color="grey", alpha=.6, bins=xbins)
     _ = g.ax_marg_y.hist(fp_zcoord, color="grey", alpha=.6, orientation="horizontal", bins=nbins)
+    if logx:
+        xbins = np.logspace(np.log10(np.min(fp_times)), np.log10(np.max(fp_times)), nbins)
+        _ = g.ax_marg_x.hist(fp_times, color="grey", alpha=.6, bins=xbins)
+    else:
+        _ = g.ax_marg_x.hist(fp_times, color="grey", alpha=.6)
 
-    g.ax_joint.set_xscale('log')
-    #g.ax_marg_x.set_xscale('log')
+    if logx:
+        g.ax_joint.set_xscale('log')
 
     g.ax_joint.set_ylabel(zlabel)
     g.ax_joint.set_xlabel(r'$\tau$')
 
     g.ax_joint.set_xlim((np.min(fp_times), np.max(fp_times)))
     g.ax_joint.set_ylim((ymin, ymax*1.01))
+
+    if fluxval is not None:
+        g.ax_joint.axvline(fluxval, linestyle='--', linewidth=1.0, color='k')
 
     #ax.set_xticklabels([])
     #ax.set_yticklabels([])
@@ -436,7 +445,7 @@ def fp_zloc_times_joint(fp_times, fp_states, params, ax=None, normalize=False, f
             coord = fp[2]
             if normalize:
                 coord = coord / params.N
-            ax.axhline(coord, linestyle='--', linewidth=1.0, color='k')
+            g.ax_joint.axhline(coord, linestyle='--', linewidth=1.0, color='k')
         """
         for fp in unstable_fps:
             fp_x = (N + fp[1] - fp[0]) / 2.0

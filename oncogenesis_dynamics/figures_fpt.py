@@ -399,9 +399,17 @@ if __name__ == "__main__":
     if only_fp_zloc_times_joint:
         for i, key in enumerate(keys):
             # TODO all
+            #key = 'TR_N100_icfp_extra'
             fpt, fps, params = datdict[key]['times'], datdict[key]['states'], datdict[key]['params']
+            #fluxval = corner_to_flux('TR', params)
+            fluxval = corner_to_flux(key[0:2], params)
+            # fluxval = None
             print key, np.min(fpt), np.max(fpt), np.mean(fpt), len(fpt)
-            ax1 = fp_zloc_times_joint(fpt, fps, params, normalize=True, flag_show=False, kde=False, figname_mod='_%s' % key, outdir=basedir)
+            ax1 = fp_zloc_times_joint(fpt, fps, params, normalize=True, flag_show=False, kde=False,
+                                      figname_mod='_%s' % key, logx=False, fluxval=fluxval, outdir=basedir)
+            plt.close('all')
+            ax2 = fp_zloc_times_joint(fpt, fps, params, normalize=True, flag_show=False, kde=False,
+                                      figname_mod='_%s_logx' % key, logx=True, fluxval=fluxval, outdir=basedir)
             plt.close('all')
     if composite_simplex_zdist:
         # as 2 subplots
