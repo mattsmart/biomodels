@@ -1,0 +1,29 @@
+args.preset
+[32.0]
+NUM_PROCESSES: 24
+process: 0 job size: 3 runs
+process: 1 job size: 3 runs
+process: 2 job size: 3 runs
+process: 3 job size: 3 runs
+process: 4 job size: 3 runs
+process: 5 job size: 3 runs
+process: 6 job size: 3 runs
+process: 7 job size: 3 runs
+process: 8 job size: 3 runs
+process: 9 job size: 3 runs
+process: 10 job size: 3 runs
+process: 11 job size: 3 runs
+process: 12 job size: 3 runs
+process: 13 job size: 3 runs
+process: 14 job size: 3 runs
+process: 15 job size: 3 runs
+process: 16 job size: 3 runs
+process: 17 job size: 3 runs
+process: 18 job size: 3 runs
+process: 19 job size: 3 runs
+process: 20 job size: 3 runs
+process: 21 job size: 3 runs
+process: 22 job size: 3 runs
+process: 23 job size: 3 runs
+TIMER: 5672.3847959
+Elapsed time: 5672.44233513
