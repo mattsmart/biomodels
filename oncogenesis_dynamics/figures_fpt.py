@@ -319,9 +319,9 @@ if __name__ == "__main__":
     mfpt_single = False
     mfpt_composite = False
 
-    basedir = "figures"
+    basedir = "data"
     if any([multihist, only_fp_zloc_times_joint, simplex_and_zdist, composite_simplex_zdist, composite_hist_simplex_zdist, inspect_fpt_flux]):
-        dbdir = basedir + os.sep + "data_fpt"
+        dbdir = basedir + os.sep + "fpt"
         datdict = load_datadict(basedir=dbdir)
 
         title = "N100_icfp"
@@ -474,7 +474,7 @@ if __name__ == "__main__":
         means = []
         sds = []
         for subdir in subdirs:
-            mfpt_dir = basedir + os.sep + 'data_mfpt' + os.sep + subdir
+            mfpt_dir = basedir + os.sep + 'mfpt' + os.sep + subdir
             mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params = \
                 read_varying_mean_sd_fpt_and_params(mfpt_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N.txt',
                                                     mfpt_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N_params.csv')
