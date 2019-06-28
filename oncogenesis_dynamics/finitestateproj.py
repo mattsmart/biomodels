@@ -184,19 +184,30 @@ def plot_distr(distr, domain, title):
     return
 
 
+def calc_steadystate_pdf(params):
+    """
+    find 0 evec of master eqn via finite state proj truncation
+    """
+    M = fsp_matrix(params, fpt_flag=False)
+    evals, evecs = sp_sparse.linalg.eigs(M, k=20, which='SM')  # specify num eval and category smallest magnitude
+    print evals, len(evals)
+    return
+
+
 if __name__ == "__main__":
     # SCRIPT PARAMETERS
-    switch_generate = False
+    switch_generate = True
     load = False
     plot_vs_histogram = False
-    plot_multi_pdf = True
+    plot_multi_pdf = False
+    steadystate_pdf = True
     default_path_p_of_t = OUTPUT_DIR + sep + 'p_of_t.npy'
     default_path_p_of_t_idx = OUTPUT_DIR + sep + 'p_of_t_idx.npy'
     default_path_p_of_t_times = OUTPUT_DIR + sep + 'p_of_t_times.npy'
 
     # DYNAMICS PARAMETERS
-    params = presets('preset_xyz_constant')  # preset_xyz_constant, preset_xyz_constant_fast, valley_2hit
-    params = params.mod_copy({'N': 20})  # TODO had memory error with N = 50 once it got to expm call, had delayed memory error for N = 20
+    params = presets('preset_xyz_hill')  # preset_xyz_constant, preset_xyz_constant_fast, valley_2hit
+    params = params.mod_copy({'N': 10})  # TODO had memory error with N = 50 once it got to expm call, had delayed memory error for N = 20
     t1 = 0.3 * 1e5
     dt = 1.0 * 1e2
 
@@ -265,3 +276,6 @@ if __name__ == "__main__":
         plt.ylabel('prob')
         plt.savefig(OUTPUT_DIR + sep + 'multifsp.pdf')
         plt.show()
+
+    if steadystate_pdf:
+        calc_steadystate_pdf(params)
