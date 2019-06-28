@@ -10,15 +10,12 @@ from firstpassage import fpt_histogram
 from formulae import map_init_name_to_init_cond, reaction_propensities_lowmem
 from presets import presets
 
-# main stuff to finish
-# TODO 2 - build fsp_matrix
-
 
 def fsp_statespace(params, fpt_flag=False):
     # TODO may be waste to store the state_to_int dict in memory
     assert params.N <= 100.0  # only works for small pop size bc memory issues
     assert params.numstates <= 3
-    pop_buffer = int(params.N * 0.1 + 1)  # TODO tune this, need buffer at least +1 for pop indexing
+    pop_buffer = int(params.N * 0.1 + 20)  # TODO tune this, need buffer at least +1 for pop indexing
     statespace_length = int(params.N + pop_buffer)
     statespace_volume = statespace_length ** params.numstates
     if fpt_flag:  # Note: could alternatively add extra state index to the tuple (more expensive though)
@@ -78,7 +75,7 @@ def fsp_matrix(params, fpt_flag=False):
 
     simplex_buffer = int(params.N*0.1 + 10)  # TODO fluctuations ~ order sqrt(F)?
     lowcutoff = 0.0 # params.N - simplex_buffer
-    highcutoff = params.N + 20 # params.N + simplex_buffer
+    highcutoff = params.N + 1000  # params.N + simplex_buffer
 
     for state_start_idx in xrange(statespace_volume-1):
         state_start = int_to_state[state_start_idx]
@@ -191,7 +188,13 @@ def calc_steadystate_pdf(params):
     M = fsp_matrix(params, fpt_flag=False)
     evals, evecs = sp_sparse.linalg.eigs(M, k=20, which='SM')  # specify num eval and category smallest magnitude
     print evals, len(evals)
-    return
+
+    zero_choice_idx = 3
+    eval_zero = evals[zero_choice_idx]
+    evec_zero = evecs[:, zero_choice_idx]
+    print 'choose eval', zero_choice_idx, evals[zero_choice_idx], 'evec_len', len(evec_zero), evecs.shape
+
+    return eval_zero, evec_zero
 
 
 if __name__ == "__main__":
@@ -211,9 +214,13 @@ if __name__ == "__main__":
     t1 = 0.3 * 1e5
     dt = 1.0 * 1e2
 
+    fpt_flag = True
+    if steadystate_pdf:
+        fpt_flag = False
+
     # INITIAL PROBABILITY VECTOR
-    statespace_vol, statespace_length = fsp_statespace(params, fpt_flag=True)
-    state_to_int, int_to_state = fsp_statespace_map(params, fpt_flag=True)
+    statespace_vol, statespace_length = fsp_statespace(params, fpt_flag=fpt_flag)
+    state_to_int, int_to_state = fsp_statespace_map(params, fpt_flag=fpt_flag)
     init_prob = np.zeros(statespace_vol)
     init_state = tuple(map_init_name_to_init_cond(params, "x_all"))
     init_prob[state_to_int[init_state]] = 1.0
@@ -278,4 +285,17 @@ if __name__ == "__main__":
         plt.show()
 
     if steadystate_pdf:
-        calc_steadystate_pdf(params)
+        eval_zero, evec_zero = calc_steadystate_pdf(params)
+
+        #states = np.zeros(len(evec_ss), params.numstates)
+        zmax = 100
+        z_hist = np.zeros(zmax)
+        for state_idx in xrange(statespace_vol - 1):
+            state = int_to_state[state_idx]
+            zval = state[2]
+            z_hist[zval] += evec_zero[state_idx]
+
+        plt.bar(range(zmax), z_hist)
+        plt.show()
+        plt.plot(evec_zero)
+        plt.show()
