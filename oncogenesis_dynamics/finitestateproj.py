@@ -302,18 +302,20 @@ if __name__ == "__main__":
         plt.savefig(OUTPUT_DIR + sep + 'multifsp.pdf')
         plt.show()
 
+
     if steadystate_pdf:
         eval_zero, evec_zero = calc_steadystate_pdf(params)
 
         #states = np.zeros(len(evec_ss), params.numstates)
-        zmax = 40
-        z_hist = np.zeros(zmax)
-        for state_idx in xrange(statespace_vol - 1):
-            state = int_to_state[state_idx]
-            zval = state[2]
-            z_hist[zval] += evec_zero[state_idx]
-
-        plt.bar(range(zmax), z_hist)
-        plt.show()
+        pmax = 40
+        p_hist = np.zeros(pmax)
+        for p in xrange(3):
+            for state_idx in xrange(statespace_vol - 1):
+                state = int_to_state[state_idx]
+                pval = state[p]
+                p_hist[pval] += evec_zero[state_idx]
+            plt.bar(range(pmax), p_hist)
+            plt.title('p=%d' % p)
+            plt.show()
         plt.plot(evec_zero)
         plt.show()
