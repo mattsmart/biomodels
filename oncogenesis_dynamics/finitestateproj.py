@@ -141,9 +141,8 @@ def prob_at_t_oneshot(fsp, init_prob, t, explicit=False):
     return prob_at_t
 
 
-def prob_at_t_timeseries(params, init_prob, t0=0.0, t1=1000.0, dt=1.0, fpt_flag=False, explicit=False, save=True):
+def prob_at_t_timeseries(fsp, init_prob, t0=0.0, t1=1000.0, dt=1.0, fpt_flag=False, explicit=False, save=True):
     trange = np.arange(t0,t1,dt)
-    fsp = fsp_matrix(params, fpt_flag=fpt_flag)
     p_of_t = np.zeros( (len(init_prob), len(trange)) )
     p_of_t[:,0] = init_prob
     if explicit:
@@ -186,18 +185,31 @@ def plot_distr(distr, domain, title):
     return
 
 
-def calc_steadystate_pdf(params):
+def calc_steadystate_pdf(params, use_expv=True):
     """
     find 0 evec of master eqn via finite state proj truncation
     """
+    statespace_vol, statespace_length = fsp_statespace(params, fpt_flag=False)
     M = fsp_matrix(params, fpt_flag=False, no_extinction=True)
-    evals, evecs = sp_sparse.linalg.eigs(M, k=20, which='SM')  # specify num eval and category smallest magnitude
-    print evals, len(evals)
+    if use_expv:
+        eval_zero = -777
+        t1 = 1e8
 
-    zero_choice_idx = 3
-    eval_zero = evals[zero_choice_idx]
-    evec_zero = evecs[:, zero_choice_idx]
-    print 'choose eval', zero_choice_idx, evals[zero_choice_idx], 'evec_len', len(evec_zero), evecs.shape
+        init_prob = np.zeros(statespace_vol)
+        init_state = tuple(map_init_name_to_init_cond(params, "x_all"))
+        init_prob[state_to_int[init_state]] = 1.0
+        assert np.sum(init_prob) == 1.0
+
+        evec_zero = prob_at_t_timeseries(M, init_prob, t0=0.0, t1=t1, dt=t1/1000, fpt_flag=False, explicit=False, save=True)[:, -1]
+
+    else:
+        evals, evecs = sp_sparse.linalg.eigs(M, k=20, which='SM')  # specify num eval and category smallest magnitude
+        print evals, len(evals)
+
+        zero_choice_idx = 4
+        eval_zero = evals[zero_choice_idx]
+        evec_zero = evecs[:, zero_choice_idx]
+        print 'choose eval', zero_choice_idx, evals[zero_choice_idx], 'evec_len', len(evec_zero), evecs.shape
 
     return eval_zero, evec_zero
 
@@ -234,7 +246,8 @@ if __name__ == "__main__":
     # get p_of_t data
     if load:
         if switch_generate:
-            p_of_t, trange = prob_at_t_timeseries(params, init_prob, t1=t1, dt=dt, fpt_flag=True)
+            fsp = fsp_matrix(params, fpt_flag=fpt_flag)
+            p_of_t, trange = prob_at_t_timeseries(fsp, init_prob, t1=t1, dt=dt, fpt_flag=True)
         else:
             path_p_of_t = default_path_p_of_t
             path_p_of_t_idx = default_path_p_of_t_idx
