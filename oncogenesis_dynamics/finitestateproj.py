@@ -56,7 +56,7 @@ def fsp_statespace_map(params, fpt_flag=False):
     return state_to_int, int_to_state
 
 
-def fsp_matrix(params, fpt_flag=False):
+def fsp_matrix(params, fpt_flag=False, no_extinction=False):
     """
     sparse library url: https://docs.scipy.org/doc/scipy/reference/sparse.html
     """
@@ -79,6 +79,7 @@ def fsp_matrix(params, fpt_flag=False):
 
     for state_start_idx in xrange(statespace_volume-1):
         state_start = int_to_state[state_start_idx]
+
         if (lowcutoff <= np.sum(state_start) < highcutoff):  # this is one truncation step
             rxn_prop = reaction_propensities_lowmem(state_start, params, fpt_flag=fpt_flag)
             for rxn_idx, prop in enumerate(rxn_prop):
@@ -90,7 +91,11 @@ def fsp_matrix(params, fpt_flag=False):
                     else:
                         state_end = [state_start[k] + update_dict[rxn_idx][k] for k in xrange(params.numstates)]
                         #if not any(np.array(state_end) >= statespace_length):  # this is the truncation step
-                        if not any(np.array(state_end) >= statespace_length) and (lowcutoff <= np.sum(state_end) < highcutoff):  # this is the truncation step
+
+
+                        if all([not any(np.array(state_end) >= statespace_length),
+                                (lowcutoff <= np.sum(state_end) < highcutoff),
+                                (not no_extinction or state_start != [0,0,0] or state_end != [0,0,0])]):  # this is the truncation step
                             state_end_idx = state_to_int[tuple(state_end)]
                             sparse_info[count] = [prop, state_end_idx, state_start_idx]  # note A index as [end, start]
                             count += 1
@@ -185,7 +190,7 @@ def calc_steadystate_pdf(params):
     """
     find 0 evec of master eqn via finite state proj truncation
     """
-    M = fsp_matrix(params, fpt_flag=False)
+    M = fsp_matrix(params, fpt_flag=False, no_extinction=True)
     evals, evecs = sp_sparse.linalg.eigs(M, k=20, which='SM')  # specify num eval and category smallest magnitude
     print evals, len(evals)
 
@@ -288,7 +293,7 @@ if __name__ == "__main__":
         eval_zero, evec_zero = calc_steadystate_pdf(params)
 
         #states = np.zeros(len(evec_ss), params.numstates)
-        zmax = 100
+        zmax = 40
         z_hist = np.zeros(zmax)
         for state_idx in xrange(statespace_vol - 1):
             state = int_to_state[state_idx]
