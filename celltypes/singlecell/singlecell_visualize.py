@@ -17,7 +17,7 @@ def plot_as_bar(projection_vec, memory_labels, alpha=1.0):
     return fig, plt.gca()
 
 
-def plot_as_radar(projection_vec, memory_labels, rotate_labels=True):
+def plot_as_radar(projection_vec, memory_labels, color='b', rotate_labels=True, fig=None, ax=None):
     """
     # radar plots not built-in to matplotlib
     # reference code uses pandas: https://python-graph-gallery.com/390-basic-radar-chart/
@@ -35,23 +35,30 @@ def plot_as_radar(projection_vec, memory_labels, rotate_labels=True):
     projection_vec_ext[-1] = projection_vec[0]
 
     # Initialise the spider plot
-    ax = plt.subplot(111, polar=True)
-    fig = plt.gcf()
-    fig.set_size_inches(18.5, 10.5)
+    if fig is None:
+        assert ax is None
+        fig, ax = plt.subplot(111, polar=True)
+        fig.set_size_inches(9, 5)
+    else:
+        fig = plt.gcf()
+        fig.set_size_inches(9, 5)
 
     # Draw one ax per variable + add labels
-    plt.xticks(angles, memory_labels, color='grey', size=12)
+    ax.set_xticks(angles)
+    ax.set_xticklabels(memory_labels)
 
     # Draw ylabels
-    ax.set_rlabel_position(0)
-    plt.yticks([-1.0, -0.5, 0.0, 0.5, 1.0], ["-1.0", "-0.5", "0.0", "0.5", "1.0"], color="grey", size=12)
-    plt.ylim(-1, 1)
+    ax.set_rlabel_position(45)
+    ax.set_yticks([-1.0, -0.5, 0.0, 0.5, 1.0])
+    ax.set_yticklabels(["-1.0", "-0.5", "0.0", "0.5", "1.0"])
+    ax.set_ylim(-1, 1)
+    ax.tick_params(axis='both', color='grey', size=12)
 
     # Plot data
     ax.plot(angles, projection_vec_ext, linewidth=1, linestyle='solid')
 
     # Fill area
-    ax.fill(angles, projection_vec_ext, 'b', alpha=0.1)
+    ax.fill(angles, projection_vec_ext, color, alpha=0.1)
 
     # Rotate the type labels
     if rotate_labels:
@@ -63,7 +70,7 @@ def plot_as_radar(projection_vec, memory_labels, rotate_labels=True):
         for label, angle in zip(ax.get_xticklabels(), angles):
             x, y = label.get_position()
             lab = ax.text(x, y - 0.05, label.get_text(), transform=label.get_transform(),
-                          ha=label.get_ha(), va=label.get_va(), size=11.5)
+                          ha=label.get_ha(), va=label.get_va(), size=8)
             lab.set_rotation(angle)
             labels.append(lab)
         ax.set_xticklabels([])
