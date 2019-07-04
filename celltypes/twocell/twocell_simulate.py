@@ -18,6 +18,7 @@ APP_FIELD_STRENGTH = 1.0
 
 # TODO file IO
 # TODO new full timeseries visualizations
+# TODO compute sindiv energies, interaction term, display in plot somehow neatly?
 
 
 def twocell_sim(simsetup, num_steps, beta=BETA, exostring=EXOSOME_STRING, exoprune=EXOSOME_PRUNE, gamma=1.0):
