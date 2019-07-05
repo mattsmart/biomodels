@@ -6,7 +6,7 @@ from multiprocessing import cpu_count
 def set_deep_threads():
     system_threads = cpu_count()
     threads_optimized = {4: "2",    # for laptop
-                         8: "2",    # for desktop
+                         12: "2",   # for desktop TODO test
                          64: "1",   # for workstation
                          80: "1"}   # for cluster
     threads_int = threads_optimized[system_threads]
