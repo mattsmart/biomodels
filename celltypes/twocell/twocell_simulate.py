@@ -5,12 +5,13 @@ import os
 import random
 import matplotlib.pyplot as plt
 
-from twocell_visualize import simple_vis
+from twocell_visualize import simple_vis, lattice_timeseries_grid, lattice_timeseries_overlap, lattice_timeseries_energy
 from multicell.multicell_class import SpatialCell
 from multicell.multicell_constants import VALID_EXOSOME_STRINGS
 from singlecell.singlecell_constants import MEMS_MEHTA, MEMS_UNFOLD, APP_FIELD_STRENGTH, BETA
 from singlecell.singlecell_data_io import run_subdir_setup, runinfo_append
 from singlecell.singlecell_fields import construct_app_field_from_genes
+from singlecell.singlecell_functions import single_memory_projection_timeseries, hamiltonian
 from singlecell.singlecell_simsetup import singlecell_simsetup # N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS, GENE_ID
 
 
@@ -32,7 +33,7 @@ def twocell_sim(lattice, simsetup, num_steps, data_dict, io_dict, beta=BETA, exo
     neighbours_B = [[0, 0]]
     # initial condition vis
     simple_vis(lattice, simsetup, io_dict['plotlatticedir'], 'Initial condition', savemod='_%d' % 0)
-    for step in xrange(num_steps):
+    for step in xrange(num_steps-1):
         # TODO could compare against whole model random update sequence instead of this block version
 
         app_field_step = None  # TODO housekeeping applied field; N vs N+M
@@ -60,8 +61,35 @@ def twocell_sim(lattice, simsetup, num_steps, data_dict, io_dict, beta=BETA, exo
                             app_field_strength=APP_FIELD_STRENGTH)
         simple_vis(lattice, simsetup, io_dict['plotlatticedir'], 'Step %dB' % step, savemod='_%dB' % step)
 
+    # fill in data
+    print 'simulation done; gathering data'
+    if 'memory_proj_arr' in data_dict.keys():
+        for memory_idx in range(simsetup['P']):
+            data_dict['memory_proj_arr'][memory_idx][0, :] = \
+                single_memory_projection_timeseries(cell_A.get_state_array(), memory_idx, simsetup['ETA'])
+            data_dict['memory_proj_arr'][memory_idx][1, :] = \
+                single_memory_projection_timeseries(cell_B.get_state_array(), memory_idx, simsetup['ETA'])
+    if 'overlap' in data_dict.keys():
+        data_dict['overlap'] = np.array([
+            np.dot(cell_A.state_array[:, i], cell_B.state_array[:, i]) for i in xrange(num_steps)]) / simsetup['N']
+    if 'grid_state_int' in data_dict.keys():
+        # TODO
+        print 'TODO grid_state_int data fill in'
+        #data_dict['grid_state_int'] = np.zeros((2, num_steps), dtype=int)
+    if 'multi_hamiltonian' in data_dict.keys():
+        data_dict['single_hamiltonians'][0, :] = [hamiltonian(cell_A.state_array[:, i], simsetup['J']) for i in xrange(num_steps)]
+        data_dict['single_hamiltonians'][1, :] = [hamiltonian(cell_B.state_array[:, i], simsetup['J']) for i in xrange(num_steps)]
+        if simsetup['FIELD_SEND'] is not None:
+            # TODO check the algebra here...
+            W = simsetup['FIELD_SEND']
+            WdotOne = np.dot(W, np.ones(simsetup['N']))
+            WSym2 = (W + W.T)
+            data_dict['unweighted_coupling_term'][:] = \
+                [- 0.5 * np.dot( cell_A.state_array[:, i], np.dot(WSym2, cell_B.state_array[:, i]) )
+                 - 0.5 * np.dot(WdotOne, cell_A.state_array[:, i] + cell_B.state_array[:, i])
+                 for i in xrange(num_steps)]
+        data_dict['multi_hamiltonian'] = (data_dict['single_hamiltonians'][0, :] + data_dict['single_hamiltonians'][1, :]) + gamma * data_dict['unweighted_coupling_term']
     return lattice, data_dict, io_dict
-
 
 
 def twocell_simprep(simsetup, num_steps, beta=BETA, exostring=EXOSOME_STRING, exoprune=EXOSOME_PRUNE, gamma=1.0):
@@ -97,10 +125,12 @@ def twocell_simprep(simsetup, num_steps, beta=BETA, exostring=EXOSOME_STRING, ex
         runinfo_append(io_dict, [simsetup['FIELD_SEND'], None], multi=False)
 
     # setup data dictionary
+    # TODO increase timstep resolution by x2 -- every cell update (see sequence info...)
     data_dict = {}
     store_state_int = True
     store_memory_proj_arr = True
     store_overlap = True
+    store_energy = True
     # TODO what data are we storing?
     # store projection onto each memory
     if store_memory_proj_arr:
@@ -114,6 +144,10 @@ def twocell_simprep(simsetup, num_steps, beta=BETA, exostring=EXOSOME_STRING, ex
     if store_state_int:
         assert simsetup['N'] < 10
         data_dict['grid_state_int'] = np.zeros((2, num_steps), dtype=int)
+    if store_energy:
+        data_dict['single_hamiltonians'] = np.zeros((2, num_steps))
+        data_dict['multi_hamiltonian'] = np.zeros(num_steps)
+        data_dict['unweighted_coupling_term'] = np.zeros(num_steps)
 
     # run the simulation
     lattice, data_dict, io_dict = \
@@ -130,7 +164,11 @@ def twocell_simprep(simsetup, num_steps, beta=BETA, exostring=EXOSOME_STRING, ex
                     (exosome_string, buildstring, gridsize, num_steps, memory_idx, field_remove_ratio, ext_field_strength))
         plt.clf()  #plt.show()
     """
-
+    # additional visualizations
+    lattice_timeseries_grid(data_dict, simsetup, io_dict['plotdatadir'], savemod='')
+    lattice_timeseries_grid(data_dict, simsetup, io_dict['plotdatadir'], savemod='conj', conj=True)
+    lattice_timeseries_overlap(data_dict, simsetup, io_dict['plotdatadir'], savemod='')
+    lattice_timeseries_energy(data_dict, simsetup, io_dict['plotdatadir'], savemod='')
     return lattice, data_dict, io_dict
 
 
@@ -140,13 +178,12 @@ if __name__ == '__main__':
     #simsetup = singlecell_simsetup(unfolding=False, random_mem=random_mem, random_W=random_W, npzpath=MEMS_MEHTA)
     simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, npzpath=MEMS_UNFOLD)
 
-
-    steps = 10  # global NUM_LATTICE_STEPS
-    beta = 1.0  # 2.0
+    steps = 20
+    beta = 10.0  # 2.0
 
     exostring = "no_exo_field"  # on/off/all/no_exo_field, note e.g. 'off' means send info about 'off' genes only
     exoprune = 0.0              # amount of exosome field idx to randomly prune from each cell
-    gamma = 0.15   # global EXT_FIELD_STRENGTH tunes exosomes AND sent field
+    gamma = 0.5                 # global EXT_FIELD_STRENGTH tunes exosomes AND sent field
 
     #app_field = construct_app_field_from_genes(IPSC_EXTENDED_GENES_EFFECTS, simsetup['GENE_ID'], num_steps=steps)        # size N x timesteps or None
     app_field = None
