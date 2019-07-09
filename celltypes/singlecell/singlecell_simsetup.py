@@ -14,7 +14,7 @@ Conventions follow from Lang & Mehta 2014, PLOS Comp. Bio
 
 
 def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath=DEFAULT_MEMORIES_NPZPATH,
-                        unfolding=False, random_mem=False, random_W=False):
+                        unfolding=False, random_mem=False, random_W=False, housekeeping=0):
     """
     gene_labels, celltype_labels, xi = load_singlecell_data()
     """
@@ -30,8 +30,22 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath
         assert npzpath != MEMS_UNFOLD
         xi, gene_labels, celltype_labels = load_npz_of_arr_genes_cells(npzpath, verbose=True)
         field_send = None
-    N = gene_labels.shape[0]
-    P = celltype_labels.shape[0]
+    # store string arrays as lists
+    gene_labels = gene_labels.tolist()
+    celltype_labels = celltype_labels.tolist()
+    # model extension block to delete anti-minima
+    if housekeeping != 0:
+        assert type(housekeeping) == int and housekeeping > 0
+        print 'Note housekeeping ON, adding %d genes' % housekeeping
+        # need to extend gene_labels, xi, and cell-cell signalling accordingly
+        print type(gene_labels), len(gene_labels)
+        gene_labels += ['artificial_%d' % i for i in xrange(housekeeping)]
+        hk_block = np.ones((housekeeping, len(celltype_labels)))
+        xi = np.concatenate((xi, hk_block))
+        if field_send is not None:
+            field_send = np.pad(field_send, ((0, housekeeping), (0, housekeeping)), 'constant')
+    N = len(gene_labels)
+    P = len(celltype_labels)
     # optional random XI (memories)
     if random_mem:
         print "WARNING: simsetup random_mem, half -1 half 1, size %d x %d" % (N, P)
@@ -47,8 +61,7 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath
         field_send[:, cols_to_remove] = 0
         """
     # data processing into sim object
-    gene_labels = gene_labels.tolist()
-    celltype_labels = celltype_labels.tolist()
+
     xi = xi.astype(np.float64)
     a, a_inv = memory_corr_matrix_and_inv(xi)
     j = interaction_matrix(xi, a_inv, method=NETWORK_METHOD, flag_prune_intxn_matrix=flag_prune_intxn_matrix)
@@ -78,7 +91,8 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath
         'FIELD_SEND': field_send,
         'bool_gpu': False,
         'random_mem': random_mem,
-        'random_W': random_W
+        'random_W': random_W,
+        'K': housekeeping
     }
     return simsetup
 

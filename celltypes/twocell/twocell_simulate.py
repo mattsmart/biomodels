@@ -5,10 +5,11 @@ import os
 import random
 import matplotlib.pyplot as plt
 
-from twocell_visualize import simple_vis, lattice_timeseries_grid, lattice_timeseries_overlap, lattice_timeseries_energy
+from twocell_visualize import simple_vis, lattice_timeseries_proj_grid, lattice_timeseries_overlap, \
+    lattice_timeseries_energy, lattice_timeseries_state_grid
 from multicell.multicell_class import SpatialCell
 from multicell.multicell_constants import VALID_EXOSOME_STRINGS
-from singlecell.singlecell_constants import MEMS_MEHTA, MEMS_UNFOLD, APP_FIELD_STRENGTH, BETA
+from singlecell.singlecell_constants import MEMS_MEHTA, MEMS_UNFOLD, BETA
 from singlecell.singlecell_data_io import run_subdir_setup, runinfo_append
 from singlecell.singlecell_fields import construct_app_field_from_genes
 from singlecell.singlecell_functions import single_memory_projection_timeseries, hamiltonian
@@ -17,14 +18,15 @@ from singlecell.singlecell_simsetup import singlecell_simsetup # N, P, XI, CELLT
 
 EXOSOME_STRING = 'no_exo_field'
 EXOSOME_PRUNE = 0.0
-APP_FIELD_STRENGTH = 1.0
+PLOT_PERIOD = 10
 
 # TODO file IO
 # TODO new full timeseries visualizations
 # TODO compute indiv energies, interaction term, display in plot somehow neatly?
 
 
-def twocell_sim(lattice, simsetup, num_steps, data_dict, io_dict, beta=BETA, exostring=EXOSOME_STRING, exoprune=EXOSOME_PRUNE, gamma=1.0):
+def twocell_sim(lattice, simsetup, num_steps, data_dict, io_dict, beta=BETA, exostring=EXOSOME_STRING,
+                exoprune=EXOSOME_PRUNE, gamma=1.0, app_field=None, app_field_strength=0.0):
 
     cell_A = lattice[0][0]
     cell_B = lattice[0][1]
@@ -36,7 +38,7 @@ def twocell_sim(lattice, simsetup, num_steps, data_dict, io_dict, beta=BETA, exo
     for step in xrange(num_steps-1):
         # TODO could compare against whole model random update sequence instead of this block version
 
-        app_field_step = None  # TODO housekeeping applied field; N vs N+M
+        app_field_step = app_field  # TODO housekeeping applied field; N vs N+M
 
         # update cell A
         total_field_A, _ = cell_A.get_local_exosome_field(lattice, None, None, exosome_string=exostring,
@@ -47,8 +49,9 @@ def twocell_sim(lattice, simsetup, num_steps, data_dict, io_dict, beta=BETA, exo
                             ext_field=total_field_A,
                             ext_field_strength=gamma,
                             app_field=app_field_step,
-                            app_field_strength=APP_FIELD_STRENGTH)
-        simple_vis(lattice, simsetup, io_dict['plotlatticedir'], 'Step %dA' % step, savemod='_%dA' % step)
+                            app_field_strength=app_field_strength)
+        if num_steps % PLOT_PERIOD == 0:
+            simple_vis(lattice, simsetup, io_dict['plotlatticedir'], 'Step %dA' % step, savemod='_%dA' % step)
         # update cell B
         total_field_B, _ = cell_B.get_local_exosome_field(lattice, None, None, exosome_string=exostring,
                                                           ratio_to_remove=exoprune, neighbours=neighbours_B)
@@ -58,8 +61,9 @@ def twocell_sim(lattice, simsetup, num_steps, data_dict, io_dict, beta=BETA, exo
                             ext_field=total_field_B,
                             ext_field_strength=gamma,
                             app_field=app_field_step,
-                            app_field_strength=APP_FIELD_STRENGTH)
-        simple_vis(lattice, simsetup, io_dict['plotlatticedir'], 'Step %dB' % step, savemod='_%dB' % step)
+                            app_field_strength=app_field_strength)
+        if num_steps % PLOT_PERIOD == 0:
+            simple_vis(lattice, simsetup, io_dict['plotlatticedir'], 'Step %dB' % step, savemod='_%dB' % step)
 
     # fill in data
     print 'simulation done; gathering data'
@@ -92,7 +96,8 @@ def twocell_sim(lattice, simsetup, num_steps, data_dict, io_dict, beta=BETA, exo
     return lattice, data_dict, io_dict
 
 
-def twocell_simprep(simsetup, num_steps, beta=BETA, exostring=EXOSOME_STRING, exoprune=EXOSOME_PRUNE, gamma=1.0):
+def twocell_simprep(simsetup, num_steps, beta=BETA, exostring=EXOSOME_STRING, exoprune=EXOSOME_PRUNE, gamma=1.0,
+                    app_field=None, app_field_strength=0.0):
     """
     Prep lattice (of two cells), fields, and IO
     """
@@ -142,7 +147,7 @@ def twocell_simprep(simsetup, num_steps, beta=BETA, exostring=EXOSOME_STRING, ex
         data_dict['overlap'] = np.zeros(num_steps)
     # store state as int (compressed)
     if store_state_int:
-        assert simsetup['N'] < 10
+        assert simsetup['N'] < 12
         data_dict['grid_state_int'] = np.zeros((2, num_steps), dtype=int)
     if store_energy:
         data_dict['single_hamiltonians'] = np.zeros((2, num_steps))
@@ -151,7 +156,8 @@ def twocell_simprep(simsetup, num_steps, beta=BETA, exostring=EXOSOME_STRING, ex
 
     # run the simulation
     lattice, data_dict, io_dict = \
-        twocell_sim(lattice, simsetup, num_steps, data_dict, io_dict, beta=beta, exostring=exostring, exoprune=exoprune, gamma=gamma)
+        twocell_sim(lattice, simsetup, num_steps, data_dict, io_dict, beta=beta, exostring=exostring, exoprune=exoprune,
+                    gamma=gamma, app_field=app_field, app_field_strength=app_field_strength)
 
     # check the data dict
     """
@@ -165,29 +171,40 @@ def twocell_simprep(simsetup, num_steps, beta=BETA, exostring=EXOSOME_STRING, ex
         plt.clf()  #plt.show()
     """
     # additional visualizations
-    lattice_timeseries_grid(data_dict, simsetup, io_dict['plotdatadir'], savemod='')
-    lattice_timeseries_grid(data_dict, simsetup, io_dict['plotdatadir'], savemod='conj', conj=True)
+    lattice_timeseries_state_grid(lattice, simsetup, io_dict['plotdatadir'], savemod='')
+    lattice_timeseries_proj_grid(data_dict, simsetup, io_dict['plotdatadir'], savemod='')
+    lattice_timeseries_proj_grid(data_dict, simsetup, io_dict['plotdatadir'], savemod='conj', conj=True)
     lattice_timeseries_overlap(data_dict, simsetup, io_dict['plotdatadir'], savemod='')
+    # TODO include app field energy
     lattice_timeseries_energy(data_dict, simsetup, io_dict['plotdatadir'], savemod='')
     return lattice, data_dict, io_dict
 
 
 if __name__ == '__main__':
+    HOUSEKEEPING = 2
+    KAPPA = 100
+
     random_mem = False
     random_W = False
     #simsetup = singlecell_simsetup(unfolding=False, random_mem=random_mem, random_W=random_W, npzpath=MEMS_MEHTA)
-    simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, npzpath=MEMS_UNFOLD)
-
+    simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, npzpath=MEMS_UNFOLD,
+                                   housekeeping=HOUSEKEEPING)
+    print simsetup['N']
     steps = 20
-    beta = 10.0  # 2.0
+    beta = 2.0  # 2.0
 
     exostring = "no_exo_field"  # on/off/all/no_exo_field, note e.g. 'off' means send info about 'off' genes only
     exoprune = 0.0              # amount of exosome field idx to randomly prune from each cell
-    gamma = 0.5                 # global EXT_FIELD_STRENGTH tunes exosomes AND sent field
+    gamma = 0.0                 # global EXT_FIELD_STRENGTH tunes exosomes AND sent field
 
     #app_field = construct_app_field_from_genes(IPSC_EXTENDED_GENES_EFFECTS, simsetup['GENE_ID'], num_steps=steps)        # size N x timesteps or None
-    app_field = None
-    app_field_strength = 0.0  # 100.0 global APP_FIELD_STRENGTH
+    if KAPPA > 0:
+        app_field = np.zeros(simsetup['N'])
+        app_field[-HOUSEKEEPING:] = 1.0
 
     lattice, data_dict, io_dict = \
-        twocell_simprep(simsetup, steps, beta=beta, exostring=exostring, exoprune=exoprune, gamma=gamma)
+        twocell_simprep(simsetup, steps, beta=beta, exostring=exostring, exoprune=exoprune, gamma=gamma,
+                        app_field=app_field, app_field_strength=KAPPA)
+
+    # additional visualizations
+    # TODO singlecell simsetup vis of state energies

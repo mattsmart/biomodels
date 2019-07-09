@@ -26,7 +26,7 @@ def simple_vis(lattice, simsetup, lattice_plot_dir, title, savemod=''):
     return
 
 
-def lattice_timeseries_grid(data_dict, simsetup, plot_data_dir, savemod='', state_int=False, conj=False):
+def lattice_timeseries_proj_grid(data_dict, simsetup, plot_data_dir, savemod='', state_int=False, conj=False):
     """
     Plots lattice overtime as a 2 x T x p grid, with colour representing projection onto each cell type, horizontal time
     """
@@ -70,6 +70,49 @@ def lattice_timeseries_grid(data_dict, simsetup, plot_data_dir, savemod='', stat
         print 'todo state_int vis'
     # save figure
     plt.savefig(os.path.join(plot_data_dir, 'twocell_memprojvis%s.png' % savemod), dpi=120)
+    plt.close()
+    return
+
+
+def lattice_timeseries_state_grid(lattice, simsetup, plot_data_dir, savemod='', state_int=False):
+    """
+    Plots lattice overtime as a two N x T grids, with colour representing on/off
+    """
+    num_subplots = 2  # cell A, B
+    N, T = lattice[0][0].get_state_array().shape
+    imshow_A = -1 * lattice[0][0].get_state_array()  # switch so that black = off
+    imshow_B = -1 * lattice[0][1].get_state_array()  # switch so that black = off
+    fig, axarr = plt.subplots(num_subplots, 1, figsize=(10, 8))
+    # use imshow to make grids
+    cmap = plt.get_cmap('Greys')
+    imshow_kw = {'vmin': -1.0, 'vmax': 1.0}
+    im = axarr[0].imshow(imshow_A, cmap=cmap, **imshow_kw)
+    im = axarr[1].imshow(imshow_B, cmap=cmap, **imshow_kw)
+    # decorate
+    axarr[0].set_ylabel('Cell A expression')
+    axarr[1].set_ylabel('Cell B expression')
+    for j in xrange(2):
+        tick_period = 5
+        # major ticks
+        axarr[j].set_xticks(np.arange(0, T, tick_period))
+        axarr[j].set_yticks(np.arange(0, N, tick_period))
+        # labels for major ticks
+        axarr[j].set_xticklabels(np.arange(1, T+1, tick_period))
+        axarr[j].set_yticklabels(np.arange(1, N+1, tick_period))
+        # minor ticks
+        axarr[j].set_xticks(np.arange(-.5, T, 1), minor=True)
+        axarr[j].set_yticks(np.arange(-.5, N, 1), minor=True)
+        # gridlines based on minor ticks
+        axarr[j].grid(which='minor', color='grey', linestyle='-', linewidth=2)
+    # decorate
+    plt.suptitle('State over time (black = off)')
+    axarr[-1].set_xlabel('Lattice timestep')
+    # TODO
+    if state_int:
+        # data_dict['grid_state_int'] 2xT as text into bars
+        print 'todo state_int vis'
+    # save figure
+    plt.savefig(os.path.join(plot_data_dir, 'twocell_statevis%s.png' % savemod), dpi=120)
     plt.close()
     return
 
