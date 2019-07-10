@@ -44,6 +44,10 @@ if __name__ == '__main__':
     print "\northogonal mem basis (up to a sign)"
     for idx in xrange(P):
         print idx, q[:, idx]
+    print "\nQR decomp -- q"
+    print q
+    print "\nQR decomp -- r"
+    print r
 
     print "\nNaive stabilizer"
     hstb_naive = np.sum(XI, axis=1)

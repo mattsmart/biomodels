@@ -16,9 +16,15 @@ def hamming(s1, s2):
     return sum(c1 != c2 for c1, c2 in zip(s1, s2))
 
 
-def hamiltonian(state_vec, intxn_matrix):
-    # TODO add applied field
-    return -0.5*reduce(np.dot, [state_vec.T, intxn_matrix, state_vec])  # plus some other field terms... do we care for these? ie. "-sum h_i*s_i"
+def hamiltonian(state_vec, intxn_matrix, field=None, fs=0.0):
+    """
+    fs is applied_field_strength
+    """
+    if field is None:
+        H = -0.5 * reduce(np.dot, [state_vec.T, intxn_matrix, state_vec])
+    else:
+        H = -0.5 * reduce(np.dot, [state_vec.T, intxn_matrix, state_vec]) - fs * np.dot(state_vec, field)
+    return H
 
 
 def internal_field(state, gene_idx, t, intxn_matrix):
@@ -157,6 +163,56 @@ def label_to_state(label, N, use_neg=True):
     else:
         state = np.array(bitlist)
     return state
+
+
+def sorted_energies(simsetup, field=None, fs=0.0):
+    N = simsetup['N']
+    num_states = 2 ** N
+    energies = np.zeros(num_states)
+    for label in xrange(num_states):
+        state = label_to_state(label, N, use_neg=True)
+        energies[label] = hamiltonian(state, simsetup['J'], field=field, fs=fs)
+    energies_ranked = np.argsort(energies)
+    sorted_data = {}
+    last_rank = 0
+    last_energy = 0
+    for rank, idx in enumerate(energies_ranked):
+        energy = energies[idx]
+        if np.abs(energy - last_energy) < 1e-4:
+            sorted_data[last_rank]['labels'].append(idx)
+            sorted_data[last_rank]['ranks'].append(idx)
+        else:
+            sorted_data[rank] = {'energy': energy, 'labels': [idx], 'ranks': [rank]}
+            last_rank = rank
+            last_energy = energy
+    return sorted_data
+
+
+def check_min_or_max(simsetup, state, energy=None, field=None, fs=0.0):
+    # 1) is it a fixed point of the deterministic dynamics?
+    is_fp = False
+    field_term = 0
+    if field is not None:
+        field_term = field * fs
+    total_field = np.dot(simsetup['J'], state) + field_term
+    # TODO speedup
+    if np.array_equal(np.sign(total_field), np.sign(state)):
+        is_fp = True
+
+    # 2) is it a min or a max?
+    is_min = None
+    if is_fp:
+        state_perturb = np.zeros(state.shape)
+        state_perturb[:] = state[:]
+        state_perturb[0] = -1 * state[0]
+        energy_perturb = hamiltonian(state_perturb, simsetup['J'], field, fs)
+        if energy is None:
+            energy = hamiltonian(state, simsetup['J'], field, fs)
+        if energy > energy_perturb:
+            is_min = False
+        else:
+            is_min = True
+    return is_fp, is_min
 
 
 if __name__ == '__main__':
