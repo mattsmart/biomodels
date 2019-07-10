@@ -6,6 +6,8 @@ import numpy as np
 import os
 from math import pi
 
+from singlecell_functions import label_to_state, hamiltonian, check_min_or_max
+
 
 def plot_as_bar(projection_vec, memory_labels, alpha=1.0):
     fig = plt.figure(1)
@@ -76,6 +78,37 @@ def plot_as_radar(projection_vec, memory_labels, color='b', rotate_labels=True, 
         ax.set_xticklabels([])
 
     return fig, ax
+
+
+def plot_state_prob_map(simsetup, beta=None, field=None, fs=0.0, ax=None, decorate_FP=True):
+    if ax is None:
+        ax = plt.figure(figsize=(8,6)).gca()
+
+    fstring = 'None'
+    if field is not None:
+        fstring = '%.2f' % fs
+    N = simsetup['N']
+    num_states = 2 ** N
+    energies = np.zeros(num_states)
+    colours = ['blue' for i in xrange(num_states)]
+    fpcolor = {True: 'green', False: 'red'}
+    for label in xrange(num_states):
+        state = label_to_state(label, N, use_neg=True)
+        energies[label] = hamiltonian(state, simsetup['J'], field=field, fs=fs)
+        if decorate_FP:
+            is_fp, is_min = check_min_or_max(simsetup, state, energy=energies[label], field=field, fs=fs)
+            if is_fp:
+                colours[label] = fpcolor[is_min]
+    if beta is None:
+        ax.scatter(range(2 ** N), energies, c=colours)
+        ax.set_title(r'$H(s), \beta=\infty$, field=%s' % (fstring))
+        #ax.set_ylim((-10,10))
+    else:
+        ax.scatter(range(2 ** N), np.exp(-beta * energies), c=colours)
+        ax.set_yscale('log')
+        ax.set_title(r'$e^{-\beta H(s)}, \beta=%.2f$, field=%s' % (beta, fstring))
+    plt.show()
+    return
 
 
 def save_manual(fig, dir, fname, close=True):
