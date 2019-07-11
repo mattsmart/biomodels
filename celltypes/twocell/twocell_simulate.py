@@ -189,9 +189,7 @@ if __name__ == '__main__':
     #simsetup = singlecell_simsetup(unfolding=False, random_mem=random_mem, random_W=random_W, npzpath=MEMS_MEHTA)
     simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, npzpath=MEMS_UNFOLD,
                                    housekeeping=HOUSEKEEPING)
-    simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, npzpath=MEMS_UNFOLD,
-                                   housekeeping=HOUSEKEEPING)
-    print simsetup['N']
+    print 'note: N =', simsetup['N']
     steps = 20
     beta = 2.0  # 2.0
 
@@ -203,35 +201,7 @@ if __name__ == '__main__':
     if KAPPA > 0 and HOUSEKEEPING > 0:
         app_field = np.zeros(simsetup['N'])
         app_field[-HOUSEKEEPING:] = 1.0
-    print app_field
-    """
+
     lattice, data_dict, io_dict = \
         twocell_simprep(simsetup, steps, beta=beta, exostring=exostring, exoprune=exoprune, gamma=gamma,
                         app_field=app_field, app_field_strength=KAPPA)
-    """
-    # additional visualizations
-    # TODO singlecell simsetup vis of state energies
-    sorted_data, energies = sorted_energies(simsetup, field=None, fs=0.0)
-    print sorted_data.keys()
-    print sorted_data[0]
-    for elem in sorted_data[0]['labels']:
-        state = label_to_state(elem, simsetup['N'])
-        print state, hamiltonian(state, simsetup['J']), np.dot(simsetup['ETA'], state)
-    hypercube_visualize(simsetup, 'tsne', energies=energies, elevate3D=True, edges=True)
-    """
-    import matplotlib.pyplot as plt
-    plt.imshow(simsetup['J'])
-    plt.show()
-    print simsetup['J']
-    plt.imshow(simsetup['A'])
-    plt.show()
-    print simsetup['A']
-    plt.imshow(simsetup['ETA'])
-    plt.show()
-    print simsetup['ETA']
-    """
-
-    plot_state_prob_map(simsetup, beta=None)
-    plot_state_prob_map(simsetup, beta=5.0)
-    plot_state_prob_map(simsetup, beta=None, field=app_field, fs=KAPPA)
-    plot_state_prob_map(simsetup, beta=1.0, field=app_field, fs=KAPPA)
