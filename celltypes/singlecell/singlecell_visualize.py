@@ -6,7 +6,7 @@ import numpy as np
 import os
 from math import pi
 
-from singlecell_functions import label_to_state, state_to_label, hamiltonian, check_min_or_max
+from singlecell_functions import label_to_state, state_to_label, hamiltonian, check_min_or_max, hamming
 
 
 def plot_as_bar(projection_vec, memory_labels, alpha=1.0):
@@ -111,7 +111,7 @@ def plot_state_prob_map(simsetup, beta=None, field=None, fs=0.0, ax=None, decora
     return
 
 
-def hypercube_visualize(simsetup, method, dim=2, energies=None, elevate3D=True, edges=True, ax=None):
+def hypercube_visualize(simsetup, method, dim=2, energies=None, elevate3D=True, edges=True, all_edges=False, ax=None):
     from mpl_toolkits.mplot3d import Axes3D
     import matplotlib.cm as cmx
     # TODO neighbour preserving?
@@ -131,7 +131,19 @@ def hypercube_visualize(simsetup, method, dim=2, energies=None, elevate3D=True, 
         X_new = pca.fit_transform(X)
     elif method == 'mds':
         from sklearn.manifold import MDS
+        # simple call
+        """
         X_new = MDS(n_components=2, max_iter=300, verbose=1).fit_transform(X)
+        """
+        statespace = 2 ** N
+        dists = np.zeros((statespace, statespace), dtype=int)
+        for i in xrange(statespace):
+            for j in xrange(i):
+                d = hamming(X[i, :], X[j, :])
+                dists[i, j] = d
+        dists = dists + dists.T - np.diag(dists.diagonal())
+        X_new = MDS(n_components=2, max_iter=300, verbose=1, dissimilarity='precomputed').fit_transform(dists)
+
     elif method == 'tsne':
         from sklearn.manifold import TSNE
         perplexity_def = 30.0
@@ -140,7 +152,7 @@ def hypercube_visualize(simsetup, method, dim=2, energies=None, elevate3D=True, 
     else:
         print 'method must be in [pca, mds, tsne]'
     if elevate3D:
-        sc = ax.scatter(X_new[:,0], X_new[:,1], energies_norm, c=energies)
+        sc = ax.scatter(X_new[:,0], X_new[:,1], energies_norm, c=energies, s=20)
     else:
         sc = ax.scatter(X_new[:, 0], X_new[:, 1], c=energies)
         fig.colorbar(sc)
@@ -150,19 +162,22 @@ def hypercube_visualize(simsetup, method, dim=2, energies=None, elevate3D=True, 
             state_orig = X[label, :]
             state_new = X_new[label, :]
             nbrs = [0] * N
-            for idx in xrange(N):
-                nbr_state = np.copy(state_orig)
-                nbr_state[idx] = -1 * nbr_state[idx]
-                nbrs[idx] = state_to_label(nbr_state)
-            for nbr_int in nbrs:
-                nbr_new = X_new[nbr_int, :]
-                x = [state_new[0], nbr_new[0]]
-                y = [state_new[1], nbr_new[1]]
-                z = [energies_norm[label], energies_norm[nbr_int]]
-                if elevate3D:
-                    ax.plot(x, y, z, alpha=0.5, color='blue')
-                else:
-                    ax.plot(x, y, alpha=0.5, color='blue')
+            if all_edges or abs(energies_norm[label]) < 1e-4 or abs(energies_norm[label] - 1.0) < 1e-4:
+                for idx in xrange(N):
+                    nbr_state = np.copy(state_orig)
+                    nbr_state[idx] = -1 * nbr_state[idx]
+                    nbrs[idx] = state_to_label(nbr_state)
+                for nbr_int in nbrs:
+                    nbr_new = X_new[nbr_int, :]
+                    x = [state_new[0], nbr_new[0]]
+                    y = [state_new[1], nbr_new[1]]
+                    z = [energies_norm[label], energies_norm[nbr_int]]
+                    if elevate3D:
+                        ax.plot(x, y, z, alpha=0.8, color='grey', lw=0.5)
+                    else:
+                        ax.plot(x, y, alpha=0.8, color='grey', lw=0.5)
+    ax.grid('off')
+    ax.axis('off')
     plt.show()
     return
 
