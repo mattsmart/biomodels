@@ -14,7 +14,7 @@ from singlecell.singlecell_data_io import run_subdir_setup, runinfo_append
 from singlecell.singlecell_fields import construct_app_field_from_genes
 from singlecell.singlecell_functions import single_memory_projection_timeseries, hamiltonian, sorted_energies, label_to_state
 from singlecell.singlecell_simsetup import singlecell_simsetup # N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS, GENE_ID
-from singlecell.singlecell_visualize import plot_state_prob_map
+from singlecell.singlecell_visualize import plot_state_prob_map, hypercube_visualize
 
 EXOSOME_STRING = 'no_exo_field'
 EXOSOME_PRUNE = 0.0
@@ -181,7 +181,7 @@ def twocell_simprep(simsetup, num_steps, beta=BETA, exostring=EXOSOME_STRING, ex
 
 
 if __name__ == '__main__':
-    HOUSEKEEPING = 3
+    HOUSEKEEPING = 0
     KAPPA = 100
 
     random_mem = False
@@ -211,6 +211,13 @@ if __name__ == '__main__':
     """
     # additional visualizations
     # TODO singlecell simsetup vis of state energies
+    sorted_data, energies = sorted_energies(simsetup, field=None, fs=0.0)
+    print sorted_data.keys()
+    print sorted_data[0]
+    for elem in sorted_data[0]['labels']:
+        state = label_to_state(elem, simsetup['N'])
+        print state, hamiltonian(state, simsetup['J']), np.dot(simsetup['ETA'], state)
+    hypercube_visualize(simsetup, 'tsne', energies=energies, elevate3D=True, edges=True)
     """
     import matplotlib.pyplot as plt
     plt.imshow(simsetup['J'])
@@ -223,12 +230,7 @@ if __name__ == '__main__':
     plt.show()
     print simsetup['ETA']
     """
-    sorted_data = sorted_energies(simsetup, field=None, fs=0.0)
-    print sorted_data.keys()
-    print sorted_data[0]
-    for elem in sorted_data[0]['labels']:
-        state = label_to_state(elem, simsetup['N'])
-        print state, hamiltonian(state, simsetup['J']), np.dot(simsetup['ETA'], state)
+
     plot_state_prob_map(simsetup, beta=None)
     plot_state_prob_map(simsetup, beta=5.0)
     plot_state_prob_map(simsetup, beta=None, field=app_field, fs=KAPPA)

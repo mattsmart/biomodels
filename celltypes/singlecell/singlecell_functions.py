@@ -185,7 +185,7 @@ def sorted_energies(simsetup, field=None, fs=0.0):
             sorted_data[rank] = {'energy': energy, 'labels': [idx], 'ranks': [rank]}
             last_rank = rank
             last_energy = energy
-    return sorted_data
+    return sorted_data, energies
 
 
 def check_min_or_max(simsetup, state, energy=None, field=None, fs=0.0):

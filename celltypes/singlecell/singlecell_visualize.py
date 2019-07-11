@@ -6,7 +6,7 @@ import numpy as np
 import os
 from math import pi
 
-from singlecell_functions import label_to_state, hamiltonian, check_min_or_max
+from singlecell_functions import label_to_state, state_to_label, hamiltonian, check_min_or_max
 
 
 def plot_as_bar(projection_vec, memory_labels, alpha=1.0):
@@ -107,6 +107,62 @@ def plot_state_prob_map(simsetup, beta=None, field=None, fs=0.0, ax=None, decora
         ax.scatter(range(2 ** N), np.exp(-beta * energies), c=colours)
         ax.set_yscale('log')
         ax.set_title(r'$e^{-\beta H(s)}, \beta=%.2f$, field=%s' % (beta, fstring))
+    plt.show()
+    return
+
+
+def hypercube_visualize(simsetup, method, dim=2, energies=None, elevate3D=True, edges=True, ax=None):
+    from mpl_toolkits.mplot3d import Axes3D
+    import matplotlib.cm as cmx
+    # TODO neighbour preserving?
+    if ax is None:
+        fig = plt.figure(figsize=(8,6))
+        ax = fig.add_subplot(111, projection='3d')
+    # setup data
+    N = simsetup['N']
+    X = np.array([label_to_state(label, N) for label in xrange(2 ** N)])
+    # setup cmap
+    colours = None
+    if energies is not None:
+        energies_norm = (energies + np.abs(np.min(energies)))/(np.abs(np.max(energies)) + np.abs(np.min(energies)))
+    if method == 'pca':
+        from sklearn.decomposition import PCA
+        pca = PCA(n_components=dim)
+        X_new = pca.fit_transform(X)
+    elif method == 'mds':
+        from sklearn.manifold import MDS
+        X_new = MDS(n_components=2, max_iter=300, verbose=1).fit_transform(X)
+    elif method == 'tsne':
+        from sklearn.manifold import TSNE
+        perplexity_def = 30.0
+        tsne = TSNE(n_components=2, init='random', random_state=0, perplexity=perplexity_def)
+        X_new = tsne.fit_transform(X)
+    else:
+        print 'method must be in [pca, mds, tsne]'
+    if elevate3D:
+        sc = ax.scatter(X_new[:,0], X_new[:,1], energies_norm, c=energies)
+    else:
+        sc = ax.scatter(X_new[:, 0], X_new[:, 1], c=energies)
+        fig.colorbar(sc)
+    if edges:
+        print 'Adding edges to plot...'
+        for label in xrange(2 ** N):
+            state_orig = X[label, :]
+            state_new = X_new[label, :]
+            nbrs = [0] * N
+            for idx in xrange(N):
+                nbr_state = np.copy(state_orig)
+                nbr_state[idx] = -1 * nbr_state[idx]
+                nbrs[idx] = state_to_label(nbr_state)
+            for nbr_int in nbrs:
+                nbr_new = X_new[nbr_int, :]
+                x = [state_new[0], nbr_new[0]]
+                y = [state_new[1], nbr_new[1]]
+                z = [energies_norm[label], energies_norm[nbr_int]]
+                if elevate3D:
+                    ax.plot(x, y, z, alpha=0.5, color='blue')
+                else:
+                    ax.plot(x, y, alpha=0.5, color='blue')
     plt.show()
     return
 
