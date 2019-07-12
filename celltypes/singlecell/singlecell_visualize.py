@@ -112,7 +112,7 @@ def plot_state_prob_map(simsetup, beta=None, field=None, fs=0.0, ax=None, decora
 
 
 def hypercube_visualize(simsetup, method, dim=2, energies=None, elevate3D=True, edges=True, all_edges=False, use_hd=False,
-                        minima=[], maxima=[], ax=None):
+                        minima=[], maxima=[], field=None, fs=0.0, ax=None):
     from mpl_toolkits.mplot3d import Axes3D
     import matplotlib.cm as cmx
     # TODO neighbour preserving?
@@ -125,8 +125,15 @@ def hypercube_visualize(simsetup, method, dim=2, energies=None, elevate3D=True, 
     states = np.array([label_to_state(label, N) for label in xrange(2 ** N)])
     X = states
     if use_hd:
-        fp_annotation, minima, maxima = get_all_fp(simsetup, field=None, fs=0.0)
+        # TODO which option? all minima or just encoded minima? try the latter
+        # Option 1
+        """
+        fp_annotation, minima, maxima = get_all_fp(simsetup, field=field, fs=fs)
         hd = calc_state_dist_to_local_min(simsetup, minima, X=X)
+        """
+        # Option 2
+        encoded_minima = [state_to_label(simsetup['XI'][:,a]) for a in xrange(simsetup['P'])]
+        hd = calc_state_dist_to_local_min(simsetup, encoded_minima, X=X)
         X = hd
     # setup cmap
     colours = None
