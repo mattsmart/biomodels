@@ -165,7 +165,8 @@ def hypercube_visualize(simsetup, method, dim=2, energies=None, elevate3D=True, 
     else:
         print 'method must be in [pca, mds, tsne]'
     if elevate3D:
-        sc = ax.scatter(X_new[:,0], X_new[:,1], energies_norm, c=energies, s=20)
+        #sc = ax.scatter(X_new[:,0], X_new[:,1], energies_norm, c=energies, s=20)
+        sc = ax.plot_trisurf(X_new[:,0], X_new[:,1], energies_norm, cmap=plt.cm.viridis)
     else:
         sc = ax.scatter(X_new[:, 0], X_new[:, 1], c=energies)
         fig.colorbar(sc)

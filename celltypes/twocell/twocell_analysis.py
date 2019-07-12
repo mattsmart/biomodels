@@ -14,9 +14,8 @@ if __name__ == '__main__':
 
     random_mem = False
     random_W = False
-    #simsetup = singlecell_simsetup(unfolding=False, random_mem=random_mem, random_W=random_W, npzpath=MEMS_MEHTA)
-    simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, npzpath=MEMS_UNFOLD,
-                                   housekeeping=HOUSEKEEPING)
+    #simsetup = singlecell_simsetup(unfolding=False, random_mem=random_mem, random_W=random_W, npzpath=MEMS_MEHTA, housekeeping=HOUSEKEEPING)
+    simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, npzpath=MEMS_UNFOLD, housekeeping=HOUSEKEEPING)
     print 'note: N =', simsetup['N']
 
     beta = 2.0  # 2.0
