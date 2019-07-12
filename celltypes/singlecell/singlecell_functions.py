@@ -188,6 +188,47 @@ def sorted_energies(simsetup, field=None, fs=0.0):
     return sorted_data, energies
 
 
+def get_all_fp(simsetup, field=None, fs=0.0):
+    # TODO 1 - is it possible to partition all 2^N into basins? are many of the points ambiguous where they wont roll into one basin but multiple?
+    N = simsetup['N']
+    num_states = 2 ** N
+    energies = np.zeros(num_states)
+    X = np.array([label_to_state(label, N) for label in xrange(num_states)])
+
+    for label in xrange(num_states):
+        energies[label] = hamiltonian(X[label,:], simsetup['J'], field=field, fs=fs)
+
+    minima = []
+    maxima = []
+    fp_annotation = {}
+    for label in xrange(num_states):
+        is_fp, is_min = check_min_or_max(simsetup, X[label,:], energy=energies[label], field=None, fs=0.0)
+        if is_fp:
+            if is_min:
+                minima.append(label)
+            else:
+                maxima.append(label)
+            fp_info = [0 for _ in xrange(N)]
+            for idx in xrange(N):
+                nbr_state = np.copy(X[label, :])
+                nbr_state[idx] = -1 * nbr_state[idx]
+                nbr_label = state_to_label(nbr_state)
+                fp_info[idx] = energies[label] <= energies[nbr_label]  # higher or equal energy after flip -> True, else False (nbr is lower)
+            fp_annotation[label] = fp_info
+    return fp_annotation, minima, maxima
+
+
+def calc_state_dist_to_local_min(simsetup, minima, X=None):
+    N = simsetup['N']
+    num_states = 2 ** N
+    if X is None:
+        X = np.array([label_to_state(label, N) for label in xrange(num_states)])
+    minima_states = np.array([label_to_state(a, N) for a in minima])
+    overlaps = np.dot(X, minima_states.T)
+    hamming_dist = 0.5 * (N - overlaps)
+    return hamming_dist
+
+
 def check_min_or_max(simsetup, state, energy=None, field=None, fs=0.0):
     # 1) is it a fixed point of the deterministic dynamics?
     is_fp = False

@@ -6,7 +6,7 @@ import numpy as np
 import os
 from math import pi
 
-from singlecell_functions import label_to_state, state_to_label, hamiltonian, check_min_or_max, hamming
+from singlecell_functions import label_to_state, state_to_label, hamiltonian, check_min_or_max, hamming, get_all_fp, calc_state_dist_to_local_min
 
 
 def plot_as_bar(projection_vec, memory_labels, alpha=1.0):
@@ -111,16 +111,22 @@ def plot_state_prob_map(simsetup, beta=None, field=None, fs=0.0, ax=None, decora
     return
 
 
-def hypercube_visualize(simsetup, method, dim=2, energies=None, elevate3D=True, edges=True, all_edges=False, ax=None):
+def hypercube_visualize(simsetup, method, dim=2, energies=None, elevate3D=True, edges=True, all_edges=False, use_hd=False, ax=None):
     from mpl_toolkits.mplot3d import Axes3D
     import matplotlib.cm as cmx
     # TODO neighbour preserving?
+    # TODO think there are duplicate points in hd rep... check this bc pics look too simple
     if ax is None:
         fig = plt.figure(figsize=(8,6))
         ax = fig.add_subplot(111, projection='3d')
     # setup data
     N = simsetup['N']
-    X = np.array([label_to_state(label, N) for label in xrange(2 ** N)])
+    states = np.array([label_to_state(label, N) for label in xrange(2 ** N)])
+    X = states
+    if use_hd:
+        fp_annotation, minima, maxima = get_all_fp(simsetup, field=None, fs=0.0)
+        hd = calc_state_dist_to_local_min(simsetup, minima, X=X)
+        X = hd
     # setup cmap
     colours = None
     if energies is not None:
@@ -143,7 +149,6 @@ def hypercube_visualize(simsetup, method, dim=2, energies=None, elevate3D=True, 
                 dists[i, j] = d
         dists = dists + dists.T - np.diag(dists.diagonal())
         X_new = MDS(n_components=2, max_iter=300, verbose=1, dissimilarity='precomputed').fit_transform(dists)
-
     elif method == 'tsne':
         from sklearn.manifold import TSNE
         perplexity_def = 30.0
@@ -156,10 +161,12 @@ def hypercube_visualize(simsetup, method, dim=2, energies=None, elevate3D=True, 
     else:
         sc = ax.scatter(X_new[:, 0], X_new[:, 1], c=energies)
         fig.colorbar(sc)
+    for idx in xrange(2 ** N):
+        print idx, X[idx,:], X_new[idx,:]
     if edges:
         print 'Adding edges to plot...'
         for label in xrange(2 ** N):
-            state_orig = X[label, :]
+            state_orig = states[label, :]
             state_new = X_new[label, :]
             nbrs = [0] * N
             if all_edges or abs(energies_norm[label]) < 1e-4 or abs(energies_norm[label] - 1.0) < 1e-4:

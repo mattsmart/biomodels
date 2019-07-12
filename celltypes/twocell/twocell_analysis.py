@@ -2,7 +2,7 @@ import singlecell.init_multiprocessing  # BEFORE numpy
 import numpy as np
 
 from singlecell.singlecell_constants import MEMS_MEHTA, MEMS_UNFOLD, BETA
-from singlecell.singlecell_functions import single_memory_projection_timeseries, hamiltonian, sorted_energies, label_to_state
+from singlecell.singlecell_functions import single_memory_projection_timeseries, hamiltonian, sorted_energies, label_to_state, get_all_fp, calc_state_dist_to_local_min
 from singlecell.singlecell_simsetup import singlecell_simsetup # N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS, GENE_ID
 from singlecell.singlecell_visualize import plot_state_prob_map, hypercube_visualize
 
@@ -31,7 +31,7 @@ if __name__ == '__main__':
         app_field[-HOUSEKEEPING:] = 1.0
     print app_field
 
-    # additional visualizations
+    # energy levels report
     # TODO singlecell simsetup vis of state energies
     sorted_data, energies = sorted_energies(simsetup, field=None, fs=0.0)
     print sorted_data.keys()
@@ -40,7 +40,15 @@ if __name__ == '__main__':
         state = label_to_state(elem, simsetup['N'])
         print state, hamiltonian(state, simsetup['J']), np.dot(simsetup['ETA'], state)
 
-    hypercube_visualize(simsetup, 'mds', energies=energies, elevate3D=True, edges=True, all_edges=False)
+    fp_annotation, minima, maxima = get_all_fp(simsetup, field=None, fs=0.0)
+    for key in fp_annotation.keys():
+        print key, label_to_state(key, simsetup['N']), fp_annotation[key]
+    hd = calc_state_dist_to_local_min(simsetup, minima, X=None)
+
+    # additional visualizations
+    #hypercube_visualize(simsetup, 'mds', energies=energies, elevate3D=True, edges=True, all_edges=True)
+    hypercube_visualize(simsetup, 'tsne', energies=energies, elevate3D=True, edges=True, all_edges=True, use_hd=True)
+
 
     """
     import matplotlib.pyplot as plt
