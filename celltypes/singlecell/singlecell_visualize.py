@@ -111,7 +111,8 @@ def plot_state_prob_map(simsetup, beta=None, field=None, fs=0.0, ax=None, decora
     return
 
 
-def hypercube_visualize(simsetup, method, dim=2, energies=None, elevate3D=True, edges=True, all_edges=False, use_hd=False, ax=None):
+def hypercube_visualize(simsetup, method, dim=2, energies=None, elevate3D=True, edges=True, all_edges=False, use_hd=False,
+                        minima=[], maxima=[], ax=None):
     from mpl_toolkits.mplot3d import Axes3D
     import matplotlib.cm as cmx
     # TODO neighbour preserving?
@@ -161,15 +162,13 @@ def hypercube_visualize(simsetup, method, dim=2, energies=None, elevate3D=True, 
     else:
         sc = ax.scatter(X_new[:, 0], X_new[:, 1], c=energies)
         fig.colorbar(sc)
-    for idx in xrange(2 ** N):
-        print idx, X[idx,:], X_new[idx,:]
     if edges:
         print 'Adding edges to plot...'
         for label in xrange(2 ** N):
             state_orig = states[label, :]
             state_new = X_new[label, :]
             nbrs = [0] * N
-            if all_edges or abs(energies_norm[label]) < 1e-4 or abs(energies_norm[label] - 1.0) < 1e-4:
+            if all_edges or label in maxima or label in minima or abs(energies_norm[label] - 1.0) < 1e-4:
                 for idx in xrange(N):
                     nbr_state = np.copy(state_orig)
                     nbr_state[idx] = -1 * nbr_state[idx]
