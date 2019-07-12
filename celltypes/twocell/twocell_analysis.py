@@ -2,14 +2,14 @@ import singlecell.init_multiprocessing  # BEFORE numpy
 import numpy as np
 
 from singlecell.singlecell_constants import MEMS_MEHTA, MEMS_UNFOLD, BETA
-from singlecell.singlecell_functions import single_memory_projection_timeseries, hamiltonian, sorted_energies, label_to_state, get_all_fp, calc_state_dist_to_local_min
+from singlecell.singlecell_functions import hamiltonian, sorted_energies, label_to_state, get_all_fp, calc_state_dist_to_local_min
 from singlecell.singlecell_simsetup import singlecell_simsetup # N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS, GENE_ID
 from singlecell.singlecell_visualize import plot_state_prob_map, hypercube_visualize
 
 
 if __name__ == '__main__':
-    HOUSEKEEPING = 0
-    KAPPA = 100
+    HOUSEKEEPING = 2
+    KAPPA = 0.75
 
     random_mem = False
     random_W = False
@@ -31,23 +31,30 @@ if __name__ == '__main__':
         app_field[-HOUSEKEEPING:] = 1.0
     print app_field
 
-    # energy levels report
-    # TODO singlecell simsetup vis of state energies
-    sorted_data, energies = sorted_energies(simsetup, field=None, fs=0.0)
-    print sorted_data.keys()
-    print sorted_data[0]
-    for elem in sorted_data[0]['labels']:
-        state = label_to_state(elem, simsetup['N'])
-        print state, hamiltonian(state, simsetup['J']), np.dot(simsetup['ETA'], state)
+    # additional visualizations based on field
+    for kappa_mult in xrange(10):
+        # TODO 1 - pca incosistent but fast, anyway to keep seed same between field applications?
+        # TODO 2 - should pass energy around more to save computation
+        # TODO 3 - note for housekeeping=1 we had nbrs of the anti-minima become minima, but at 2 we avoid this...
+        # TODO 4 - FOR HIGH GAMMA should only visualize / use the housekeeping ON part statespace 2**N not 2**(N+k) -- faster and cleaner -- how?
+        kappa = KAPPA * kappa_mult
+        print kappa_mult, KAPPA, kappa
+        # energy levels report
+        # TODO singlecell simsetup vis of state energies
+        sorted_data, energies = sorted_energies(simsetup, field=app_field, fs=kappa)
+        print sorted_data.keys()
+        print sorted_data[0]
+        for elem in sorted_data[0]['labels']:
+            state = label_to_state(elem, simsetup['N'])
+            print state, hamiltonian(state, simsetup['J']), np.dot(simsetup['ETA'], state)
 
-    fp_annotation, minima, maxima = get_all_fp(simsetup, field=None, fs=0.0)
-    for key in fp_annotation.keys():
-        print key, label_to_state(key, simsetup['N']), fp_annotation[key]
-    hd = calc_state_dist_to_local_min(simsetup, minima, X=None)
-
-    # additional visualizations
-    #hypercube_visualize(simsetup, 'mds', energies=energies, elevate3D=True, edges=True, all_edges=True)
-    hypercube_visualize(simsetup, 'tsne', energies=energies, elevate3D=True, edges=True, all_edges=True, use_hd=True)
+        fp_annotation, minima, maxima = get_all_fp(simsetup, field=app_field, fs=kappa)
+        for key in fp_annotation.keys():
+            print key, label_to_state(key, simsetup['N']), fp_annotation[key]
+        hd = calc_state_dist_to_local_min(simsetup, minima, X=None)
+        hypercube_visualize(simsetup, 'pca', energies=energies, elevate3D=True, edges=True, all_edges=False, minima=minima, maxima=maxima)
+        print
+    #hypercube_visualize(simsetup, 'tsne', energies=energies, elevate3D=True, edges=True, all_edges=True, use_hd=True)
 
 
     """
