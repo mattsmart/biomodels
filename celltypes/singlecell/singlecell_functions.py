@@ -202,7 +202,7 @@ def get_all_fp(simsetup, field=None, fs=0.0):
     maxima = []
     fp_annotation = {}
     for label in xrange(num_states):
-        is_fp, is_min = check_min_or_max(simsetup, X[label,:], energy=energies[label], field=None, fs=0.0)
+        is_fp, is_min = check_min_or_max(simsetup, X[label,:], energy=energies[label], field=field, fs=fs)
         if is_fp:
             if is_min:
                 minima.append(label)
