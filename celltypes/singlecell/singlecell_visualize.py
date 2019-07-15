@@ -1,5 +1,7 @@
 #import matplotlib as mpl            # Fix to allow intermediate compatibility of radar label rotation / PyCharm SciView
 #mpl.use("TkAgg")                    # Fix to allow intermediate compatibility of radar label rotation / PyCharm SciView
+import matplotlib.cm as cmx
+from mpl_toolkits.mplot3d import Axes3D
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -111,70 +113,78 @@ def plot_state_prob_map(simsetup, beta=None, field=None, fs=0.0, ax=None, decora
     return
 
 
-def hypercube_visualize(simsetup, method, dim=2, energies=None, elevate3D=True, edges=True, all_edges=False, use_hd=False,
-                        minima=[], maxima=[], field=None, fs=0.0, basins_dict=None, ax=None):
-    from mpl_toolkits.mplot3d import Axes3D
-    import matplotlib.cm as cmx
+def hypercube_visualize(simsetup, X_reduced, energies, elevate3D=True, edges=True, all_edges=False,
+                        minima=[], maxima=[], colours_dict=None, surf=True, ax=None):
+    """
+    Plot types
+        A - elevate3D=True, surf=True, colours_override=None     - 3d surf, z = energy
+        B - elevate3D=True, surf=False, colours_override=None    - 3d scatter, z = energy, c = energy
+        C - elevate3D=True, surf=False, colours_override=list(N) - 3d scatter, z = energy, c = predefined (e.g. basins colour-coded)
+        D - elevate3D=False, colours_override=None               - 2d scatter, c = energy
+        E - elevate3D=False, colours_override=list(N)            - 2d scatter, c = predefined (e.g. basins colour-coded)
+        F - X_reduced is dim 2**N x 3, colours_override=None     - 3d scatter, c = energy
+        G - X_reduced is dim 2**N x 3, colours_override=list(N)  - 3d scatter, c = predefined (e.g. basins colour-coded)
+    All plots can have partial or full edges (neighbours) plotted
+    """
+    # TODO annotate minima maxima
     # TODO neighbour preserving?
     # TODO think there are duplicate points in hd rep... check this bc pics look too simple
+
     if ax is None:
         fig = plt.figure(figsize=(8,6))
         ax = fig.add_subplot(111, projection='3d')
+
     # setup data
     N = simsetup['N']
     states = np.array([label_to_state(label, N) for label in xrange(2 ** N)])
-    X = states
-    if use_hd:
-        # TODO which option? all minima or just encoded minima? try the latter
-        # Option 1
-        """
-        fp_annotation, minima, maxima = get_all_fp(simsetup, field=field, fs=fs)
-        hd = calc_state_dist_to_local_min(simsetup, minima, X=X)
-        """
-        # Option 2
-        encoded_minima = [state_to_label(simsetup['XI'][:,a]) for a in xrange(simsetup['P'])]
-        hd = calc_state_dist_to_local_min(simsetup, encoded_minima, X=X)
-        X = hd
+
     # setup cmap
-    colours = None
-    if energies is not None:
-        energies_norm = (energies + np.abs(np.min(energies)))/(np.abs(np.max(energies)) + np.abs(np.min(energies)))
-    if method == 'pca':
-        from sklearn.decomposition import PCA
-        pca = PCA(n_components=dim)
-        X_new = pca.fit_transform(X)
-    elif method == 'mds':
-        from sklearn.manifold import MDS
-        # simple call
-        """
-        X_new = MDS(n_components=2, max_iter=300, verbose=1).fit_transform(X)
-        """
-        statespace = 2 ** N
-        dists = np.zeros((statespace, statespace), dtype=int)
-        for i in xrange(statespace):
-            for j in xrange(i):
-                d = hamming(X[i, :], X[j, :])
-                dists[i, j] = d
-        dists = dists + dists.T - np.diag(dists.diagonal())
-        X_new = MDS(n_components=2, max_iter=300, verbose=1, dissimilarity='precomputed').fit_transform(dists)
-    elif method == 'tsne':
-        from sklearn.manifold import TSNE
-        perplexity_def = 30.0
-        tsne = TSNE(n_components=2, init='random', random_state=0, perplexity=perplexity_def)
-        X_new = tsne.fit_transform(X)
+    energies_norm = (energies + np.abs(np.min(energies))) / (np.abs(np.max(energies)) + np.abs(np.min(energies)))
+    if colours_dict is None:
+        colours = energies_norm
     else:
-        print 'method must be in [pca, mds, tsne]'
-    if elevate3D:
-        #sc = ax.scatter(X_new[:,0], X_new[:,1], energies_norm, c=energies, s=20)
-        sc = ax.plot_trisurf(X_new[:,0], X_new[:,1], energies_norm, cmap=plt.cm.viridis)
+        assert surf is False
+        colours = colours_dict['clist']
+
+    if X_reduced.shape[1] == 3:
+        # explicit 3D plot
+        sc = ax.scatter(X_reduced[:, 0], X_reduced[:, 1], X_reduced[:, 2], c=colours, s=20)
     else:
-        sc = ax.scatter(X_new[:, 0], X_new[:, 1], c=energies)
-        fig.colorbar(sc)
+        assert X_reduced.shape[1] == 2
+        if elevate3D:
+            # implicit 3D plot, height is energy
+            if surf:
+                sc = ax.plot_trisurf(X_reduced[:,0], X_reduced[:,1], energies_norm, cmap=plt.cm.viridis)
+            else:
+                for key in colours_dict['basins_dict'].keys():
+                    indices = colours_dict['basins_dict'][key]
+                    sc = ax.scatter(X_reduced[indices, 0], X_reduced[indices, 1], energies_norm[indices], s=20,
+                                    c=colours_dict['fp_label_to_colour'][key],
+                                    label='Basin ID#%d (size %d)' % (key, len(indices)))
+
+                sc = ax.scatter(X_reduced[:,0], X_reduced[:,1], energies_norm, c=colours, s=20)
+        else:
+            # 2D plot
+            if colours_dict is None:
+                sc = ax.scatter(X_reduced[:, 0], X_reduced[:, 1], c=colours)
+            else:
+                for key in colours_dict['basins_dict'].keys():
+                    indices = colours_dict['basins_dict'][key]
+                    sc = ax.scatter(X_reduced[indices, 0], X_reduced[indices, 1], s=20,
+                                    c=colours_dict['fp_label_to_colour'][key],
+                                    label='Basin ID#%d (size %d)' % (key, len(indices)))
+    # legend for colours
+    if colours_dict is None:
+        cbar = plt.colorbar(sc)
+        cbar.set_label(r'$H(s)$')
+    else:
+        ax.legend()
+
     if edges:
         print 'Adding edges to plot...'
         for label in xrange(2 ** N):
             state_orig = states[label, :]
-            state_new = X_new[label, :]
+            state_new = X_reduced[label, :]
             nbrs = [0] * N
             if all_edges or label in maxima or label in minima or abs(energies_norm[label] - 1.0) < 1e-4:
                 for idx in xrange(N):
@@ -182,7 +192,7 @@ def hypercube_visualize(simsetup, method, dim=2, energies=None, elevate3D=True, 
                     nbr_state[idx] = -1 * nbr_state[idx]
                     nbrs[idx] = state_to_label(nbr_state)
                 for nbr_int in nbrs:
-                    nbr_new = X_new[nbr_int, :]
+                    nbr_new = X_reduced[nbr_int, :]
                     x = [state_new[0], nbr_new[0]]
                     y = [state_new[1], nbr_new[1]]
                     z = [energies_norm[label], energies_norm[nbr_int]]

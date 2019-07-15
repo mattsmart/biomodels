@@ -38,3 +38,9 @@ NUM_FULL_STEPS = 100                      # number of full TF grid updates in th
 ASYNC_BATCH = True                        # options: 'async_indiv' (select one spin at a time) or 'async_batch'
 FLAG_BURST_ERRORS = False                 # forced spin swaps/errors to randomly apply every T full spin updates
 BURST_ERROR_PERIOD = 5                    # val 5 = apply every 5 full spin updates (~5000 individual spin updates)
+
+# DISTINCT COPLOURS
+# see https://sashat.me/2017/01/11/list-of-20-simple-distinct-colors/
+DISTINCT_COLOURS = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c',
+                    '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1',
+                    '#000075', '#808080', '#ffffff', '#000000']

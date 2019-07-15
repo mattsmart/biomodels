@@ -307,6 +307,7 @@ def partition_basins(simsetup, X=None, minima=None, field=None, fs=0.0, dynamics
     else:
         app_field = np.zeros(N)
     basins_dict = {label: [] for label in minima}
+    label_to_fp_label = {}
     if X is None:
         X = np.array([label_to_state(label, N) for label in xrange(num_states)])
     for label in xrange(num_states):
@@ -322,7 +323,56 @@ def partition_basins(simsetup, X=None, minima=None, field=None, fs=0.0, dynamics
                 basins_dict[fp_label].append(label)
             else:
                 basins_dict[fp_label] = [label]
-    return basins_dict
+        label_to_fp_label[label] = fp_label
+    return basins_dict, label_to_fp_label
+
+
+def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, add_noise=False):
+
+    X = np.array([label_to_state(label, simsetup['N']) for label in xrange(2 ** simsetup['N'])])
+
+    if use_hd:
+        # TODO which option? all minima or just encoded minima? try the latter
+        # Option 1
+        """
+        fp_annotation, minima, maxima = get_all_fp(simsetup, field=field, fs=fs)
+        hd = calc_state_dist_to_local_min(simsetup, minima, X=X)
+        """
+        # Option 2
+        encoded_minima = [state_to_label(simsetup['XI'][:,a]) for a in xrange(simsetup['P'])]
+        hd = calc_state_dist_to_local_min(simsetup, encoded_minima, X=X)
+        X = hd
+
+    if method == 'pca':
+        from sklearn.decomposition import PCA
+        pca = PCA(n_components=dim)
+        X_new = pca.fit_transform(X)
+    elif method == 'mds':
+        from sklearn.manifold import MDS
+        # simple call
+        """
+        X_new = MDS(n_components=2, max_iter=300, verbose=1).fit_transform(X)
+        """
+        statespace = 2 ** N
+        dists = np.zeros((statespace, statespace), dtype=int)
+        for i in xrange(statespace):
+            for j in xrange(i):
+                d = hamming(X[i, :], X[j, :])
+                dists[i, j] = d
+        dists = dists + dists.T - np.diag(dists.diagonal())
+        X_new = MDS(n_components=2, max_iter=300, verbose=1, dissimilarity='precomputed').fit_transform(dists)
+    elif method == 'tsne':
+        from sklearn.manifold import TSNE
+        perplexity_def = 30.0
+        tsne = TSNE(n_components=2, init='random', random_state=0, perplexity=perplexity_def)
+        X_new = tsne.fit_transform(X)
+    else:
+        print 'method must be in [pca, mds, tsne]'
+
+    if add_noise:
+        # jostles the point in case they are overlapping
+        X_new += np.random.normal(0, 0.5, X_new.shape)
+    return X_new
 
 
 if __name__ == '__main__':

@@ -1,8 +1,8 @@
 import singlecell.init_multiprocessing  # BEFORE numpy
 import numpy as np
 
-from singlecell.singlecell_constants import MEMS_MEHTA, MEMS_UNFOLD, BETA
-from singlecell.singlecell_functions import hamiltonian, sorted_energies, label_to_state, get_all_fp, calc_state_dist_to_local_min, partition_basins
+from singlecell.singlecell_constants import MEMS_MEHTA, MEMS_UNFOLD, BETA, DISTINCT_COLOURS
+from singlecell.singlecell_functions import hamiltonian, sorted_energies, label_to_state, get_all_fp, calc_state_dist_to_local_min, partition_basins, reduce_hypercube_dim
 from singlecell.singlecell_simsetup import singlecell_simsetup # N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS, GENE_ID
 from singlecell.singlecell_visualize import plot_state_prob_map, hypercube_visualize
 
@@ -64,14 +64,27 @@ if __name__ == '__main__':
     print 'MAXIMA labels', maxima
     for maximum in maxima:
         print maximum, label_to_state(maximum, simsetup['N'])
-    basins_dict = partition_basins(simsetup, X=None, minima=minima, field=app_field, fs=KAPPA, dynamics='async_fixed')
+    basins_dict, label_to_fp_label = partition_basins(simsetup, X=None, minima=minima, field=app_field, fs=KAPPA, dynamics='async_fixed')
     for key in basins_dict.keys():
         print key, label_to_state(key, simsetup['N']), len(basins_dict[key]), key in minima
+    # reduce dimension
+    X_new = reduce_hypercube_dim(simsetup, 'tsne', dim=2,  use_hd=False, add_noise=False)
+    # setup basin colours for visualization
+    cdict = {}
+    if label_to_fp_label is not None:
+        basins_keys = basins_dict.keys()
+        assert len(basins_keys) <= 20  # get more colours
+        fp_label_to_colour = {a: DISTINCT_COLOURS[idx] for idx, a in enumerate(basins_keys)}
+        cdict['basins_dict'] = basins_dict
+        cdict['fp_label_to_colour'] = fp_label_to_colour
+        cdict['clist'] = [0] * (2 ** simsetup['N'])
+        for i in xrange(2 ** simsetup['N']):
+            cdict['clist'][i] = fp_label_to_colour[label_to_fp_label[i]]
     # visualize with and without basins colouring
-    hypercube_visualize(simsetup, 'tsne', energies=energies, elevate3D=True, edges=True, all_edges=False, use_hd=True)
-    # TODO basins colouring
-    hypercube_visualize(simsetup, 'tsne', energies=energies, elevate3D=True, edges=True, all_edges=False, use_hd=True, basins_dict=basins_dict)
-
+    hypercube_visualize(simsetup, X_new, energies, elevate3D=True, edges=False, all_edges=False, surf=True, colours_dict=None)
+    hypercube_visualize(simsetup, X_new, energies, elevate3D=True, edges=False, all_edges=False, surf=False, colours_dict=cdict)
+    hypercube_visualize(simsetup, X_new, energies, elevate3D=False, edges=False, all_edges=False, surf=False, colours_dict=None)
+    hypercube_visualize(simsetup, X_new, energies, elevate3D=False, edges=False, all_edges=False, surf=False, colours_dict=cdict)
 
     """
     import matplotlib.pyplot as plt
