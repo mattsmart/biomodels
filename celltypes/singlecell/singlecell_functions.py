@@ -260,15 +260,17 @@ def fp_of_state(simsetup, state_start, app_field=0, dynamics='sync', zero_overri
     """
     Given a state e.g. (1,1,1,1, ... 1) i.e. hypercube vertex, return the corresponding FP of specified dynamics
     """
-    # TODO how to handle the flickering/oscillation in sync mode? store extra state, catch 2 cycle, and impute FP?
     assert dynamics in ['sync', 'async_fixed', 'async_batch']
     i = 0
+    sites = range(simsetup['N'])
     state_next = np.copy(state_start)
     state_current = np.zeros(state_start.shape)
     if zero_override:
+        # TODO characterize this choice; affects basin characterization confirmed w memories in block form +--, -+-, ---
         override_sign = 1
-        app_field = app_field + np.ones(app_field.shape) * 1e-8 * zero_override
+        app_field = app_field + np.ones(app_field.shape) * 1e-8 * override_sign
     if dynamics == 'sync':
+        # TODO how to handle the flickering/oscillation in sync mode? store extra state, catch 2 cycle, and impute FP?
         while not np.array_equal(state_next, state_current):
             state_current = state_next
             total_field = np.dot(simsetup['J'], state_next) + app_field
@@ -276,15 +278,15 @@ def fp_of_state(simsetup, state_start, app_field=0, dynamics='sync', zero_overri
             i += 1
     elif dynamics == 'async_fixed':
         while not np.array_equal(state_next, state_current):
-            state_current = state_next
-            for i in xrange(simsetup['N']):
+            state_current = np.copy(state_next)
+            for i in sites:
                 total_field_on_i = np.dot(simsetup['J'][i, :], state_next) + app_field[i]
                 state_next[i] = np.sign(total_field_on_i)
                 i += 1
     else:
-        assert dynamics == 'asynch_batch'
-        sites = shuffle(range(simsetup['N']))  # randomize site ordering each timestep updates
+        assert dynamics == 'async_batch'
         while not np.array_equal(state_next, state_current):
+            shuffle(sites)  # randomize site ordering each timestep updates
             state_current = state_next
             for i in sites:
                 total_field_on_i = np.dot(simsetup['J'][i, :], state_next) + app_field[i]
@@ -314,8 +316,12 @@ def partition_basins(simsetup, X=None, minima=None, field=None, fs=0.0, dynamics
         if fp_label in minima:
             basins_dict[fp_label].append(label)
         else:
-            print "WARNING -- fp_label not in minima;", label, 'went to', fp_label, minima
-            basins_dict[fp_label] = [label]
+            print "WARNING -- fp_label not in minima;", label, 'went to', fp_label
+            print '\t', state, 'went to', fp
+            if fp_label in basins_dict.keys():
+                basins_dict[fp_label].append(label)
+            else:
+                basins_dict[fp_label] = [label]
     return basins_dict
 
 

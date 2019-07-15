@@ -112,7 +112,7 @@ def plot_state_prob_map(simsetup, beta=None, field=None, fs=0.0, ax=None, decora
 
 
 def hypercube_visualize(simsetup, method, dim=2, energies=None, elevate3D=True, edges=True, all_edges=False, use_hd=False,
-                        minima=[], maxima=[], field=None, fs=0.0, ax=None):
+                        minima=[], maxima=[], field=None, fs=0.0, basins_dict=None, ax=None):
     from mpl_toolkits.mplot3d import Axes3D
     import matplotlib.cm as cmx
     # TODO neighbour preserving?

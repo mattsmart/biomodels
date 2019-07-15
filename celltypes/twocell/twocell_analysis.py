@@ -55,15 +55,21 @@ if __name__ == '__main__':
         hypercube_visualize(simsetup, 'pca', energies=energies, elevate3D=True, edges=True, all_edges=False, minima=minima, maxima=maxima)
         print
     """
+    # get & report energy levels data
     sorted_data, energies = sorted_energies(simsetup, field=app_field, fs=KAPPA)
-
-    basins_dict = partition_basins(simsetup, X=None, minima=None, field=None, fs=0.0, dynamics='async_fixed')
+    fp_annotation, minima, maxima = get_all_fp(simsetup, field=app_field, fs=KAPPA)
+    print 'MINIMA labels', minima
+    for minimum in minima:
+        print minimum, label_to_state(minimum, simsetup['N'])
+    print 'MAXIMA labels', maxima
+    for maximum in maxima:
+        print maximum, label_to_state(maximum, simsetup['N'])
+    basins_dict = partition_basins(simsetup, X=None, minima=minima, field=app_field, fs=KAPPA, dynamics='async_fixed')
     for key in basins_dict.keys():
-        print key, label_to_state(key, simsetup['N']), len(basins_dict[key])
-        print basins_dict[key]
-    print basins_dict
-
+        print key, label_to_state(key, simsetup['N']), len(basins_dict[key]), key in minima
+    # visualize with and without basins colouring
     hypercube_visualize(simsetup, 'tsne', energies=energies, elevate3D=True, edges=True, all_edges=False, use_hd=True)
+    # TODO basins colouring
     hypercube_visualize(simsetup, 'tsne', energies=energies, elevate3D=True, edges=True, all_edges=False, use_hd=True, basins_dict=basins_dict)
 
 
