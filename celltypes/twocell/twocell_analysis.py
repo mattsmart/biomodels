@@ -2,7 +2,7 @@ import singlecell.init_multiprocessing  # BEFORE numpy
 import numpy as np
 
 from singlecell.singlecell_constants import MEMS_MEHTA, MEMS_UNFOLD, BETA
-from singlecell.singlecell_functions import hamiltonian, sorted_energies, label_to_state, get_all_fp, calc_state_dist_to_local_min
+from singlecell.singlecell_functions import hamiltonian, sorted_energies, label_to_state, get_all_fp, calc_state_dist_to_local_min, partition_basins
 from singlecell.singlecell_simsetup import singlecell_simsetup # N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS, GENE_ID
 from singlecell.singlecell_visualize import plot_state_prob_map, hypercube_visualize
 
@@ -56,7 +56,15 @@ if __name__ == '__main__':
         print
     """
     sorted_data, energies = sorted_energies(simsetup, field=app_field, fs=KAPPA)
-    hypercube_visualize(simsetup, 'pca', energies=energies, elevate3D=True, edges=True, all_edges=True, use_hd=True)
+
+    basins_dict = partition_basins(simsetup, X=None, minima=None, field=None, fs=0.0, dynamics='async_fixed')
+    for key in basins_dict.keys():
+        print key, label_to_state(key, simsetup['N']), len(basins_dict[key])
+        print basins_dict[key]
+    print basins_dict
+
+    hypercube_visualize(simsetup, 'tsne', energies=energies, elevate3D=True, edges=True, all_edges=False, use_hd=True)
+    hypercube_visualize(simsetup, 'tsne', energies=energies, elevate3D=True, edges=True, all_edges=False, use_hd=True, basins_dict=basins_dict)
 
 
     """
