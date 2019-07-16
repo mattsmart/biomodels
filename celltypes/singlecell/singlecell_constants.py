@@ -20,7 +20,7 @@ MEMS_MEHTA = MEMORIESDIR + os.sep + "2014_mehta_mems_genes_types_boolean_compres
 MEMS_SCMCA = MEMORIESDIR + os.sep + "2018_scmca_mems_genes_types_boolean_compressed_pruned_A_TFonly.npz"
 
 # UNFOLDING DEFAULT
-MEMS_UNFOLD = UNFOLDINGDIR + os.sep + "unfold_expC1_mems_genes_types_signals.npz"
+MEMS_UNFOLD = UNFOLDINGDIR + os.sep + "unfold_expB1_mems_genes_types_signals.npz"
 
 # MODEL SPECIFICATION -- TODO print used vars in simsetup dict, write to run_info.txt
 DEFAULT_MEMORIES_NPZPATH = MEMS_UNFOLD    # choose which memories to embed
@@ -41,6 +41,6 @@ BURST_ERROR_PERIOD = 5                    # val 5 = apply every 5 full spin upda
 
 # DISTINCT COPLOURS
 # see https://sashat.me/2017/01/11/list-of-20-simple-distinct-colors/
-DISTINCT_COLOURS = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#911eb4', '#46f0f0', '#f032e6', '#bcf60c',
+DISTINCT_COLOURS = ['#e6194b', '#3cb44b', '#ffe119', '#4363d8', '#f58231', '#f032e6', '#46f0f0', '#bcf60c', '#911eb4',
                     '#fabebe', '#008080', '#e6beff', '#9a6324', '#fffac8', '#800000', '#aaffc3', '#808000', '#ffd8b1',
                     '#000075', '#808080', '#ffffff', '#000000']
