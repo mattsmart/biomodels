@@ -114,7 +114,7 @@ def plot_state_prob_map(simsetup, beta=None, field=None, fs=0.0, ax=None, decora
 
 
 def hypercube_visualize(simsetup, X_reduced, energies, elevate3D=True, edges=True, all_edges=False,
-                        minima=[], maxima=[], colours_dict=None, surf=True, ax=None):
+                        minima=[], maxima=[], colours_dict=None, basin_labels=None, surf=True, ax=None):
     """
     Plot types
         A - elevate3D=True, surf=True, colours_override=None     - 3d surf, z = energy
@@ -180,6 +180,21 @@ def hypercube_visualize(simsetup, X_reduced, energies, elevate3D=True, edges=Tru
     else:
         ax.legend()
 
+    # annotate minima
+    if basin_labels is None:
+        basin_labels = {a: 'ID: %d' % a for a in minima}
+    for minimum in minima:
+        txt = basin_labels[minimum]
+        state_new = X_reduced[minimum, :]
+        if elevate3D or X_reduced.shape[1] == 3:
+            if elevate3D:
+                z = energies_norm[minimum]
+            if X_reduced.shape[1] == 3:
+                z = state_new[2]
+            ax.text(state_new[0], state_new[1], z, txt, fontsize=12)
+        else:
+            ax.annotate(txt, xy=(state_new[0], state_new[1]), fontsize=12)
+
     if edges:
         print 'Adding edges to plot...'
         for label in xrange(2 ** N):
@@ -195,8 +210,11 @@ def hypercube_visualize(simsetup, X_reduced, energies, elevate3D=True, edges=Tru
                     nbr_new = X_reduced[nbr_int, :]
                     x = [state_new[0], nbr_new[0]]
                     y = [state_new[1], nbr_new[1]]
-                    z = [energies_norm[label], energies_norm[nbr_int]]
-                    if elevate3D:
+                    if X_reduced.shape[1] == 3:
+                        z = [state_new[2], nbr_new[2]]
+                    else:
+                        z = [energies_norm[label], energies_norm[nbr_int]]
+                    if elevate3D or X_reduced.shape[1] == 3:
                         ax.plot(x, y, z, alpha=0.8, color='grey', lw=0.5)
                     else:
                         ax.plot(x, y, alpha=0.8, color='grey', lw=0.5)
