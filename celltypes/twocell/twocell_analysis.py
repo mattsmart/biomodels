@@ -1,8 +1,9 @@
 import singlecell.init_multiprocessing  # BEFORE numpy
+import matplotlib.pyplot as plt
 import numpy as np
 
 from singlecell.singlecell_constants import MEMS_MEHTA, MEMS_UNFOLD, BETA, DISTINCT_COLOURS
-from singlecell.singlecell_functions import hamiltonian, sorted_energies, label_to_state, get_all_fp, calc_state_dist_to_local_min, partition_basins, reduce_hypercube_dim
+from singlecell.singlecell_functions import hamiltonian, sorted_energies, label_to_state, get_all_fp, calc_state_dist_to_local_min, partition_basins, reduce_hypercube_dim, state_to_label
 from singlecell.singlecell_simsetup import singlecell_simsetup # N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS, GENE_ID
 from singlecell.singlecell_visualize import plot_state_prob_map, hypercube_visualize
 
@@ -68,7 +69,7 @@ if __name__ == '__main__':
     for key in basins_dict.keys():
         print key, label_to_state(key, simsetup['N']), len(basins_dict[key]), key in minima
     # reduce dimension
-    X_new = reduce_hypercube_dim(simsetup, 'tsne', dim=2,  use_hd=False, add_noise=False)
+    X_new = reduce_hypercube_dim(simsetup, 'spectral', dim=3,  use_hd=False, use_proj=False, add_noise=False, plot_X=True)
     # setup basin colours for visualization
     cdict = {}
     if label_to_fp_label is not None:
@@ -80,11 +81,31 @@ if __name__ == '__main__':
         cdict['clist'] = [0] * (2 ** simsetup['N'])
         for i in xrange(2 ** simsetup['N']):
             cdict['clist'][i] = fp_label_to_colour[label_to_fp_label[i]]
+    # setup basin labels depending on npz
+    basin_labels = {}
+    for idx in xrange(simsetup['P']):
+        state = simsetup['XI'][:, idx]
+        antistate = state * -1
+        label = state_to_label(state)
+        antilabel = state_to_label(antistate)
+        basin_labels[label] = r'$\xi^%d$' % idx
+        basin_labels[antilabel] = r'$-1\cdot\xi^%d$' % idx
+    i = 1
+    for label in minima:
+        if label not in basin_labels.keys():
+            basin_labels[label] = 'spurious: %d' % i
+            i += 1
     # visualize with and without basins colouring
-    hypercube_visualize(simsetup, X_new, energies, elevate3D=True, edges=False, all_edges=False, surf=True, colours_dict=None)
-    hypercube_visualize(simsetup, X_new, energies, elevate3D=True, edges=False, all_edges=False, surf=False, colours_dict=cdict)
-    hypercube_visualize(simsetup, X_new, energies, elevate3D=False, edges=False, all_edges=False, surf=False, colours_dict=None)
-    hypercube_visualize(simsetup, X_new, energies, elevate3D=False, edges=False, all_edges=False, surf=False, colours_dict=cdict)
+    hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels,
+                        elevate3D=True, edges=False, all_edges=False, surf=True, colours_dict=None)
+    hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels,
+                        elevate3D=True, edges=False, all_edges=False, surf=False, colours_dict=cdict)
+    hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels,
+                        elevate3D=True, edges=True, all_edges=False, surf=False, colours_dict=cdict)
+    hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels,
+                        elevate3D=False, edges=False, all_edges=False, surf=False, colours_dict=None)
+    hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels,
+                        elevate3D=False, edges=True, all_edges=False, surf=False, colours_dict=cdict)
 
     """
     import matplotlib.pyplot as plt
