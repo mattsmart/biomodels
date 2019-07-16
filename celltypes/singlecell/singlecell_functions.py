@@ -368,13 +368,27 @@ def glauber_transition_matrix(simsetup, field=None, fs=0.0, beta=BETA, override=
     return M
 
 
+def distances_from_master_eqn(X):
+    dists = np.zeros(X.shape)
+    for i in xrange(X.shape[0]):
+        for j in xrange(X.shape[1]):
+            x = X[i, j]
+            if i == j:
+                dists[i, j] = 0
+            elif x == 0:
+                dists[i, j] = 999
+            else:
+                dists[i, j] = 1 / x
+    return dists
+
+
 def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, use_proj=False, add_noise=False, plot_X=False):
     # TODO in addition to hamming dist (i.e. m(s)) should get memory proj a(s)...
     # TODO spectral clustering from MSE with temp?
 
     N = simsetup['N']
     states = np.array([label_to_state(label, simsetup['N']) for label in xrange(2 ** N)])
-
+    X = states
     if use_hd:
         # Option 1
         """
@@ -407,21 +421,23 @@ def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, use_proj=False,
     elif method == 'mds':
         from sklearn.manifold import MDS
         # simple call
-        """
-        X_new = MDS(n_components=2, max_iter=300, verbose=1).fit_transform(X)
-        """
         statespace = 2 ** N
-        dists = np.zeros((statespace, statespace), dtype=int)
+        X = glauber_transition_matrix(simsetup, field=None, fs=0.0, beta=1.0, override=1e-8)
+        #X = X + X.T - np.diag(X.diagonal())
+        dists = distances_from_master_eqn(X)
+        """
+        dists = np.copy((statespace, statespace), dtype=int)
         for i in xrange(statespace):
             for j in xrange(i):
                 d = hamming(X[i, :], X[j, :])
                 dists[i, j] = d
         dists = dists + dists.T - np.diag(dists.diagonal())
-        X_new = MDS(n_components=2, max_iter=300, verbose=1, dissimilarity='precomputed').fit_transform(dists)
+        """
+        X_new = MDS(n_components=dim, max_iter=300, verbose=1, dissimilarity='precomputed').fit_transform(dists)
     elif method == 'tsne':
         from sklearn.manifold import TSNE
         perplexity_def = 30.0
-        tsne = TSNE(n_components=2, init='random', random_state=0, perplexity=perplexity_def)
+        tsne = TSNE(n_components=dim, init='random', random_state=0, perplexity=perplexity_def)
         X_new = tsne.fit_transform(X)
     elif method == 'spectral':
         from sklearn.manifold import SpectralEmbedding

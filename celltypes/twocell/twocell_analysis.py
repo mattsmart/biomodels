@@ -69,7 +69,7 @@ if __name__ == '__main__':
     for key in basins_dict.keys():
         print key, label_to_state(key, simsetup['N']), len(basins_dict[key]), key in minima
     # reduce dimension
-    X_new = reduce_hypercube_dim(simsetup, 'spectral', dim=3,  use_hd=False, use_proj=False, add_noise=False, plot_X=True)
+    X_new = reduce_hypercube_dim(simsetup, 'mds', dim=3,  use_hd=False, use_proj=False, add_noise=False, plot_X=True)
     # setup basin colours for visualization
     cdict = {}
     if label_to_fp_label is not None:
