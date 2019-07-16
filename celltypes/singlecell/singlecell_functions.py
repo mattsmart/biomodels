@@ -1,7 +1,7 @@
 import numpy as np
 from random import random, shuffle
 
-from singlecell_constants import BETA, EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, MEMS_MEHTA, FIELD_PROTOCOL
+from singlecell_constants import BETA, EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, MEMS_UNFOLD
 from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
 
 """
@@ -218,7 +218,7 @@ def get_all_fp(simsetup, field=None, fs=0.0):
     return fp_annotation, minima, maxima
 
 
-def calc_state_dist_to_local_min(simsetup, minima, X=None):
+def calc_state_dist_to_local_min(simsetup, minima, X=None, norm=True):
     N = simsetup['N']
     num_states = 2 ** N
     if X is None:
@@ -226,6 +226,8 @@ def calc_state_dist_to_local_min(simsetup, minima, X=None):
     minima_states = np.array([label_to_state(a, N) for a in minima])
     overlaps = np.dot(X, minima_states.T)
     hamming_dist = 0.5 * (N - overlaps)
+    if norm:
+        hamming_dist = hamming_dist / N
     return hamming_dist
 
 
@@ -327,12 +329,53 @@ def partition_basins(simsetup, X=None, minima=None, field=None, fs=0.0, dynamics
     return basins_dict, label_to_fp_label
 
 
-def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, add_noise=False):
+def glauber_transition_matrix(simsetup, field=None, fs=0.0, beta=BETA, override=0.0):
+    # TODO is it prob per unit time i.e. rate or is it prob in fixed time?
+    # TODO what to do for NaN beta? sign fn on total_field
+    """
+    Confirmed that in zero T limit the top eigenevectors for unfold C1 all correspond to the known global minima
+    directly with a single 1 all else 0 in the 2^N states, and have eval 0.
+    """
 
-    X = np.array([label_to_state(label, simsetup['N']) for label in xrange(2 ** simsetup['N'])])
+    N = simsetup['N']
+    num_states = 2 ** N
+    choice_factor = 1.0 / N
+    M = np.zeros((num_states, num_states))
+    states = np.array([label_to_state(label, simsetup['N']) for label in xrange(2 ** N)])
+    if field is None:
+        app_field = np.ones(N) * override
+    else:
+        app_field = field * fs + override
+    print 'Building 2 ** %d glauber transition matrix' % (N)
+    for i in xrange(num_states):
+        state_end = states[i, :]
+        for idx in xrange(N):
+            state_start = np.copy(state_end)
+            state_start[idx] = state_start[idx] * -1
+            j = state_to_label(state_start)
+            # compute glauber_factor
+            total_field = np.dot(simsetup['J'][idx, :], state_end) + app_field[idx]
+            if beta is None:
+                if np.sign(total_field) == state_end[idx]:
+                    glauber_factor = 1
+                else:
+                    glauber_factor = 0
+            else:
+                glauber_factor = 1 / (1 + np.exp(-2 * beta * total_field))
+            M[i, j] = choice_factor * glauber_factor
+    for j in xrange(num_states):
+        M[j, j] = -np.sum(M[:, j])
+    return M
+
+
+def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, use_proj=False, add_noise=False, plot_X=False):
+    # TODO in addition to hamming dist (i.e. m(s)) should get memory proj a(s)...
+    # TODO spectral clustering from MSE with temp?
+
+    N = simsetup['N']
+    states = np.array([label_to_state(label, simsetup['N']) for label in xrange(2 ** N)])
 
     if use_hd:
-        # TODO which option? all minima or just encoded minima? try the latter
         # Option 1
         """
         fp_annotation, minima, maxima = get_all_fp(simsetup, field=field, fs=fs)
@@ -340,9 +383,23 @@ def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, add_noise=False
         """
         # Option 2
         encoded_minima = [state_to_label(simsetup['XI'][:,a]) for a in xrange(simsetup['P'])]
-        hd = calc_state_dist_to_local_min(simsetup, encoded_minima, X=X)
+        hd = calc_state_dist_to_local_min(simsetup, encoded_minima, X=states, norm=True)
         X = hd
+    if use_proj:
+        projdist = np.dot(states, simsetup['ETA'].T)
+        if use_hd:
+            X = np.concatenate((hd, projdist), axis=1)
+        else:
+            X = projdist
+    if method == 'spectral':
+        X = glauber_transition_matrix(simsetup, field=None, fs=0.0, beta=1.0, override=1e-8)
+    if plot_X:
+        import matplotlib.pyplot as plt
+        im = plt.imshow(X, aspect='auto')
+        plt.colorbar(im)
+        plt.show()
 
+    print 'Performing dimension reduction (%s): (%d x %d) to (%d x %d)' % (method, X.shape[0], X.shape[1], X.shape[0], dim)
     if method == 'pca':
         from sklearn.decomposition import PCA
         pca = PCA(n_components=dim)
@@ -366,8 +423,13 @@ def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, add_noise=False
         perplexity_def = 30.0
         tsne = TSNE(n_components=2, init='random', random_state=0, perplexity=perplexity_def)
         X_new = tsne.fit_transform(X)
+    elif method == 'spectral':
+        from sklearn.manifold import SpectralEmbedding
+        embedding = SpectralEmbedding(n_components=dim, random_state=0, affinity='precomputed')
+        #TODO pass through beta and field, note glauber may be ill-defined at 0 T / beta infty
+        X_new = embedding.fit_transform(X.T)
     else:
-        print 'method must be in [pca, mds, tsne]'
+        print 'method must be in [pca, mds, tsne, spectral]'
 
     if add_noise:
         # jostles the point in case they are overlapping
@@ -376,6 +438,24 @@ def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, add_noise=False
 
 
 if __name__ == '__main__':
-    label = 511
-    N = 9
-    print label_to_state(label, N, use_neg=True)
+    simsetup = singlecell_simsetup(unfolding=True, npzpath=MEMS_UNFOLD)
+    M = glauber_transition_matrix(simsetup, field=None, fs=0.0, beta=None, override=0.0)
+    print M
+    E, V = np.linalg.eig(M)
+    eig_ranked = np.argsort(E)[::-1]
+    print E[eig_ranked[0:8]]
+    top_6_evec = V[:,eig_ranked[0:8]]
+    print top_6_evec.shape
+    import matplotlib.pyplot as plt
+    plt.imshow(np.real(top_6_evec))
+    plt.show()
+    for i in xrange(8):
+        cols = top_6_evec[:,i]
+        cc = np.sort(cols)
+        am = np.argmax(cols)
+        print cc[0:3], cc[-3:]
+        print am
+    print
+    for i in xrange(3):
+        print state_to_label(simsetup['XI'][:, i])
+        print state_to_label(simsetup['XI'][:, i]*-1)
