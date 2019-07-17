@@ -384,7 +384,7 @@ def glauber_transition_matrix(simsetup, field=None, fs=0.0, beta=BETA, override=
     return M
 
 
-def spectral_custom(L, dim, norm_each=False, plot_evec=False):
+def spectral_custom(L, dim, norm_each=False, plot_evec=False, skip_pss=False):
     # see https://github.com/hlml-toronto/machinelearning/blob/master/guides/unsupervised/spectral.ipynb
     E_unsorted, V_unsorted = np.linalg.eig(L)
     E_unsorted = np.real(E_unsorted)
@@ -403,7 +403,12 @@ def spectral_custom(L, dim, norm_each=False, plot_evec=False):
     print eval[0:3]
     print eval[-3:]
     # get first dim evecs, sorted
-    dim_reduced = evec[:, 0:dim]
+    if skip_pss:
+        dim_reduced = evec[:, 1:dim+1]
+        assert np.abs(eval[1]) >= 1e-9
+    else:
+        dim_reduced = evec[:, 0:dim]
+
     # normalize column sum to 1
     for j in xrange(dim):
         print 'TTT', np.sum(dim_reduced[:, j]), np.sum(np.abs(dim_reduced[:, j]))
@@ -493,8 +498,8 @@ def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, use_proj=False,
         #TODO pass through beta and field, note glauber may be ill-defined at 0 T / beta infty
         X_new = embedding.fit_transform(X.T)
     elif method == 'spectral_custom':
-        dim_spectral = 6  # use dim >= number of known minima?
-        X_lower = spectral_custom(-X, dim_spectral, norm_each=True, plot_evec=False)
+        dim_spectral = 3  # use dim >= number of known minima?
+        X_lower = spectral_custom(-X, dim_spectral, norm_each=False, plot_evec=False, skip_pss=True)
         from sklearn.decomposition import PCA
         X_new = PCA(n_components=dim).fit_transform(X_lower)
         """
