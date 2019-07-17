@@ -19,7 +19,12 @@ if __name__ == '__main__':
     simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, npzpath=MEMS_UNFOLD, housekeeping=HOUSEKEEPING)
     print 'note: N =', simsetup['N']
 
-    beta = 2.0  # 2.0
+    DIM = 2
+    METHOD = 'spectral_custom'
+    use_hd = True
+    use_proj = True
+    plot_X = False
+    beta = 1  # 2.0
 
     exostring = "no_exo_field"  # on/off/all/no_exo_field, note e.g. 'off' means send info about 'off' genes only
     exoprune = 0.0              # amount of exosome field idx to randomly prune from each cell
@@ -69,7 +74,8 @@ if __name__ == '__main__':
     for key in basins_dict.keys():
         print key, label_to_state(key, simsetup['N']), len(basins_dict[key]), key in minima
     # reduce dimension
-    X_new = reduce_hypercube_dim(simsetup, 'mds', dim=3,  use_hd=False, use_proj=False, add_noise=False, plot_X=True)
+    X_new = reduce_hypercube_dim(simsetup, METHOD, dim=DIM,  use_hd=use_hd, use_proj=use_proj, add_noise=False,
+                                 plot_X=plot_X, field=app_field, fs=KAPPA, beta=beta)
     # setup basin colours for visualization
     cdict = {}
     if label_to_fp_label is not None:
@@ -89,13 +95,20 @@ if __name__ == '__main__':
         label = state_to_label(state)
         antilabel = state_to_label(antistate)
         basin_labels[label] = r'$\xi^%d$' % idx
-        basin_labels[antilabel] = r'$-1\cdot\xi^%d$' % idx
+        basin_labels[antilabel] = r'$-\xi^%d$' % idx
     i = 1
     for label in minima:
         if label not in basin_labels.keys():
-            basin_labels[label] = 'spurious: %d' % i
+            if label == 0:
+                basin_labels[label] = r'$S-$'
+            elif label == 511:
+                basin_labels[label] = r'$S+$'
+            else:
+                basin_labels[label] = 'spurious: %d' % i
             i += 1
     # visualize with and without basins colouring
+    hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels,
+                        elevate3D=True, edges=True, all_edges=False, surf=False, colours_dict=None)
     hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels,
                         elevate3D=True, edges=False, all_edges=False, surf=True, colours_dict=None)
     hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels,

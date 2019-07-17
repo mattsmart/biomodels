@@ -332,9 +332,11 @@ def partition_basins(simsetup, X=None, minima=None, field=None, fs=0.0, dynamics
 def glauber_transition_matrix(simsetup, field=None, fs=0.0, beta=BETA, override=0.0):
     # TODO is it prob per unit time i.e. rate or is it prob in fixed time?
     # TODO what to do for NaN beta? sign fn on total_field
+    # TODO it need not be symmetric but spectral is making it symmetric how to fix this
     """
-    Confirmed that in zero T limit the top eigenevectors for unfold C1 all correspond to the known global minima
+    -Confirmed that in zero T limit the top eigenevectors for unfold C1 all correspond to the known global minima
     directly with a single 1 all else 0 in the 2^N states, and have eval 0.
+    -Ongoing issue with C1: xi 1 and xi 2 completely overlap in spectral embedding, 2D or 3D, varying beta -- why?
     """
 
     N = simsetup['N']
@@ -350,10 +352,22 @@ def glauber_transition_matrix(simsetup, field=None, fs=0.0, beta=BETA, override=
     for i in xrange(num_states):
         state_end = states[i, :]
         for idx in xrange(N):
+            # flip the ith spin
             state_start = np.copy(state_end)
             state_start[idx] = state_start[idx] * -1
             j = state_to_label(state_start)
             # compute glauber_factor
+            site_end = state_end[idx]
+            total_field_site_start = np.dot(simsetup['J'][idx, :], state_start) + app_field[idx]
+            if beta is None:
+                if np.sign(total_field_site_start) == site_end:
+                    glauber_factor = 1
+                else:
+                    glauber_factor = 0
+            else:
+                glauber_factor = 1 / (1 + np.exp(-2 * beta * total_field_site_start * site_end))
+            """
+            # compute glauber_factor V1 - has expeted structure for B1 C1 but FP overlap for C1...
             total_field = np.dot(simsetup['J'][idx, :], state_end) + app_field[idx]
             if beta is None:
                 if np.sign(total_field) == state_end[idx]:
@@ -362,10 +376,46 @@ def glauber_transition_matrix(simsetup, field=None, fs=0.0, beta=BETA, override=
                     glauber_factor = 0
             else:
                 glauber_factor = 1 / (1 + np.exp(-2 * beta * total_field))
+            """
             M[i, j] = choice_factor * glauber_factor
+    # normalize column sum to 1
     for j in xrange(num_states):
         M[j, j] = -np.sum(M[:, j])
     return M
+
+
+def spectral_custom(L, dim, norm_each=False, plot_evec=False):
+    # see https://github.com/hlml-toronto/machinelearning/blob/master/guides/unsupervised/spectral.ipynb
+    E_unsorted, V_unsorted = np.linalg.eig(L)
+    E_unsorted = np.real(E_unsorted)
+    V_unsorted = np.real(V_unsorted)
+    sortlist = np.argsort(E_unsorted)
+    eval = E_unsorted[sortlist]
+    evec = V_unsorted[:, sortlist]
+
+    if plot_evec:
+        statevol = evec.shape[0]
+        import matplotlib.pyplot as plt
+        for i in xrange(dim):
+            plt.plot(range(statevol), evec[:, i], label='evec %d' % i)
+        plt.legend()
+        plt.show()
+    print eval[0:3]
+    print eval[-3:]
+    # get first dim evecs, sorted
+    dim_reduced = evec[:, 0:dim]
+    # normalize column sum to 1
+    for j in xrange(dim):
+        print 'TTT', np.sum(dim_reduced[:, j]), np.sum(np.abs(dim_reduced[:, j]))
+        #dim_reduced[:, j] = dim_reduced[:, j] / np.sum(dim_reduced[:, j])
+    # normalize the reduced vectors
+    # TODO alternative normalize to lie on hypersphere...? Ng 2002
+    if norm_each:
+        for j in xrange(dim_reduced.shape[0]):
+            norm = np.linalg.norm(dim_reduced[j,:])
+            if norm > 0:
+                dim_reduced[j,:] = dim_reduced[j,:] / norm
+    return dim_reduced
 
 
 def distances_from_master_eqn(X):
@@ -382,9 +432,12 @@ def distances_from_master_eqn(X):
     return dists
 
 
-def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, use_proj=False, add_noise=False, plot_X=False):
+def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, use_proj=False, add_noise=False, plot_X=False,
+                         field=None, fs=0.0, beta=BETA, print_XI=True):
     # TODO in addition to hamming dist (i.e. m(s)) should get memory proj a(s)...
     # TODO spectral clustering from MSE with temp?
+    # TODO implement own diffusion map since packages wont work (mapalign fail, pydiff no precompute)
+    # TODO try umap on its own and in spectral_custom
 
     N = simsetup['N']
     states = np.array([label_to_state(label, simsetup['N']) for label in xrange(2 ** N)])
@@ -405,8 +458,8 @@ def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, use_proj=False,
             X = np.concatenate((hd, projdist), axis=1)
         else:
             X = projdist
-    if method == 'spectral':
-        X = glauber_transition_matrix(simsetup, field=None, fs=0.0, beta=1.0, override=1e-8)
+    if method in ['spectral_auto', 'spectral_custom', 'diffusion']:
+        X = glauber_transition_matrix(simsetup, field=field, fs=fs, beta=beta, override=0)
     if plot_X:
         import matplotlib.pyplot as plt
         im = plt.imshow(X, aspect='auto')
@@ -422,34 +475,54 @@ def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, use_proj=False,
         from sklearn.manifold import MDS
         # simple call
         statespace = 2 ** N
-        X = glauber_transition_matrix(simsetup, field=None, fs=0.0, beta=1.0, override=1e-8)
-        #X = X + X.T - np.diag(X.diagonal())
-        dists = distances_from_master_eqn(X)
-        """
         dists = np.copy((statespace, statespace), dtype=int)
         for i in xrange(statespace):
             for j in xrange(i):
                 d = hamming(X[i, :], X[j, :])
                 dists[i, j] = d
         dists = dists + dists.T - np.diag(dists.diagonal())
-        """
         X_new = MDS(n_components=dim, max_iter=300, verbose=1, dissimilarity='precomputed').fit_transform(dists)
     elif method == 'tsne':
         from sklearn.manifold import TSNE
-        perplexity_def = 30.0
+        perplexity_def = 5.0
         tsne = TSNE(n_components=dim, init='random', random_state=0, perplexity=perplexity_def)
         X_new = tsne.fit_transform(X)
-    elif method == 'spectral':
+    elif method == 'spectral_auto':
         from sklearn.manifold import SpectralEmbedding
         embedding = SpectralEmbedding(n_components=dim, random_state=0, affinity='precomputed')
         #TODO pass through beta and field, note glauber may be ill-defined at 0 T / beta infty
         X_new = embedding.fit_transform(X.T)
+    elif method == 'spectral_custom':
+        dim_spectral = 6  # use dim >= number of known minima?
+        X_lower = spectral_custom(-X, dim_spectral, norm_each=True, plot_evec=False)
+        from sklearn.decomposition import PCA
+        X_new = PCA(n_components=dim).fit_transform(X_lower)
+        """
+        from sklearn.manifold import TSNE
+        X_new = TSNE(n_components=dim, init='random', random_state=0, perplexity=5.0).fit_transform(X_lower)
+        """
+    elif method == 'diffusion':
+        from mapalign.embed import DiffusionMapEmbedding
+        X_new = DiffusionMapEmbedding(alpha=0.5, diffusion_time=1, affinity='precomputed',
+                                      n_components=dim).fit_transform(X.copy())
+        """
+        from pydiffmap import diffusion_map as dm
+        neighbor_params = {'affinity': 'precomputed'}
+        embedding = dm.DiffusionMap.from_sklearn(n_evecs=2, k=200, epsilon='bgh', alpha=1.0, neighbor_params=neighbor_params)
+        # fit to data and return the diffusion map.
+        X_new = embedding.fit_transform(X.T)
+        """
     else:
-        print 'method must be in [pca, mds, tsne, spectral]'
-
+        print 'method must be in [pca, mds, tsne, spectral_auto, spectral_custom, diffusion]'
     if add_noise:
         # jostles the point in case they are overlapping
         X_new += np.random.normal(0, 0.5, X_new.shape)
+    if print_XI:
+        for i in xrange(simsetup['P']):
+            label = state_to_label(simsetup['XI'][:, i])
+            antilabel = state_to_label(simsetup['XI'][:, i] * -1)
+            print 'XI %d label %d is %s' % (i, label, X_new[label,:])
+            print 'anti-XI %d label %d is %s' % (i, antilabel, X_new[antilabel,:])
     return X_new
 
 
@@ -459,14 +532,14 @@ if __name__ == '__main__':
     print M
     E, V = np.linalg.eig(M)
     eig_ranked = np.argsort(E)[::-1]
-    print E[eig_ranked[0:8]]
-    top_6_evec = V[:,eig_ranked[0:8]]
-    print top_6_evec.shape
+    print E[eig_ranked[0:10]]
+    top_evec = V[:,eig_ranked[0:8]]
+    print top_evec.shape
     import matplotlib.pyplot as plt
-    plt.imshow(np.real(top_6_evec))
+    plt.imshow(np.real(top_evec))
     plt.show()
     for i in xrange(8):
-        cols = top_6_evec[:,i]
+        cols = top_evec[:, i]
         cc = np.sort(cols)
         am = np.argmax(cols)
         print cc[0:3], cc[-3:]

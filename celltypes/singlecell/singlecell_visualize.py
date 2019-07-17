@@ -126,9 +126,10 @@ def hypercube_visualize(simsetup, X_reduced, energies, elevate3D=True, edges=Tru
         G - X_reduced is dim 2**N x 3, colours_override=list(N)  - 3d scatter, c = predefined (e.g. basins colour-coded)
     All plots can have partial or full edges (neighbours) plotted
     """
-    # TODO annotate minima maxima
+    # TODO for trisurf possible to manually define GOOD triangulation?
     # TODO neighbour preserving?
     # TODO think there are duplicate points in hd rep... check this bc pics look too simple
+    # TODO MDS - dist = dist to cell fate subspace as in mehta SI? try
 
     if ax is None:
         fig = plt.figure(figsize=(8,6))
@@ -155,14 +156,16 @@ def hypercube_visualize(simsetup, X_reduced, energies, elevate3D=True, edges=Tru
             # implicit 3D plot, height is energy
             if surf:
                 sc = ax.plot_trisurf(X_reduced[:,0], X_reduced[:,1], energies_norm, cmap=plt.cm.viridis)
+                #sc = ax.plot_wireframe(X_reduced[:,0], X_reduced[:,1], energies_norm)
             else:
-                for key in colours_dict['basins_dict'].keys():
-                    indices = colours_dict['basins_dict'][key]
-                    sc = ax.scatter(X_reduced[indices, 0], X_reduced[indices, 1], energies_norm[indices], s=20,
-                                    c=colours_dict['fp_label_to_colour'][key],
-                                    label='Basin ID#%d (size %d)' % (key, len(indices)))
-
-                sc = ax.scatter(X_reduced[:,0], X_reduced[:,1], energies_norm, c=colours, s=20)
+                if colours_dict is not None:
+                    for key in colours_dict['basins_dict'].keys():
+                        indices = colours_dict['basins_dict'][key]
+                        sc = ax.scatter(X_reduced[indices, 0], X_reduced[indices, 1], energies_norm[indices], s=20,
+                                        c=colours_dict['fp_label_to_colour'][key],
+                                        label='Basin ID#%d (size %d)' % (key, len(indices)))
+                else:
+                    sc = ax.scatter(X_reduced[:,0], X_reduced[:,1], energies_norm, c=colours, s=20)
         else:
             # 2D plot
             if colours_dict is None:
@@ -188,10 +191,10 @@ def hypercube_visualize(simsetup, X_reduced, energies, elevate3D=True, edges=Tru
         state_new = X_reduced[minimum, :]
         if elevate3D or X_reduced.shape[1] == 3:
             if elevate3D:
-                z = energies_norm[minimum]
+                z = energies_norm[minimum] - 0.05
             if X_reduced.shape[1] == 3:
                 z = state_new[2]
-            ax.text(state_new[0], state_new[1], z, txt, fontsize=12)
+            ax.text(state_new[0], state_new[1], z, txt, fontsize=10)
         else:
             ax.annotate(txt, xy=(state_new[0], state_new[1]), fontsize=12)
 
