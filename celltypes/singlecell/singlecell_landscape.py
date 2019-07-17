@@ -10,8 +10,8 @@ from singlecell_visualize import plot_state_prob_map, hypercube_visualize
 
 if __name__ == '__main__':
     # TODO move to singlecell_landscape.py?
-    HOUSEKEEPING = 0
-    KAPPA = 0.75
+    HOUSEKEEPING = 2
+    KAPPA = 2.0
 
     random_mem = False
     random_W = False
@@ -105,12 +105,25 @@ if __name__ == '__main__':
                 basin_labels[label] = r'$S+$'
             else:
                 basin_labels[label] = 'spurious: %d' % i
+                print 'unlabelled spurious minima %d: %s' % (i, label_to_state(label, simsetup['N']))
             i += 1
+    # conditionally plot housekeeping on subspace
+    housekeeping_on_labels = []  # TODO cleanup
+    for label in xrange(2**simsetup['N']):
+        state = label_to_state(label, simsetup['N'])
+        substate = state[-HOUSEKEEPING:]
+        if np.all(substate == 1.0):
+            housekeeping_on_labels.append(label)
+    print len(housekeeping_on_labels)
     # visualize with and without basins colouring
     hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels,
-                        elevate3D=True, edges=True, all_edges=False, surf=False, colours_dict=None)
+                        elevate3D=True, edges=True, all_edges=False, surf=False, colours_dict=None, beta=None)
     hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels,
-                        elevate3D=True, edges=False, all_edges=False, surf=True, colours_dict=None)
+                        elevate3D=True, edges=False, all_edges=False, surf=True, colours_dict=None, beta=None)
+    hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels,
+                        elevate3D=True, edges=True, all_edges=False, surf=False, colours_dict=None, beta=beta)
+    hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels,
+                        elevate3D=True, edges=False, all_edges=False, surf=True, colours_dict=None, beta=beta)
     hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels,
                         elevate3D=True, edges=False, all_edges=False, surf=False, colours_dict=cdict)
     hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels,

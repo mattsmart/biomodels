@@ -114,7 +114,7 @@ def plot_state_prob_map(simsetup, beta=None, field=None, fs=0.0, ax=None, decora
 
 
 def hypercube_visualize(simsetup, X_reduced, energies, elevate3D=True, edges=True, all_edges=False,
-                        minima=[], maxima=[], colours_dict=None, basin_labels=None, surf=True, ax=None):
+                        minima=[], maxima=[], colours_dict=None, basin_labels=None, surf=True, beta=None, ax=None):
     """
     Plot types
         A - elevate3D=True, surf=True, colours_override=None     - 3d surf, z = energy
@@ -130,6 +130,7 @@ def hypercube_visualize(simsetup, X_reduced, energies, elevate3D=True, edges=Tru
     # TODO neighbour preserving?
     # TODO think there are duplicate points in hd rep... check this bc pics look too simple
     # TODO MDS - dist = dist to cell fate subspace as in mehta SI? try
+    # TODO note cbar max for surf plot is half max of cbar for other plots why
 
     if ax is None:
         fig = plt.figure(figsize=(8,6))
@@ -140,7 +141,14 @@ def hypercube_visualize(simsetup, X_reduced, energies, elevate3D=True, edges=Tru
     states = np.array([label_to_state(label, N) for label in xrange(2 ** N)])
 
     # setup cmap
-    energies_norm = (energies + np.abs(np.min(energies))) / (np.abs(np.max(energies)) + np.abs(np.min(energies)))
+    if beta is None:
+        energies_norm = (energies + np.abs(np.min(energies))) / (np.abs(np.max(energies)) + np.abs(np.min(energies)))
+        cbar_label = r'$H(s)$'
+    else:
+        energies = np.exp(-beta * energies)
+        energies_norm = (energies + np.abs(np.min(energies))) / (np.abs(np.max(energies)) + np.abs(np.min(energies)))
+        cbar_label = r'$exp(-\beta H(s))$'
+
     if colours_dict is None:
         colours = energies_norm
     else:
@@ -179,7 +187,7 @@ def hypercube_visualize(simsetup, X_reduced, energies, elevate3D=True, edges=Tru
     # legend for colours
     if colours_dict is None:
         cbar = plt.colorbar(sc)
-        cbar.set_label(r'$H(s)$')
+        cbar.set_label(cbar_label)
     else:
         ax.legend()
 
