@@ -329,7 +329,9 @@ def partition_basins(simsetup, X=None, minima=None, field=None, fs=0.0, dynamics
     return basins_dict, label_to_fp_label
 
 
-def glauber_transition_matrix(simsetup, field=None, fs=0.0, beta=BETA, override=0.0):
+def glauber_transition_matrix(simsetup, field=None, fs=0.0, beta=BETA, override=0.0, DTMC=False):
+    # TODO why are diagonals so large?  ~ 0.5 as temp -> infty? we see the global minima go to 1 as T->0
+
     # TODO is it prob per unit time i.e. rate or is it prob in fixed time?
     # TODO what to do for NaN beta? sign fn on total_field
     # TODO it need not be symmetric but spectral is making it symmetric how to fix this
@@ -378,9 +380,15 @@ def glauber_transition_matrix(simsetup, field=None, fs=0.0, beta=BETA, override=
                 glauber_factor = 1 / (1 + np.exp(-2 * beta * total_field))
             """
             M[i, j] = choice_factor * glauber_factor
-    # normalize column sum to 1
-    for j in xrange(num_states):
-        M[j, j] = -np.sum(M[:, j])
+    # normalize column sum to 1 if not DTMC i.e. if it is a stoch rate matrix, CTMC
+    if DTMC:
+        for j in xrange(num_states):
+            M[j, j] = 1-np.sum(M[:, j])  # TODO think this normalization is sketchy
+            #print j, M[j, j]
+    else:
+        for j in xrange(num_states):
+            M[j, j] = -np.sum(M[:, j])
+            #print j, M[j, j]
     return M
 
 
@@ -405,7 +413,7 @@ def spectral_custom(L, dim, norm_each=False, plot_evec=False, skip_pss=False):
     # get first dim evecs, sorted
     if skip_pss:
         dim_reduced = evec[:, 1:dim+1]
-        assert np.abs(eval[1]) >= 1e-9
+        assert np.abs(eval[1]) >= 1e-10  # was 1e-9
     else:
         dim_reduced = evec[:, 0:dim]
 
@@ -506,10 +514,17 @@ def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, use_proj=False,
         from sklearn.manifold import TSNE
         X_new = TSNE(n_components=dim, init='random', random_state=0, perplexity=5.0).fit_transform(X_lower)
         """
-    elif method == 'diffusion':
-        from mapalign.embed import DiffusionMapEmbedding
-        X_new = DiffusionMapEmbedding(alpha=0.5, diffusion_time=1, affinity='precomputed',
-                                      n_components=dim).fit_transform(X.copy())
+    elif method == 'diffusion_custom':
+        # TODO cleanup see yale paper
+        dim_spectral = 3
+        num_steps = 1
+        X_DTMC = glauber_transition_matrix(simsetup, field=field, fs=fs, beta=beta, override=0, DTMC=True)
+        X_bigstep = np.linalg.matrix_power(X_DTMC, num_steps)
+        X_lower = spectral_custom(-X_bigstep, dim_spectral, norm_each=False, plot_evec=False, skip_pss=True)
+        from sklearn.decomposition import PCA
+        X_new = PCA(n_components=dim).fit_transform(X_lower)
+        #X_new = DiffusionMapEmbedding(alpha=0.5, diffusion_time=1, affinity='precomputed',
+        #                              n_components=dim).fit_transform(X.copy())
         """
         from pydiffmap import diffusion_map as dm
         neighbor_params = {'affinity': 'precomputed'}
@@ -518,7 +533,7 @@ def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, use_proj=False,
         X_new = embedding.fit_transform(X.T)
         """
     else:
-        print 'method must be in [pca, mds, tsne, spectral_auto, spectral_custom, diffusion]'
+        print 'method must be in [pca, mds, tsne, spectral_auto, spectral_custom, diffusion, diffusion_custom]'
     if add_noise:
         # jostles the point in case they are overlapping
         X_new += np.random.normal(0, 0.5, X_new.shape)

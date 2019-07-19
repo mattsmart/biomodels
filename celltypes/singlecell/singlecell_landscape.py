@@ -10,7 +10,8 @@ from singlecell_visualize import plot_state_prob_map, hypercube_visualize
 
 if __name__ == '__main__':
     # TODO move to singlecell_landscape.py?
-    HOUSEKEEPING = 2
+    # TODO name == minimap ~
+    HOUSEKEEPING = 0
     KAPPA = 2.0
 
     random_mem = False
@@ -19,8 +20,8 @@ if __name__ == '__main__':
     simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, npzpath=MEMS_UNFOLD, housekeeping=HOUSEKEEPING)
     print 'note: N =', simsetup['N']
 
-    DIM = 2
-    METHOD = 'spectral_custom'
+    DIM = 3
+    METHOD = 'diffusion_custom'  # diffusion_custom, spectral_custom
     use_hd = True
     use_proj = True
     plot_X = False
