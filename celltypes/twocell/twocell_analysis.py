@@ -21,7 +21,7 @@ if __name__ == '__main__':
     print 'note: N =', simsetup['N']
 
     DIM = 3
-    METHOD = 'diffusion_custom'  # diffusion_custom, spectral_custom
+    METHOD = 'spectral_custom'  # diffusion_custom, spectral_custom
     use_hd = True
     use_proj = True
     plot_X = False
