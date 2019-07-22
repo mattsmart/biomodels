@@ -9,8 +9,6 @@ from singlecell_visualize import plot_state_prob_map, hypercube_visualize
 
 
 if __name__ == '__main__':
-    # TODO move to singlecell_landscape.py?
-    # TODO name == minimap ~
     HOUSEKEEPING = 0
     KAPPA = 2.0
 
