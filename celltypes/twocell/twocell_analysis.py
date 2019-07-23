@@ -60,11 +60,11 @@ def multicell_glauber_transition_matrix(simsetup, num_cells, gamma=0, app_field=
                 # compute field sent from other cells as N-vector
                 other_cell_idx = (cell_idx + 1) % 2
                 state_other_cell = np.copy(state_start[other_cell_idx*N : (1 + other_cell_idx)*N])
-                sent_field_local = np.dot(simsetup['FIELD_SEND'][gene_idx, :], (1+state_other_cell)/2)
+                sent_field_local = np.dot(simsetup['FIELD_SEND'][gene_idx, :], state_other_cell)
                 # compute glauber_factor
                 internal_field_on_cell = np.dot(simsetup['J'][gene_idx, :], state_start[cell_idx * N : (1 + cell_idx)*N])
                 total_field_site_start = internal_field_on_cell \
-                                         + gamma * (sent_field_local + sent_field_fixed[gene_idx]) \
+                                         + 0.5 * gamma * (sent_field_local + sent_field_fixed[gene_idx]) \
                                          + app_field_fixed[gene_idx]
                 if beta is None:
                     if np.sign(total_field_site_start) == site_end:
@@ -86,13 +86,51 @@ def multicell_glauber_transition_matrix(simsetup, num_cells, gamma=0, app_field=
         return X
 
 
+def multicell_hamiltonian(simsetup, state, gamma=0.0, app_field=None, kappa=0.0):
+    # TODO exosome
+    # note state is a N * num_cells vector of gene expression
+    N = simsetup['N']
+    cell_A = np.copy(state[0:N])
+    cell_B = np.copy(state[N:])
+    # singlecell terms
+    sc_energy_A = hamiltonian(cell_A, simsetup['J'], field=None, fs=0.0)
+    sc_energy_B = hamiltonian(cell_B, simsetup['J'], field=None, fs=0.0)
+    # (housekeeping) global applied field term
+    if app_field is None:
+        app_field = np.zeros(N)
+    app_field_term = - np.dot(cell_A + cell_B, app_field)
+    # interaction terms and extra field
+    W = simsetup['FIELD_SEND']
+    WdotOne = np.dot(W, np.ones(simsetup['N']))
+    WSym2 = (W + W.T)
+    intxn_term_1 = - 0.5 * np.dot(cell_A, np.dot(WSym2, cell_B))
+    intxn_term_2 = - 0.5 * np.dot(WdotOne, cell_A + cell_B)
+    # sum and weight for total energy
+    #TODO make app field block form good size
+    energy = sc_energy_A + sc_energy_B \
+             + gamma * (intxn_term_1 + intxn_term_2) \
+             + kappa * app_field_term
+    return energy
+
+
+def multicell_energies(simsetup, num_cells, gamma=0.0, app_field=None, kappa=0.0):
+    assert num_cells == 2  # todo extend support to multicell
+    N = simsetup['N']
+    N_multicell = N * num_cells
+    num_states = 2 ** N_multicell
+    states = np.array([label_to_state(label, N_multicell) for label in xrange(2 ** N_multicell)])
+    energies = np.zeros(num_states)
+    for i in xrange(num_states):
+        energies[i] = multicell_hamiltonian(simsetup, states[i,:], gamma=0.0, app_field=None, kappa=0.0)
+    return energies
+
+
 if __name__ == '__main__':
-    # TODO modify code to support two cell state space
-    # TODO smaller towcell model? 6 spins 2 memories?
     # model settings
-    GAMMA = 0.15
+    beta = 10  # 2.0
+    GAMMA = 100
     NUM_CELLS = 2
-    HOUSEKEEPING = 0
+    HOUSEKEEPING = 1
     KAPPA = 2.0
     assert NUM_CELLS == 2  # try for 3 later maybe
 
@@ -105,35 +143,35 @@ if __name__ == '__main__':
     N_multicell = simsetup['N'] * NUM_CELLS
 
     # dynamics and im reduction settings
-    DIM_REDUCE = 3
+    DIM_REDUCE = 2
     plot_X = False
-    beta = 1  # 2.0
 
-    # applied field preparation
+    # (housekeeping) applied field preparation
     exostring = "no_exo_field"  # on/off/all/no_exo_field, note e.g. 'off' means send info about 'off' genes only
     exoprune = 0.0              # amount of exosome field idx to randomly prune from each cell
-    gamma = 0.0                 # global EXT_FIELD_STRENGTH tunes exosomes AND sent field
     app_field = None
     if KAPPA > 0 and HOUSEKEEPING > 0:
         app_field = np.zeros(simsetup['N'])
         app_field[-HOUSEKEEPING:] = 1.0
     print app_field
-    # TODO add multicell field
 
     # prep multicell state space
     statespace_multicell = np.array([label_to_state(label, N_multicell) for label in xrange(2 ** N_multicell)])
     # define master equation (multicell version)
-    # TODO multicell
-    X = multicell_glauber_transition_matrix(simsetup, NUM_CELLS, gamma=GAMMA, app_field=app_field, kappa=KAPPA, beta=beta,
-                                            override=0, DTMC=False)
+    # TODO multicell -- missing exosome field + check for bugs in implementation
+    X = multicell_glauber_transition_matrix(simsetup, NUM_CELLS, gamma=GAMMA, app_field=app_field, kappa=KAPPA,
+                                            beta=beta, override=0, DTMC=False)
     # reduce dimension via spectral embedding
-    dim_spectral = 3  # use dim >= number of known minima?
+    dim_spectral = 20  # use dim >= number of known minima?
     X_lower = spectral_custom(-X, dim_spectral, norm_each=False, plot_evec=False, skip_pss=True)
     from sklearn.decomposition import PCA
     X_new = PCA(n_components=DIM_REDUCE).fit_transform(X_lower)
 
     # get & report energy levels data
-    sorted_data, energies = sorted_energies(simsetup, field=app_field, fs=KAPPA)
+    # TODO exosomes
+    energies = multicell_energies(simsetup, NUM_CELLS, gamma=GAMMA, app_field=app_field, kappa=KAPPA)
+
+    # TODO multicell version
     fp_annotation, minima, maxima = get_all_fp(simsetup, field=app_field, fs=KAPPA)
     print 'MINIMA labels', minima
     for minimum in minima:
@@ -141,6 +179,8 @@ if __name__ == '__main__':
     print 'MAXIMA labels', maxima
     for maximum in maxima:
         print maximum, label_to_state(maximum, simsetup['N'])
+
+    # TODO multicell version
     basins_dict, label_to_fp_label = partition_basins(simsetup, X=None, minima=minima, field=app_field, fs=KAPPA, dynamics='async_fixed')
     for key in basins_dict.keys():
         print key, label_to_state(key, simsetup['N']), len(basins_dict[key]), key in minima
@@ -154,8 +194,11 @@ if __name__ == '__main__':
         cdict['basins_dict'] = basins_dict
         cdict['fp_label_to_colour'] = fp_label_to_colour
         cdict['clist'] = [0] * (2 ** N_multicell)
+        # TODO multicell
+        """
         for i in xrange(2 ** N_multicell):
-            cdict['clist'][i] = fp_label_to_colour[label_to_fp_label[i]]  # TODO multicell
+            cdict['clist'][i] = fp_label_to_colour[label_to_fp_label[i]]
+        """
     # setup basin labels depending on npz
     basin_labels = {}
     for idx in xrange(simsetup['P']):

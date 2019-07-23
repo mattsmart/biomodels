@@ -113,7 +113,7 @@ def plot_state_prob_map(simsetup, beta=None, field=None, fs=0.0, ax=None, decora
     return
 
 
-def hypercube_visualize(simsetup, X_reduced, energies, elevate3D=True, edges=True, all_edges=False,
+def hypercube_visualize(simsetup, X_reduced, energies, num_cells=1, elevate3D=True, edges=True, all_edges=False,
                         minima=[], maxima=[], colours_dict=None, basin_labels=None, surf=True, beta=None, ax=None):
     """
     Plot types
@@ -137,7 +137,7 @@ def hypercube_visualize(simsetup, X_reduced, energies, elevate3D=True, edges=Tru
         ax = fig.add_subplot(111, projection='3d')
 
     # setup data
-    N = simsetup['N']
+    N = simsetup['N'] * num_cells
     states = np.array([label_to_state(label, N) for label in xrange(2 ** N)])
 
     # setup cmap
