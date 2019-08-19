@@ -13,8 +13,31 @@ Conventions follow from Lang & Mehta 2014, PLOS Comp. Bio
 """
 
 
+"""Curated XI"""
+CURATED_XI = np.array([
+    [1, -1],  # TF 1
+    [-1, 1],  # TF 2
+    [1, -1],  # identity gene
+    [-1, 1],  # identity gene
+    [1, 1],   # housekeeping gene (hardcoded)
+    [1, 1]])  # housekeeping gene (hardcoded)
+"""Curated W for above XI:
+    when gene 0 (col 1) is ON as in mem A, it promoted mem A and inhibits mem B
+    when gene 1 (col 2) is ON as in mem B, it promoted mem A and inhibits mem B
+"""
+CURATED_W = np.array([
+    [0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0],
+    [0, -10, 0, 0, 0, 0],
+    [-10, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0]])
+CURATED_CELLTYPE_LABELS = ['mem_A', 'mem_B']
+CURATED_GENE_LABELS = ['A_signal', 'B_signal', 'A_identity', 'B_identity', 'HK_1', 'HK_2']
+
+
 def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath=DEFAULT_MEMORIES_NPZPATH,
-                        unfolding=False, random_mem=False, random_W=False, housekeeping=0):
+                        unfolding=False, random_mem=False, random_W=False, housekeeping=0, curated=False):
     """
     gene_labels, celltype_labels, xi = load_singlecell_data()
     """
@@ -33,6 +56,12 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath
     # store string arrays as lists
     gene_labels = gene_labels.tolist()
     celltype_labels = celltype_labels.tolist()
+    if curated:
+        print 'CURATED selected, resetting simsetup vars'
+        xi = CURATED_XI
+        field_send = CURATED_W
+        celltype_labels = CURATED_CELLTYPE_LABELS
+        gene_labels = CURATED_GENE_LABELS
     # model extension block to delete anti-minima
     if housekeeping != 0:
         assert type(housekeeping) == int and housekeeping > 0

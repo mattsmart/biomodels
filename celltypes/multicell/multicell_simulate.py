@@ -201,23 +201,24 @@ def mc_sim(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring
 if __name__ == '__main__':
     random_mem = False
     random_W = False
-    simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W)
+    simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, curated=True)
 
     n = 20  # global GRIDSIZE
     steps = 20  # global NUM_LATTICE_STEPS
-    buildstring = "random"  # mono/dual/memory_sequence/
+    buildstring = "dual"  # mono/dual/memory_sequence/
     fieldstring = "no_exo_field"  # on/off/all/no_exo_field, note e.g. 'off' means send info about 'off' genes only
     meanfield = False  # set to true to use infinite signal distance (no neighbour searching; track mean field)
     fieldprune = 0.0  # amount of external field idx to randomly prune from each cell
-    ext_field_strength = 0.02 #/ (n*n) * 8                                                 # global EXT_FIELD_STRENGTH tunes exosomes AND sent field
+    ext_field_strength = 0.1  #/ (n*n) * 8                                                 # global EXT_FIELD_STRENGTH tunes exosomes AND sent field
     #app_field = construct_app_field_from_genes(IPSC_EXTENDED_GENES_EFFECTS, simsetup['GENE_ID'], num_steps=steps)        # size N x timesteps or None
 
     app_field = None
     KAPPA = 100.0
     if KAPPA > 0:
-        print 'Note gene 4, 5 are HK in C1 memories'
+        print 'Note gene 0 (on), 1 (on), 2 (on) are HK in A1 memories'
+        print 'Note gene 4 (off), 5 (on) are HK in C1 memories'
         app_field = np.zeros(simsetup['N'])
-        app_field[4] = -1.0
+        app_field[4] = 1.0
         app_field[5] = 1.0
 
     plot_period = 1
