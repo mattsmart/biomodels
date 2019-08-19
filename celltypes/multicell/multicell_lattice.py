@@ -51,6 +51,18 @@ def build_lattice_memory_sequence(n, mem_list, simsetup):
     return lattice
 
 
+def build_lattice_random(n, simsetup):
+    lattice = [[0 for _ in xrange(n)] for _ in xrange(n)]  # TODO: this can be made faster as np array
+    idx = 0
+    for i in xrange(n):
+        for j in xrange(n):
+            cellname = str(i*j)
+            cellstate = np.array([2*int(np.random.rand() < .5) - 1 for _ in xrange(simsetup['N'])]).T
+            lattice[i][j] = SpatialCell(cellstate, "%d,%d_%s" % (i, j, cellname), [i, j], simsetup)
+            idx += 1
+    return lattice
+
+
 def build_lattice_main(n, list_of_celltype_idx, buildstring, simsetup):
     print "Building %s lattice with types %s" % (buildstring, list_of_celltype_idx)
     if buildstring == "mono":
@@ -61,6 +73,8 @@ def build_lattice_main(n, list_of_celltype_idx, buildstring, simsetup):
         return build_lattice_half_half(n, list_of_celltype_idx[0], list_of_celltype_idx[1], simsetup)
     elif buildstring == "memory_sequence":
         return build_lattice_memory_sequence(n, list_of_celltype_idx, simsetup)
+    elif buildstring == "random":
+        return build_lattice_random(n, simsetup)
     else:
         raise ValueError("buildstring arg invalid, must be one of %s" % VALID_BUILDSTRINGS)
 
@@ -77,8 +91,12 @@ def prep_lattice_data_dict(n, duration, list_of_celltype_idx, buildstring, data_
         # TODO
         for idx in list_of_celltype_idx:
             data_dict['memory_proj_arr'][idx] = np.zeros((n*n, duration))
+    elif buildstring == "random":
+        # TODO
+        for idx in list_of_celltype_idx:
+            data_dict['memory_proj_arr'][idx] = np.zeros((n * n, duration))
     else:
-        raise ValueError("buildstring arg invalid, must be one of %s" % VALID_BUILDSTRINGS)
+        raise ValueError("buildstring %s invalid, must be one of %s" % (buildstring, VALID_BUILDSTRINGS))
     return data_dict
 
 

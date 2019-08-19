@@ -157,6 +157,9 @@ def mc_sim(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring
         flag_uniplots = False
         list_of_type_idx = range(simsetup['P'])
         #random.shuffle(list_of_type_idx)  # TODO shuffle or not?
+    if buildstring == "random":
+        flag_uniplots = False
+        list_of_type_idx = range(simsetup['P'])
     lattice = build_lattice_main(gridsize, list_of_type_idx, buildstring, simsetup)
     #print list_of_type_idx
 
