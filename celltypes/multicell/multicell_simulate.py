@@ -30,9 +30,13 @@ def run_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_st
     assert n == len(lattice[0])  # work with square lattice for simplicity
     num_cells = n * n
     assert SEARCH_RADIUS_CELL < n / 2.0  # to prevent signal double counting
+
     if app_field is not None:
-        assert len(app_field) == simsetup['N']
-        assert len(app_field[0]) == num_lattice_steps
+        if len(app_field.shape) > 1:
+            assert app_field.shape[0] == simsetup['N']
+            assert len(app_field[1]) == num_lattice_steps
+        else:
+            app_field = np.array([app_field for _ in xrange(num_lattice_steps)]).T
     else:
         app_field_step = None
 
@@ -201,20 +205,27 @@ if __name__ == '__main__':
 
     n = 20  # global GRIDSIZE
     steps = 20  # global NUM_LATTICE_STEPS
-    buildstring = "dual"  # mono/dual/memory_sequence/
+    buildstring = "random"  # mono/dual/memory_sequence/
     fieldstring = "no_exo_field"  # on/off/all/no_exo_field, note e.g. 'off' means send info about 'off' genes only
-    meanfield = True  # set to true to use infinite signal distance (no neighbour searching; track mean field)
+    meanfield = False  # set to true to use infinite signal distance (no neighbour searching; track mean field)
     fieldprune = 0.0  # amount of external field idx to randomly prune from each cell
-    ext_field_strength = 0.15 / (n*n) * 8                                                 # global EXT_FIELD_STRENGTH tunes exosomes AND sent field
+    ext_field_strength = 0.02 #/ (n*n) * 8                                                 # global EXT_FIELD_STRENGTH tunes exosomes AND sent field
     #app_field = construct_app_field_from_genes(IPSC_EXTENDED_GENES_EFFECTS, simsetup['GENE_ID'], num_steps=steps)        # size N x timesteps or None
+
     app_field = None
-    app_field_strength = 0.0  # 100.0 global APP_FIELD_STRENGTH
+    KAPPA = 100.0
+    if KAPPA > 0:
+        print 'Note gene 4, 5 are HK in C1 memories'
+        app_field = np.zeros(simsetup['N'])
+        app_field[4] = -1.0
+        app_field[5] = 1.0
+
     plot_period = 1
     state_int = True
     beta = BETA  # 2.0
     mc_sim(simsetup, gridsize=n, num_steps=steps, buildstring=buildstring, exosome_string=fieldstring,
            field_remove_ratio=fieldprune, ext_field_strength=ext_field_strength, app_field=app_field,
-           app_field_strength=app_field_strength, beta=beta, plot_period=plot_period, state_int=state_int,
+           app_field_strength=KAPPA, beta=beta, plot_period=plot_period, state_int=state_int,
            meanfield=meanfield)
     """
     for beta in [0.01, 0.1, 0.5, 1.0, 1.5, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0, 4.0, 5.0, 10.0, 100.0]:
