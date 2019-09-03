@@ -109,7 +109,7 @@ def run_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_st
             proj = cell.get_memories_projection(simsetup['A_INV'], simsetup['XI'])
             for mem_idx in memory_idx_list:
                 data_dict['memory_proj_arr'][mem_idx][loc_to_idx[loc], turn] = proj[mem_idx]
-            if turn % (40*plot_period) == 0:  # plot proj visualization of each cell (takes a while; every k lat plots)
+            if turn % (120*plot_period) == 0:  # plot proj visualization of each cell (takes a while; every k lat plots)
                 fig, ax, proj = cell.plot_projection(simsetup['A_INV'], simsetup['XI'], use_radar=False, pltdir=io_dict['latticedir'])
 
         if turn % plot_period == 0:  # plot the lattice
@@ -204,8 +204,8 @@ if __name__ == '__main__':
     simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, curated=True)
 
     n = 20  # global GRIDSIZE
-    steps = 20  # global NUM_LATTICE_STEPS
-    buildstring = "dual"  # mono/dual/memory_sequence/
+    steps = 50  # global NUM_LATTICE_STEPS
+    buildstring = "dual"  # mono/dual/memory_sequence/random
     fieldstring = "no_exo_field"  # on/off/all/no_exo_field, note e.g. 'off' means send info about 'off' genes only
     meanfield = False  # set to true to use infinite signal distance (no neighbour searching; track mean field)
     fieldprune = 0.0  # amount of external field idx to randomly prune from each cell
