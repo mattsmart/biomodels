@@ -13,7 +13,9 @@ Z_FRACTIONS = {'BL': 0.000212,
                'TL': 0.000141,
                'TR': 0.507754,
                'BL100g': 0.0004085,
-               'TR100g': 0.16514}
+               'TR100g': 0.16514,
+               'BL1g': 0.00020599,
+               'TR1g': 1.0}
 
 
 def subsample_data():
@@ -324,11 +326,20 @@ if __name__ == "__main__":
         dbdir = basedir + os.sep + "fpt"
         datdict = load_datadict(basedir=dbdir)
 
-        title = "N100_icfp"
+        """
+        title = "N100_xall"
         keys = ['BR_%s' % title, 'TR_%s' % title, 'BL_%s' % title, 'TL_%s' % title]
         #labels = ["b=0.80, c=1.10 (Region II)", "b=1.20, c=1.10 (Region III)", "b=0.80, c=0.90 (Region IV)", "b=1.20, c=0.90 (Region I)"]
         labels = [r"(II)  $b=0.8$, $c=1.1$", r"(III) $b=1.2$, $c=1.1$", r"(IV) $b=0.8$, $c=0.9$", r"(I)   $b=1.2$, $c=0.9$"]
         corners = ['BR', 'TR', 'BL', 'TL']
+        num_hists = len(keys)
+        """
+
+        title = "N100_xall"
+        keys = ['BL_%s_g1' % title, 'BL_%s' % title, 'TR_%s_g1' % title, 'TR_%s' % title]
+        #labels = ["b=0.80, c=1.10 (Region II)", "b=1.20, c=1.10 (Region III)", "b=0.80, c=0.90 (Region IV)", "b=1.20, c=0.90 (Region I)"]
+        labels = [r"$b=0.8$, $c=0.9$, $\gamma=1$", r"$b=0.8$, $c=0.9$, $\gamma=4$", r"$b=1.2$, $c=1.1$, $\gamma=1$", r"$b=1.2$, $c=1.1$, $\gamma=4$"]
+        corners = ['BL1g', 'BL', 'TR1g', 'TR']
         num_hists = len(keys)
 
     if multihist:
@@ -402,7 +413,7 @@ if __name__ == "__main__":
             #key = 'TR_N100_icfp_extra'
             fpt, fps, params = datdict[key]['times'], datdict[key]['states'], datdict[key]['params']
             #fluxval = corner_to_flux('TR', params)
-            fluxval = corner_to_flux(key[0:2], params)
+            fluxval = corner_to_flux(corners[i], params)
             # fluxval = None
             print key, np.min(fpt), np.max(fpt), np.mean(fpt), len(fpt)
             ax1 = fp_zloc_times_joint(fpt, fps, params, normalize=True, flag_show=False, kde=False,
