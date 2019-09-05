@@ -299,7 +299,8 @@ def simplex_heatmap(fp_times, fp_states, params, ax=None, fp=True, streamlines=T
     return ax
 
 
-def fp_state_zloc_hist(fp_times, fp_states, params, ax=None, normalize=False, fp=True, kde=True, flag_show=True, outdir=OUTPUT_DIR, figname_mod="", save=True):
+def fp_state_zloc_hist(fp_times, fp_states, params, ax=None, normalize=False, fp=True, kde=True,
+                       flag_show=True, outdir=OUTPUT_DIR, figname_mod="", save=True):
 
     N = params.N
     seaborn.set_context("notebook", font_scale=1.9)  # TODO this breaks edges of the markers for FP but it is needed for font size?
@@ -356,7 +357,7 @@ def fp_state_zloc_hist(fp_times, fp_states, params, ax=None, normalize=False, fp
 
 
 def fp_zloc_times_joint(fp_times, fp_states, params, ax=None, normalize=False, fp=True, kde=False, flag_show=True,
-                        logx=True, outdir=OUTPUT_DIR, figname_mod="", fluxval=None, save=True):
+                        mean=True, logx=True, outdir=OUTPUT_DIR, figname_mod="", fluxval=None, save=True):
     """
     seaborn documentation: https://seaborn.pydata.org/generated/seaborn.jointplot.html
     "Intended to be a fairly lightweight wrapper; if you need more flexibility, you should use JointGrid directly."
@@ -428,6 +429,10 @@ def fp_zloc_times_joint(fp_times, fp_states, params, ax=None, normalize=False, f
     #ax.spines['right'].set_visible(False)
     #ax.spines['bottom'].set_visible(False)
     #ax.spines['left'].set_visible(False)
+
+    if mean:
+        meantau = np.mean(fp_times)
+        g.ax_joint.axvline(meantau, linestyle='-', linewidth=1.0, color='k')
 
     # plot fp horizontal line
     if fp:

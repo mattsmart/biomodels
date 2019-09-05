@@ -71,7 +71,7 @@ def reaction_propensities(r, step, params, fpt_flag=False):
     if fpt_flag:
         laststate_idx = params.numstates - 1
         laststate = r[step][laststate_idx]
-        rxn_prop.append(params.mu*laststate)  # special transition events for z1->z2 (extra mutation)
+        rxn_prop.append(params.mu_1*laststate)  # special transition events for z1->z2 (extra mutation)
     return rxn_prop
 
 
@@ -1129,7 +1129,7 @@ def map_init_name_to_init_cond(params, init_name):
 
 
 if __name__ == '__main__':
-    params = presets('preset_xyz_tanh')  # TODO generalize preset in main args
+    params = presets('preset_xyz_constant')  # TODO generalize preset in main args
     print params.feedback
     BL = params.mod_copy({'b': 0.8, 'c': 0.9})
     BR = params.mod_copy({'b': 0.8, 'c': 1.1})

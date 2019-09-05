@@ -19,6 +19,7 @@ class Params(object):
         self.alpha_plus = None
         self.alpha_minus = None
         self.mu = None
+        self.mu_1 = None
         self.a = None
         self.b = None
         self.c = None
@@ -114,14 +115,14 @@ class Params(object):
                 12: [1, 0, 0, 0], 13: [0, 1, 0, 0], 14: [0, 0, 1, 0], 15: [0, 0, 0, 1],  # immigration events
                 16: [-1, 0, 1, 0],                     # x->z skipping y mutation (i.e. rate mu_base)
                 17: [0, 0, 0, -1]}                     # special z2->z3 (z3 untracked) first-passage transitions
-            self.transrates_base = [self.alpha_plus, self.alpha_minus, self.mu, self.mu]
-            self.transrates_param_to_key = {'alpha_plus': [0], 'alpha_minus':[1], 'mu': [2,3]}  # lists because some shared
+            self.transrates_base = [self.alpha_plus, self.alpha_minus, self.mu, self.mu_1]
+            self.transrates_param_to_key = {'alpha_plus': [0], 'alpha_minus':[1], 'mu': [2], 'mu_1': [3]}  # lists because some shared
             self.transrates_class_to_rxnidx = {0: [0], 1:[1, 2], 2:[3], 3:[]}
             self.transrates_class_to_alloutparams = {0: ['alpha_plus'], 1:['alpha_minus', 'mu'], 2:['mu'], 3:[]}
             self.transition_dict = {0: ('alpha_plus', 0, 1),
                                     1: ('alpha_minus', 1, 0),
                                     2: ('mu', 1, 2),
-                                    3: ('mu', 2, 3)}  # first elem each tuple corresponds to class it depends on
+                                    3: ('mu_1', 2, 3)}  # first elem each tuple corresponds to class it depends on
         if (self.N is None) or any([v is None for v in self.growthrates]) or any([v is None for v in self.flowrates]):
             self.fbar_flowpart = None
             self.fbar_growthpart = None
@@ -239,7 +240,7 @@ class Params(object):
             dxdt = p.v_x - x * (p.alpha_plus + p.mu_base) + y * p.alpha_minus + (p.a - fbar) * x
             dydt = p.v_y + x * p.alpha_plus - y * (p.alpha_minus + p.mu) + (p.b - fbar) * y
             dzdt = p.v_z + y * p.mu + x * p.mu_base + (p.c - fbar) * z - z * p.mu
-            dz2dt = p.v_z2 + z * p.mu + (p.c2 - fbar) * z2
+            dz2dt = p.v_z2 + z * p.mu_1 + (p.c2 - fbar) * z2
             return [dxdt, dydt, dzdt, dz2dt]
         else:
             print "self.ode_system_vector not implemented for numstates >=5"
@@ -279,7 +280,7 @@ class Params(object):
                         p.c * z_n, fbar * (z_n),     # birth/death events for z  TODO: is it fbar*(z_n - 1)
                         p.c2 * z2_n, fbar * (z2_n),  # birth/death events for z2  TODO: is it fbar*(z2_n - 1)
                         p.alpha_plus * x_n, p.alpha_minus * y_n,   # transition events xy, yx
-                        p.mu * y_n, p.mu * z_n,                    # transition events yz, zz2
+                        p.mu * y_n, p.mu_1 * z_n,                    # transition events yz, zz2
                         p.v_x, p.v_y, p.v_z, p.v_z2,                   # immigration events  #TODO maybe wrong
                         p.mu_base * x_n]                         # special transition events (x->z)
         return rxn_prop
