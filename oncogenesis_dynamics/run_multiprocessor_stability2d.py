@@ -10,23 +10,24 @@ from presets import presets
 from stability_diagram import plot_fp_count_2d, get_fp_count_2d, get_gap_data_2d, plot_gap_data_2d
 
 # CONSTANTS
-NUM_PROCESSES = -1 + cpu_count()  # 16
+NUM_PROCESSES = cpu_count()  # 16
 
 # DYNAMICS PARAMETERS
 #params = presets('preset_xyz_constant')
-params = presets('preset_xyz_tanh')
+params = presets('preset_xyz_constant')
 
 # ARGS TO PASS
-param_1_name = "gamma"  # b
-param_1_start = 1.0  # 0.2
-param_1_stop = 10.0  # 2.0
-param_1_steps = 8*32
+param_1_name = "b"  # b
+param_1_start = 0.2  # 0.2
+param_1_stop = 2.0  # 2.0
+param_1_steps = 1*36
 param_1_range = np.linspace(param_1_start, param_1_stop, param_1_steps)
 param_2_name = "c"
-param_2_start = 0.2 #0.7
-param_2_stop = 2.0 #0.95
-param_2_steps = 8*30
+param_2_start = 0.2  #0.01 #0.7
+param_2_stop = 2.0#10.0 #0.95
+param_2_steps = 1*30
 param_2_range = np.linspace(param_2_start, param_2_stop, param_2_steps)
+#param_2_range = np.logspace(np.log10(param_2_start), np.log10(param_2_stop), param_2_steps)
 """
 param_2_name = "mu"
 param_2_start = -7 #0.7
@@ -34,10 +35,10 @@ param_2_stop = 1  #0.95
 param_2_steps = 8*30
 param_2_range = np.logspace(param_2_start, param_2_stop, param_2_steps)
 """
-data_id = "fpcount"  # gapdist or fpcount
+data_id = "gapdist"  # gapdist or fpcount
 flag_physicalfp = True
 flag_stablefp = True  # sum overrides this
-flag_sumfp = True
+flag_sumfp = False
 flag_plot = True
 if data_id == "fpcount":
     data_fnstr = "fp" + "Phys"*flag_physicalfp + "Stable"*flag_stablefp + "Sum"*flag_sumfp + "fpcount2d_full"

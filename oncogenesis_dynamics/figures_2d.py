@@ -156,8 +156,8 @@ if __name__ == "__main__":
 
     # loaf data
     if gapdist:
-        figdir = basedir + os.sep + "fig2" + os.sep + "mu_vs_gamma"
-        row_name = 'mu'     # aka param 2 is row
+        figdir = basedir + os.sep + "figS2" + os.sep + "alphaminus_vs_gamma_BL_10ap_lowMu"
+        row_name = 'alpha_minus'     # aka param 2 is row
         col_name = 'gamma'  # aka param 1 is col
         datapath = figdir + os.sep + "gapdist2d_full.txt"
         rowpath = figdir + os.sep + "gapdist2d_full_%s.txt" % row_name
@@ -166,16 +166,17 @@ if __name__ == "__main__":
 
         gap_data_2d, param_2_range, param_1_range = read_matrix_data_and_idx_vals(datapath, rowpath, colpath)
         param_1_name = r'$\gamma$'
-        param_2_name = r'$\mu$'
+        param_2_name = r'$\alpha_-^0$'
         params_general = read_params(figdir, paramsname)
         print params_general
         # truncate block
-        gap_data_2d, param_1_range, param_2_range = truncate_data(gap_data_2d, param_1_range, param_2_range,low_1=param_1_range[0], low_2=10**(-4.99), high_1=6.0, high_2=10.0)
+        #gap_data_2d, param_1_range, param_2_range = truncate_data(gap_data_2d, param_1_range, param_2_range,low_1=param_1_range[0], low_2=10**(-4.99), high_1=6.0, high_2=10.0)
+        gap_data_2d, param_1_range, param_2_range = truncate_data(gap_data_2d, param_1_range, param_2_range)
         figure_2d_gapdist(gap_data_2d, params_general, param_1_name, param_1_range, param_2_name, param_2_range,
-                          axis_gap="z", figname_mod="", flag_show=True, outdir=figdir, cbar=False)
+                          axis_gap="z", figname_mod="", flag_show=True, outdir=figdir, cbar=False, custom_axis=False)
 
     if fpcount:
-        figdir = basedir + os.sep + "fig4" + os.sep + "b_c_optionWiderdata" + os.sep + "b_vs_c_feedback_WIDER_mu0pt5_0210" + os.sep + "gapdist"
+        figdir = basedir + os.sep + "figSI1" + os.sep + "sumfp_highres_v2"
         row_name = 'c'  # aka param 2 is row
         col_name = 'b'  # aka param 1 is col
         datapath = figdir + os.sep + "fpPhysStableSumfpcount2d_full.txt"
@@ -190,7 +191,7 @@ if __name__ == "__main__":
         print params_general
         # truncate block
         fpsum_data_2d, param_1_range, param_2_range = truncate_data(fpsum_data_2d, param_1_range, param_2_range,
-                                                                  low_1=0.2, low_2=0.2, high_1=1.65, high_2=1.405)
+                                                                    low_1=0.1, low_2=0.2, high_1=2.0, high_2=0.9)
 
         figure_2d_fpcount(fpsum_data_2d, params_general, param_1_name, param_1_range, param_2_name, param_2_range,
                           figname_mod="", flag_show=True, outdir=figdir)
