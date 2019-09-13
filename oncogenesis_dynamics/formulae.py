@@ -80,7 +80,7 @@ def reaction_propensities_lowmem(current_state, params, fpt_flag=False):
     if fpt_flag:
         laststate_idx = params.numstates - 1
         laststate = current_state[laststate_idx]
-        rxn_prop.append(params.mu*laststate)  # special transition events for z1->z2 (extra mutation)
+        rxn_prop.append(params.mu_1*laststate)  # special transition events for z1->z2 (extra mutation)
     return rxn_prop
 
 
