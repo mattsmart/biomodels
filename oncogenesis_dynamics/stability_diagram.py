@@ -106,7 +106,7 @@ def plot_gap_data_2d(gap_data_2d, params_general, param_1_name, param_1_range, p
     # custom cmap for gap diagram
     if params_general.feedback == 'constant':
         colours = Z_TO_COLOUR_ORIG
-    xyz_cmap_gradient = LinearSegmentedColormap.from_list('xyz_cmap_gradient', colours, N=100)
+    xyz_cmap_gradient = LinearSegmentedColormap.from_list('xyz_cmap_gradient', colours, N=1e6)
     # plot image
     plt.imshow(gap_data_2d, cmap=xyz_cmap_gradient, interpolation="none", origin='lower', aspect='auto',
                extent=[param_2_range[0], param_2_range[-1], param_1_range[0], param_1_range[-1]])
