@@ -299,8 +299,8 @@ def read_matrix_data_and_idx_vals(datapath, rowpath, colpath, binary=False):
 
 
 if __name__ == '__main__':
-    collect_fpt = True
-    collect_means = False
+    collect_fpt = False
+    collect_means = True
     collect_multiple_means = False
 
     if collect_fpt:

@@ -12,7 +12,7 @@ Z_FRACTIONS = {'BL': 0.000212,
                'BR': 1.0,
                'TL': 0.000141,
                'TR': 0.507754,
-               'BL100g': 0.0004085,
+               'BL100g': 0.0004085,  # note saddle is at 18.98%
                'TR100g': 0.16514,
                'BL1g': 0.00020599,
                'TR1g': 1.0}
@@ -26,7 +26,9 @@ def subsample_data():
 
 def corner_to_flux(corner, params):
     z_fp = Z_FRACTIONS[corner] * params.N  # number entering zhat state per unit time
-    avg_flux = 1/(z_fp * params.mu)
+    MU_1 = 0.0001
+    avg_flux = 1/(z_fp * MU_1)
+    print "todo fix manual corner_to_flux mu_1", MU_1
     return avg_flux
 
 
