@@ -218,7 +218,10 @@ def figure_mfpt_varying_composite(means, sds, param_vary_name, param_set, params
     assert num_sets == len(means)
     colours = [X_DARK, Z_DARK, '#ffd966', BLUE, 'pink', 'brown']  #['black', 'red', 'green', 'blue']
     #TODO markers =
-    region_labels = ['BLg1', 'BLg4', 'BLg100', 'TRg1', 'TRg4', 'TRg100']#, 'TRg1', 'TRg4']
+    labels = [r"$b=0.8$, $c=0.9$, $\gamma=1$", r"$b=0.8$, $c=0.9$, $\gamma=4$", r"$b=0.8$, $c=0.9$, $\gamma=100$",
+              r"$b=1.2$, $c=1.1$, $\gamma=1$", r"$b=1.2$, $c=1.1$, $\gamma=4$", r"$b=1.2$, $c=1.1$, $\gamma=100$", ]
+    region_labels = [r"$b=0.8$, $c=0.9$, $\gamma=1$", r"$b=0.8$, $c=0.9$, $\gamma=4$", r"$b=0.8$, $c=0.9$, $\gamma=100$",
+                     r"$b=1.2$, $c=1.1$, $\gamma=1$", r"$b=1.2$, $c=1.1$, $\gamma=4$", r"$b=1.2$, $c=1.1$, $\gamma=100$"]
     corners = ['BL1g', 'BL', 'BL100g', 'TR1g', 'TR', 'TR100g']#, 'TR1g', 'TR']
 
     heuristic_x = np.logspace(np.log10(np.min(param_set)), np.log10(np.max(param_set)), 100)
@@ -251,7 +254,7 @@ def figure_mfpt_varying_composite(means, sds, param_vary_name, param_set, params
         #ax.set_yscale("log", nonposx='clip')
         ax.set_yscale("log")
         #ax_dual.set_yscale("log", nonposx='clip')
-        ax.set_ylim([2*1e-1, 3*1e7])
+        ax.set_ylim([6*1e-1, 3*1e6])
 
     ax.legend(fontsize=fs-6, ncol=2, loc='upper right')
     plt_save = "mean_fpt_varying_composite" + figname_mod
@@ -318,12 +321,12 @@ def figure_mfpt_varying_collapsed(means, sds, param_vary_name, param_set, params
 if __name__ == "__main__":
     multihist = False
     simplex_and_zdist = False
-    only_fp_zloc_times_joint = True
+    only_fp_zloc_times_joint = False
     composite_simplex_zdist = False
     composite_hist_simplex_zdist = False
     inspect_fpt_flux = False
     mfpt_single = False
-    mfpt_composite = False
+    mfpt_composite = True
 
     basedir = "data"
     if any([multihist, only_fp_zloc_times_joint, simplex_and_zdist, composite_simplex_zdist, composite_hist_simplex_zdist, inspect_fpt_flux]):
@@ -340,10 +343,12 @@ if __name__ == "__main__":
         """
 
         title = "N100_xall"
-        keys = ['BL_%s_g1' % title, 'BL_%s' % title, 'TR_%s_g1' % title, 'TR_%s' % title]
+        keys = ['BL_%s_g1' % title, 'BL_%s' % title, 'BL_%s_g100' % title,
+                'TR_%s_g1' % title, 'TR_%s' % title, 'TR_%s_g100' % title]
         #labels = ["b=0.80, c=1.10 (Region II)", "b=1.20, c=1.10 (Region III)", "b=0.80, c=0.90 (Region IV)", "b=1.20, c=0.90 (Region I)"]
-        labels = [r"$b=0.8$, $c=0.9$, $\gamma=1$", r"$b=0.8$, $c=0.9$, $\gamma=4$", r"$b=1.2$, $c=1.1$, $\gamma=1$", r"$b=1.2$, $c=1.1$, $\gamma=4$"]
-        corners = ['BL1g', 'BL', 'TR1g', 'TR']
+        labels = [r"$b=0.8$, $c=0.9$, $\gamma=1$", r"$b=0.8$, $c=0.9$, $\gamma=4$", r"$b=0.8$, $c=0.9$, $\gamma=100$",
+                  r"$b=1.2$, $c=1.1$, $\gamma=1$", r"$b=1.2$, $c=1.1$, $\gamma=4$", r"$b=1.2$, $c=1.1$, $\gamma=100$",]
+        corners = ['BL1g', 'BL', 'BL100g', 'TR1g', 'TR', 'TR100g']
         num_hists = len(keys)
 
     if multihist:
