@@ -214,11 +214,12 @@ def figure_mfpt_varying_composite(means, sds, param_vary_name, param_set, params
         plt.figure(figsize=(5,4))
         ax = plt.gca()
 
-    num_sets = 4
-    colours = [X_DARK, Z_DARK, '#ffd966', BLUE]  #['black', 'red', 'green', 'blue']
+    num_sets = 6
+    assert num_sets == len(means)
+    colours = [X_DARK, Z_DARK, '#ffd966', BLUE, 'pink', 'brown']  #['black', 'red', 'green', 'blue']
     #TODO markers =
-    region_labels = ['I', 'II', 'III', 'IV']
-    corners = ['TL', 'BR', 'TR', 'BL']
+    region_labels = ['BLg1', 'BLg4', 'BLg100', 'TRg1', 'TRg4', 'TRg100']#, 'TRg1', 'TRg4']
+    corners = ['BL1g', 'BL', 'BL100g', 'TR1g', 'TR', 'TR100g']#, 'TR1g', 'TR']
 
     heuristic_x = np.logspace(np.log10(np.min(param_set)), np.log10(np.max(param_set)), 100)
     for idx in xrange(num_sets):
@@ -266,11 +267,12 @@ def figure_mfpt_varying_collapsed(means, sds, param_vary_name, param_set, params
         plt.figure()
         ax = plt.gca()
 
-    num_sets = 4
-    colours = [X_DARK, Z_DARK, '#ffd966', BLUE]  #['black', 'red', 'green', 'blue']
-    #TODO markers =
-    region_labels = ['I', 'II', 'III', 'IV']
-    corners = ['TL', 'BR', 'TR', 'BL']
+    num_sets = 6
+    assert num_sets == len(means)
+    colours = [X_DARK, Z_DARK, '#ffd966', BLUE, 'pink', 'brown']  #['black', 'red', 'green', 'blue']
+    region_labels = ['BLg1', 'BLg4', 'BLg100', 'TRg1', 'TRg4', 'TRg100']#, 'TRg1', 'TRg4']
+    corners = ['BL1g', 'BL', 'BL100g', 'TR1g', 'TR', 'TR100g']#, 'TR1g', 'TR']
+
 
     for idx in xrange(num_sets):
         print idx, len(param_set), len(means[idx]), len(sds[idx])
@@ -483,7 +485,13 @@ if __name__ == "__main__":
                                  SEM_flag=False, show_flag=False, figname_mod="", outdir=basedir)
 
     if mfpt_composite:
-        subdirs = ['mfpt_Nvary_mu1e-4_TL_ens240', 'mfpt_Nvary_mu1e-4_BR_ens240', 'mfpt_Nvary_mu1e-4_TR_ens240', 'mfpt_Nvary_mu1e-4_BL_ens240']
+        subdirs = ['mfpt_Nvary_mu1e-4_BL_ens240_xall_g1',
+                   'mfpt_Nvary_mu1e-4_BL_ens240_xall_g4',
+                   'mfpt_Nvary_mu1e-4_BL_ens240_xall_g100',
+                   'mfpt_Nvary_mu1e-4_TR_ens240_xall_g1',
+                   'mfpt_Nvary_mu1e-4_TR_ens240_xall_g4',
+                   'mfpt_Nvary_mu1e-4_TR_ens240_xall_g100']
+                   #'mfpt_Nvary_mu1e-4_TR_ens240_xall_g1', 'mfpt_Nvary_mu1e-4_TR_ens240_xall']
         means = []
         sds = []
         for subdir in subdirs:
