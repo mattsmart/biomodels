@@ -74,12 +74,14 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, param_set, pa
                                             mfpt_data_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N_params.csv')
 
     curve_fpflux = [corner_to_flux(dataid, params.mod_copy({'N':n})) for n in N_range]
+    fit_guess = 0.01
+    curve_fit = [1/(params.mu * n * fit_guess) for n in N_range]
     print 'using flux TR for plot_heuristic_mfpt'
 
     plt.plot(N_range, curve_fpflux, '--k', label='curve_fpflux')
     plt.plot(N_range, curve_heuristic, '-or', label='curve_heuristic')
     plt.plot(N_range, mean_fpt_varying, '-ok', label='data')
-
+    plt.plot(N_range, curve_fit, '--b', label=r'fit $1/(a \mu N), a=%.2f$' % fit_guess)
 
     ax = plt.gca()
     ax.set_xlabel(r'$%s$' % param_vary_name, fontsize=fs)
