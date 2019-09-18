@@ -84,7 +84,7 @@ if __name__ == '__main__':
         'a': 1.0,
         'b': 1.2,
         'c': 1.1,  # 1.2
-        'N': 10000.0,  # 100.0
+        'N': 100.0,  # 100.0
         'v_x': 0.0,
         'v_y': 0.0,
         'v_z': 0.0,
@@ -98,13 +98,13 @@ if __name__ == '__main__':
 
     # main settings
     plot = True
-    num_trials = 3
-    num_to_plot = 3
+    num_trials = 10
+    num_to_plot = 10
 
     # trajectory settings
     init_time = 0.0
-    num_steps = 200000
-    dt = 1e-4
+    num_steps = 20000*10
+    dt = 1e-3
     init_cond = [params.N, 0, 0]
 
     # get deterministic trajectory
@@ -121,12 +121,15 @@ if __name__ == '__main__':
         plt.suptitle('Comparison of deterministic vs langevin xyz sim')
         for state_idx in xrange(3):
             ax = fig.add_subplot(1, 3, state_idx + 1)
-            ax.plot(times, states[:, state_idx], label='deterministic')
+            ax.plot(times, states[:, state_idx], 'k', label='deterministic')
             #ax.axhline(steadystates[state_idx, 0], ls='--', c='k', alpha=0.4, label='FP formula')
             for traj in xrange(num_to_plot):
-                ax.plot(trials_times[:, traj], trials_states[:, state_idx, traj], '--', alpha=0.4,
+                ax.plot(trials_times[:, traj], trials_states[:, state_idx, traj], '--', alpha=0.3,
                         label='stoch_%d' % traj)
-            ax.legend()
+            # plot mean of trials
+            ax.plot(np.mean(trials_times[:, :], axis=1), np.mean(trials_states[:, state_idx, :], axis=1), '--k',
+                    alpha=0.8, label='stoch_mean')
+            #ax.legend()
             ax.set_xlabel('time')
             ax.set_ylabel('%s' % params.states[state_idx])
             ax.set_title('State: %s' % params.states[state_idx])
