@@ -31,14 +31,27 @@ def compute_heuristic_mfpt(params):
     # SCRIPT PARAMS
     sim_method = "libcall"  # see constants.py -- sim_methods_valid
     time_start = 0.0
-    time_end = 4*1600000.0  #20.0
-    num_steps = 8*200000  # number of timesteps in each trajectory
+    if params.b == 0.8:
+        if params.N < 5*1e4:
+            time_end = 3*1600000.0  #20.0
+            num_steps = 200000  # number of timesteps in each trajectory
+        else:
+            time_end = 0.01*1600000.0  #20.0
+            num_steps = 200000  # number of timesteps in each trajectory
+    else:
+        assert params.b == 1.2
+        if params.N < 5*1e4:
+            time_end = 0.01*1600000.0  #20.0
+            num_steps = 200000  # number of timesteps in each trajectory
+        else:
+            time_end = 0.01*1600000.0  #20.0
+            num_steps = 200000  # number of timesteps in each trajectory
 
     init_cond = [params.N, 0, 0]
     r, times = trajectory_simulate(params, init_cond=init_cond, t0=time_start, t1=time_end, num_steps=num_steps,
                                    sim_method=sim_method)
-    plt.plot(times, r[:,2])
-    plt.show()
+    #plt.plot(times, r[:,2])
+    #plt.show()
     # compute integral numerically
     z_of_t = r[:, 2]
     "I = INT_0_inf t N mu z e^(-INT_0_TAU N mu z(t') dt') dt     <- compare vs 1/(mu z_fp)"
@@ -64,11 +77,10 @@ def compute_heuristic_mfpt(params):
     return mfpt
 
 
-def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, param_set, params,
-                        show_flag=False, figname_mod="", outdir=OUTPUT_DIR, fs=20, ax=None):
+def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, show_flag=False, outdir=OUTPUT_DIR, fs=20):
     # load data to compare against
-    dataid = 'BL100g'
-    mfpt_data_dir = 'data' + os.sep + 'mfpt' + os.sep + 'mfpt_Nvary_mu1e-4_BL_ens240_xall_g100'
+    dataid = 'TR100g'
+    mfpt_data_dir = 'data' + os.sep + 'mfpt' + os.sep + 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g100'
     mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params = \
         read_varying_mean_sd_fpt_and_params(mfpt_data_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N.txt',
                                             mfpt_data_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N_params.csv')
@@ -126,8 +138,8 @@ if __name__ == '__main__':
         'alpha_minus': 1.0,  # 0.5
         'mu': 1e-4,  # 0.01
         'a': 1.0,
-        'b': 0.8,
-        'c': 0.9,  # 1.2
+        'b': 1.2,
+        'c': 1.1,  # 1.2
         'N': 100.0,  # 100.0
         'v_x': 0.0,
         'v_y': 0.0,
@@ -141,7 +153,6 @@ if __name__ == '__main__':
     params = Params(params_dict, system, feedback=feedback)
 
     N_range = [int(a) for a in np.logspace(1.50515, 4.13159, num=11)] + [int(a) for a in np.logspace(4.8, 7, num=4)]
-    # TODO more fine grained N?
 
     # OTHER PARAMETERS
     #init_cond = np.zeros(params.numstates, dtype=int)
@@ -153,5 +164,4 @@ if __name__ == '__main__':
         curve_heuristic[idx] = compute_heuristic_mfpt(pv)
         print N, curve_heuristic[idx]
 
-    plot_heuristic_mfpt(N_range, curve_heuristic, 'N', N_range, params,
-                        show_flag=False, figname_mod="", outdir=OUTPUT_DIR, fs=20)
+    plot_heuristic_mfpt(N_range, curve_heuristic, 'N', fs=20)
