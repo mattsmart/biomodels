@@ -6,30 +6,13 @@ from constants import OUTPUT_DIR, COLOURS_DARK_BLUE, COLOURS_DARK_BLUE_YELLOW, X
 from data_io import read_matrix_data_and_idx_vals, read_params, read_fpt_and_params, read_varying_mean_sd_fpt_and_params
 from firstpassage import fpt_histogram, exponential_scale_estimate, sample_exponential, simplex_heatmap, \
     fp_state_zloc_hist, fp_zloc_times_joint
-
-
-Z_FRACTIONS = {'BL': 0.000212,
-               'BR': 1.0,
-               'TL': 0.000141,
-               'TR': 0.507754,
-               'BL100g': 0.0004085,  # note saddle is at 18.98%
-               'TR100g': 0.16514,
-               'BL1g': 0.00020599,
-               'TR1g': 1.0}
+from trajectory_analysis import corner_to_flux
 
 
 def subsample_data():
     # TODO
     fpt_data_subsampled = 0
     return fpt_data_subsampled
-
-
-def corner_to_flux(corner, params):
-    z_fp = Z_FRACTIONS[corner] * params.N  # number entering zhat state per unit time
-    MU_1 = 0.0001
-    avg_flux = 1/(z_fp * MU_1)
-    print "todo fix manual corner_to_flux mu_1", MU_1
-    return avg_flux
 
 
 def load_datadict(basedir="figures" + os.sep + "data_fpt"):
