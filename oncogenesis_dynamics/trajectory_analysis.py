@@ -31,8 +31,8 @@ def compute_heuristic_mfpt(params):
     # SCRIPT PARAMS
     sim_method = "libcall"  # see constants.py -- sim_methods_valid
     time_start = 0.0
-    time_end = 16000.0  #20.0
-    num_steps = 200000  # number of timesteps in each trajectory
+    time_end = 4*1600000.0  #20.0
+    num_steps = 8*200000  # number of timesteps in each trajectory
 
     init_cond = [params.N, 0, 0]
     r, times = trajectory_simulate(params, init_cond=init_cond, t0=time_start, t1=time_end, num_steps=num_steps,
