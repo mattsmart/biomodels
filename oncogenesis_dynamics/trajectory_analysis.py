@@ -105,7 +105,7 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, param_set, pa
         ax.set_ylim([6*1e-1, 3*1e6])
 
     ax.legend(fontsize=fs-6, ncol=2, loc='upper right')
-    plt_save = "mean_fpt_varying_heurstic" + figname_mod
+    plt_save = "mean_fpt_varying_heuristic_" + dataid
     plt.savefig(outdir + os.sep + plt_save + '.pdf', bbox_inches='tight')
     if show_flag:
         plt.show()
