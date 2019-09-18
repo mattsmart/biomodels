@@ -67,8 +67,8 @@ def compute_heuristic_mfpt(params):
 def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, param_set, params,
                         show_flag=False, figname_mod="", outdir=OUTPUT_DIR, fs=20, ax=None):
     # load data to compare against
-    dataid = 'TR100g'
-    mfpt_data_dir = 'data' + os.sep + 'mfpt' + os.sep + 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g100'
+    dataid = 'BL100g'
+    mfpt_data_dir = 'data' + os.sep + 'mfpt' + os.sep + 'mfpt_Nvary_mu1e-4_BL_ens240_xall_g100'
     mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params = \
         read_varying_mean_sd_fpt_and_params(mfpt_data_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N.txt',
                                             mfpt_data_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N_params.csv')
@@ -80,7 +80,7 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, param_set, pa
 
     plt.plot(N_range, curve_fpflux, '--k', label='curve_fpflux')
     plt.plot(N_range, curve_heuristic, '-or', label='curve_heuristic')
-    plt.plot(N_range, mean_fpt_varying, '-ok', label='data')
+    plt.plot(N_range[:len(mean_fpt_varying)], mean_fpt_varying, '-ok', label='data')
     plt.plot(N_range, curve_fit, '--b', label=r'fit $1/(a \mu N), a=%.2f$' % fit_guess)
 
     ax = plt.gca()
@@ -99,7 +99,7 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, param_set, pa
         #ax.set_xscale("log", nonposx='clip')
         ax.set_xscale("log")
         #ax_dual.set_xscale("log", nonposx='clip')
-        ax.set_xlim([np.min(param_set)*0.9, 1.5*1e4])
+        #ax.set_xlim([np.min(param_set)*0.9, 1.5*1e4])
     if flag_ylog10:
         #ax.set_yscale("log", nonposx='clip')
         ax.set_yscale("log")
@@ -126,8 +126,8 @@ if __name__ == '__main__':
         'alpha_minus': 1.0,  # 0.5
         'mu': 1e-4,  # 0.01
         'a': 1.0,
-        'b': 1.2,
-        'c': 1.1,  # 1.2
+        'b': 0.8,
+        'c': 0.9,  # 1.2
         'N': 100.0,  # 100.0
         'v_x': 0.0,
         'v_y': 0.0,
@@ -140,7 +140,7 @@ if __name__ == '__main__':
     }
     params = Params(params_dict, system, feedback=feedback)
 
-    N_range = [int(a) for a in np.logspace(1.50515, 4.13159, num=11)]
+    N_range = [int(a) for a in np.logspace(1.50515, 4.13159, num=11)] + [int(a) for a in np.logspace(4.8, 7, num=4)]
     # TODO more fine grained N?
 
     # OTHER PARAMETERS
