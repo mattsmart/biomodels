@@ -79,11 +79,18 @@ def compute_heuristic_mfpt(params):
 
 def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, show_flag=False, outdir=OUTPUT_DIR, fs=20):
     # load data to compare against
-    dataid = 'TR100g'
-    mfpt_data_dir = 'data' + os.sep + 'mfpt' + os.sep + 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g100'
+    dataid = 'TR1g'
+    mfpt_data_dir = 'data' + os.sep + 'mfpt' + os.sep + 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g1'
     mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params = \
         read_varying_mean_sd_fpt_and_params(mfpt_data_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N.txt',
                                             mfpt_data_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N_params.csv')
+    if dataid == 'TR1g':
+        mfpt_data_dir = 'data' + os.sep + 'mfpt' + os.sep + 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g1_extra'
+        mean_fpt_varying_extra, sd_fpt_varying_extra, param_to_vary, param_set, params = \
+            read_varying_mean_sd_fpt_and_params(mfpt_data_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N.txt',
+                                                mfpt_data_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N_params.csv')
+        mean_fpt_varying = mean_fpt_varying + mean_fpt_varying_extra
+        sd_fpt_varying = sd_fpt_varying + sd_fpt_varying_extra
 
     curve_fpflux = [corner_to_flux(dataid, params.mod_copy({'N':n})) for n in N_range]
     fit_guess = 0.01
