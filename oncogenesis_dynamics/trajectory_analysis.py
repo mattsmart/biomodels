@@ -50,6 +50,10 @@ def compute_heuristic_mfpt(params):
     init_cond = [params.N, 0, 0]
     r, times = trajectory_simulate(params, init_cond=init_cond, t0=time_start, t1=time_end, num_steps=num_steps,
                                    sim_method=sim_method)
+
+    for idx in xrange(100):
+        print idx, r[idx,:], times[idx], (params.a*r[idx,0] + params.b*r[idx,1])/params.N
+
     #plt.plot(times, r[:,2])
     #plt.show()
     # compute integral numerically
@@ -95,12 +99,28 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, show_flag=Fal
     curve_fpflux = [corner_to_flux(dataid, params.mod_copy({'N':n})) for n in N_range]
     fit_guess = 0.01
     curve_fit = [1/(params.mu * n * fit_guess) for n in N_range]
-    print 'using flux TR for plot_heuristic_mfpt'
+
+    if dataid == 'TR1g':
+        yfracTRg1 = 0.28125
+        init_avg_div = 1.056
+        s_renorm = (params.c/init_avg_div) - 1
+        print "s_renorm", s_renorm
+        pfix = s_renorm
+        curve_fit_guess = [1/(params.mu * n * yfracTRg1 * pfix)
+                           + np.log(n * s_renorm)/s_renorm
+                           + 0.577/s_renorm
+                           for n in N_range]
+        print 'using flux TR for plot_heuristic_mfpt'
+    else:
+        curve_fit_guess = [0 for n in N_range]
+        print 'no fit guess for %s' dataid
+
 
     plt.plot(N_range, curve_fpflux, '--k', label='curve_fpflux')
     plt.plot(N_range, curve_heuristic, '-or', label='curve_heuristic')
     plt.plot(N_range[:len(mean_fpt_varying)], mean_fpt_varying, '-ok', label='data')
     plt.plot(N_range, curve_fit, '--b', label=r'fit $1/(a \mu N), a=%.2f$' % fit_guess)
+    plt.plot(N_range, curve_fit_guess, '--g', label=r'alt fit low N')
 
     ax = plt.gca()
     ax.set_xlabel(r'$%s$' % param_vary_name, fontsize=fs)
