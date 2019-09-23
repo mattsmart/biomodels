@@ -122,15 +122,15 @@ if __name__ == "__main__":
     basins_flag = False
 
     # DYNAMICS PARAMETERS
-    system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
-    feedback = "tanh"      # "constant", "hill", "step", "pwlinear"
+    system = "default"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
+    feedback = "constant"      # "constant", "hill", "step", "pwlinear"
     params_dict = {
         'alpha_plus': 0.2,
-        'alpha_minus': 0.5,  # 0.5
-        'mu': 0.001,  # 0.01
+        'alpha_minus': 1.0,  # 0.5
+        'mu': 0.0001,  # 0.01
         'a': 1.0,
-        'b': 1.001,
-        'c': 0.5,  # 1.2
+        'b': 1.2,
+        'c': 1.1,  # 1.2
         'N': 100.0,  # 100.0
         'v_x': 0.0,
         'v_y': 0.0,
