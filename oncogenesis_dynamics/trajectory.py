@@ -122,8 +122,8 @@ if __name__ == "__main__":
     basins_flag = False
 
     # DYNAMICS PARAMETERS
-    system = "default"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
-    feedback = "constant"      # "constant", "hill", "step", "pwlinear"
+    system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
+    feedback = "tanh"      # "constant", "hill", "step", "pwlinear"
     params_dict = {
         'alpha_plus': 0.2,
         'alpha_minus': 1.0,  # 0.5
@@ -137,7 +137,9 @@ if __name__ == "__main__":
         'v_z': 0.0,
         'mu_base': 0.0,
         'c2': 0.0,
-        'v_z2': 0.0
+        'v_z2': 0.0,
+        'mult_inc': 100.0,
+        'mult_dec': 100.0
     }
     params = Params(params_dict, system, feedback=feedback)
     init_cond = map_init_name_to_init_cond(params, "mixed")

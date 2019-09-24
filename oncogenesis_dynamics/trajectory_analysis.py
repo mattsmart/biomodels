@@ -9,7 +9,6 @@ from plotting import plot_trajectory_mono, plot_endpoint_mono, plot_table_params
 from trajectory import trajectory_simulate
 
 
-
 def corner_to_flux(corner, params):
     Z_FRACTIONS = {'BL': 0.000212,
                    'BR': 1.0,
@@ -52,7 +51,9 @@ def compute_heuristic_mfpt(params):
                                    sim_method=sim_method)
 
     for idx in xrange(100):
-        print idx, r[idx,:], times[idx], (params.a*r[idx,0] + params.b*r[idx,1])/params.N
+        x = r[idx,0]
+        y = r[idx, 1]
+        print idx, r[idx,:], times[idx], (params.a*x + params.b*y + params.c*r[idx,2])/params.N, (params.a*x + params.b*y)/(x+y)
 
     #plt.plot(times, r[:,2])
     #plt.show()
@@ -83,8 +84,8 @@ def compute_heuristic_mfpt(params):
 
 def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, show_flag=False, outdir=OUTPUT_DIR, fs=20):
     # load data to compare against
-    dataid = 'TR1g'
-    mfpt_data_dir = 'data' + os.sep + 'mfpt' + os.sep + 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g1'
+    dataid = 'TR100g'
+    mfpt_data_dir = 'data' + os.sep + 'mfpt' + os.sep + 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g100'
     mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params = \
         read_varying_mean_sd_fpt_and_params(mfpt_data_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N.txt',
                                             mfpt_data_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N_params.csv')
@@ -100,9 +101,13 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, show_flag=Fal
     fit_guess = 0.01
     curve_fit = [1/(params.mu * n * fit_guess) for n in N_range]
 
+    fig = plt.figure()
+    ax = plt.gca()
+
     if dataid == 'TR1g':
-        yfracTRg1 = 0.28125
-        init_avg_div = 1.056
+        assert params.mult_inc == 1.0
+        yfracTRg1 = 0.1925
+        init_avg_div = 1.038
         s_renorm = (params.c/init_avg_div) - 1
         print "s_renorm", s_renorm
         pfix = s_renorm
@@ -110,10 +115,35 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, show_flag=Fal
                            + np.log(n * s_renorm)/s_renorm
                            + 0.577/s_renorm
                            for n in N_range]
-        print 'using flux TR for plot_heuristic_mfpt'
+    elif dataid == 'TR100g':
+        assert params.mult_inc == 100.0
+        yfrac_pt0 = 0.28125
+        init_avg_div = 1.056
+        zfrac_pt1 = 0.1643  # solve for x y given gamma such that their mean fitness equals z fitness
+        yfrac_pt1 = 0.4178
+        s_max = 0.0854
+
+        s_renorm = (params.c/init_avg_div) - 1
+        print "s_renorm", s_renorm
+        #pfix = 1 / (params.N * z_0)  # n varies
+
+        """curve_fit_guess = [1/(params.mu * n * yfrac_pt0) * (n * zfrac_pt1)         # last factor is 1/pfix
+                           + 1/(params.mu * n * zfrac_pt1)                         # direct flux from z1
+                           + 1/(params.mu * n * yfrac_pt1) * 1/(np.sqrt(params.mu * n * s_renorm))     # flux from y->z->zhat
+                           for n in N_range]"""
+
+        curve_fit_guess = [1/(params.mu * n * yfrac_pt0 * s_max)      # last factor is pfix
+                           + 1/(params.mu * n * zfrac_pt1)            # direct flux from z1
+                           + 0 * 1/(params.mu * n * yfrac_pt1) * 1/(np.sqrt(params.mu * n * s_renorm))     # flux from y->z->zhat
+                           for n in N_range]
+        """curve_fit_guess = [1 / (params.mu**2 * n**2 * zfrac_pt1)
+                   for n in N_range]"""
+        vertlne = 1/(zfrac_pt1 * s_renorm)   # when N = 1/(s0z0)
+        ax.axvline(vertlne)
+
     else:
         curve_fit_guess = [0 for n in N_range]
-        print 'no fit guess for %s' dataid
+        print 'no fit guess for %s' % dataid
 
 
     plt.plot(N_range, curve_fpflux, '--k', label='curve_fpflux')
