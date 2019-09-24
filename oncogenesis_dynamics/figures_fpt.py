@@ -309,7 +309,8 @@ if __name__ == "__main__":
     composite_hist_simplex_zdist = False
     inspect_fpt_flux = False
     mfpt_single = False
-    mfpt_composite = True
+    mfpt_composite = False
+    mfpt_details = True
 
     basedir = "data"
     if any([multihist, only_fp_zloc_times_joint, simplex_and_zdist, composite_simplex_zdist, composite_hist_simplex_zdist, inspect_fpt_flux]):
@@ -493,3 +494,16 @@ if __name__ == "__main__":
                                       outdir=OUTPUT_DIR, fs=20)
         figure_mfpt_varying_collapsed(means, sds, 'N', param_set, params, show_flag=False, figname_mod="",
                                       outdir=OUTPUT_DIR, fs=20)
+
+    if mfpt_details:
+        detailsdir = 'data' + os.sep + 'mfpt_details' + os.sep + 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g100'
+        basen = 'means'
+        for idx in xrange(1,12):
+            fpath = detailsdir + os.sep + basen + str(idx) + os.sep + "output"
+            fpt, fps, params = read_fpt_and_params(fpath)
+            fluxval = corner_to_flux('TRg100', params)
+            # fluxval = None
+            print idx, np.min(fpt), np.max(fpt), np.mean(fpt), len(fpt)
+            ax2 = fp_zloc_times_joint(fpt, fps, params, normalize=True, flag_show=False, kde=False,
+                                      figname_mod='_%s_logx' % idx, logx=True, fluxval=fluxval, outdir=basedir)
+            plt.close('all')
