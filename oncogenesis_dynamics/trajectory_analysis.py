@@ -132,8 +132,8 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, show_flag=Fal
                            + 1/(params.mu * n * yfrac_pt1) * 1/(np.sqrt(params.mu * n * s_renorm))     # flux from y->z->zhat
                            for n in N_range]"""
 
-        curve_fit_guess = [1/(params.mu * n * yfrac_pt0 * s_max)      # last factor is pfix
-                           + 1/(params.mu * n * zfrac_pt1)            # direct flux from z1
+        curve_fit_guess = [1/(params.mu**2 * n * yfrac_pt0 * np.log(n * zfrac_pt1)**2)      # last factor is pfix
+                           + 0 * 1/(params.mu * n * zfrac_pt1)                              # direct flux from z1
                            + 0 * 1/(params.mu * n * yfrac_pt1) * 1/(np.sqrt(params.mu * n * s_renorm))     # flux from y->z->zhat
                            for n in N_range]
         """curve_fit_guess = [1 / (params.mu**2 * n**2 * zfrac_pt1)
@@ -150,7 +150,7 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, show_flag=Fal
     plt.plot(N_range, curve_heuristic, '-or', label='curve_heuristic')
     plt.plot(N_range[:len(mean_fpt_varying)], mean_fpt_varying, '-ok', label='data')
     plt.plot(N_range, curve_fit, '--b', label=r'fit $1/(a \mu N), a=%.2f$' % fit_guess)
-    plt.plot(N_range, curve_fit_guess, '--g', label=r'alt fit low N')
+    plt.plot(N_range, curve_fit_guess, '--g', label=r'alt heuristic')
 
     ax = plt.gca()
     ax.set_xlabel(r'$%s$' % param_vary_name, fontsize=fs)
