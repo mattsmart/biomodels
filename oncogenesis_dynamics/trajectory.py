@@ -110,11 +110,12 @@ if __name__ == "__main__":
     plot_options_traj = plot_options_build(flag_table=True, flag_show=True, flag_save=True, plt_save="trajectory")
     run_multitraj = False
     plot_options_multitraj = plot_options_build(flag_table=True, flag_show=True, flag_save=True, plt_save="trajmulti")
-    run_phaseportrait = True
+    run_phaseportrait = False
     plot_options_trajportrait = plot_options_build(flag_table=True, flag_show=True, flag_save=True, plt_save="trajportrait")
     run_multiphaseportrait = False
     plot_options_mulyitrajportrait = plot_options_build(flag_table=True, flag_show=True, flag_save=True,
                                                    plt_save="trajportrait")
+    get_fitness_curve = True
 
     # PLOTTING OPTIONS
     sim_method = "libcall"
@@ -176,3 +177,46 @@ if __name__ == "__main__":
             print "\nparamset %d, %s=%.5f" % (i, param_vary_name, pv)
             params_step = params.mod_copy({param_vary_name: pv})
             phase_portrait(params_step, num_traj=30, show_flag=True, basins_flag=False, **plot_options_mulyitrajportrait)
+
+    if get_fitness_curve:
+        # SCRIPT PARAMS
+        sim_method = "libcall"  # see constants.py -- sim_methods_valid
+        time_start = 0.0
+        assert params.b == 1.2
+        assert params.mult_dec == 100.0
+        assert params.N < 5 * 1e4
+        time_end = 400.0  # 20.0
+        num_steps = 200  # number of timesteps in each trajectory
+
+        num_pts = 200
+        mid = 200
+        z_arr = np.zeros(num_pts*2)
+        s_xyz_arr = np.zeros(num_pts*2)
+        s_xy_arr = np.zeros(num_pts*2)
+
+        r_fwd, times_fwd = trajectory_simulate(params, init_cond=[params.N, 0, 0], t0=time_start, t1=time_end,
+                                               num_steps=num_steps, sim_method=sim_method)
+        r_bwd, times_bwd = trajectory_simulate(params, init_cond=[0, 1e-1, params.N - 1e-1], t0=time_start, t1=time_end,
+                                               num_steps=num_steps, sim_method=sim_method)
+
+        for idx in xrange(num_pts*2):
+            if idx > mid:
+                traj_idx = num_pts - idx
+                r = r_bwd
+            else:
+                traj_idx = idx
+                r = r_fwd
+            x, y, z = r[traj_idx, :]
+            f_xyz = (params.a * x + params.b * y + params.c * z) / params.N
+            f_xy = (params.a * x + params.b * y) / (params.N-z)
+            s_xyz_arr[idx] = params.c / f_xyz - 1
+            s_xy_arr[idx] = params.c / f_xy - 1
+            z_arr[idx] = z/params.N
+
+        plt.plot(z_arr, s_xyz_arr, '--k', label=r'$s1 = c/f_{xyz} - 1$')
+        plt.plot(z_arr, s_xy_arr, '--b', label=r'$s2 = c/f_{xy} - 1$')
+        plt.xlabel(r'$z/N$')
+        plt.ylabel(r'$s$')
+        plt.gca().axhline(0.0, linestyle='-', color='gray')
+        plt.legend()
+        plt.show()
