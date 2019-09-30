@@ -125,17 +125,72 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, show_flag=Fal
 
         s_renorm = (params.c/init_avg_div) - 1
         print "s_renorm", s_renorm
-        #pfix = 1 / (params.N * z_0)  # n varies
 
         """curve_fit_guess = [1/(params.mu * n * yfrac_pt0) * (n * zfrac_pt1)         # last factor is 1/pfix
                            + 1/(params.mu * n * zfrac_pt1)                         # direct flux from z1
                            + 1/(params.mu * n * yfrac_pt1) * 1/(np.sqrt(params.mu * n * s_renorm))     # flux from y->z->zhat
                            for n in N_range]"""
 
-        curve_fit_guess = [1/(params.mu**2 * n * yfrac_pt0 * np.log(n * zfrac_pt1)**2)      # last factor is pfix
-                           + 0 * 1/(params.mu * n * zfrac_pt1)                              # direct flux from z1
-                           + 0 * 1/(params.mu * n * yfrac_pt1) * 1/(np.sqrt(params.mu * n * s_renorm))     # flux from y->z->zhat
-                           for n in N_range]
+        def get_blobtime(n):
+            # TODO also try with only up to s=0 part
+            pmc = params.mod_copy({'N':n})
+            blobtime_A = 1
+            blobtime_B = 0  # an integral to do
+
+            time_end = 200.0  # 20.0
+            num_steps = 200  # number of timesteps in each trajectory
+            num_pts = 400
+            mid = 200
+            z_arr = np.zeros(num_pts)
+            s_xyz_arr = np.zeros(num_pts)
+            s_xy_arr = np.zeros(num_pts)
+
+            r_fwd, times_fwd = trajectory_simulate(pmc, init_cond=[n, 0, 0], t0=0.0, t1=time_end,
+                                                   num_steps=num_steps, sim_method='libcall')
+            r_bwd, times_bwd = trajectory_simulate(pmc, init_cond=[0, 1e-1, n - 1e-1], t0=0.0, t1=time_end,
+                                                   num_steps=num_steps, sim_method='libcall')
+
+            for idx in xrange(num_pts):
+                if idx > mid:
+                    traj_idx = num_pts - idx
+                    r = r_bwd
+                else:
+                    traj_idx = idx
+                    r = r_fwd
+                x, y, z = r[traj_idx, :]
+                f_xyz = (pmc.a * x + pmc.b * y + pmc.c * z) / pmc.N
+                f_xy = (pmc.a * x + pmc.b * y) / (pmc.N-z)
+                s_xyz_arr[idx] = pmc.c / f_xyz - 1
+                s_xy_arr[idx] = pmc.c / f_xy - 1
+                z_arr[idx] = z  # note not 'normalized'
+
+            for i, z in enumerate(z_arr[:-1]):
+                zmid = (z_arr[i+1] + z_arr[i]) / 2
+                dzOuter = z_arr[i+1] - z_arr[i]
+                factor_B_expsum = 0
+                for j, z in enumerate(z_arr[:-1]):
+                    if z < zmid:
+                        smid = (s_xyz_arr[j + 1] + s_xyz_arr[j]) / 2
+                        if smid < 0:
+                            factor_B_expsum += 0
+                        else:
+                            dzInner = z_arr[j + 1] - z_arr[j]
+                            factor_B_expsum += smid * dzInner
+                        #dzInner = z_arr[j + 1] - z_arr[j]
+                        #factor_B_expsum += smid * dzInner
+                    else:
+                        factor_B_expsum += 0
+                        #break
+                blobtime_B += 1/(1 + zmid) * np.exp(factor_B_expsum) * dzOuter
+            blobtime = blobtime_A + blobtime_B
+            print 'blobtime', n, blobtime_A, blobtime_B
+            return blobtime
+
+        N_range_dense = np.logspace(np.log10(N_range[0]), np.log10(N_range[-1]), 4*len(N_range))
+        curve_fit_guess = [1/(params.mu * n * yfrac_pt0 * (1 - np.exp(-params.mu * get_blobtime(n)**2)))  # last factor is pfix
+                           + 0 * 1/(params.mu * n * zfrac_pt1)                                               # direct flux from z1
+                           + 0 * 1/(params.mu * n * yfrac_pt1) * 1/(np.sqrt(params.mu * n * s_renorm))       # flux from y->z->zhat
+                           for n in N_range_dense]
         """curve_fit_guess = [1 / (params.mu**2 * n**2 * zfrac_pt1)
                    for n in N_range]"""
         vertlne = 1/(zfrac_pt1 * s_renorm)   # when N = 1/(s0z0)
@@ -150,7 +205,7 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, show_flag=Fal
     plt.plot(N_range, curve_heuristic, '-or', label='curve_heuristic')
     plt.plot(N_range[:len(mean_fpt_varying)], mean_fpt_varying, '-ok', label='data')
     plt.plot(N_range, curve_fit, '--b', label=r'fit $1/(a \mu N), a=%.2f$' % fit_guess)
-    plt.plot(N_range, curve_fit_guess, '--g', label=r'alt heuristic')
+    plt.plot(N_range_dense, curve_fit_guess, '--g', label=r'alt heuristic')
 
     ax = plt.gca()
     ax.set_xlabel(r'$%s$' % param_vary_name, fontsize=fs)
