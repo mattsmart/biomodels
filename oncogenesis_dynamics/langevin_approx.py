@@ -48,7 +48,7 @@ def langevin_dynamics(init_cond, params, dt=TIMESTEP, num_steps=NUM_STEPS, init_
         # .. .sample normals len prop
         randns = np.random.normal(0, 1.0, len(propensities))
         # .. use propensities_sqrt
-        noiseterm = np.dot(stoch_matrix, propensities_sqrt * randns) * dtsqrt
+        noiseterm = dtsqrt * np.dot(np.dot(stoch_matrix, np.diag(propensities_sqrt)), randns)
         # update
         next_state = current_state + determ + noiseterm
         states[step, :] = np.maximum(next_state, np.zeros(3))
@@ -72,6 +72,45 @@ def gen_multitraj(num_trials, init_cond, params, dt=TIMESTEP, num_steps=NUM_STEP
     return trials_states, trials_times
 
 
+def get_FPE_LNA_gaussian_diff(params):
+    dims = 3
+    assert params.mult_inc == 100
+    xFP = np.array([77.48756569595079, 22.471588735222426, 0.04084556882678214]) / 100.0 * params.N
+    xSaddle = np.array([40.61475564788107, 40.401927055159106, 18.983317296959825]) / 100.0 * params.N
+
+    # J from mathematica
+    J_true = np.array([[-0.0240001, 1.4124, -0.697388],
+                       [-0.930607, -2.36718, -0.202244],
+                       [-0.000408456, -0.000226765, -0.0553836]])
+    # D direct compute
+    stoch_matrix = np.array([[1, -1, 0,  0, 0,  0, -1,  1,  0],
+                             [0,  0, 1, -1, 0,  0,  1, -1, -1],
+                             [0,  0, 0,  0, 1, -1,  0,  0,  1]])
+    propensities = np.array(params.rxn_prop(xFP))[0:9]  # note could append fpt event as in formulae.py
+    D_true = np.dot(np.dot(stoch_matrix, np.diag(propensities)), stoch_matrix.T)
+
+    import scipy as sp
+    cov = sp.linalg.solve_lyapunov(J_true, -D_true)  # this is wrong
+    print propensities
+    print D_true
+    print cov
+    print 'linalg'
+    print np.linalg.eig(J_true)
+    covInv = np.linalg.inv(cov)
+    covSqrtDet = np.sqrt(np.linalg.det(cov))
+    def sol(x):
+        A = ((2 * np.pi) ** (0.5 * dims) * covSqrtDet) ** -1
+        dev = x - xFP
+        B = np.exp(-0.5 * np.dot(np.dot(dev.T, covInv), dev))
+        print A,B,dev, np.dot(np.dot(dev.T, covInv), dev)
+        return A*B
+    high = sol(xFP)
+    low = sol(xSaddle)
+    print high, low, high - low
+    return high - low
+
+
+
 if __name__ == '__main__':
 
     # DYNAMICS PARAMETERS
@@ -91,8 +130,8 @@ if __name__ == '__main__':
         'mu_base': 0.0,
         'c2': 0.0,
         'v_z2': 0.0,
-        'mult_inc': 1.0,
-        'mult_dec': 1.0,
+        'mult_inc': 100.0,
+        'mult_dec': 100.0,
     }
     params = Params(params_dict, system, feedback=feedback)
 
@@ -103,9 +142,11 @@ if __name__ == '__main__':
 
     # trajectory settings
     init_time = 0.0
-    num_steps = 20000*10
+    num_steps = 2000*10
     dt = 1e-3
     init_cond = [params.N, 0, 0]
+
+    get_FPE_LNA_gaussian_diff(params)
 
     # get deterministic trajectory
     states, times = trajectory_simulate(params, init_cond=init_cond, t0=0.0, t1=num_steps*dt, num_steps=num_steps,

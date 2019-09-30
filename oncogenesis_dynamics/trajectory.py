@@ -181,7 +181,6 @@ if __name__ == "__main__":
     if get_fitness_curve:
         sim_method = "libcall"  # see constants.py -- sim_methods_valid
         time_start = 0.0
-        assert params.N < 1e4
         time_end = 200.0  # 20.0
         num_steps = 200  # number of timesteps in each trajectory
 
@@ -215,6 +214,7 @@ if __name__ == "__main__":
         else:
             assert params.b == 0.8
             assert params.mult_inc == 100.0  # saddle point hardcoded to this rn
+            assert params.N == 100
             saddle = [40.61475564788107, 40.401927055159106, 18.983317296959825]
             saddle_below = [40.62, 40.41, 18.97]
             saddle_above = [40.6, 40.4, 19.0]
