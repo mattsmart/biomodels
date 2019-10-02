@@ -1,0 +1,157 @@
+import matplotlib.pyplot as plt
+import numpy as np
+
+from params import Params
+from trajectory import trajectory_simulate
+
+
+def get_s_arr(params, Nval):
+    pmc = params.mod_copy({'N': Nval})
+
+    time_end = 200.0  # 20.0
+    num_steps = 200  # number of timesteps in each trajectory
+
+    assert params.b == 0.8
+    assert params.mult_inc == 100.0  # saddle point hardcoded to this rn
+    saddle = np.array([40.61475564788107, 40.401927055159106, 18.983317296959825]) / 100.0
+    saddle_below = np.array([40.62, 40.41, 18.97]) / 100.0 * Nval
+    saddle_above = np.array([40.6, 40.4, 19.0]) / 100.0 * Nval
+
+    num_pts = 200 * 3
+    mid_a = 200
+    mid_b = 400
+    z_arr = np.zeros(num_pts)
+    s_xyz_arr = np.zeros(num_pts)
+    f_xyz_arr = np.zeros(num_pts)
+    s_xy_arr = np.zeros(num_pts)
+    f_xy_arr = np.zeros(num_pts)
+
+    r_a_fwd, times_a_fwd = trajectory_simulate(pmc, init_cond=[Nval, 0, 0], t0=0.0, t1=time_end,
+                                               num_steps=num_steps, sim_method='libcall')
+    r_b_bwd, times_b_bwd = trajectory_simulate(pmc, init_cond=saddle_below, t0=0.0, t1=time_end,
+                                               num_steps=num_steps, sim_method='libcall')
+    r_c_fwd, times_c_fwd = trajectory_simulate(pmc, init_cond=saddle_above, t0=0.0, t1=time_end,
+                                               num_steps=num_steps, sim_method='libcall')
+
+    for idx in xrange(num_pts):
+        if idx < mid_a:
+            traj_idx = idx
+            r = r_a_fwd
+        elif idx < mid_b:
+            traj_idx = mid_b - idx
+            r = r_b_bwd
+        else:
+            traj_idx = idx - mid_b
+            r = r_c_fwd
+        x, y, z = r[traj_idx, :]
+        f_xyz_arr[idx] = (pmc.a * x + pmc.b * y + pmc.c * z) / Nval
+        f_xy_arr[idx] = (pmc.a * x + pmc.b * y) / (Nval - z)
+        s_xyz_arr[idx] = pmc.c / f_xyz_arr[idx] - 1
+        s_xy_arr[idx] = pmc.c / f_xy_arr[idx] - 1
+        z_arr[idx] = z
+    return z_arr, s_xyz_arr, f_xyz_arr
+
+
+def map_n_to_sf_idx(params, z_arr, s_xyz_arr, f_xyz_arr):
+    n = int(params.N)
+    s_of_n = np.zeros(n)
+    f_of_n = np.zeros(n)
+    for n in range(n):
+        for idx_z, z in enumerate(z_arr):
+            if z > n:
+                s_of_n[n] = s_xyz_arr[idx_z]
+                f_of_n[n] = f_xyz_arr[idx_z]
+    return s_of_n, f_of_n
+
+
+def make_mastereqn_matrix(params):
+    n = params.N
+    assert n < 1e5
+
+    # BL g100 supported currently
+    assert params.b == 0.8
+    assert params.mult_inc == 100.0
+    fp_low = np.array([77.48756569595079, 22.471588735222426, 0.04084556882678214]) / 100.0
+    fp_mid = np.array([40.61475564788107, 40.401927055159106, 18.983317296959825]) / 100.0
+
+    z_arr, s_arr, f_arr = get_s_arr(params, n)
+    s_of_n, f_of_n = map_n_to_sf_idx(params, z_arr, s_arr, f_arr)
+
+    statespace = int(n + 1)
+    W = np.zeros((statespace, statespace))
+    for i in xrange(statespace):
+        for j in xrange(statespace):
+            if j == 0 and i == 1:
+                W[i, j] = params.mu * fp_low[1] * n
+            elif j == n and i == n-1:
+                W[i, j] = 0
+            elif j == n - 1 and i == n:
+                W[i, j] = (f_of_n[j] + s_of_n[j]) * j + 0 * params.mu * j
+            else:
+                if i == j + 1:
+                    W[i, j] = (f_of_n[j] + s_of_n[j]) * j + 0 * params.mu * j
+                elif i == j - 1:
+                    W[i, j] = f_of_n[j] * j
+                else:
+                    continue
+    for d in xrange(statespace):
+        W[d, d] = - np.sum(W[:,d])
+    return W
+
+
+def linalg_mfpt(params, W):
+    W_tilde = W[:-1, :-1]
+    inv_W_tilde = np.linalg.inv(W_tilde)
+    tau_vec = -1 * np.dot(inv_W_tilde, np.ones(int(params.N)))
+    return tau_vec
+
+
+if __name__ == '__main__':
+    param_varying_name = "N"
+    assert param_varying_name == "N"
+
+    # DYNAMICS PARAMETERS
+    system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
+    feedback = "tanh"  # "constant", "hill", "step", "pwlinear"
+    params_dict = {
+        'alpha_plus': 0.2,
+        'alpha_minus': 1.0,  # 0.5
+        'mu': 1e-4,  # 0.01
+        'a': 1.0,
+        'b': 0.8,
+        'c': 0.9,  # 1.2
+        'N': 100.0,  # 100.0
+        'v_x': 0.0,
+        'v_y': 0.0,
+        'v_z': 0.0,
+        'mu_base': 0.0,
+        'c2': 0.0,
+        'v_z2': 0.0,
+        'mult_inc': 100.0,
+        'mult_dec': 100.0,
+    }
+    params = Params(params_dict, system, feedback=feedback)
+
+    N_range = [int(a) for a in np.logspace(1.50515, 4.13159, num=11)] + [int(a) for a in np.logspace(4.8, 7, num=4)]
+
+    W = make_mastereqn_matrix(params)
+    D, V = np.linalg.eig(W)
+    print V
+    print D
+    print V.shape, D.shape
+    D_ranks = np.argsort(D)[::-1]
+    D_sorted = D[D_ranks]
+    V_sorted = V[:, D_ranks]
+    print D_sorted
+    plt.plot(V_sorted[:, 0], label=0)
+    plt.plot(V_sorted[:, 1], label=1)
+    plt.legend()
+    plt.show()
+
+    tau_vec = linalg_mfpt(params, W)
+    plt.plot(tau_vec[1:])
+    plt.show()
+    print "tau guess n=0", tau_vec[0], np.log10(tau_vec[0])
+    print "tau guess n=1", tau_vec[1], np.log10(tau_vec[1])
+    print "tau guess n=2", tau_vec[1], np.log10(tau_vec[1])
+    print "compare eval 1", 1/(D_sorted[1]), np.log10(-1/(D_sorted[1]))
