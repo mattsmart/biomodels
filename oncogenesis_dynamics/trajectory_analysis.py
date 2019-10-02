@@ -84,8 +84,8 @@ def compute_heuristic_mfpt(params):
 
 def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, show_flag=False, outdir=OUTPUT_DIR, fs=20):
     # load data to compare against
-    dataid = 'TR100g'
-    mfpt_data_dir = 'data' + os.sep + 'mfpt' + os.sep + 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g100'
+    dataid = 'BL100g'
+    mfpt_data_dir = 'data' + os.sep + 'mfpt' + os.sep + 'mfpt_Nvary_mu1e-4_BL_ens240_xall_g100'
     mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params = \
         read_varying_mean_sd_fpt_and_params(mfpt_data_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N.txt',
                                             mfpt_data_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N_params.csv')
@@ -196,6 +196,125 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, show_flag=Fal
         vertlne = 1/(zfrac_pt1 * s_renorm)   # when N = 1/(s0z0)
         ax.axvline(vertlne)
 
+    elif dataid == 'BL100g':
+        assert params.mult_inc == 100.0
+        fp_low = np.array([77.48756569595079, 22.471588735222426, 0.04084556882678214]) / 100.0
+        fp_mid = np.array([40.61475564788107, 40.401927055159106, 18.983317296959825]) / 100.0
+
+        """
+        yfrac_pt0 = fp_low[1]
+        init_avg_div = 1.056  # TODO
+        zfrac_pt1 = 0.1643  # TODO solve for x y given gamma such that their mean fitness equals z fitness
+        yfrac_pt1 = 0.4178  # TODO 
+        s_max = 0.0854      # TODO
+
+        s_renorm = (params.c/init_avg_div) - 1
+        print "s_renorm", s_renorm
+        """
+
+        def time_to_hit_zf(Nval):
+            # TODO also try with only up to s=0 part
+            pmc = params.mod_copy({'N': Nval})
+
+            time_end = 200.0  # 20.0
+            num_steps = 200  # number of timesteps in each trajectory
+
+            assert params.b == 0.8
+            assert params.mult_inc == 100.0  # saddle point hardcoded to this rn
+            saddle = np.array([40.61475564788107, 40.401927055159106, 18.983317296959825]) / 100.0
+            saddle_below = np.array([40.62, 40.41, 18.97]) / 100.0 * Nval
+            saddle_above = np.array([40.6, 40.4, 19.0]) / 100.0 * Nval
+
+            num_pts = 200*3
+            mid_a = 200
+            mid_b = 400
+            z_arr = np.zeros(num_pts)
+            s_xyz_arr = np.zeros(num_pts)
+            s_xy_arr = np.zeros(num_pts)
+
+            r_a_fwd, times_a_fwd = trajectory_simulate(pmc, init_cond=[Nval, 0, 0], t0=0.0, t1=time_end,
+                                                       num_steps=num_steps, sim_method='libcall')
+            r_b_bwd, times_b_bwd = trajectory_simulate(pmc, init_cond=saddle_below, t0=0.0, t1=time_end,
+                                                       num_steps=num_steps, sim_method='libcall')
+            r_c_fwd, times_c_fwd = trajectory_simulate(pmc, init_cond=saddle_above, t0=0.0, t1=time_end,
+                                                       num_steps=num_steps, sim_method='libcall')
+
+            for idx in xrange(num_pts):
+                if idx < mid_a:
+                    traj_idx = idx
+                    r = r_a_fwd
+                elif idx < mid_b:
+                    traj_idx = mid_b - idx
+                    r = r_b_bwd
+                else:
+                    traj_idx = idx - mid_b
+                    r = r_c_fwd
+                x, y, z = r[traj_idx, :]
+                f_xyz = (pmc.a * x + pmc.b * y + pmc.c * z) / Nval
+                f_xy = (pmc.a * x + pmc.b * y) / (Nval-z)
+                s_xyz_arr[idx] = pmc.c / f_xyz - 1
+                s_xy_arr[idx] = pmc.c / f_xy - 1
+                z_arr[idx] = z/Nval
+
+
+            def A(n, n_idx):
+                sval = s_xyz_arr[n_idx]
+                return sval * n #/ Nval
+
+            def B(n, n_idx):
+                sval = s_xyz_arr[n_idx]
+                return (2 + sval) * n / (2 * Nval)  # TODO double check this N^2 not sure
+
+            def psi(n):
+                # make sure n and z arr are equivalently normalized or not
+                intval = 0.0
+                for i, z in enumerate(z_arr[:-1]):
+                    # TODO integral bounds low high and dz weight
+                    if z > n:
+                        break
+                    else:
+                        zmid = (z_arr[i + 1] + z_arr[i]) / 2
+                        dz = z_arr[i + 1] - z_arr[i]
+                        intval += A(zmid, i)/B(zmid, i) * dz
+                return np.exp(intval)
+
+            time_to_hit_zf = 0.0
+            int_lower = 0.0
+            int_upper = 1.0       #absorbing point, try the unstable height too
+
+            psi_table = np.zeros(num_pts)
+            for i, z in enumerate(z_arr[:-1]):
+                zmid = (z_arr[i + 1] + z_arr[i]) / 2
+                psi_table[i] = psi(zmid)
+
+            for i, z in enumerate(z_arr[:-1]):
+                if z > int_upper:
+                    break
+                else:
+                    zmidOuter = (z_arr[i+1] + z_arr[i]) / 2
+                    dzOuter = z_arr[i+1] - z_arr[i]
+                    factor_A = 1 / psi_table[i]
+                    factor_B_sum = 0
+                    for j, z in enumerate(z_arr[:-1]):
+                        if z < zmidOuter:
+                            smid = (s_xyz_arr[j + 1] + s_xyz_arr[j]) / 2
+                            zmidInner = (z_arr[j + 1] + z_arr[j]) / 2
+                            dzInner = z_arr[j + 1] - z_arr[j]
+                            factor_B_sum += psi_table[j] / B(zmidInner, j) * dzInner
+                        else:
+                            break
+                    time_to_hit_zf += factor_A * factor_B_sum * dzOuter
+
+            print 'time_to_hit_zf BLg100', Nval, time_to_hit_zf
+            return time_to_hit_zf
+
+        N_range_dense = np.logspace(np.log10(N_range[0]), np.log10(N_range[-1]), 1*len(N_range))
+        curve_fit_guess = [time_to_hit_zf(n)
+                           + 1/(params.mu * n)
+                           for n in N_range_dense]
+        """curve_fit_guess = [1 / (params.mu**2 * n**2 * zfrac_pt1)
+                   for n in N_range]"""
+
     else:
         curve_fit_guess = [0 for n in N_range]
         print 'no fit guess for %s' % dataid
@@ -250,8 +369,8 @@ if __name__ == '__main__':
         'alpha_minus': 1.0,  # 0.5
         'mu': 1e-4,  # 0.01
         'a': 1.0,
-        'b': 1.2,
-        'c': 1.1,  # 1.2
+        'b': 0.8,
+        'c': 0.9,  # 1.2
         'N': 100.0,  # 100.0
         'v_x': 0.0,
         'v_y': 0.0,

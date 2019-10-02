@@ -105,17 +105,17 @@ def conserved_quantity(state, params):
 
 if __name__ == "__main__":
     # MAIN RUN OPTIONS
-    run_singletraj = False
+    run_singletraj = True
     run_conserved = False
     plot_options_traj = plot_options_build(flag_table=True, flag_show=True, flag_save=True, plt_save="trajectory")
     run_multitraj = False
     plot_options_multitraj = plot_options_build(flag_table=True, flag_show=True, flag_save=True, plt_save="trajmulti")
-    run_phaseportrait = False
+    run_phaseportrait = True
     plot_options_trajportrait = plot_options_build(flag_table=True, flag_show=True, flag_save=True, plt_save="trajportrait")
     run_multiphaseportrait = False
     plot_options_mulyitrajportrait = plot_options_build(flag_table=True, flag_show=True, flag_save=True,
                                                    plt_save="trajportrait")
-    get_fitness_curve = True
+    get_fitness_curve = False
 
     # PLOTTING OPTIONS
     sim_method = "libcall"
@@ -130,8 +130,8 @@ if __name__ == "__main__":
         'alpha_minus': 1.0,  # 0.5
         'mu': 0.0001,  # 0.01
         'a': 1.0,
-        'b': 1.2,
-        'c': 1.1,  # 1.2
+        'b': 0.8,
+        'c': 0.9,
         'N': 100.0,  # 100.0
         'v_x': 0.0,
         'v_y': 0.0,
@@ -143,11 +143,11 @@ if __name__ == "__main__":
         'mult_dec': 100.0
     }
     params = Params(params_dict, system, feedback=feedback)
-    init_cond = map_init_name_to_init_cond(params, "mixed")
+    init_cond = map_init_name_to_init_cond(params, "x_all")
 
     if run_singletraj:
 
-        r, times = trajectory_simulate(params, init_cond=init_cond, t1=2000, num_steps=num_steps,
+        r, times = trajectory_simulate(params, init_cond=init_cond, t1=200, num_steps=num_steps,
                                        sim_method=sim_method)
         ax_traj = plot_trajectory(r, times, params, fig_traj=None, **plot_options_traj)
         ax_mono_x = plot_trajectory_mono(r, times, params, mono="x", **plot_options_traj)
