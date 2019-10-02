@@ -21,6 +21,7 @@ def get_s_arr(params, Nval):
     mid_a = 200
     mid_b = 400
     z_arr = np.zeros(num_pts)
+    y_arr = np.zeros(num_pts)
     s_xyz_arr = np.zeros(num_pts)
     f_xyz_arr = np.zeros(num_pts)
     s_xy_arr = np.zeros(num_pts)
@@ -49,19 +50,22 @@ def get_s_arr(params, Nval):
         s_xyz_arr[idx] = pmc.c / f_xyz_arr[idx] - 1
         s_xy_arr[idx] = pmc.c / f_xy_arr[idx] - 1
         z_arr[idx] = z
-    return z_arr, s_xyz_arr, f_xyz_arr
+        y_arr[idx] = y
+    return z_arr, s_xyz_arr, f_xyz_arr, y_arr
 
 
-def map_n_to_sf_idx(params, z_arr, s_xyz_arr, f_xyz_arr):
+def map_n_to_sf_idx(params, z_arr, s_xyz_arr, f_xyz_arr, y_arr):
     n = int(params.N)
     s_of_n = np.zeros(n)
     f_of_n = np.zeros(n)
+    y_of_n = np.zeros(n)
     for n in range(n):
         for idx_z, z in enumerate(z_arr):
             if z > n:
                 s_of_n[n] = s_xyz_arr[idx_z]
                 f_of_n[n] = f_xyz_arr[idx_z]
-    return s_of_n, f_of_n
+                y_of_n[n] = y_arr[idx_z]
+    return s_of_n, f_of_n, y_of_n
 
 
 def make_mastereqn_matrix(params):
@@ -74,8 +78,8 @@ def make_mastereqn_matrix(params):
     fp_low = np.array([77.48756569595079, 22.471588735222426, 0.04084556882678214]) / 100.0
     fp_mid = np.array([40.61475564788107, 40.401927055159106, 18.983317296959825]) / 100.0
 
-    z_arr, s_arr, f_arr = get_s_arr(params, n)
-    s_of_n, f_of_n = map_n_to_sf_idx(params, z_arr, s_arr, f_arr)
+    z_arr, s_arr, f_arr, y_arr = get_s_arr(params, n)
+    s_of_n, f_of_n, y_of_n = map_n_to_sf_idx(params, z_arr, s_arr, f_arr, y_arr)
 
     statespace = int(n + 1)
     W = np.zeros((statespace, statespace))
@@ -86,10 +90,10 @@ def make_mastereqn_matrix(params):
             elif j == n and i == n-1:
                 W[i, j] = 0
             elif j == n - 1 and i == n:
-                W[i, j] = (f_of_n[j] + s_of_n[j]) * j + 0 * params.mu * j
+                W[i, j] = (f_of_n[j] + s_of_n[j]) * j + 1 * params.mu * y_of_n[j]
             else:
                 if i == j + 1:
-                    W[i, j] = (f_of_n[j] + s_of_n[j]) * j + 0 * params.mu * j
+                    W[i, j] = (f_of_n[j] + s_of_n[j]) * j + 1 * params.mu * y_of_n[j]
                 elif i == j - 1:
                     W[i, j] = f_of_n[j] * j
                 else:
@@ -99,11 +103,19 @@ def make_mastereqn_matrix(params):
     return W
 
 
-def linalg_mfpt(params, W):
+def linalg_mfpt(W):
     W_tilde = W[:-1, :-1]
-    inv_W_tilde = np.linalg.inv(W_tilde)
-    tau_vec = -1 * np.dot(inv_W_tilde, np.ones(int(params.N)))
+    inv_W_tilde = np.linalg.inv(W_tilde.T)
+    tau_vec = -1 * np.dot(inv_W_tilde, np.ones(len(W[0,:]) - 1))
     return tau_vec
+
+
+def sort_D_V(A):
+    D, V = np.linalg.eig(A)
+    D_ranks = np.argsort(D)[::-1]
+    D_sorted = D[D_ranks]
+    V_sorted = V[:, D_ranks]
+    return D_sorted, V_sorted
 
 
 if __name__ == '__main__':
@@ -132,26 +144,38 @@ if __name__ == '__main__':
     }
     params = Params(params_dict, system, feedback=feedback)
 
-    N_range = [int(a) for a in np.logspace(1.50515, 4.13159, num=11)] + [int(a) for a in np.logspace(4.8, 7, num=4)]
+    N_range = [int(a) for a in np.logspace(1.50515, 3.13159, num=6)]
+    tau_guess_n0 = np.zeros(len(N_range))
+    tau_guess_n1 = np.zeros(len(N_range))
+    tau_guess_eval = np.zeros(len(N_range))
+    for idx, n in enumerate(N_range):
+        print idx, n
+        pmc = params.mod_copy({'N': n})
 
-    W = make_mastereqn_matrix(params)
-    D, V = np.linalg.eig(W)
-    print V
-    print D
-    print V.shape, D.shape
-    D_ranks = np.argsort(D)[::-1]
-    D_sorted = D[D_ranks]
-    V_sorted = V[:, D_ranks]
-    print D_sorted
-    plt.plot(V_sorted[:, 0], label=0)
-    plt.plot(V_sorted[:, 1], label=1)
+        W = make_mastereqn_matrix(pmc)
+        D, V = sort_D_V(W)
+        plt.plot(V[:, 0], label=0)
+        plt.plot(V[:, 1], label=1)
+        plt.legend()
+        plt.show()
+
+        tau_vec = linalg_mfpt(pmc, W)
+        plt.plot(tau_vec[1:])
+        plt.show()
+        print "tau guess n=0", tau_vec[0], np.log10(tau_vec[0])
+        print "tau guess n=1", tau_vec[1], np.log10(tau_vec[1])
+        print "tau guess n=2", tau_vec[2], np.log10(tau_vec[2])
+        print "compare eval 1", 1/(D[1]), np.log10(-1/(D[1]))
+
+        tau_guess_n0[idx] = tau_vec[0]
+        tau_guess_n1[idx] = tau_vec[1]
+        tau_guess_eval[idx] = -1/(D[1])
+    plt.plot(N_range, tau_guess_n0, '--x', label='mfpt_n0')
+    plt.plot(N_range, tau_guess_n1, '--x', label='mfpt_n1')
+    plt.plot(N_range, tau_guess_eval, '--o', label='mfpt_eval')
+    plt.ylim(0.5, 2*1e6)
+    plt.gca().set_yscale("log")
+    plt.gca().set_xscale("log")
+    plt.xlabel(r'$N$')
     plt.legend()
     plt.show()
-
-    tau_vec = linalg_mfpt(params, W)
-    plt.plot(tau_vec[1:])
-    plt.show()
-    print "tau guess n=0", tau_vec[0], np.log10(tau_vec[0])
-    print "tau guess n=1", tau_vec[1], np.log10(tau_vec[1])
-    print "tau guess n=2", tau_vec[1], np.log10(tau_vec[1])
-    print "compare eval 1", 1/(D_sorted[1]), np.log10(-1/(D_sorted[1]))
