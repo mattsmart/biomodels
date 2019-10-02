@@ -60,9 +60,11 @@ def map_n_to_sf_idx(params, z_arr, s_xyz_arr, f_xyz_arr, y_arr):
     s_of_n = np.zeros(Nval+1)
     f_of_n = np.zeros(Nval+1)
     y_of_n = np.zeros(Nval+1)
+
     for n in range(Nval + 1):
         for idx_z, z in enumerate(z_arr):
-            if n == Nval:
+            if idx_z == len(z_arr)-1 or n == Nval:
+                print 'warning map_n_to_sf_idx edge case'
                 z_of_n[n] = z_arr[-1]
                 s_of_n[n] = s_xyz_arr[-1]
                 f_of_n[n] = f_xyz_arr[-1]
@@ -182,7 +184,7 @@ if __name__ == '__main__':
     }
     params = Params(params_dict, system, feedback=feedback)
 
-    N_range = [int(a) for a in np.logspace(1.50515, 3.13159, num=6)]
+    N_range = [int(a) for a in np.logspace(1.50515, 3.13159, num=10)]
     tau_guess_n0 = np.zeros(len(N_range))
     tau_guess_n1 = np.zeros(len(N_range))
     tau_guess_eval = np.zeros(len(N_range))

@@ -50,11 +50,12 @@ def compute_heuristic_mfpt(params):
     init_cond = [params.N, 0, 0]
     r, times = trajectory_simulate(params, init_cond=init_cond, t0=time_start, t1=time_end, num_steps=num_steps,
                                    sim_method=sim_method)
-
+    """
     for idx in xrange(100):
         x = r[idx,0]
         y = r[idx, 1]
         print idx, r[idx,:], times[idx], (params.a*x + params.b*y + params.c*r[idx,2])/params.N, (params.a*x + params.b*y)/(x+y)
+    """
 
     #plt.plot(times, r[:,2])
     #plt.show()
@@ -319,8 +320,8 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, show_flag=Fal
                            + 1 / (params.mu * fp_low[1] * n)
                            for n in N_range_dense]
         """
-        N_range_low = N_range[0:13]
-        curve_fit_guess1 = [linalg_mfpt(params=params.mod_copy({'N':n}), flag_zhat=False)[0] for n in N_range_low]
+        N_range_low = N_range[0:11]
+        curve_fit_guess1 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=False)[0] for n in N_range_low]
         curve_fit_guess2 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=True)[0] for n in N_range_low]
         print curve_fit_guess1
     else:
