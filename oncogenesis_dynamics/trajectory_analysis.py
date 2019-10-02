@@ -319,7 +319,7 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, show_flag=Fal
                            + 1 / (params.mu * fp_low[1] * n)
                            for n in N_range_dense]
         """
-        N_range_low = N_range[0:7]
+        N_range_low = N_range[0:13]
         curve_fit_guess1 = [linalg_mfpt(params=params.mod_copy({'N':n}), flag_zhat=False)[0] for n in N_range_low]
         curve_fit_guess2 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=True)[0] for n in N_range_low]
         print curve_fit_guess1

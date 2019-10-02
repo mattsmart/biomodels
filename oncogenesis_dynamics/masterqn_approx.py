@@ -79,7 +79,8 @@ def map_n_to_sf_idx(params, z_arr, s_xyz_arr, f_xyz_arr, y_arr):
 
 def make_mastereqn_matrix(params, flag_zhat=True):
     n = params.N
-    assert n < 1e5
+    if n > 1e5:
+        print 'Warning large N', n
 
     # BL g100 supported currently
     assert params.b == 0.8
@@ -123,6 +124,7 @@ def make_mastereqn_matrix(params, flag_zhat=True):
                     W[i, j] = 0
                 elif j == n - 1 and i == n:
                     W[i, j] = (f_of_n[j] + s_of_n[j]) * j + 1 * params.mu * y_of_n[j]
+                    print n, i, j, W[i,j], (f_of_n[j] + s_of_n[j]) * j, params.mu * y_of_n[j]
                 else:
                     if i == j + 1:
                         W[i, j] = (f_of_n[j] + s_of_n[j]) * j + 1 * params.mu * y_of_n[j]
@@ -132,6 +134,7 @@ def make_mastereqn_matrix(params, flag_zhat=True):
                         continue
     for d in xrange(statespace):
         W[d, d] = - np.sum(W[:,d]) + W[d,d]  # add diagonal back in case it was not zero after for loops
+    print flag_zhat, n
     print W[-4:, -4:]
     return W
 
