@@ -159,7 +159,7 @@ if __name__ == '__main__':
         plt.legend()
         plt.show()
 
-        tau_vec = linalg_mfpt(pmc, W)
+        tau_vec = linalg_mfpt(W)
         plt.plot(tau_vec[1:])
         plt.show()
         print "tau guess n=0", tau_vec[0], np.log10(tau_vec[0])
