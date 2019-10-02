@@ -229,6 +229,7 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, show_flag=Fal
             mid_a = 200
             mid_b = 400
             z_arr = np.zeros(num_pts)
+            y_arr = np.zeros(num_pts)
             s_xyz_arr = np.zeros(num_pts)
             s_xy_arr = np.zeros(num_pts)
 
@@ -255,11 +256,13 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, show_flag=Fal
                 s_xyz_arr[idx] = pmc.c / f_xyz - 1
                 s_xy_arr[idx] = pmc.c / f_xy - 1
                 z_arr[idx] = z/Nval
+                y_arr[idx] = y/Nval
 
 
             def A(n, n_idx):
                 sval = s_xyz_arr[n_idx]
-                return sval * n #/ Nval
+                yval = y_arr[n_idx]
+                return sval * n + params.mu * yval
 
             def B(n, n_idx):
                 sval = s_xyz_arr[n_idx]
@@ -310,7 +313,8 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, show_flag=Fal
 
         N_range_dense = np.logspace(np.log10(N_range[0]), np.log10(N_range[-1]), 1*len(N_range))
         curve_fit_guess = [time_to_hit_zf(n)
-                           + 1/(params.mu * n)
+                           #+ 1/(params.mu * n)
+                           + 1 / (params.mu * fp_low[1] * n)
                            for n in N_range_dense]
         """curve_fit_guess = [1 / (params.mu**2 * n**2 * zfrac_pt1)
                    for n in N_range]"""
