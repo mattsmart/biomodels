@@ -4,6 +4,7 @@ import os
 
 from constants import OUTPUT_DIR, PARAMS_ID, PARAMS_ID_INV, BIFURC_DICT, VALID_BIFURC_PARAMS
 from data_io import read_varying_mean_sd_fpt_and_params
+from masterqn_approx import linalg_mfpt
 from params import Params
 from plotting import plot_trajectory_mono, plot_endpoint_mono, plot_table_params
 from trajectory import trajectory_simulate
@@ -258,7 +259,6 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, show_flag=Fal
                 z_arr[idx] = z/Nval
                 y_arr[idx] = y/Nval
 
-
             def A(n, n_idx):
                 sval = s_xyz_arr[n_idx]
                 yval = y_arr[n_idx]
@@ -311,14 +311,18 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, show_flag=Fal
             print 'time_to_hit_zf BLg100', Nval, time_to_hit_zf
             return time_to_hit_zf
 
+
+        """
         N_range_dense = np.logspace(np.log10(N_range[0]), np.log10(N_range[-1]), 1*len(N_range))
         curve_fit_guess = [time_to_hit_zf(n)
                            #+ 1/(params.mu * n)
                            + 1 / (params.mu * fp_low[1] * n)
                            for n in N_range_dense]
-        """curve_fit_guess = [1 / (params.mu**2 * n**2 * zfrac_pt1)
-                   for n in N_range]"""
-
+        """
+        N_range_low = N_range[0:7]
+        curve_fit_guess1 = [linalg_mfpt(params=params.mod_copy({'N':n}), flag_zhat=False)[0] for n in N_range_low]
+        curve_fit_guess2 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=True)[0] for n in N_range_low]
+        print curve_fit_guess1
     else:
         curve_fit_guess = [0 for n in N_range]
         print 'no fit guess for %s' % dataid
@@ -327,8 +331,9 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, show_flag=Fal
     plt.plot(N_range, curve_fpflux, '--k', label='curve_fpflux')
     plt.plot(N_range, curve_heuristic, '-or', label='curve_heuristic')
     plt.plot(N_range[:len(mean_fpt_varying)], mean_fpt_varying, '-ok', label='data')
-    plt.plot(N_range, curve_fit, '--b', label=r'fit $1/(a \mu N), a=%.2f$' % fit_guess)
-    plt.plot(N_range_dense, curve_fit_guess, '--g', label=r'alt heuristic')
+    #plt.plot(N_range, curve_fit, '--b', label=r'fit $1/(a \mu N), a=%.2f$' % fit_guess)
+    plt.plot(N_range_low, curve_fit_guess1, '--b', label=r'1D ME mfpt all-z')
+    plt.plot(N_range_low, curve_fit_guess2, '--g', label=r'1D ME mfpt zhat')
 
     ax = plt.gca()
     ax.set_xlabel(r'$%s$' % param_vary_name, fontsize=fs)

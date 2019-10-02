@@ -55,20 +55,29 @@ def get_s_arr(params, Nval):
 
 
 def map_n_to_sf_idx(params, z_arr, s_xyz_arr, f_xyz_arr, y_arr):
-    n = int(params.N)
-    s_of_n = np.zeros(n)
-    f_of_n = np.zeros(n)
-    y_of_n = np.zeros(n)
-    for n in range(n):
+    Nval = int(params.N)
+    z_of_n = np.zeros(Nval+1)
+    s_of_n = np.zeros(Nval+1)
+    f_of_n = np.zeros(Nval+1)
+    y_of_n = np.zeros(Nval+1)
+    for n in range(Nval + 1):
         for idx_z, z in enumerate(z_arr):
-            if z > n:
+            if n == Nval:
+                z_of_n[n] = z_arr[-1]
+                s_of_n[n] = s_xyz_arr[-1]
+                f_of_n[n] = f_xyz_arr[-1]
+                y_of_n[n] = y_arr[-1]
+                break
+            elif z > n:
+                z_of_n[n] = z_arr[idx_z]
                 s_of_n[n] = s_xyz_arr[idx_z]
                 f_of_n[n] = f_xyz_arr[idx_z]
                 y_of_n[n] = y_arr[idx_z]
-    return s_of_n, f_of_n, y_of_n
+                break
+    return z_of_n, s_of_n, f_of_n, y_of_n
 
 
-def make_mastereqn_matrix(params):
+def make_mastereqn_matrix(params, flag_zhat=True):
     n = params.N
     assert n < 1e5
 
@@ -79,31 +88,57 @@ def make_mastereqn_matrix(params):
     fp_mid = np.array([40.61475564788107, 40.401927055159106, 18.983317296959825]) / 100.0
 
     z_arr, s_arr, f_arr, y_arr = get_s_arr(params, n)
-    s_of_n, f_of_n, y_of_n = map_n_to_sf_idx(params, z_arr, s_arr, f_arr, y_arr)
+    z_of_n, s_of_n, f_of_n, y_of_n = map_n_to_sf_idx(params, z_arr, s_arr, f_arr, y_arr)
 
     statespace = int(n + 1)
+    if flag_zhat:
+        statespace += 1
+
     W = np.zeros((statespace, statespace))
-    for i in xrange(statespace):
-        for j in xrange(statespace):
-            if j == 0 and i == 1:
-                W[i, j] = params.mu * fp_low[1] * n
-            elif j == n and i == n-1:
-                W[i, j] = 0
-            elif j == n - 1 and i == n:
-                W[i, j] = (f_of_n[j] + s_of_n[j]) * j + 1 * params.mu * y_of_n[j]
-            else:
-                if i == j + 1:
+    if flag_zhat:
+        for i in xrange(statespace):
+            for j in xrange(statespace-1):
+                if i == n + 1:
+                    print j, z_of_n[j]
+                    W[i, j] = params.mu * z_of_n[j]
+                if j == 0 and i == 1:
+                    W[i, j] = params.mu * fp_low[1] * n
+                elif j == n and i == n-1:
+                    W[i, j] = 0
+                elif j == n - 1 and i == n:
                     W[i, j] = (f_of_n[j] + s_of_n[j]) * j + 1 * params.mu * y_of_n[j]
-                elif i == j - 1:
-                    W[i, j] = f_of_n[j] * j
                 else:
-                    continue
+                    if i == j + 1:
+                        W[i, j] = (f_of_n[j] + s_of_n[j]) * j + 1 * params.mu * y_of_n[j]
+                    elif i == j - 1:
+                        W[i, j] = f_of_n[j] * j
+                    else:
+                        continue
+    else:
+        for i in xrange(statespace):
+            for j in xrange(statespace):
+                if j == 0 and i == 1:
+                    W[i, j] = params.mu * fp_low[1] * n
+                elif j == n and i == n - 1:
+                    W[i, j] = 0
+                elif j == n - 1 and i == n:
+                    W[i, j] = (f_of_n[j] + s_of_n[j]) * j + 1 * params.mu * y_of_n[j]
+                else:
+                    if i == j + 1:
+                        W[i, j] = (f_of_n[j] + s_of_n[j]) * j + 1 * params.mu * y_of_n[j]
+                    elif i == j - 1:
+                        W[i, j] = f_of_n[j] * j
+                    else:
+                        continue
     for d in xrange(statespace):
-        W[d, d] = - np.sum(W[:,d])
+        W[d, d] = - np.sum(W[:,d]) + W[d,d]  # add diagonal back in case it was not zero after for loops
+    print W[-4:, -4:]
     return W
 
 
-def linalg_mfpt(W):
+def linalg_mfpt(W=None, params=None, flag_zhat=False):
+    if W is None:
+        W = make_mastereqn_matrix(params, flag_zhat=flag_zhat)
     W_tilde = W[:-1, :-1]
     inv_W_tilde = np.linalg.inv(W_tilde.T)
     tau_vec = -1 * np.dot(inv_W_tilde, np.ones(len(W[0,:]) - 1))
@@ -159,7 +194,7 @@ if __name__ == '__main__':
         plt.legend()
         plt.show()
 
-        tau_vec = linalg_mfpt(W)
+        tau_vec = linalg_mfpt(W=W)
         plt.plot(tau_vec[1:])
         plt.show()
         print "tau guess n=0", tau_vec[0], np.log10(tau_vec[0])
