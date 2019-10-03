@@ -7,7 +7,7 @@ from data_io import read_varying_mean_sd_fpt_and_params
 from masterqn_approx import linalg_mfpt
 from params import Params
 from plotting import plot_trajectory_mono, plot_endpoint_mono, plot_table_params
-from trajectory import trajectory_simulate
+from trajectory import get_centermanifold_traj, trajectory_simulate
 
 
 def corner_to_flux(corner, params):
@@ -103,6 +103,210 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, show_flag=Fal
     fit_guess = 0.01
     curve_fit = [1/(params.mu * n * fit_guess) for n in N_range]
 
+    def get_blobtime(n, outer_int_upper=None):
+        # TODO use f_arr, s_arr, z_arr, y_arr = get_centermanifold_traj(params)
+        # TODO also try with only up to s=0 part
+        pmc = params.mod_copy({'N': n})
+        blobtime_A = 1
+        blobtime_B = 0  # an integral to do
+
+        f_arr, s_arr, z_arr, y_arr = get_centermanifold_traj(pmc, norm=False)
+
+        if outer_int_upper is None:
+            outer_int_upper = 1.0 * n
+
+        for i, z in enumerate(z_arr[:-1]):
+            if z > outer_int_upper:
+                break
+            if z >= 1:
+                zmid = (z_arr[i + 1] + z_arr[i]) / 2
+                dzOuter = z_arr[i + 1] - z_arr[i]
+                factor_B_expsum = 0
+                for j, z in enumerate(z_arr[:-1]):
+                    if z < zmid:
+                        smid = (s_arr[j + 1] + s_arr[j]) / 2
+                        """
+                        if smid < 0:
+                            factor_B_expsum += 0
+                        else:
+                            dzInner = z_arr[j + 1] - z_arr[j]
+                            factor_B_expsum += smid * dzInner
+                        """
+                        dzInner = z_arr[j + 1] - z_arr[j]
+                        factor_B_expsum += smid * dzInner
+                    else:
+                        factor_B_expsum += 0
+                        # break
+                blobtime_B += 1 / (1 + zmid) * np.exp(factor_B_expsum) * dzOuter
+        blobtime = blobtime_A + blobtime_B
+        print 'blobtime', n, blobtime_A, blobtime_B
+        return blobtime
+
+    def time_to_hit_boundary(Nval, dual_absorb=False, int_lower=0.0, int_upper=None, init_z=1.0):
+        assert int_lower == 0.0
+        init_z_normed = init_z / Nval
+        pmc = params.mod_copy({'N': Nval})
+
+        f_arr, s_arr, z_arr, y_arr = get_centermanifold_traj(pmc, norm=True)
+        num_pts = len(z_arr)
+
+        def A(n, n_idx):
+            sval = s_arr[n_idx]
+            yval = y_arr[n_idx]
+            return sval * n + params.mu * yval
+
+        def B(n, n_idx):
+            sval = s_arr[n_idx]
+            return (2 + sval) * n / (2 * Nval)  # TODO double check this N^2 not sure
+
+        def psi(n):
+            # make sure n and z arr are equivalently normalized or not
+            intval = 0.0
+            for i, z in enumerate(z_arr[:-1]):
+                # TODO integral bounds low high and dz weight
+                if z > n:
+                    break
+                if z > int_lower:
+                    zmid = (z_arr[i + 1] + z_arr[i]) / 2
+                    dz = z_arr[i + 1] - z_arr[i]
+                    intval += A(zmid, i)/B(zmid, i) * dz
+            return np.exp(intval)
+
+        def int_one_over_psi(low, high):
+            intval = 0.0
+            for i, z in enumerate(z_arr[:-1]):
+                if z > high:
+                    break
+                if z >= low:
+                    dz = z_arr[i + 1] - z_arr[i]
+                    intval += 1 / (psi_table[i]) * dz
+            return intval
+
+        time_to_hit_zf = 0.0
+        if int_upper is None:
+            int_upper = 1.0       # absorbing point, try the unstable height too
+
+        psi_table = np.zeros(num_pts)
+        for i, z in enumerate(z_arr[:-1]):
+            zmid = (z_arr[i + 1] + z_arr[i]) / 2
+            psi_table[i] = psi(zmid)
+
+        if dual_absorb:
+            # gardiner p138 eqn 5.2.158
+            # compute single integrals
+            den = int_one_over_psi(int_lower, int_upper)
+            num_A_prefactor = int_one_over_psi(int_lower, init_z_normed)
+            num_B_prefactor = int_one_over_psi(init_z_normed, int_upper)
+            # compute num A postfactor
+            num_A_postfactor = 0
+            for i, z in enumerate(z_arr[:-1]):
+                if z > int_upper:
+                    break
+                if z > init_z_normed:
+                    zmidOuter = (z_arr[i+1] + z_arr[i]) / 2
+                    dzOuter = z_arr[i+1] - z_arr[i]
+                    factor_A = 1 / psi_table[i]
+                    factor_B_sum = 0
+                    for j, z in enumerate(z_arr[:-1]):
+                        if z > zmidOuter:
+                            break
+                        if z > int_lower:
+                            zmidInner = (z_arr[j + 1] + z_arr[j]) / 2
+                            dzInner = z_arr[j + 1] - z_arr[j]
+                            factor_B_sum += psi_table[j] / B(zmidInner, j) * dzInner
+                    num_A_postfactor += factor_A * factor_B_sum * dzOuter
+            # compute num B postfactor
+            num_B_postfactor = 0
+            for i, z in enumerate(z_arr[:-1]):
+                if z > init_z_normed:
+                    break
+                if z > int_lower:
+                    zmidOuter = (z_arr[i+1] + z_arr[i]) / 2
+                    dzOuter = z_arr[i+1] - z_arr[i]
+                    factor_A = 1 / psi_table[i]
+                    factor_B_sum = 0
+                    for j, z in enumerate(z_arr[:-1]):
+                        if z > zmidOuter:
+                            break
+                        if z > int_lower:
+                            zmidInner = (z_arr[j + 1] + z_arr[j]) / 2
+                            dzInner = z_arr[j + 1] - z_arr[j]
+                            factor_B_sum += psi_table[j] / B(zmidInner, j) * dzInner
+                        num_B_postfactor += factor_A * factor_B_sum * dzOuter
+            # collect terms
+            time_to_hit_zf += 1 / den * (num_A_prefactor * num_A_postfactor - num_B_prefactor * num_B_postfactor)
+        else:
+            time_to_hit_zf = 0
+            for i, z in enumerate(z_arr[:-1]):
+                if z > int_upper:
+                    break
+                if z > init_z_normed:
+                    zmidOuter = (z_arr[i+1] + z_arr[i]) / 2
+                    dzOuter = z_arr[i+1] - z_arr[i]
+                    factor_A = 1 / psi_table[i]
+                    factor_B_sum = 0
+                    for j, z in enumerate(z_arr[:-1]):
+                        if z > zmidOuter:
+                            break
+                        if z > int_lower:
+                            zmidInner = (z_arr[j + 1] + z_arr[j]) / 2
+                            dzInner = z_arr[j + 1] - z_arr[j]
+                            factor_B_sum += psi_table[j] / B(zmidInner, j) * dzInner
+                        time_to_hit_zf += factor_A * factor_B_sum * dzOuter
+        print 'time_to_hit_boundary BLg100', Nval, time_to_hit_zf
+        return time_to_hit_zf
+
+    def prob_to_hit_boundary(Nval, int_lower=0.0, int_upper=1.0, init_z=1.0, hitb=True):
+        assert int_lower == 0.0
+        init_z_normed = init_z / Nval
+        pmc = params.mod_copy({'N': Nval})
+
+        f_arr, s_arr, z_arr, y_arr = get_centermanifold_traj(pmc, norm=True)
+        num_pts = len(z_arr)
+
+        def A(n, n_idx):
+            sval = s_arr[n_idx]
+            yval = y_arr[n_idx]
+            return sval * n + params.mu * yval
+
+        def B(n, n_idx):
+            sval = s_arr[n_idx]
+            return (2 + sval) * n / (2 * Nval)  # TODO double check this N^2 not sure
+
+        def psi(n):
+            # make sure n and z arr are equivalently normalized or not
+            intval = 0.0
+            for i, z in enumerate(z_arr[:-1]):
+                # TODO integral bounds low high and dz weight
+                if z > n:
+                    break
+                if z > int_lower:
+                    zmid = (z_arr[i + 1] + z_arr[i]) / 2
+                    dz = z_arr[i + 1] - z_arr[i]
+                    intval += A(zmid, i)/B(zmid, i) * dz
+            return np.exp(intval)
+
+        psi_table = np.zeros(num_pts)
+        for i, z in enumerate(z_arr[:-1]):
+            zmid = (z_arr[i + 1] + z_arr[i]) / 2
+            psi_table[i] = psi(zmid)
+
+        def int_psi(low, high):
+            intval = 0.0
+            for i, z in enumerate(z_arr[:-1]):
+                if z > high:
+                    break
+                if z >= low:
+                    dz = z_arr[i + 1] - z_arr[i]
+                    intval += 1 / (psi_table[i]) * dz
+            return intval
+
+        if hitb:
+            prob_exit = int_psi(int_lower, init_z_normed) / int_psi(int_lower, int_upper)
+        else:
+            prob_exit = int_psi(init_z_normed, int_upper) / int_psi(int_lower, int_upper)
+        return prob_exit
+
     fig = plt.figure()
     ax = plt.gca()
 
@@ -117,6 +321,7 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, show_flag=Fal
                            + np.log(n * s_renorm)/s_renorm
                            + 0.577/s_renorm
                            for n in N_range]
+
     elif dataid == 'TR100g':
         assert params.mult_inc == 100.0
         yfrac_pt0 = 0.28125
@@ -133,61 +338,6 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, show_flag=Fal
                            + 1/(params.mu * n * yfrac_pt1) * 1/(np.sqrt(params.mu * n * s_renorm))     # flux from y->z->zhat
                            for n in N_range]"""
 
-        def get_blobtime(n):
-            # TODO also try with only up to s=0 part
-            pmc = params.mod_copy({'N':n})
-            blobtime_A = 1
-            blobtime_B = 0  # an integral to do
-
-            time_end = 200.0  # 20.0
-            num_steps = 200  # number of timesteps in each trajectory
-            num_pts = 400
-            mid = 200
-            z_arr = np.zeros(num_pts)
-            s_xyz_arr = np.zeros(num_pts)
-            s_xy_arr = np.zeros(num_pts)
-
-            r_fwd, times_fwd = trajectory_simulate(pmc, init_cond=[n, 0, 0], t0=0.0, t1=time_end,
-                                                   num_steps=num_steps, sim_method='libcall')
-            r_bwd, times_bwd = trajectory_simulate(pmc, init_cond=[0, 1e-1, n - 1e-1], t0=0.0, t1=time_end,
-                                                   num_steps=num_steps, sim_method='libcall')
-
-            for idx in xrange(num_pts):
-                if idx > mid:
-                    traj_idx = num_pts - idx
-                    r = r_bwd
-                else:
-                    traj_idx = idx
-                    r = r_fwd
-                x, y, z = r[traj_idx, :]
-                f_xyz = (pmc.a * x + pmc.b * y + pmc.c * z) / pmc.N
-                f_xy = (pmc.a * x + pmc.b * y) / (pmc.N-z)
-                s_xyz_arr[idx] = pmc.c / f_xyz - 1
-                s_xy_arr[idx] = pmc.c / f_xy - 1
-                z_arr[idx] = z  # note not 'normalized'
-
-            for i, z in enumerate(z_arr[:-1]):
-                zmid = (z_arr[i+1] + z_arr[i]) / 2
-                dzOuter = z_arr[i+1] - z_arr[i]
-                factor_B_expsum = 0
-                for j, z in enumerate(z_arr[:-1]):
-                    if z < zmid:
-                        smid = (s_xyz_arr[j + 1] + s_xyz_arr[j]) / 2
-                        if smid < 0:
-                            factor_B_expsum += 0
-                        else:
-                            dzInner = z_arr[j + 1] - z_arr[j]
-                            factor_B_expsum += smid * dzInner
-                        #dzInner = z_arr[j + 1] - z_arr[j]
-                        #factor_B_expsum += smid * dzInner
-                    else:
-                        factor_B_expsum += 0
-                        #break
-                blobtime_B += 1/(1 + zmid) * np.exp(factor_B_expsum) * dzOuter
-            blobtime = blobtime_A + blobtime_B
-            print 'blobtime', n, blobtime_A, blobtime_B
-            return blobtime
-
         N_range_dense = np.logspace(np.log10(N_range[0]), np.log10(N_range[-1]), 4*len(N_range))
         curve_fit_guess = [1/(params.mu * n * yfrac_pt0 * (1 - np.exp(-params.mu * get_blobtime(n)**2)))  # last factor is pfix
                            + 0 * 1/(params.mu * n * zfrac_pt1)                                               # direct flux from z1
@@ -202,128 +352,67 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, show_flag=Fal
         assert params.mult_inc == 100.0
         fp_low = np.array([77.48756569595079, 22.471588735222426, 0.04084556882678214]) / 100.0
         fp_mid = np.array([40.61475564788107, 40.401927055159106, 18.983317296959825]) / 100.0
-
-        """
         yfrac_pt0 = fp_low[1]
+        """
         init_avg_div = 1.056  # TODO
         zfrac_pt1 = 0.1643  # TODO solve for x y given gamma such that their mean fitness equals z fitness
         yfrac_pt1 = 0.4178  # TODO 
         s_max = 0.0854      # TODO
-
-        s_renorm = (params.c/init_avg_div) - 1
-        print "s_renorm", s_renorm
         """
 
-        def time_to_hit_zf(Nval):
-            # TODO also try with only up to s=0 part
-            pmc = params.mod_copy({'N': Nval})
-
-            time_end = 200.0  # 20.0
-            num_steps = 200  # number of timesteps in each trajectory
-
-            assert params.b == 0.8
-            assert params.mult_inc == 100.0  # saddle point hardcoded to this rn
-            saddle = np.array([40.61475564788107, 40.401927055159106, 18.983317296959825]) / 100.0
-            saddle_below = np.array([40.62, 40.41, 18.97]) / 100.0 * Nval
-            saddle_above = np.array([40.6, 40.4, 19.0]) / 100.0 * Nval
-
-            num_pts = 200*3
-            mid_a = 200
-            mid_b = 400
-            z_arr = np.zeros(num_pts)
-            y_arr = np.zeros(num_pts)
-            s_xyz_arr = np.zeros(num_pts)
-            s_xy_arr = np.zeros(num_pts)
-
-            r_a_fwd, times_a_fwd = trajectory_simulate(pmc, init_cond=[Nval, 0, 0], t0=0.0, t1=time_end,
-                                                       num_steps=num_steps, sim_method='libcall')
-            r_b_bwd, times_b_bwd = trajectory_simulate(pmc, init_cond=saddle_below, t0=0.0, t1=time_end,
-                                                       num_steps=num_steps, sim_method='libcall')
-            r_c_fwd, times_c_fwd = trajectory_simulate(pmc, init_cond=saddle_above, t0=0.0, t1=time_end,
-                                                       num_steps=num_steps, sim_method='libcall')
-
-            for idx in xrange(num_pts):
-                if idx < mid_a:
-                    traj_idx = idx
-                    r = r_a_fwd
-                elif idx < mid_b:
-                    traj_idx = mid_b - idx
-                    r = r_b_bwd
-                else:
-                    traj_idx = idx - mid_b
-                    r = r_c_fwd
-                x, y, z = r[traj_idx, :]
-                f_xyz = (pmc.a * x + pmc.b * y + pmc.c * z) / Nval
-                f_xy = (pmc.a * x + pmc.b * y) / (Nval-z)
-                s_xyz_arr[idx] = pmc.c / f_xyz - 1
-                s_xy_arr[idx] = pmc.c / f_xy - 1
-                z_arr[idx] = z/Nval
-                y_arr[idx] = y/Nval
-
-            def A(n, n_idx):
-                sval = s_xyz_arr[n_idx]
-                yval = y_arr[n_idx]
-                return sval * n + params.mu * yval
-
-            def B(n, n_idx):
-                sval = s_xyz_arr[n_idx]
-                return (2 + sval) * n / (2 * Nval)  # TODO double check this N^2 not sure
-
-            def psi(n):
-                # make sure n and z arr are equivalently normalized or not
-                intval = 0.0
-                for i, z in enumerate(z_arr[:-1]):
-                    # TODO integral bounds low high and dz weight
-                    if z > n:
-                        break
-                    else:
-                        zmid = (z_arr[i + 1] + z_arr[i]) / 2
-                        dz = z_arr[i + 1] - z_arr[i]
-                        intval += A(zmid, i)/B(zmid, i) * dz
-                return np.exp(intval)
-
-            time_to_hit_zf = 0.0
-            int_lower = 0.0
-            int_upper = 1.0       #absorbing point, try the unstable height too
-
-            psi_table = np.zeros(num_pts)
-            for i, z in enumerate(z_arr[:-1]):
-                zmid = (z_arr[i + 1] + z_arr[i]) / 2
-                psi_table[i] = psi(zmid)
-
-            for i, z in enumerate(z_arr[:-1]):
-                if z > int_upper:
-                    break
-                else:
-                    zmidOuter = (z_arr[i+1] + z_arr[i]) / 2
-                    dzOuter = z_arr[i+1] - z_arr[i]
-                    factor_A = 1 / psi_table[i]
-                    factor_B_sum = 0
-                    for j, z in enumerate(z_arr[:-1]):
-                        if z < zmidOuter:
-                            smid = (s_xyz_arr[j + 1] + s_xyz_arr[j]) / 2
-                            zmidInner = (z_arr[j + 1] + z_arr[j]) / 2
-                            dzInner = z_arr[j + 1] - z_arr[j]
-                            factor_B_sum += psi_table[j] / B(zmidInner, j) * dzInner
-                        else:
-                            break
-                    time_to_hit_zf += factor_A * factor_B_sum * dzOuter
-
-            print 'time_to_hit_zf BLg100', Nval, time_to_hit_zf
-            return time_to_hit_zf
-
-
+        # blobtime heuristic
         """
-        N_range_dense = np.logspace(np.log10(N_range[0]), np.log10(N_range[-1]), 1*len(N_range))
-        curve_fit_guess = [time_to_hit_zf(n)
-                           #+ 1/(params.mu * n)
-                           + 1 / (params.mu * fp_low[1] * n)
+        N_range_dense = N_range  # np.logspace(np.log10(N_range[0]), np.log10(N_range[-1]), 1*len(N_range))
+        curve_fit_guess1 = [1 / (params.mu * n * yfrac_pt0 * (
+                1 - np.exp(-params.mu * get_blobtime(n, outer_int_upper=n * fp_mid[2]) ** 2)))
                            for n in N_range_dense]
+        curve_fit_guess2 = [1 / (params.mu * n * yfrac_pt0 * (
+                1 - np.exp(-params.mu * get_blobtime(n, outer_int_upper=n * 0.4)) ** 2))
+                            for n in N_range_dense]
+        curve_fit_guess3 = [1 / (params.mu * n * yfrac_pt0 * (
+                1 - np.exp(-params.mu * get_blobtime(n, outer_int_upper=None) ** 2)))
+                            for n in N_range_dense]
         """
+        # mfpt FPE heuristic (TODO how to combine these))
+        '''
+        N_range_dense = N_range  # np.logspace(np.log10(N_range[0]), np.log10(N_range[-1]), 1*len(N_range))
+        curve_fit_guess1 = [1 / (params.mu * n * yfrac_pt0 *
+                                 time_to_hit_boundary(n, dual_absorb=False, int_lower=0.0, int_upper=fp_mid[2], init_z=1.0))
+                                 for n in N_range_dense]
+        curve_fit_guess2 = [1 / (params.mu * n * yfrac_pt0 *
+                                 time_to_hit_boundary(n, dual_absorb=False, int_lower=0.0, int_upper=None, init_z=1.0))
+                                 for n in N_range_dense]
+        curve_fit_guess3 = [1 / (params.mu * n * yfrac_pt0 *
+                                 time_to_hit_boundary(n, dual_absorb=True, int_lower=0.0, int_upper=fp_mid[2], init_z=1.0))
+                                 for n in N_range_dense]
+        curve_fit_guess4 = [1 / (params.mu * n * yfrac_pt0 *
+                                 time_to_hit_boundary(n, dual_absorb=True, int_lower=0.0, int_upper=None, init_z=1.0))
+                                 for n in N_range_dense]
+        '''
+        # MASTER EQN SOLVE BLOCK
+        '''
         N_range_low = N_range[0:11]
         curve_fit_guess1 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=False)[0] for n in N_range_low]
         curve_fit_guess2 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=True)[0] for n in N_range_low]
+        print 'curve_fit_guess1', curve_fit_guess1
+        print 'curve_fit_guess2', curve_fit_guess2
+        '''
+        # prob hit boundary heuristic
+        N_range_low = N_range[0:11]
+        N_range_dense = N_range  # np.logspace(np.log10(N_range[0]), np.log10(N_range[-1]), 1*len(N_range))
+        curve_fit_guess1 = [1 / (params.mu * n * yfrac_pt0 *
+                                 prob_to_hit_boundary(n, int_lower=0.0, int_upper=fp_mid[2], init_z=1.0))
+                                 for n in N_range_dense]
+        curve_fit_guess2 = [1 / (params.mu * n * yfrac_pt0 *
+                                 prob_to_hit_boundary(n, int_lower=0.0, int_upper=0.4, init_z=1.0))
+                                 for n in N_range_dense]
+        curve_fit_guess3 = [1 / (params.mu * n * yfrac_pt0 *
+                                 prob_to_hit_boundary(n, int_lower=0.0, int_upper=1.0, init_z=1.0))
+                                 for n in N_range_dense]
         print curve_fit_guess1
+        print curve_fit_guess2
+        print curve_fit_guess3
+
     else:
         curve_fit_guess = [0 for n in N_range]
         print 'no fit guess for %s' % dataid
@@ -333,8 +422,16 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, show_flag=Fal
     plt.plot(N_range, curve_heuristic, '-or', label='curve_heuristic')
     plt.plot(N_range[:len(mean_fpt_varying)], mean_fpt_varying, '-ok', label='data')
     #plt.plot(N_range, curve_fit, '--b', label=r'fit $1/(a \mu N), a=%.2f$' % fit_guess)
+    plt.plot(N_range_dense, curve_fit_guess1, '--g', label=r'prob b zmax ~$0.2$ ($z_{us}$)')
+    plt.plot(N_range_dense, curve_fit_guess2, '--b', label=r'prob b zmax $0.4$')
+    plt.plot(N_range_dense, curve_fit_guess3, '--p', label=r'prob b zmax $1.0$')
+    #plt.plot(N_range_dense, curve_fit_guess4, '-.b', label=r'dual zmax $1.0$')
+
+    # MASTER EQN BLOCK
+    """
     plt.plot(N_range_low, curve_fit_guess1, '--b', label=r'1D ME mfpt all-z')
     plt.plot(N_range_low, curve_fit_guess2, '--g', label=r'1D ME mfpt zhat')
+    """
 
     ax = plt.gca()
     ax.set_xlabel(r'$%s$' % param_vary_name, fontsize=fs)

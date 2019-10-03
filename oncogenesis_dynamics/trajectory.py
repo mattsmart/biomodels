@@ -103,19 +103,105 @@ def conserved_quantity(state, params):
     return val
 
 
+def get_centermanifold_traj(params, norm=False):
+    sim_method = "libcall"  # see constants.py -- sim_methods_valid
+    time_start = 0.0
+    time_end = 200.0  # 20.0
+    num_steps = 200  # number of timesteps in each trajectory
+
+    if params.b == 1.2:
+
+        num_pts = 400
+        mid = 200
+        z_arr = np.zeros(num_pts)
+        y_arr = np.zeros(num_pts)
+        s_xyz_arr = np.zeros(num_pts)
+        s_xy_arr = np.zeros(num_pts)
+        f_xyz_arr = np.zeros(num_pts)
+        f_xy_arr = np.zeros(num_pts)
+
+        r_fwd, times_fwd = trajectory_simulate(params, init_cond=[params.N, 0, 0], t0=time_start, t1=time_end,
+                                               num_steps=num_steps, sim_method=sim_method)
+        r_bwd, times_bwd = trajectory_simulate(params, init_cond=[0, 1e-1, params.N - 1e-1], t0=time_start,
+                                               t1=time_end,
+                                               num_steps=num_steps, sim_method=sim_method)
+
+        for idx in xrange(num_pts):
+            if idx > mid:
+                traj_idx = num_pts - idx
+                r = r_bwd
+            else:
+                traj_idx = idx
+                r = r_fwd
+            x, y, z = r[traj_idx, :]
+            f_xyz_arr[idx] = (params.a * x + params.b * y + params.c * z) / params.N
+            f_xy_arr[idx] = (params.a * x + params.b * y) / (params.N - z)
+            s_xyz_arr[idx] = params.c / f_xyz_arr[idx] - 1
+            s_xy_arr[idx] = params.c / f_xy_arr[idx] - 1
+            z_arr[idx] = z
+            y_arr[idx] = y
+    else:
+        assert params.b == 0.8
+        assert params.mult_inc == 100.0  # saddle point hardcoded to this rn
+        fp_low = np.array([77.48756569595079, 22.471588735222426, 0.04084556882678214]) / 100.0
+        fp_mid = np.array([40.61475564788107, 40.401927055159106, 18.983317296959825]) / 100.0
+        saddle_below = np.array([40.62, 40.41, 18.97]) / 100.0 * params.N
+        saddle_above = np.array([40.6, 40.4, 19.0]) / 100.0 * params.N
+
+        num_pts = 200 * 3
+        mid_a = 200
+        mid_b = 400
+        z_arr = np.zeros(num_pts)
+        y_arr = np.zeros(num_pts)
+        s_xyz_arr = np.zeros(num_pts)
+        s_xy_arr = np.zeros(num_pts)
+        f_xyz_arr = np.zeros(num_pts)
+        f_xy_arr = np.zeros(num_pts)
+
+        r_a_fwd, times_a_fwd = trajectory_simulate(params, init_cond=[params.N, 0, 0], t0=time_start,
+                                                   t1=time_end,
+                                                   num_steps=num_steps, sim_method=sim_method)
+        r_b_bwd, times_b_bwd = trajectory_simulate(params, init_cond=saddle_below, t0=time_start, t1=time_end,
+                                                   num_steps=num_steps, sim_method=sim_method)
+        r_c_fwd, times_c_fwd = trajectory_simulate(params, init_cond=saddle_above, t0=time_start, t1=time_end,
+                                                   num_steps=num_steps, sim_method=sim_method)
+
+        for idx in xrange(num_pts):
+            if idx < mid_a:
+                traj_idx = idx
+                r = r_a_fwd
+            elif idx < mid_b:
+                traj_idx = mid_b - idx
+                r = r_b_bwd
+            else:
+                traj_idx = idx - mid_b
+                r = r_c_fwd
+            x, y, z = r[traj_idx, :]
+            f_xyz_arr[idx] = (params.a * x + params.b * y + params.c * z) / params.N
+            f_xy_arr[idx] = (params.a * x + params.b * y) / (params.N - z)
+            s_xyz_arr[idx] = params.c / f_xyz_arr[idx] - 1
+            s_xy_arr[idx] = params.c / f_xy_arr[idx] - 1
+            z_arr[idx] = z
+            y_arr[idx] = y
+    if norm:
+        z_arr = z_arr / params.N
+        y_arr = y_arr / params.N
+    return f_xyz_arr, s_xyz_arr, z_arr, y_arr
+
+
 if __name__ == "__main__":
     # MAIN RUN OPTIONS
-    run_singletraj = True
+    run_singletraj = False
     run_conserved = False
     plot_options_traj = plot_options_build(flag_table=True, flag_show=True, flag_save=True, plt_save="trajectory")
     run_multitraj = False
     plot_options_multitraj = plot_options_build(flag_table=True, flag_show=True, flag_save=True, plt_save="trajmulti")
-    run_phaseportrait = True
+    run_phaseportrait = False
     plot_options_trajportrait = plot_options_build(flag_table=True, flag_show=True, flag_save=True, plt_save="trajportrait")
     run_multiphaseportrait = False
     plot_options_mulyitrajportrait = plot_options_build(flag_table=True, flag_show=True, flag_save=True,
                                                    plt_save="trajportrait")
-    get_fitness_curve = False
+    get_fitness_curve = True
 
     # PLOTTING OPTIONS
     sim_method = "libcall"
@@ -179,80 +265,18 @@ if __name__ == "__main__":
             phase_portrait(params_step, num_traj=30, show_flag=True, basins_flag=False, **plot_options_mulyitrajportrait)
 
     if get_fitness_curve:
-        sim_method = "libcall"  # see constants.py -- sim_methods_valid
-        time_start = 0.0
-        time_end = 200.0  # 20.0
-        num_steps = 200  # number of timesteps in each trajectory
 
-        if params.b == 1.2:
+        f_xyz_arr, s_xyz_arr, z_arr, y_arr = get_centermanifold_traj(params)
 
-            num_pts = 400
-            mid = 200
-            z_arr = np.zeros(num_pts)
-            s_xyz_arr = np.zeros(num_pts)
-            s_xy_arr = np.zeros(num_pts)
-
-            r_fwd, times_fwd = trajectory_simulate(params, init_cond=[params.N, 0, 0], t0=time_start, t1=time_end,
-                                                   num_steps=num_steps, sim_method=sim_method)
-            r_bwd, times_bwd = trajectory_simulate(params, init_cond=[0, 1e-1, params.N - 1e-1], t0=time_start, t1=time_end,
-                                                   num_steps=num_steps, sim_method=sim_method)
-
-            for idx in xrange(num_pts):
-                if idx > mid:
-                    traj_idx = num_pts - idx
-                    r = r_bwd
-                else:
-                    traj_idx = idx
-                    r = r_fwd
-                x, y, z = r[traj_idx, :]
-                f_xyz = (params.a * x + params.b * y + params.c * z) / params.N
-                f_xy = (params.a * x + params.b * y) / (params.N-z)
-                s_xyz_arr[idx] = params.c / f_xyz - 1
-                s_xy_arr[idx] = params.c / f_xy - 1
-                z_arr[idx] = z/params.N
-
-        else:
-            assert params.b == 0.8
-            assert params.mult_inc == 100.0  # saddle point hardcoded to this rn
-            assert params.N == 100
-            saddle = [40.61475564788107, 40.401927055159106, 18.983317296959825]
-            saddle_below = [40.62, 40.41, 18.97]
-            saddle_above = [40.6, 40.4, 19.0]
-
-            num_pts = 200*3
-            mid_a = 200
-            mid_b = 400
-            z_arr = np.zeros(num_pts)
-            s_xyz_arr = np.zeros(num_pts)
-            s_xy_arr = np.zeros(num_pts)
-
-            r_a_fwd, times_a_fwd = trajectory_simulate(params, init_cond=[params.N, 0, 0], t0=time_start, t1=time_end,
-                                                       num_steps=num_steps, sim_method=sim_method)
-            r_b_bwd, times_b_bwd = trajectory_simulate(params, init_cond=saddle_below, t0=time_start, t1=time_end,
-                                                       num_steps=num_steps, sim_method=sim_method)
-            r_c_fwd, times_c_fwd = trajectory_simulate(params, init_cond=saddle_above, t0=time_start, t1=time_end,
-                                                       num_steps=num_steps, sim_method=sim_method)
-
-            for idx in xrange(num_pts):
-                if idx < mid_a:
-                    traj_idx = idx
-                    r = r_a_fwd
-                elif idx < mid_b:
-                    traj_idx = mid_b - idx
-                    r = r_b_bwd
-                else:
-                    traj_idx = idx - mid_b
-                    r = r_c_fwd
-                x, y, z = r[traj_idx, :]
-                f_xyz = (params.a * x + params.b * y + params.c * z) / params.N
-                f_xy = (params.a * x + params.b * y) / (params.N-z)
-                s_xyz_arr[idx] = params.c / f_xyz - 1
-                s_xy_arr[idx] = params.c / f_xy - 1
-                z_arr[idx] = z/params.N
-                print idx, z / params.N, params.c / f_xyz - 1, params.c / f_xy - 1
+        plt.plot(s_xyz_arr, label='s')
+        plt.plot(f_xyz_arr, label='f')
+        plt.plot(z_arr, label='z')
+        plt.plot(y_arr, label='y')
+        plt.legend()
+        plt.show()
 
         plt.plot(z_arr, s_xyz_arr, '--k', label=r'$s1 = c/f_{xyz} - 1$')
-        plt.plot(z_arr, s_xy_arr, '--b', label=r'$s2 = c/f_{xy} - 1$')
+        #plt.plot(z_arr, s_xy_arr, '--b', label=r'$s2 = c/f_{xy} - 1$')
         plt.xlabel(r'$z/N$')
         plt.ylabel(r'$s$')
         plt.gca().axhline(0.0, linestyle='-', color='gray')
