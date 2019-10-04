@@ -2,9 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from params import Params
-from trajectory import trajectory_simulate
+from trajectory import trajectory_simulate, get_centermanifold_traj
 
-
+"""
 def get_s_arr(params, Nval):
     pmc = params.mod_copy({'N': Nval})
 
@@ -52,7 +52,7 @@ def get_s_arr(params, Nval):
         z_arr[idx] = z
         y_arr[idx] = y
     return z_arr, s_xyz_arr, f_xyz_arr, y_arr
-
+"""
 
 def map_n_to_sf_idx(params, z_arr, s_xyz_arr, f_xyz_arr, y_arr):
     Nval = int(params.N)
@@ -85,12 +85,25 @@ def make_mastereqn_matrix(params, flag_zhat=True):
         print 'Warning large N', n
 
     # BL g100 supported currently
-    assert params.b == 0.8
-    assert params.mult_inc == 100.0
-    fp_low = np.array([77.48756569595079, 22.471588735222426, 0.04084556882678214]) / 100.0
-    fp_mid = np.array([40.61475564788107, 40.401927055159106, 18.983317296959825]) / 100.0
+    assert params.b in [0.8, 1.2]
+    if params.b == 0.8:
+        if params.mult_inc == 1.0 or params.feedback == 'constant':
+            y_0_frac = 14.585869420527702 / 100.0
+        elif params.mult_inc == 4.0 and params.feedback != 'constant':
+            y_0_frac = 14.89695736662967 / 100.0
+        else:
+            assert params.mult_inc == 100.0 and params.feedback != 'constant'
+            y_0_frac = 22.471588735222426 / 100.0
+    else:
+        if params.mult_inc == 1.0 or params.feedback == 'constant':
+            y_0_frac = 19.262827700935464 / 100.0
+        elif params.mult_inc == 4.0 and params.feedback != 'constant':
+            y_0_frac = 19.652759713453463 / 100.0
+        else:
+            assert params.mult_inc == 100.0 and params.feedback != 'constant'
+            y_0_frac = 28.094892239342407 / 100.0
 
-    z_arr, s_arr, f_arr, y_arr = get_s_arr(params, n)
+    f_arr, s_arr, z_arr, y_arr = get_centermanifold_traj(params, norm=False)
     z_of_n, s_of_n, f_of_n, y_of_n = map_n_to_sf_idx(params, z_arr, s_arr, f_arr, y_arr)
 
     statespace = int(n + 1)
@@ -105,7 +118,7 @@ def make_mastereqn_matrix(params, flag_zhat=True):
                     print j, z_of_n[j]
                     W[i, j] = params.mu * z_of_n[j]
                 if j == 0 and i == 1:
-                    W[i, j] = params.mu * fp_low[1] * n
+                    W[i, j] = params.mu * y_0_frac * n
                 elif j == n and i == n-1:
                     W[i, j] = 0
                 elif j == n - 1 and i == n:
@@ -121,7 +134,7 @@ def make_mastereqn_matrix(params, flag_zhat=True):
         for i in xrange(statespace):
             for j in xrange(statespace):
                 if j == 0 and i == 1:
-                    W[i, j] = params.mu * fp_low[1] * n
+                    W[i, j] = params.mu * y_0_frac * n
                 elif j == n and i == n - 1:
                     W[i, j] = 0
                 elif j == n - 1 and i == n:

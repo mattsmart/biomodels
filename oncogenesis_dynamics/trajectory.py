@@ -109,7 +109,31 @@ def get_centermanifold_traj(params, norm=False):
     time_end = 200.0  # 20.0
     num_steps = 200  # number of timesteps in each trajectory
 
-    if params.b == 1.2:
+    if (params.b == 1.2 and (params.mult_inc == 1.0 or params.feedback == 'constant')):
+
+        num_pts = 400
+        z_arr = np.zeros(num_pts)
+        y_arr = np.zeros(num_pts)
+        s_xyz_arr = np.zeros(num_pts)
+        s_xy_arr = np.zeros(num_pts)
+        f_xyz_arr = np.zeros(num_pts)
+        f_xy_arr = np.zeros(num_pts)
+
+        r_fwd, times_fwd = trajectory_simulate(params, init_cond=[params.N, 0, 0], t0=time_start, t1=time_end,
+                                               num_steps=num_pts, sim_method=sim_method)
+        for idx in xrange(num_pts):
+            traj_idx = idx
+            r = r_fwd
+            x, y, z = r[traj_idx, :]
+            f_xyz_arr[idx] = (params.a * x + params.b * y + params.c * z) / params.N
+            f_xy_arr[idx] = (params.a * x + params.b * y) / (params.N - z)
+            s_xyz_arr[idx] = params.c / f_xyz_arr[idx] - 1
+            s_xy_arr[idx] = params.c / f_xy_arr[idx] - 1
+            z_arr[idx] = z
+            y_arr[idx] = y
+
+    elif (params.b == 1.2 and params.feedback != 'constant') or \
+            (params.b == 0.8 and (params.mult_inc == 1.0 or params.feedback == 'constant')):
 
         num_pts = 400
         mid = 200
@@ -125,7 +149,6 @@ def get_centermanifold_traj(params, norm=False):
         r_bwd, times_bwd = trajectory_simulate(params, init_cond=[0, 1e-1, params.N - 1e-1], t0=time_start,
                                                t1=time_end,
                                                num_steps=num_steps, sim_method=sim_method)
-
         for idx in xrange(num_pts):
             if idx > mid:
                 traj_idx = num_pts - idx
@@ -142,11 +165,13 @@ def get_centermanifold_traj(params, norm=False):
             y_arr[idx] = y
     else:
         assert params.b == 0.8
-        assert params.mult_inc == 100.0  # saddle point hardcoded to this rn
-        fp_low = np.array([77.48756569595079, 22.471588735222426, 0.04084556882678214]) / 100.0
-        fp_mid = np.array([40.61475564788107, 40.401927055159106, 18.983317296959825]) / 100.0
-        saddle_below = np.array([40.62, 40.41, 18.97]) / 100.0 * params.N
-        saddle_above = np.array([40.6, 40.4, 19.0]) / 100.0 * params.N
+        if params.mult_inc == 100.0 and params.feedback != 'constant':
+            saddle_below = np.array([40.62, 40.41, 18.97]) / 100.0 * params.N
+            saddle_above = np.array([40.6, 40.4, 19.0]) / 100.0 * params.N
+        else:
+            assert params.mult_inc == 4.0 and params.feedback != 'constant'
+            saddle_below = np.array([21.57844087406341, 21.54060213939143, 56.880956986545154]) / 100.0
+            saddle_above = np.array([21.55844087406341, 21.52060213939143, 56.920956986545154]) / 100.0
 
         num_pts = 200 * 3
         mid_a = 200
@@ -196,12 +221,12 @@ if __name__ == "__main__":
     plot_options_traj = plot_options_build(flag_table=True, flag_show=True, flag_save=True, plt_save="trajectory")
     run_multitraj = False
     plot_options_multitraj = plot_options_build(flag_table=True, flag_show=True, flag_save=True, plt_save="trajmulti")
-    run_phaseportrait = False
+    run_phaseportrait = True
     plot_options_trajportrait = plot_options_build(flag_table=True, flag_show=True, flag_save=True, plt_save="trajportrait")
     run_multiphaseportrait = False
     plot_options_mulyitrajportrait = plot_options_build(flag_table=True, flag_show=True, flag_save=True,
                                                    plt_save="trajportrait")
-    get_fitness_curve = True
+    get_fitness_curve = False
 
     # PLOTTING OPTIONS
     sim_method = "libcall"
@@ -216,8 +241,8 @@ if __name__ == "__main__":
         'alpha_minus': 1.0,  # 0.5
         'mu': 0.0001,  # 0.01
         'a': 1.0,
-        'b': 0.8,
-        'c': 0.9,
+        'b': 1.2,
+        'c': 1.1,
         'N': 100.0,  # 100.0
         'v_x': 0.0,
         'v_y': 0.0,
@@ -225,8 +250,8 @@ if __name__ == "__main__":
         'mu_base': 0.0,
         'c2': 0.0,
         'v_z2': 0.0,
-        'mult_inc': 100.0,
-        'mult_dec': 100.0
+        'mult_inc': 1.0,
+        'mult_dec': 1.0
     }
     params = Params(params_dict, system, feedback=feedback)
     init_cond = map_init_name_to_init_cond(params, "x_all")
