@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 from constants import OUTPUT_DIR, PARAMS_ID, PARAMS_ID_INV, BIFURC_DICT, VALID_BIFURC_PARAMS
-from data_io import read_varying_mean_sd_fpt_and_params
+from data_io import read_varying_mean_sd_fpt_and_params, write_mfpt_heuristic, read_mfpt_heuristic
 from masterqn_approx import linalg_mfpt
 from params import Params
 from plotting import plot_trajectory_mono, plot_endpoint_mono, plot_table_params
@@ -90,7 +90,7 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
               'BL100g': 'mfpt_Nvary_mu1e-4_BL_ens240_xall_g100',
               'TR1g': 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g1',
               'TR4g': 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g4',
-              'TR100g': 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g100',}
+              'TR100g': 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g100'}
     mfpt_data_dir = 'data' + os.sep + 'mfpt' + os.sep + fnames[dataid]
     mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params = \
         read_varying_mean_sd_fpt_and_params(mfpt_data_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N.txt',
@@ -106,6 +106,7 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
     curve_fpflux = [corner_to_flux(dataid, params.mod_copy({'N':n})) for n in N_range]
     fit_guess = 0.01
     curve_fit = [1/(params.mu * n * fit_guess) for n in N_range]
+    write_mfpt_heuristic(N_range, curve_fit, filename_mod="_%s_fpFlux" % dataid)
 
     def get_blobtime(n, outer_int_upper=None):
         # TODO use f_arr, s_arr, z_arr, y_arr = get_centermanifold_traj(params)
@@ -324,18 +325,21 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
         s_renorm = (params.c/init_avg_div) - 1
         print "s_renorm", s_renorm
         pfix = s_renorm
-        """
         # TRg1 heuristic fixation at all-z
         curve_fit_guess = [1/(params.mu * n * yfracTRg1 * pfix)
                            + np.log(n * s_renorm)/s_renorm
                            + 0.577/s_renorm
                            for n in N_range]
-        """
+        write_mfpt_heuristic(N_range, curve_fit_guess, filename_mod="_%s_guessPfixThreeTerm" % dataid)
+
+
         N_range_alt = N_range[0:10]
-        curve_fit_guess1 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=False)[0] for n in N_range_alt]
-        curve_fit_guess2 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=True)[0] for n in N_range_alt]
-        print 'curve_fit_guess1', curve_fit_guess1
-        print 'curve_fit_guess2', curve_fit_guess2
+        curve_fit_linalg1 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=False)[0] for n in N_range_alt]
+        curve_fit_linalg2 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=True)[0] for n in N_range_alt]
+        print 'curve_fit_guess1', curve_fit_linalg1
+        print 'curve_fit_guess2', curve_fit_linalg2
+        write_mfpt_heuristic(N_range_alt, curve_fit_linalg1, filename_mod="_%s_linalgALLZ" % dataid)
+        write_mfpt_heuristic(N_range_alt, curve_fit_linalg2, filename_mod="_%s_linalgZHAT" % dataid)
 
     elif dataid == 'TR100g':
         assert params.mult_inc == 100.0 and params.feedback != 'constant'
@@ -351,30 +355,32 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
         s_renorm = (params.c/init_avg_div) - 1
         print "s_renorm", s_renorm
 
-        """curve_fit_guess = [1/(params.mu * n * yfrac_pt0) * (n * zfrac_pt1)         # last factor is 1/pfix
+        curve_fit_guess = [1/(params.mu * n * yfrac_pt0) * (n * zfrac_pt1)         # last factor is 1/pfix
                            + 1/(params.mu * n * zfrac_pt1)                         # direct flux from z1
                            + 1/(params.mu * n * yfrac_pt1) * 1/(np.sqrt(params.mu * n * s_renorm))     # flux from y->z->zhat
-                           for n in N_range]"""
+                           for n in N_range]
+        write_mfpt_heuristic(N_range, curve_fit_guess, filename_mod="_%s_guessPfixThreeTerm" % dataid)
 
-        """
         # TRg100 heuristic blobtimes
         N_range_dense = np.logspace(np.log10(N_range[0]), np.log10(N_range[-1]), 4*len(N_range))
         curve_fit_guess = [1/(params.mu * n * yfrac_pt0 * (1 - np.exp(-params.mu * get_blobtime(n)**2)))  # last factor is pfix
                            + 0 * 1/(params.mu * n * zfrac_pt1)                                               # direct flux from z1
                            + 0 * 1/(params.mu * n * yfrac_pt1) * 1/(np.sqrt(params.mu * n * s_renorm))       # flux from y->z->zhat
                            for n in N_range_dense]
-        """
+        write_mfpt_heuristic(N_range_dense, curve_fit_guess, filename_mod="_%s_guessBlobtimes" % dataid)
+
         """curve_fit_guess = [1 / (params.mu**2 * n**2 * zfrac_pt1)
                    for n in N_range]"""
         #vertlne = 1/(zfrac_pt1 * s_renorm)   # when N = 1/(s0z0)
         #ax.axvline(vertlne)
 
         N_range_alt = N_range[0:10]
-        curve_fit_guess1 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=False)[0] for n in N_range_alt]
-        curve_fit_guess2 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=True)[0] for n in N_range_alt]
-        print 'curve_fit_guess1', curve_fit_guess1
-        print 'curve_fit_guess2', curve_fit_guess2
-
+        curve_fit_linalg1 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=False)[0] for n in N_range_alt]
+        curve_fit_linalg2 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=True)[0] for n in N_range_alt]
+        print 'curve_fit_guess1', curve_fit_linalg1
+        print 'curve_fit_guess2', curve_fit_linalg2
+        write_mfpt_heuristic(N_range_alt, curve_fit_linalg1, filename_mod="_%s_linalgALLZ" % dataid)
+        write_mfpt_heuristic(N_range_alt, curve_fit_linalg2, filename_mod="_%s_linalgZHAT" % dataid)
 
     elif dataid == 'TR4g':
         assert params.mult_inc == 4.0 and params.feedback != 'constant'
@@ -382,11 +388,12 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
         fp_hidden = np.array([80.37960284434968, 19.652759713453463, -0.03236255780313968]) / 100.0
 
         N_range_alt = N_range[0:10]
-        curve_fit_guess1 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=False)[0] for n in N_range_alt]
-        curve_fit_guess2 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=True)[0] for n in N_range_alt]
-        print 'curve_fit_guess1', curve_fit_guess1
-        print 'curve_fit_guess2', curve_fit_guess2
-
+        curve_fit_linalg1 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=False)[0] for n in N_range_alt]
+        curve_fit_linalg2 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=True)[0] for n in N_range_alt]
+        print 'curve_fit_guess1', curve_fit_linalg1
+        print 'curve_fit_guess2', curve_fit_linalg2
+        write_mfpt_heuristic(N_range_alt, curve_fit_linalg1, filename_mod="_%s_linalgALLZ" % dataid)
+        write_mfpt_heuristic(N_range_alt, curve_fit_linalg2, filename_mod="_%s_linalgZHAT" % dataid)
 
     elif dataid == 'BL100g':
         assert params.mult_inc == 100.0 and params.feedback != 'constant'
@@ -401,7 +408,6 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
         """
 
         # blobtime heuristic
-        """
         N_range_alt = N_range  # np.logspace(np.log10(N_range[0]), np.log10(N_range[-1]), 1*len(N_range))
         curve_fit_guess1 = [1 / (params.mu * n * yfrac_pt0 * (
                 1 - np.exp(-params.mu * get_blobtime(n, outer_int_upper=n * fp_mid[2]) ** 2)))
@@ -412,46 +418,52 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
         curve_fit_guess3 = [1 / (params.mu * n * yfrac_pt0 * (
                 1 - np.exp(-params.mu * get_blobtime(n, outer_int_upper=None) ** 2)))
                             for n in N_range_alt]
-        """
+        write_mfpt_heuristic(N_range_alt, curve_fit_guess1, filename_mod="_%s_guessBlobtimes1" % dataid)
+        write_mfpt_heuristic(N_range_alt, curve_fit_guess2, filename_mod="_%s_guessBlobtimes2" % dataid)
+        write_mfpt_heuristic(N_range_alt, curve_fit_guess3, filename_mod="_%s_guessBlobtimes3" % dataid)
+
         # mfpt FPE heuristic (TODO how to combine these))
-        '''
-        N_range_alt = N_range  # np.logspace(np.log10(N_range[0]), np.log10(N_range[-1]), 1*len(N_range))
+        N_range_timeBoundary = N_range  # np.logspace(np.log10(N_range[0]), np.log10(N_range[-1]), 1*len(N_range))
         curve_fit_guess1 = [1 / (params.mu * n * yfrac_pt0 *
                                  time_to_hit_boundary(n, dual_absorb=False, int_lower=0.0, int_upper=fp_mid[2], init_z=1.0))
-                                 for n in N_range_alt]
+                                 for n in N_range_timeBoundary]
         curve_fit_guess2 = [1 / (params.mu * n * yfrac_pt0 *
                                  time_to_hit_boundary(n, dual_absorb=False, int_lower=0.0, int_upper=None, init_z=1.0))
-                                 for n in N_range_alt]
+                                 for n in N_range_timeBoundary]
         curve_fit_guess3 = [1 / (params.mu * n * yfrac_pt0 *
                                  time_to_hit_boundary(n, dual_absorb=True, int_lower=0.0, int_upper=fp_mid[2], init_z=1.0))
-                                 for n in N_range_alt]
+                                 for n in N_range_timeBoundary]
         curve_fit_guess4 = [1 / (params.mu * n * yfrac_pt0 *
                                  time_to_hit_boundary(n, dual_absorb=True, int_lower=0.0, int_upper=None, init_z=1.0))
-                                 for n in N_range_alt]
-        '''
+                                 for n in N_range_timeBoundary]
+        write_mfpt_heuristic(N_range_timeBoundary, curve_fit_guess1, filename_mod="_%s_guessBoundaryTimeMono1" % dataid)
+        write_mfpt_heuristic(N_range_timeBoundary, curve_fit_guess2, filename_mod="_%s_guessBoundaryTimeMono2" % dataid)
+        write_mfpt_heuristic(N_range_timeBoundary, curve_fit_guess3, filename_mod="_%s_guessBoundaryTimeDual1" % dataid)
+        write_mfpt_heuristic(N_range_timeBoundary, curve_fit_guess4, filename_mod="_%s_guessBoundaryTimeDual2" % dataid)
+
         # MASTER EQN SOLVE BLOCK
-        '''
-        N_range_low = N_range[0:11]
-        curve_fit_guess1 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=False)[0] for n in N_range_low]
-        curve_fit_guess2 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=True)[0] for n in N_range_low]
-        print 'curve_fit_guess1', curve_fit_guess1
-        print 'curve_fit_guess2', curve_fit_guess2
-        '''
+        N_range_alt = N_range[0:10]
+        curve_fit_linalg1 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=False)[0] for n in N_range_alt]
+        curve_fit_linalg2 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=True)[0] for n in N_range_alt]
+        print 'curve_fit_guess1', curve_fit_linalg1
+        print 'curve_fit_guess2', curve_fit_linalg2
+        write_mfpt_heuristic(N_range_alt, curve_fit_linalg1, filename_mod="_%s_linalgALLZ" % dataid)
+        write_mfpt_heuristic(N_range_alt, curve_fit_linalg2, filename_mod="_%s_linalgZHAT" % dataid)
+
         # prob hit boundary heuristic
-        N_range_low = N_range[0:11]
-        N_range_alt = N_range  # np.logspace(np.log10(N_range[0]), np.log10(N_range[-1]), 1*len(N_range))
+        N_range_probBoundary = N_range  # np.logspace(np.log10(N_range[0]), np.log10(N_range[-1]), 1*len(N_range))
         curve_fit_guess1 = [1 / (params.mu * n * yfrac_pt0 *
                                  prob_to_hit_boundary(n, int_lower=0.0, int_upper=fp_mid[2], init_z=1.0))
-                                 for n in N_range_alt]
+                                 for n in N_range_probBoundary]
         curve_fit_guess2 = [1 / (params.mu * n * yfrac_pt0 *
                                  prob_to_hit_boundary(n, int_lower=0.0, int_upper=0.4, init_z=1.0))
-                                 for n in N_range_alt]
+                                 for n in N_range_probBoundary]
         curve_fit_guess3 = [1 / (params.mu * n * yfrac_pt0 *
                                  prob_to_hit_boundary(n, int_lower=0.0, int_upper=1.0, init_z=1.0))
-                                 for n in N_range_alt]
-        print curve_fit_guess1
-        print curve_fit_guess2
-        print curve_fit_guess3
+                                 for n in N_range_probBoundary]
+        write_mfpt_heuristic(N_range_probBoundary, curve_fit_guess1, filename_mod="_%s_guessBoundaryProb1" % dataid)
+        write_mfpt_heuristic(N_range_probBoundary, curve_fit_guess2, filename_mod="_%s_guessBoundaryProb2" % dataid)
+        write_mfpt_heuristic(N_range_probBoundary, curve_fit_guess3, filename_mod="_%s_guessBoundaryProb3" % dataid)
 
     elif dataid == 'BL4g':
         assert params.mult_inc == 4.0 and params.feedback != 'constant'
@@ -460,26 +472,28 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
         yfrac_pt0 = fp_low[1]
         # MASTER EQN SOLVE BLOCK
         N_range_alt = N_range[0:10]
-        curve_fit_guess1 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=False)[0] for n in N_range_alt]
-        curve_fit_guess2 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=True)[0] for n in N_range_alt]
-        print 'curve_fit_guess1', curve_fit_guess1
-        print 'curve_fit_guess2', curve_fit_guess2
-        '''
+        curve_fit_linalg1 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=False)[0] for n in N_range_alt]
+        curve_fit_linalg2 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=True)[0] for n in N_range_alt]
+        print 'curve_fit_guess1', curve_fit_linalg1
+        print 'curve_fit_guess2', curve_fit_linalg2
+        write_mfpt_heuristic(N_range_alt, curve_fit_linalg1, filename_mod="_%s_linalgALLZ" % dataid)
+        write_mfpt_heuristic(N_range_alt, curve_fit_linalg2, filename_mod="_%s_linalgZHAT" % dataid)
+
         # prob hit boundary heuristic
-        N_range_alt = N_range  # np.logspace(np.log10(N_range[0]), np.log10(N_range[-1]), 1*len(N_range))
+        N_range_probBoundary = N_range  # np.logspace(np.log10(N_range[0]), np.log10(N_range[-1]), 1*len(N_range))
         curve_fit_guess1 = [1 / (params.mu * n * yfrac_pt0 *
                                  prob_to_hit_boundary(n, int_lower=0.0, int_upper=fp_mid[2], init_z=1.0))
-                                 for n in N_range_alt]
+                                 for n in N_range_probBoundary]
         curve_fit_guess2 = [1 / (params.mu * n * yfrac_pt0 *
                                  prob_to_hit_boundary(n, int_lower=0.0, int_upper=0.8, init_z=1.0))
-                                 for n in N_range_alt]
+                                 for n in N_range_probBoundary]
         curve_fit_guess3 = [1 / (params.mu * n * yfrac_pt0 *
                                  prob_to_hit_boundary(n, int_lower=0.0, int_upper=1.0, init_z=1.0))
-                                 for n in N_range_alt]
-        print curve_fit_guess1
-        print curve_fit_guess2
-        print curve_fit_guess3
-        '''
+                                 for n in N_range_probBoundary]
+        write_mfpt_heuristic(N_range_probBoundary, curve_fit_guess1, filename_mod="_%s_guessBoundaryProb1" % dataid)
+        write_mfpt_heuristic(N_range_probBoundary, curve_fit_guess2, filename_mod="_%s_guessBoundaryProb2" % dataid)
+        write_mfpt_heuristic(N_range_probBoundary, curve_fit_guess3, filename_mod="_%s_guessBoundaryProb3" % dataid)
+
     elif dataid == 'BL1g':
         print params.mult_inc, params.mult_dec
         assert params.mult_inc == 1.0 or params.feedback == 'constant'
@@ -487,29 +501,26 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
         fp_mid = np.array([0,0,100.0]) / 100.0
         yfrac_pt0 = fp_low[1]
         # MASTER EQN SOLVE BLOCK
-
         N_range_alt = N_range[0:10]
-        curve_fit_guess1 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=False)[0] for n in N_range_alt]
-        curve_fit_guess2 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=True)[0] for n in N_range_alt]
-        print 'curve_fit_guess1', curve_fit_guess1
-        print 'curve_fit_guess2', curve_fit_guess2
+        curve_fit_linalg1 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=False)[0] for n in N_range_alt]
+        curve_fit_linalg2 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=True)[0] for n in N_range_alt]
+        write_mfpt_heuristic(N_range_alt, curve_fit_linalg1, filename_mod="_%s_linalgALLZ" % dataid)
+        write_mfpt_heuristic(N_range_alt, curve_fit_linalg2, filename_mod="_%s_linalgZHAT" % dataid)
 
         # prob hit boundary heuristic
-        """
-        N_range_alt = N_range  # np.logspace(np.log10(N_range[0]), np.log10(N_range[-1]), 1*len(N_range))
+        N_range_probBoundary = N_range  # np.logspace(np.log10(N_range[0]), np.log10(N_range[-1]), 1*len(N_range))
         curve_fit_guess1 = [1 / (params.mu * n * yfrac_pt0 *
                                  prob_to_hit_boundary(n, int_lower=0.0, int_upper=fp_mid[2], init_z=1.0))
-                                 for n in N_range_alt]
+                                 for n in N_range_probBoundary]
         curve_fit_guess2 = [1 / (params.mu * n * yfrac_pt0 *
                                  prob_to_hit_boundary(n, int_lower=0.0, int_upper=0.8, init_z=1.0))
-                                 for n in N_range_alt]
+                                 for n in N_range_probBoundary]
         curve_fit_guess3 = [1 / (params.mu * n * yfrac_pt0 *
                                  prob_to_hit_boundary(n, int_lower=0.0, int_upper=1.0, init_z=1.0))
-                                 for n in N_range_alt]
-        print curve_fit_guess1
-        print curve_fit_guess2
-        print curve_fit_guess3
-        """
+                                 for n in N_range_probBoundary]
+        write_mfpt_heuristic(N_range_probBoundary, curve_fit_guess1, filename_mod="_%s_guessBoundaryProb1" % dataid)
+        write_mfpt_heuristic(N_range_probBoundary, curve_fit_guess2, filename_mod="_%s_guessBoundaryProb2" % dataid)
+        write_mfpt_heuristic(N_range_probBoundary, curve_fit_guess3, filename_mod="_%s_guessBoundaryProb3" % dataid)
 
     else:
         curve_fit_guess = [0 for n in N_range]
@@ -528,8 +539,8 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
     """
 
     # MASTER EQN BLOCK
-    plt.plot(N_range_alt, curve_fit_guess1, '--b', label=r'1D ME mfpt all-z')
-    plt.plot(N_range_alt, curve_fit_guess2, '--g', label=r'1D ME mfpt zhat')
+    plt.plot(N_range_alt, curve_fit_linalg1, '--b', label=r'1D ME mfpt all-z')
+    plt.plot(N_range_alt, curve_fit_linalg2, '--g', label=r'1D ME mfpt zhat')
 
     ax = plt.gca()
     ax.set_xlabel(r'$%s$' % param_vary_name, fontsize=fs)
@@ -574,8 +585,8 @@ if __name__ == '__main__':
         'alpha_minus': 1.0,  # 0.5
         'mu': 1e-4,  # 0.01
         'a': 1.0,
-        'b': 1.2,
-        'c': 1.1,  # 1.2
+        'b': 0.8,
+        'c': 0.9,  # 1.2
         'N': 100.0,  # 100.0
         'v_x': 0.0,
         'v_y': 0.0,
@@ -587,7 +598,7 @@ if __name__ == '__main__':
         'mult_dec': 1.0,
     }
     params = Params(params_dict, system, feedback=feedback)
-    data_id = 'TR1g'
+    data_id = 'BL1g'
 
     N_range = [int(a) for a in np.logspace(1.50515, 4.13159, num=11)] + [int(a) for a in np.logspace(4.8, 7, num=4)]
 
@@ -600,5 +611,6 @@ if __name__ == '__main__':
         pv = params.mod_copy({'N': N})
         curve_heuristic[idx] = compute_heuristic_mfpt(pv)
         print N, curve_heuristic[idx]
+    write_mfpt_heuristic(N_range, curve_heuristic, filename_mod="_%s_fpRouteFlux" % data_id)
 
     plot_heuristic_mfpt(N_range, curve_heuristic, 'N', data_id, fs=20)

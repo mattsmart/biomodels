@@ -149,6 +149,24 @@ def read_varying_mean_sd_fpt_and_params(datafile, paramfile):
     return mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params
 
 
+def write_mfpt_heuristic(x, y, filedir=OUTPUT_DIR, filename="mfpt_heuristic", filename_mod=""):
+    assert len(x) == len(y)
+    X = np.zeros((len(x), 2))
+    X[:, 0] = np.array(x)
+    X[:, 1] = np.array(y)
+    fpath = filedir + sep + filename + filename_mod + '.txt'
+    np.savetxt(fpath, X)
+    return fpath
+
+
+def read_mfpt_heuristic(fpath):
+    X = np.loadtxt(fpath)
+    x = list(X[:, 0])
+    y = list(X[:, 1])
+    print "x", x
+    return x, y
+
+
 def collect_fpt_and_params_deprecated(filedir):
     onlydirs = [join(filedir, subdir) for subdir in listdir(filedir) if isdir(join(filedir, subdir))]
     timesfiles = []
