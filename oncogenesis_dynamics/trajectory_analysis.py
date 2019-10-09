@@ -579,14 +579,14 @@ if __name__ == '__main__':
 
     # DYNAMICS PARAMETERS
     system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
-    feedback = "constant"  # "constant", "hill", "step", "pwlinear"
+    feedback = "tanh"  # "constant", "hill", "step", "pwlinear", "tanh"
     params_dict = {
         'alpha_plus': 0.2,
         'alpha_minus': 1.0,  # 0.5
         'mu': 1e-4,  # 0.01
         'a': 1.0,
-        'b': 0.8,
-        'c': 0.9,  # 1.2
+        'b': 1.2,
+        'c': 1.1,  # 1.2
         'N': 100.0,  # 100.0
         'v_x': 0.0,
         'v_y': 0.0,
@@ -594,11 +594,11 @@ if __name__ == '__main__':
         'mu_base': 0.0,
         'c2': 0.0,
         'v_z2': 0.0,
-        'mult_inc': 1.0,
-        'mult_dec': 1.0,
+        'mult_inc': 4.0,
+        'mult_dec': 4.0,
     }
     params = Params(params_dict, system, feedback=feedback)
-    data_id = 'BL1g'
+    data_id = 'TR4g'
 
     N_range = [int(a) for a in np.logspace(1.50515, 4.13159, num=11)] + [int(a) for a in np.logspace(4.8, 7, num=4)]
 
