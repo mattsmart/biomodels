@@ -64,7 +64,7 @@ def map_n_to_sf_idx(params, z_arr, s_xyz_arr, f_xyz_arr, y_arr):
     for n in range(Nval + 1):
         for idx_z, z in enumerate(z_arr):
             if idx_z == len(z_arr)-1 or n == Nval:
-                print 'warning map_n_to_sf_idx edge case'
+                print 'warning map_n_to_sf_idx edge case', n, 'zofn is', z_arr[-1]
                 z_of_n[n] = z_arr[-1]
                 s_of_n[n] = s_xyz_arr[-1]
                 f_of_n[n] = f_xyz_arr[-1]
@@ -115,9 +115,8 @@ def make_mastereqn_matrix(params, flag_zhat=True):
         for i in xrange(statespace):
             for j in xrange(statespace-1):
                 if i == n + 1:
-                    print j, z_of_n[j]
                     W[i, j] = params.mu * z_of_n[j]
-                if j == 0 and i == 1:
+                elif j == 0 and i == 1:
                     W[i, j] = params.mu * y_0_frac * n
                 elif j == n and i == n-1:
                     W[i, j] = 0
@@ -149,7 +148,6 @@ def make_mastereqn_matrix(params, flag_zhat=True):
                         continue
     for d in xrange(statespace):
         W[d, d] = - np.sum(W[:,d]) + W[d,d]  # add diagonal back in case it was not zero after for loops
-    print flag_zhat, n
     print W[-4:, -4:]
     return W
 
@@ -192,16 +190,17 @@ if __name__ == '__main__':
         'mu_base': 0.0,
         'c2': 0.0,
         'v_z2': 0.0,
-        'mult_inc': 100.0,
-        'mult_dec': 100.0,
+        'mult_inc': 1.0,
+        'mult_dec': 1.0,
     }
     params = Params(params_dict, system, feedback=feedback)
 
-    N_range = [int(a) for a in np.logspace(1.50515, 3.13159, num=10)]
+    N_range = [int(a) for a in np.logspace(1.50515, 4.13159, num=11)] + [int(a) for a in np.logspace(4.8, 7, num=4)]
+
     tau_guess_n0 = np.zeros(len(N_range))
     tau_guess_n1 = np.zeros(len(N_range))
     tau_guess_eval = np.zeros(len(N_range))
-    for idx, n in enumerate(N_range):
+    for idx, n in enumerate(N_range[0:10]):
         print idx, n
         pmc = params.mod_copy({'N': n})
 
