@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 from constants import OUTPUT_DIR, COLOURS_DARK_BLUE, COLOURS_DARK_BLUE_YELLOW, X_DARK, Z_DARK, BLUE
-from data_io import read_matrix_data_and_idx_vals, read_params, read_fpt_and_params, read_varying_mean_sd_fpt_and_params
+from data_io import read_matrix_data_and_idx_vals, read_mfpt_heuristic, read_fpt_and_params, read_varying_mean_sd_fpt_and_params
 from firstpassage import fpt_histogram, exponential_scale_estimate, sample_exponential, simplex_heatmap, \
     fp_state_zloc_hist, fp_zloc_times_joint
 from trajectory_analysis import corner_to_flux
@@ -310,7 +310,8 @@ if __name__ == "__main__":
     inspect_fpt_flux = False
     mfpt_single = False
     mfpt_composite = False
-    mfpt_details = True
+    mfpt_details = False
+    mfpt_composite_TR = True
 
     basedir = "data"
     if any([multihist, only_fp_zloc_times_joint, simplex_and_zdist, composite_simplex_zdist, composite_hist_simplex_zdist, inspect_fpt_flux]):
@@ -507,3 +508,35 @@ if __name__ == "__main__":
             ax2 = fp_zloc_times_joint(fpt, fps, params, normalize=True, flag_show=False, kde=False,
                                       figname_mod='_%s_logx' % idx, logx=True, fluxval=fluxval, outdir=basedir)
             plt.close('all')
+
+    if mfpt_composite_TR:
+
+        data_ids = ['TR1g', 'TR4g', 'TR100g']
+        data_ids_to_data = {'TR1g': 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g1',
+                            'TR4g': 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g4',
+                            'TR100g': 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g100'}
+        mfpt_dict = {key: {} for key in data_ids}
+        for key in data_ids:
+            mfpt_dir = basedir + os.sep + 'mfpt' + os.sep + data_ids_to_data[key]
+            mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params = \
+                read_varying_mean_sd_fpt_and_params(mfpt_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N.txt',
+                                                    mfpt_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N_params.csv')
+            mfpt_dict[key]['data'] = {'x': param_set, 'y': mean_fpt_varying}
+        # build heuristics for each data_id...
+        for key in data_ids:
+            heuristic_dir = basedir + os.sep + 'heuristic'
+            fpaths = os.listdir(heuristic_dir)
+            print fpaths
+            for fpath in fpaths:
+                fname = os.path.basename(fpath)
+                print fname, fpath
+                file_split_by_underscore = fname.split('_')
+                if file_split_by_underscore[2] == key:
+                    Narr, mfpt_heuristic = read_mfpt_heuristic(fpath)
+                    mfpt_dict[key][file_split_by_underscore[3]] = {'x': Narr, 'y': mfpt_heuristic}
+        # plot data and heuristics on one plot
+        # TODO
+        figure_mfpt_varying_composite(means, sds, 'N', param_set, params, show_flag=False, figname_mod="",
+                                      outdir=OUTPUT_DIR, fs=20)
+        figure_mfpt_varying_collapsed(means, sds, 'N', param_set, params, show_flag=False, figname_mod="",
+                                      outdir=OUTPUT_DIR, fs=20)
