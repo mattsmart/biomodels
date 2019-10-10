@@ -312,6 +312,8 @@ if __name__ == "__main__":
     mfpt_composite = False
     mfpt_details = False
     mfpt_composite_TR = True
+    mfpt_composite_BL = True
+
 
     basedir = "data"
     if any([multihist, only_fp_zloc_times_joint, simplex_and_zdist, composite_simplex_zdist, composite_hist_simplex_zdist, inspect_fpt_flux]):
@@ -511,9 +513,9 @@ if __name__ == "__main__":
 
     if mfpt_composite_TR:
 
-        data_ids = ['TR1g', 'TR4g', 'TR100g']
+        data_ids = ['TR1g', 'TR100g'] #'TR4g'
         data_ids_to_data = {'TR1g': 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g1',
-                            'TR4g': 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g4',
+                            #'TR4g': 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g4',
                             'TR100g': 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g100'}
         mfpt_dict = {key: {} for key in data_ids}
         for key in data_ids:
@@ -525,18 +527,178 @@ if __name__ == "__main__":
         # build heuristics for each data_id...
         for key in data_ids:
             heuristic_dir = basedir + os.sep + 'heuristic'
-            fpaths = os.listdir(heuristic_dir)
-            print fpaths
-            for fpath in fpaths:
-                fname = os.path.basename(fpath)
+            fnames = os.listdir(heuristic_dir)
+            for fname in fnames:
+                fpath = heuristic_dir + os.sep + fname
                 print fname, fpath
                 file_split_by_underscore = fname.split('_')
                 if file_split_by_underscore[2] == key:
                     Narr, mfpt_heuristic = read_mfpt_heuristic(fpath)
-                    mfpt_dict[key][file_split_by_underscore[3]] = {'x': Narr, 'y': mfpt_heuristic}
+                    mfpt_dict[key][file_split_by_underscore[3][:-4]] = {'x': Narr, 'y': mfpt_heuristic}
         # plot data and heuristics on one plot
-        # TODO
-        figure_mfpt_varying_composite(means, sds, 'N', param_set, params, show_flag=False, figname_mod="",
-                                      outdir=OUTPUT_DIR, fs=20)
-        figure_mfpt_varying_collapsed(means, sds, 'N', param_set, params, show_flag=False, figname_mod="",
-                                      outdir=OUTPUT_DIR, fs=20)
+        ax=None
+        fs=12
+        colours = [X_DARK, '#ffd966', Z_DARK, BLUE, 'pink', 'brown']  # ['black', 'red', 'green', 'blue']
+
+        if ax is None:
+            plt.figure(figsize=(5, 4))
+            ax = plt.gca()        # TODO
+        for idx, key in enumerate(data_ids):
+            subdict = mfpt_dict[key]
+            print key, subdict.keys()
+            for datakey in subdict.keys():
+                x = subdict[datakey]['x']
+                y = subdict[datakey]['y']
+                if datakey == 'data':
+                    ax.plot(x, y, '-', marker='o', markeredgecolor='k', color=colours[idx],
+                            label=r'%s: $\langle\tau\rangle$' % key, zorder=3)
+                elif datakey == 'linalgALLZ':
+                    if key == 'TR100g':
+                        x = x[0:7]
+                        y = y[0:7]
+                    ax.plot(x, y, '-.', marker='*', markeredgecolor='k', color=colours[idx],
+                            label=r'%s: ME allz' % key, zorder=3)
+                elif datakey == 'linalgZHAT':
+                    ax.plot(x, y, '-.', marker='^', markeredgecolor='k', color=colours[idx],
+                            label=r'%s: ME zhat' % key, zorder=3)
+                elif datakey == 'fpRouteFlux':
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color=colours[idx],
+                            label=r'%s: FP route flux' % key, zorder=3)
+                elif datakey == 'fpFlux':
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',#colours[idx],
+                            label=r'%s: FP flux' % key, zorder=3)
+                elif datakey == 'guessPfixThreeTerm' and key=='TR1g':
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
+                            label=r'%s: pfix3' % key, zorder=3)
+                elif datakey == 'guessBlobtimes' and key=='TR100g':
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
+                            label=r'%s: blobtime' % key, zorder=3)
+
+        ax.set_xlabel(r'$N$', fontsize=fs)
+        ax.set_ylabel(r'$\tau$', fontsize=fs)
+        plt.xticks(fontsize=fs - 2)
+        plt.yticks(fontsize=fs - 2)
+        plt.legend()
+        # log options
+        flag_xlog10 = True
+        flag_ylog10 = True
+        if flag_xlog10:
+            # ax.set_xscale("log", nonposx='clip')
+            ax.set_xscale("log")
+            # ax_dual.set_xscale("log", nonposx='clip')
+            ax.set_xlim([np.min(param_set) * 0.9, 1.5 * 1e4])
+        if flag_ylog10:
+            # ax.set_yscale("log", nonposx='clip')
+            ax.set_yscale("log")
+            # ax_dual.set_yscale("log", nonposx='clip')
+            #ax.set_ylim([6 * 1e-1, 3 * 1e6])
+            ax.set_ylim([1e2, 3 * 1e6])
+        plt.show()
+
+    if mfpt_composite_BL:
+
+        data_ids = ['BL1g', 'BL100g'] #'TR4g'
+        data_ids_to_data = {'BL1g': 'mfpt_Nvary_mu1e-4_BL_ens240_xall_g1',
+                            #'TR4g': 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g4',
+                            'BL100g': 'mfpt_Nvary_mu1e-4_BL_ens240_xall_g100'}
+        mfpt_dict = {key: {} for key in data_ids}
+        for key in data_ids:
+            mfpt_dir = basedir + os.sep + 'mfpt' + os.sep + data_ids_to_data[key]
+            mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params = \
+                read_varying_mean_sd_fpt_and_params(mfpt_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N.txt',
+                                                    mfpt_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N_params.csv')
+            mfpt_dict[key]['data'] = {'x': param_set, 'y': mean_fpt_varying}
+        # build heuristics for each data_id...
+        for key in data_ids:
+            heuristic_dir = basedir + os.sep + 'heuristic'
+            fnames = os.listdir(heuristic_dir)
+            for fname in fnames:
+                fpath = heuristic_dir + os.sep + fname
+                print fname, fpath
+                file_split_by_underscore = fname.split('_')
+                if file_split_by_underscore[2] == key:
+                    Narr, mfpt_heuristic = read_mfpt_heuristic(fpath)
+                    mfpt_dict[key][file_split_by_underscore[3][:-4]] = {'x': Narr, 'y': mfpt_heuristic}
+        # plot data and heuristics on one plot
+        ax=None
+        fs=12
+        colours = [X_DARK, '#ffd966', Z_DARK, BLUE, 'pink', 'brown']  # ['black', 'red', 'green', 'blue']
+
+        if ax is None:
+            plt.figure(figsize=(5, 4))
+            ax = plt.gca()        # TODO
+        for idx, key in enumerate(data_ids):
+            subdict = mfpt_dict[key]
+            print subdict.keys()
+            for datakey in subdict.keys():
+                x = subdict[datakey]['x']
+                y = subdict[datakey]['y']
+                if datakey == 'data':
+                    ax.plot(x, y, '-', marker='o', markeredgecolor='k', color=colours[idx],
+                            label=r'%s: $\langle\tau\rangle$' % key, zorder=3)
+                elif datakey == 'linalgALLZ':
+                    if key == 'BL100g':
+                        x = x[0:8]
+                        y = y[0:8]
+                    if key == 'BL1g':
+                        x = x[0:4]
+                        y = y[0:4]
+                    ax.plot(x, y, '-.', marker='*', markeredgecolor='k', color=colours[idx],
+                            label=r'%s: ME allz' % key, zorder=3)
+                elif datakey == 'linalgZHAT':
+                    ax.plot(x, y, '-.', marker='^', markeredgecolor='k', color=colours[idx],
+                            label=r'%s: ME zhat' % key, zorder=3)
+                elif datakey == 'fpRouteFlux':
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color=colours[idx],
+                            label=r'%s: FP route flux' % key, zorder=3)
+                elif datakey == 'fpFlux':
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',#colours[idx],
+                            label=r'%s: FP flux' % key, zorder=3)
+                elif datakey == 'guessBoundaryProb1':
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
+                            label=r'%s: BP1' % key, zorder=3)
+                elif datakey == 'guessBoundaryProb2':
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
+                            label=r'%s: BP2' % key, zorder=3)
+                elif datakey == 'guessBoundaryProb3':
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
+                            label=r'%s: BP3' % key, zorder=3)
+                """
+                elif datakey == 'guessBoundaryTimeDual1':
+                    print 'a', key, y
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
+                            label=r'%s: BTD1' % key, zorder=3)
+                elif datakey == 'guessBoundaryTimeDual2':
+                    print 'b', key, y
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
+                            label=r'%s: BTD2' % key, zorder=3)
+                elif datakey == 'guessBoundaryTimeMono1':
+                    print 'c', key, y
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
+                            label=r'%s: BTM1' % key, zorder=3)
+                elif datakey == 'guessBoundaryTimeMono2':
+                    print 'd', key, y
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
+                            label=r'%s: BTM2' % key, zorder=3)
+                """
+
+        ax.set_xlabel(r'$N$', fontsize=fs)
+        ax.set_ylabel(r'$\tau$', fontsize=fs)
+        plt.xticks(fontsize=fs - 2)
+        plt.yticks(fontsize=fs - 2)
+        plt.legend()
+        # log options
+        flag_xlog10 = True
+        flag_ylog10 = True
+        if flag_xlog10:
+            # ax.set_xscale("log", nonposx='clip')
+            ax.set_xscale("log")
+            # ax_dual.set_xscale("log", nonposx='clip')
+            ax.set_xlim([np.min(param_set) * 0.9, 1.5 * 1e4])
+        if flag_ylog10:
+            # ax.set_yscale("log", nonposx='clip')
+            ax.set_yscale("log")
+            # ax_dual.set_yscale("log", nonposx='clip')
+            #ax.set_ylim([6 * 1e-1, 3 * 1e6])
+            ax.set_ylim([1*1e3, 3 * 1e7])
+        plt.show()
