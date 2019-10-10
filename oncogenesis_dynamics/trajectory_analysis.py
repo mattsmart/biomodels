@@ -104,9 +104,10 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
         sd_fpt_varying = sd_fpt_varying + sd_fpt_varying_extra
 
     curve_fpflux = [corner_to_flux(dataid, params.mod_copy({'N':n})) for n in N_range]
+    write_mfpt_heuristic(N_range, curve_fpflux, filename_mod="_%s_fpFlux" % dataid)
+
     fit_guess = 0.01
     curve_fit = [1/(params.mu * n * fit_guess) for n in N_range]
-    write_mfpt_heuristic(N_range, curve_fit, filename_mod="_%s_fpFlux" % dataid)
 
     def get_blobtime(n, outer_int_upper=None):
         # TODO use f_arr, s_arr, z_arr, y_arr = get_centermanifold_traj(params)
@@ -579,14 +580,14 @@ if __name__ == '__main__':
 
     # DYNAMICS PARAMETERS
     system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
-    feedback = "tanh"  # "constant", "hill", "step", "pwlinear", "tanh"
+    feedback = "constant"  # "constant", "hill", "step", "pwlinear", "tanh"
     params_dict = {
         'alpha_plus': 0.2,
         'alpha_minus': 1.0,  # 0.5
         'mu': 1e-4,  # 0.01
         'a': 1.0,
-        'b': 1.2,
-        'c': 1.1,  # 1.2
+        'b': 0.8,
+        'c': 0.9,  # 1.2
         'N': 100.0,  # 100.0
         'v_x': 0.0,
         'v_y': 0.0,
@@ -594,18 +595,17 @@ if __name__ == '__main__':
         'mu_base': 0.0,
         'c2': 0.0,
         'v_z2': 0.0,
-        'mult_inc': 4.0,
-        'mult_dec': 4.0,
+        'mult_inc': 1.0,
+        'mult_dec': 1.0,
     }
     params = Params(params_dict, system, feedback=feedback)
-    data_id = 'TR4g'
+    data_id = 'BL1g'
 
     N_range = [int(a) for a in np.logspace(1.50515, 4.13159, num=11)] + [int(a) for a in np.logspace(4.8, 7, num=4)]
 
     # OTHER PARAMETERS
     #init_cond = np.zeros(params.numstates, dtype=int)
     #init_cond[0] = int(params.N)
-
     curve_heuristic = [0]*len(N_range)
     for idx, N in enumerate(N_range):
         pv = params.mod_copy({'N': N})
