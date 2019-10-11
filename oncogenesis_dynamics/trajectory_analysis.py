@@ -131,7 +131,6 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
                 for j, z in enumerate(z_arr[:-1]):
                     if z < zmid:
                         smid = (s_arr[j + 1] + s_arr[j]) / 2
-                        """
                         if smid < 0:
                             factor_B_expsum += 0
                         else:
@@ -140,6 +139,7 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
                         """
                         dzInner = z_arr[j + 1] - z_arr[j]
                         factor_B_expsum += smid * dzInner
+                        """
                     else:
                         factor_B_expsum += 0
                         # break
@@ -356,15 +356,17 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
         s_renorm = (params.c/init_avg_div) - 1
         print "s_renorm", s_renorm
 
+        """
         curve_fit_guess = [1/(params.mu * n * yfrac_pt0) * (n * zfrac_pt1)         # last factor is 1/pfix
                            + 1/(params.mu * n * zfrac_pt1)                         # direct flux from z1
                            + 1/(params.mu * n * yfrac_pt1) * 1/(np.sqrt(params.mu * n * s_renorm))     # flux from y->z->zhat
                            for n in N_range]
         write_mfpt_heuristic(N_range, curve_fit_guess, filename_mod="_%s_guessPfixThreeTerm" % dataid)
+        """
 
         # TRg100 heuristic blobtimes
-        N_range_dense = np.logspace(np.log10(N_range[0]), np.log10(N_range[-1]), 4*len(N_range))
-        curve_fit_guess = [1/(params.mu * n * yfrac_pt0 * (1 - np.exp(-params.mu * get_blobtime(n)**2)))  # last factor is pfix
+        N_range_dense = np.logspace(np.log10(N_range[0]), np.log10(N_range[-5]), 2*len(N_range))
+        curve_fit_guess = [1/(params.mu * n * yfrac_pt0 * (1 - np.exp(-params.mu * get_blobtime(n,outer_int_upper=None)**2)))  # last factor is pfix
                            + 0 * 1/(params.mu * n * zfrac_pt1)                                               # direct flux from z1
                            + 0 * 1/(params.mu * n * yfrac_pt1) * 1/(np.sqrt(params.mu * n * s_renorm))       # flux from y->z->zhat
                            for n in N_range_dense]

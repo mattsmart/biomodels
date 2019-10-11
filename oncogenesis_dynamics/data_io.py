@@ -163,7 +163,6 @@ def read_mfpt_heuristic(fpath):
     X = np.loadtxt(fpath)
     x = list(X[:, 0])
     y = list(X[:, 1])
-    print "x", x
     return x, y
 
 

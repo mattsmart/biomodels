@@ -530,7 +530,6 @@ if __name__ == "__main__":
             fnames = os.listdir(heuristic_dir)
             for fname in fnames:
                 fpath = heuristic_dir + os.sep + fname
-                print fname, fpath
                 file_split_by_underscore = fname.split('_')
                 if file_split_by_underscore[2] == key:
                     Narr, mfpt_heuristic = read_mfpt_heuristic(fpath)
@@ -541,7 +540,7 @@ if __name__ == "__main__":
         colours = [X_DARK, '#ffd966', Z_DARK, BLUE, 'pink', 'brown']  # ['black', 'red', 'green', 'blue']
 
         if ax is None:
-            plt.figure(figsize=(5, 4))
+            plt.figure(figsize=(9, 4))
             ax = plt.gca()        # TODO
         for idx, key in enumerate(data_ids):
             subdict = mfpt_dict[key]
@@ -571,14 +570,18 @@ if __name__ == "__main__":
                     ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
                             label=r'%s: pfix3' % key, zorder=3)
                 elif datakey == 'guessBlobtimes' and key=='TR100g':
-                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='gray',  # colours[idx],
                             label=r'%s: blobtime' % key, zorder=3)
+                elif datakey == 'guessBlobtimesPosSvals' and key=='TR100g':
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
+                            label=r'%s: blobtime $s>0$' % key, zorder=3)
 
         ax.set_xlabel(r'$N$', fontsize=fs)
         ax.set_ylabel(r'$\tau$', fontsize=fs)
         plt.xticks(fontsize=fs - 2)
         plt.yticks(fontsize=fs - 2)
-        plt.legend()
+        plt.legend(bbox_to_anchor=(1.1, 1.05))
+        #plt.legend()
         # log options
         flag_xlog10 = True
         flag_ylog10 = True
@@ -614,7 +617,6 @@ if __name__ == "__main__":
             fnames = os.listdir(heuristic_dir)
             for fname in fnames:
                 fpath = heuristic_dir + os.sep + fname
-                print fname, fpath
                 file_split_by_underscore = fname.split('_')
                 if file_split_by_underscore[2] == key:
                     Narr, mfpt_heuristic = read_mfpt_heuristic(fpath)
@@ -625,11 +627,11 @@ if __name__ == "__main__":
         colours = [X_DARK, '#ffd966', Z_DARK, BLUE, 'pink', 'brown']  # ['black', 'red', 'green', 'blue']
 
         if ax is None:
-            plt.figure(figsize=(5, 4))
+            plt.figure(figsize=(9, 5))
             ax = plt.gca()        # TODO
         for idx, key in enumerate(data_ids):
             subdict = mfpt_dict[key]
-            print subdict.keys()
+            print key, subdict.keys()
             for datakey in subdict.keys():
                 x = subdict[datakey]['x']
                 y = subdict[datakey]['y']
@@ -654,7 +656,7 @@ if __name__ == "__main__":
                 elif datakey == 'fpFlux':
                     ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',#colours[idx],
                             label=r'%s: FP flux' % key, zorder=3)
-                elif datakey == 'guessBoundaryProb1':
+                elif datakey == 'guessBoundaryProb1' and key != 'BL1g':
                     ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
                             label=r'%s: BP1' % key, zorder=3)
                 elif datakey == 'guessBoundaryProb2':
@@ -686,7 +688,8 @@ if __name__ == "__main__":
         ax.set_ylabel(r'$\tau$', fontsize=fs)
         plt.xticks(fontsize=fs - 2)
         plt.yticks(fontsize=fs - 2)
-        plt.legend()
+        plt.legend(bbox_to_anchor=(1.07, 1.00))
+        #plt.legend()
         # log options
         flag_xlog10 = True
         flag_ylog10 = True
