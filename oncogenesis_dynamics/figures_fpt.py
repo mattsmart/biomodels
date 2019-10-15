@@ -331,12 +331,12 @@ if __name__ == "__main__":
         """
 
         title = "N100_xall"
-        keys = ['BL_%s_g1' % title, 'BL_%s' % title, 'BL_%s_g100' % title,
-                'TR_%s_g1' % title, 'TR_%s' % title, 'TR_%s_g100' % title]
+        keys = ['BL_%s_g1' % title, 'BL_%s_g4' % title, 'BL_%s_g100' % title,
+                'TR_%s_g1' % title, 'TR_%s_g4' % title, 'TR_%s_g100' % title]
         #labels = ["b=0.80, c=1.10 (Region II)", "b=1.20, c=1.10 (Region III)", "b=0.80, c=0.90 (Region IV)", "b=1.20, c=0.90 (Region I)"]
         labels = [r"$b=0.8$, $c=0.9$, $\gamma=1$", r"$b=0.8$, $c=0.9$, $\gamma=4$", r"$b=0.8$, $c=0.9$, $\gamma=100$",
                   r"$b=1.2$, $c=1.1$, $\gamma=1$", r"$b=1.2$, $c=1.1$, $\gamma=4$", r"$b=1.2$, $c=1.1$, $\gamma=100$",]
-        corners = ['BL1g', 'BL', 'BL100g', 'TR1g', 'TR', 'TR100g']
+        corners = ['BL1g', 'BL4g', 'BL100g', 'TR1g', 'TR4g', 'TR100g']
         num_hists = len(keys)
 
     if multihist:
@@ -411,16 +411,17 @@ if __name__ == "__main__":
         for i, key in enumerate(keys):
             # TODO all
             #key = 'TR_N100_icfp_extra'
+            print i, key
             fpt, fps, params = datdict[key]['times'], datdict[key]['states'], datdict[key]['params']
             #fluxval = corner_to_flux('TR', params)
             fluxval = corner_to_flux(corners[i], params)
             # fluxval = None
             print key, np.min(fpt), np.max(fpt), np.mean(fpt), len(fpt)
-            ax1 = fp_zloc_times_joint(fpt, fps, params, normalize=True, flag_show=False, kde=False,
-                                      figname_mod='_%s' % key, logx=False, fluxval=fluxval, outdir=basedir)
+            ax1 = fp_zloc_times_joint(fpt, fps, params, normalize=True, flag_show=False, color='RosyBrown',
+                                      figname_mod='_%s_logx_color' % key, logx=True, fluxval=None, outdir=basedir)
             plt.close('all')
-            ax2 = fp_zloc_times_joint(fpt, fps, params, normalize=True, flag_show=False, kde=False,
-                                      figname_mod='_%s_logx' % key, logx=True, fluxval=fluxval, outdir=basedir)
+            ax2 = fp_zloc_times_joint(fpt, fps, params, normalize=True, flag_show=False,
+                                      figname_mod='_%s_logx' % key, logx=True, fluxval=None, outdir=basedir)
             plt.close('all')
     if composite_simplex_zdist:
         # as 2 subplots
@@ -544,7 +545,7 @@ if __name__ == "__main__":
         colours = [X_DARK, '#ffd966', Z_DARK, BLUE, 'pink', 'brown']  # ['black', 'red', 'green', 'blue']
 
         if ax is None:
-            plt.figure(figsize=(9, 4))
+            plt.figure(figsize=(5, 3))
             ax = plt.gca()        # TODO
         for idx, key in enumerate(data_ids):
             subdict = mfpt_dict[key]
@@ -552,39 +553,49 @@ if __name__ == "__main__":
             for datakey in subdict.keys():
                 x = subdict[datakey]['x']
                 y = subdict[datakey]['y']
+
+                if key == 'TR1g':
+                    gammaval = 1
+                else:
+                    assert key == 'TR100g'
+                    gammaval = 100
+
                 if datakey == 'data':
                     ax.plot(x, y, '-', marker='o', markeredgecolor='k', color=colours[idx],
-                            label=r'%s: $\langle\tau\rangle$' % key, zorder=3)
+                            label=r'$\gamma=%d$: $\langle\tau\rangle$' % gammaval, zorder=3)
                 elif datakey == 'linalgALLZ':
                     if key == 'TR100g':
                         x = x[0:7]
                         y = y[0:7]
                     ax.plot(x, y, '-.', marker='*', markeredgecolor='k', color=colours[idx],
-                            label=r'%s: ME allz' % key, zorder=3)
+                            label=r'$\gamma=%d$: ME allz' % gammaval, zorder=3)
                 elif datakey == 'linalgZHAT':
                     ax.plot(x, y, '-.', marker='^', markeredgecolor='k', color=colours[idx],
-                            label=r'%s: ME zhat' % key, zorder=3)
+                            label=r'$\gamma=%d$: ME zhat' % gammaval, zorder=3)
                 elif datakey == 'fpRouteFlux':
-                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color=colours[idx],
-                            label=r'%s: FP route flux' % key, zorder=3)
+                    continue
+                    #ax.plot(x, y, '--', marker=None, markeredgecolor='k', color=colours[idx],
+                    #        label=r'$\gamma=%d$: FP route flux' % gammaval, zorder=3)
                 elif datakey == 'fpFlux':
-                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',#colours[idx],
-                            label=r'%s: FP flux' % key, zorder=3)
+                    continue
+                    #ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',#colours[idx],
+                    #        label=r'$\gamma=%d$: FP flux' % gammaval, zorder=3)
                 elif datakey == 'guessPfixThreeTerm' and key=='TR1g':
                     ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
-                            label=r'%s: pfix3' % key, zorder=3)
+                            label=r'$\gamma=1$: pfix3', zorder=3)
                 elif datakey == 'guessBlobtimes' and key=='TR100g':
-                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='gray',  # colours[idx],
-                            label=r'%s: blobtime' % key, zorder=3)
+                    continue
+                    #ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='gray',  # colours[idx],
+                    #        label=r'$\gamma=100$: blobtime', zorder=3)
                 elif datakey == 'guessBlobtimesPosSvals' and key=='TR100g':
                     ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
-                            label=r'%s: blobtime $s>0$' % key, zorder=3)
+                            label=r'$\gamma=100$: blobtime $s>0$', zorder=3)
 
         ax.set_xlabel(r'$N$', fontsize=fs)
         ax.set_ylabel(r'$\tau$', fontsize=fs)
         plt.xticks(fontsize=fs - 2)
         plt.yticks(fontsize=fs - 2)
-        plt.legend(bbox_to_anchor=(1.1, 1.05))
+        plt.legend(bbox_to_anchor=(1.1, 1.05), fontsize=fs-4)
         #plt.legend()
         # log options
         flag_xlog10 = True
@@ -600,7 +611,8 @@ if __name__ == "__main__":
             # ax_dual.set_yscale("log", nonposx='clip')
             #ax.set_ylim([6 * 1e-1, 3 * 1e6])
             ax.set_ylim([1e2, 3 * 1e6])
-        plt.show()
+        #plt.show()
+        plt.savefig(basedir + os.sep + 'mfpt_TR_heuristics.pdf')
 
     if mfpt_composite_BL:
 
@@ -631,7 +643,7 @@ if __name__ == "__main__":
         colours = [X_DARK, '#ffd966', Z_DARK, BLUE, 'pink', 'brown']  # ['black', 'red', 'green', 'blue']
 
         if ax is None:
-            plt.figure(figsize=(9, 5))
+            plt.figure(figsize=(5, 3))
             ax = plt.gca()        # TODO
         for idx, key in enumerate(data_ids):
             subdict = mfpt_dict[key]
@@ -639,9 +651,17 @@ if __name__ == "__main__":
             for datakey in subdict.keys():
                 x = subdict[datakey]['x']
                 y = subdict[datakey]['y']
+
+                if key == 'BL1g':
+                    gammaval = 1
+                else:
+                    assert key == 'BL100g'
+                    gammaval = 100
+
+
                 if datakey == 'data':
                     ax.plot(x, y, '-', marker='o', markeredgecolor='k', color=colours[idx],
-                            label=r'%s: $\langle\tau\rangle$' % key, zorder=3)
+                            label=r'$\gamma=%d$: $\langle\tau\rangle$' % gammaval, zorder=3)
                 elif datakey == 'linalgALLZ':
                     if key == 'BL100g':
                         x = x[0:8]
@@ -650,25 +670,28 @@ if __name__ == "__main__":
                         x = x[0:4]
                         y = y[0:4]
                     ax.plot(x, y, '-.', marker='*', markeredgecolor='k', color=colours[idx],
-                            label=r'%s: ME allz' % key, zorder=3)
+                            label=r'$\gamma=%d$: ME allz' % gammaval, zorder=3)
                 elif datakey == 'linalgZHAT':
                     ax.plot(x, y, '-.', marker='^', markeredgecolor='k', color=colours[idx],
-                            label=r'%s: ME zhat' % key, zorder=3)
+                            label=r'$\gamma=%d$: ME zhat' % gammaval, zorder=3)
                 elif datakey == 'fpRouteFlux':
                     ax.plot(x, y, '--', marker=None, markeredgecolor='k', color=colours[idx],
-                            label=r'%s: FP route flux' % key, zorder=3)
+                            label=r'$\gamma=%d$: FP route flux' % gammaval, zorder=3)
                 elif datakey == 'fpFlux':
-                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',#colours[idx],
-                            label=r'%s: FP flux' % key, zorder=3)
+                    #ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',#colours[idx],
+                    #        label=r'$\gamma=%d$: FP flux' % gammaval, zorder=3)
+                    continue
                 elif datakey == 'guessBoundaryProb1' and key != 'BL1g':
-                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
-                            label=r'%s: BP1' % key, zorder=3)
+                    #ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
+                    #        label=r'$\gamma=%d$: BP1' % gammaval, zorder=3)
+                    continue
                 elif datakey == 'guessBoundaryProb2':
-                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
-                            label=r'%s: BP2' % key, zorder=3)
+                    #ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
+                    #        label=r'$\gamma=%d$: BP2' % gammaval, zorder=3)
+                    continue
                 elif datakey == 'guessBoundaryProb3':
                     ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
-                            label=r'%s: BP3' % key, zorder=3)
+                            label=r'$\gamma=%d$: BP3' % gammaval, zorder=3)
                 """
                 elif datakey == 'guessBoundaryTimeDual1':
                     print 'a', key, y
@@ -692,7 +715,7 @@ if __name__ == "__main__":
         ax.set_ylabel(r'$\tau$', fontsize=fs)
         plt.xticks(fontsize=fs - 2)
         plt.yticks(fontsize=fs - 2)
-        plt.legend(bbox_to_anchor=(1.07, 1.00))
+        plt.legend(bbox_to_anchor=(1.07, 1.00), fontsize=fs-4)
         #plt.legend()
         # log options
         flag_xlog10 = True
@@ -708,4 +731,5 @@ if __name__ == "__main__":
             # ax_dual.set_yscale("log", nonposx='clip')
             #ax.set_ylim([6 * 1e-1, 3 * 1e6])
             ax.set_ylim([1*1e3, 3 * 1e7])
-        plt.show()
+        #plt.show()
+        plt.savefig(basedir + os.sep + 'mfpt_BL_heuristics.pdf')
