@@ -6,6 +6,7 @@ from constants import OUTPUT_DIR, COLOURS_DARK_BLUE, COLOURS_DARK_BLUE_YELLOW, X
 from data_io import read_matrix_data_and_idx_vals, read_mfpt_heuristic, read_fpt_and_params, read_varying_mean_sd_fpt_and_params
 from firstpassage import fpt_histogram, exponential_scale_estimate, sample_exponential, simplex_heatmap, \
     fp_state_zloc_hist, fp_zloc_times_joint
+from plotting import plot_simplex2D
 from trajectory_analysis import corner_to_flux
 
 
@@ -399,9 +400,12 @@ if __name__ == "__main__":
             # TODO add fpt  hist to the composite?
             fpt, fps, params = datdict[key]['times'], datdict[key]['states'], datdict[key]['params']
             label = labels[i]
-            ax1 = simplex_heatmap(fpt, fps, params, smallfig=False, flag_show=False, figname_mod='_%s' % key, outdir=basedir)
+            ax1 = plot_simplex2D(params, smallfig=False)
+            plt.savefig(basedir + os.sep + 'simplex_%s' % key + '.pdf')
             plt.close('all')
-            ax2 = fp_state_zloc_hist(fpt, fps, params, normalize=True, flag_show=False, kde=True, figname_mod='_%s' % key, outdir=basedir)
+            ax2 = simplex_heatmap(fpt, fps, params, smallfig=False, flag_show=False, figname_mod='_%s' % key, outdir=basedir, colour=False)
+            plt.close('all')
+            ax3 = fp_state_zloc_hist(fpt, fps, params, normalize=True, flag_show=False, kde=True, figname_mod='_%s' % key, outdir=basedir)
             plt.close('all')
     if only_fp_zloc_times_joint:
         for i, key in enumerate(keys):

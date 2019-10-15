@@ -64,10 +64,10 @@ def presets(preset_label):
             'alpha_plus': 0.2,
             'alpha_minus': 1.0,  # 0.5
             'mu': 0.0001,  # 0.01
-            'mu_1': 0.001,
+            'mu_1': 0.0001,
             'a': 1.0,
-            'b': 1.2,
-            'c': 1.1,  # 1.2
+            'b': 0.8,
+            'c': 0.9,  # 1.2
             'N': 100.0,  # 100.0
             'v_x': 0.0,
             'v_y': 0.0,
@@ -76,8 +76,8 @@ def presets(preset_label):
             'c2': 0.0,
             'v_z2': 0.0,
             'switching_ratio': 0.5,
-            'mult_inc': 4.0,
-            'mult_dec': 4.0,
+            'mult_inc': 100.0,
+            'mult_dec': 100.0,
         }
         params = Params(params_dict, system, feedback=feedback)
 

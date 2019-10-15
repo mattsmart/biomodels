@@ -125,11 +125,11 @@ def plot_simplex2D(params, streamlines=True, fp=True, cbar=False, smallfig=False
         nn = 20
         ylim_mod = 0.08
     else:
-        figsize=(4, 3)
+        figsize=(3, 2.5)  # 4,3 orig, else 3, 2.5 for stoch fig
         text_fs = 20
         ms = 10
         stlw = 0.5
-        nn = 100
+        nn = 100  # 100
         ylim_mod = 0.04
 
     if ax is None:
@@ -172,8 +172,9 @@ def plot_simplex2D(params, streamlines=True, fp=True, cbar=False, smallfig=False
                     SPEEDS[i, j] = np.sqrt(dxvecdt[0]**2 + dxvecdt[1]**2 + dxvecdt[2]**2)
                     ADOT[i, j] = (-dxvecdt[0] + dxvecdt[1])/2.0  # (- xdot + ydot) / 2
                     BDOT[i, j] = dxvecdt[2]                      # zdot
+
         if smallfig:
-            strm = ax.streamplot(A, B, ADOT, BDOT, color=(0.34, 0.34, 0.34), linewidth=stlw, arrowsize=1.3, density=0.5), #maxlength=1.0)
+            strm = ax.streamplot(A, B, ADOT, BDOT, color=(0.34, 0.34, 0.34), linewidth=stlw, arrowsize=1.3, density=0.5, zorder=10), #maxlength=1.0)
         else:
             # this will color lines
             """
@@ -187,7 +188,7 @@ def plot_simplex2D(params, streamlines=True, fp=True, cbar=False, smallfig=False
             speeds_low = np.min(SPEEDS)
             speeds_high = np.max(SPEEDS)
             speeds_conv = 0.3 + SPEEDS / speeds_high
-            strm = ax.streamplot(A, B, ADOT, BDOT, color=(0.34, 0.34, 0.34), linewidth=speeds_conv)
+            strm = ax.streamplot(A, B, ADOT, BDOT, color=(0.34, 0.34, 0.34), linewidth=speeds_conv, zorder=10)
 
     if fp:
         stable_fps = []
@@ -203,11 +204,11 @@ def plot_simplex2D(params, streamlines=True, fp=True, cbar=False, smallfig=False
         for fp in stable_fps:
             fp_x = (N + fp[1] - fp[0]) / 2.0
             #plt.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', color='k')
-            ax.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', color=(0.212, 0.271, 0.31), zorder=10)  # #b88c8c is pastel reddish, (0.212, 0.271, 0.31) blueish
+            ax.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', color=(0.212, 0.271, 0.31), zorder=11)  # #b88c8c is pastel reddish, (0.212, 0.271, 0.31) blueish
         for fp in unstable_fps:
             fp_x = (N + fp[1] - fp[0]) / 2.0
             #plt.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', markerfacecolor="None")
-            ax.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', color=(0.902, 0.902, 0.902), zorder=10)
+            ax.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', color=(0.902, 0.902, 0.902), zorder=11)
 
     ax.set_ylim(-N*ylim_mod, N*(1+ylim_mod))
     ax.axis('off')
@@ -396,6 +397,6 @@ if __name__ == '__main__':
     #fig = plot_simplex(100)
     #plt.show()
     params = presets('preset_xyz_tanh')
-    ax = plot_simplex2D(params, smallfig=True)
+    ax = plot_simplex2D(params, smallfig=False)
     plt.savefig(OUTPUT_DIR + sep + 'simplex_plot.pdf')
     plt.show()
