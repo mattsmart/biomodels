@@ -356,7 +356,7 @@ def fp_state_zloc_hist(fp_times, fp_states, params, ax=None, normalize=False, fp
     return ax
 
 
-def fp_zloc_times_joint(fp_times, fp_states, params, ax=None, normalize=False, fp=True, kde=False, flag_show=True,
+def fp_zloc_times_joint(fp_times, fp_states, params, ax=None, normalize=False, fp=True, color='grey', flag_show=True,
                         mean=True, logx=True, outdir=OUTPUT_DIR, figname_mod="", fluxval=None, save=True):
     """
     seaborn documentation: https://seaborn.pydata.org/generated/seaborn.jointplot.html
@@ -401,7 +401,7 @@ def fp_zloc_times_joint(fp_times, fp_states, params, ax=None, normalize=False, f
         xbins = np.logspace(np.log10(np.min(fp_times)), np.log10(np.max(fp_times)), nbins)
 
     g = seaborn.JointGrid(x=fp_times, y=fp_zcoord)
-    g = g.plot_joint(plt.scatter, color="grey", alpha=0.6, s=40)#, edgecolor="white")
+    g = g.plot_joint(plt.scatter, color=color, alpha=0.6, s=40)#, edgecolor="white")
     #g = g.plot_marginals(seaborn.distplot, kde=kde, color="g")
     _ = g.ax_marg_y.hist(fp_zcoord, color="grey", alpha=.6, orientation="horizontal", bins=nbins)
     if logx:
@@ -432,7 +432,7 @@ def fp_zloc_times_joint(fp_times, fp_states, params, ax=None, normalize=False, f
 
     if mean:
         meantau = np.mean(fp_times)
-        g.ax_joint.axvline(meantau, linestyle='-', linewidth=1.0, color='k')
+        g.ax_joint.axvline(meantau, linestyle='-', linewidth=2.0, color='k')
 
     # plot fp horizontal line
     if fp:
@@ -450,7 +450,12 @@ def fp_zloc_times_joint(fp_times, fp_states, params, ax=None, normalize=False, f
             coord = fp[2]
             if normalize:
                 coord = coord / params.N
-            g.ax_joint.axhline(coord, linestyle='--', linewidth=1.0, color='k')
+            g.ax_joint.axhline(coord, linestyle='-', linewidth=2.0, color='k')
+        for fp in unstable_fps:
+            coord = fp[2]
+            if normalize:
+                coord = coord / params.N
+            g.ax_joint.axhline(coord, linestyle='--', linewidth=2.0, color='k')
         """
         for fp in unstable_fps:
             fp_x = (N + fp[1] - fp[0]) / 2.0
