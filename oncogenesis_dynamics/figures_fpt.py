@@ -580,16 +580,30 @@ if __name__ == "__main__":
                     continue
                     #ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',#colours[idx],
                     #        label=r'$\gamma=%d$: FP flux' % gammaval, zorder=3)
-                elif datakey == 'guessPfixThreeTerm' and key=='TR1g':
+                elif datakey == 'guessPfixTerm123':
                     ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
-                            label=r'$\gamma=1$: pfix3', zorder=3)
+                            label=r'$\gamma=%d$: pfix3' % gammaval, zorder=3)
+                elif datakey == 'guessPfixTerm1':
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='gray',  # colours[idx],
+                            label=r'$\gamma=%d$: pfix1' % gammaval, zorder=3)
                 elif datakey == 'guessBlobtimes' and key=='TR100g':
-                    continue
-                    #ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='gray',  # colours[idx],
-                    #        label=r'$\gamma=100$: blobtime', zorder=3)
+                    #continue
+                    ax.plot(x, y, '-.', marker=None, markeredgecolor='k', color='gray',  # colours[idx],
+                            label=r'$\gamma=100$: blobtimes', zorder=3)
                 elif datakey == 'guessBlobtimesPosSvals' and key=='TR100g':
-                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
-                            label=r'$\gamma=100$: blobtime $s>0$', zorder=3)
+                    continue
+                    #ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
+                    #        label=r'$\gamma=100$: blobtimes $s>0$', zorder=3)
+                elif datakey[0:len('guessBoundaryTime')] == 'guessBoundaryTime' and key=='TR100g':
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='gray',  # colours[idx],
+                            label=r'$\gamma=100$: FPE boundary time %s' % datakey[-5:], zorder=3)
+                    print datakey
+                    print y
+                elif datakey[0:len('guessBoundaryProb')] == 'guessBoundaryProb' and key=='TR100g':
+                    print x, datakey
+                    cols = {'1': 'red', '2':'blue', '3':'black'}
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color=cols[datakey[-1]],  # colours[idx],
+                            label=r'$\gamma=100$: FPE boundary prob %s' % datakey[-1], zorder=3)
 
         ax.set_xlabel(r'$N$', fontsize=fs)
         ax.set_ylabel(r'$\tau$', fontsize=fs)
@@ -658,7 +672,6 @@ if __name__ == "__main__":
                     assert key == 'BL100g'
                     gammaval = 100
 
-
                 if datakey == 'data':
                     ax.plot(x, y, '-', marker='o', markeredgecolor='k', color=colours[idx],
                             label=r'$\gamma=%d$: $\langle\tau\rangle$' % gammaval, zorder=3)
@@ -669,8 +682,9 @@ if __name__ == "__main__":
                     if key == 'BL1g':
                         x = x[0:4]
                         y = y[0:4]
-                    ax.plot(x, y, '-.', marker='*', markeredgecolor='k', color=colours[idx],
-                            label=r'$\gamma=%d$: ME allz' % gammaval, zorder=3)
+                    #ax.plot(x, y, '-.', marker='*', markeredgecolor='k', color=colours[idx],
+                    #        label=r'$\gamma=%d$: ME allz' % gammaval, zorder=3)
+                    continue
                 elif datakey == 'linalgZHAT':
                     ax.plot(x, y, '-.', marker='^', markeredgecolor='k', color=colours[idx],
                             label=r'$\gamma=%d$: ME zhat' % gammaval, zorder=3)
