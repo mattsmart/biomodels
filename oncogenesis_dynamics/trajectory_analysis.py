@@ -327,11 +327,14 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
         print "s_renorm", s_renorm
         pfix = s_renorm
         # TRg1 heuristic fixation at all-z
-        curve_fit_guess = [1/(params.mu * n * yfracTRg1 * pfix)
-                           + np.log(n * s_renorm)/s_renorm
-                           + 0.577/s_renorm
+        curve_fit_guess = [1 / (params.mu * n * yfracTRg1 * s_renorm)
                            for n in N_range]
-        write_mfpt_heuristic(N_range, curve_fit_guess, filename_mod="_%s_guessPfixThreeTerm" % dataid)
+        write_mfpt_heuristic(N_range, curve_fit_guess, filename_mod="_%s_guessPfixTerm1" % dataid)
+        curve_fit_guess = [1/(params.mu * n * yfracTRg1 * s_renorm)         # last factor is 1/pfix
+                           + np.log(n * s_renorm) / s_renorm
+                           + 0.577/s_renorm     # flux from y->z->zhat
+                           for n in N_range]
+        write_mfpt_heuristic(N_range, curve_fit_guess, filename_mod="_%s_guessPfixTerm123" % dataid)
 
 
         N_range_alt = N_range[0:10]
@@ -356,13 +359,14 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
         s_renorm = (params.c/init_avg_div) - 1
         print "s_renorm", s_renorm
 
-        """
-        curve_fit_guess = [1/(params.mu * n * yfrac_pt0) * (n * zfrac_pt1)         # last factor is 1/pfix
-                           + 1/(params.mu * n * zfrac_pt1)                         # direct flux from z1
-                           + 1/(params.mu * n * yfrac_pt1) * 1/(np.sqrt(params.mu * n * s_renorm))     # flux from y->z->zhat
+        curve_fit_guess = [1 / (params.mu * n * yfrac_pt0 * s_renorm)
                            for n in N_range]
-        write_mfpt_heuristic(N_range, curve_fit_guess, filename_mod="_%s_guessPfixThreeTerm" % dataid)
-        """
+        write_mfpt_heuristic(N_range, curve_fit_guess, filename_mod="_%s_guessPfixTerm1" % dataid)
+        curve_fit_guess = [1/(params.mu * n * yfrac_pt0 * s_renorm)         # last factor is 1/pfix
+                           + np.log(n * s_renorm) / s_renorm
+                           + 0.577/s_renorm     # flux from y->z->zhat
+                           for n in N_range]
+        write_mfpt_heuristic(N_range, curve_fit_guess, filename_mod="_%s_guessPfixTerm123" % dataid)
 
         # TRg100 heuristic blobtimes
         N_range_dense = np.logspace(np.log10(N_range[0]), np.log10(N_range[-5]), 2*len(N_range))
@@ -384,6 +388,41 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
         print 'curve_fit_guess2', curve_fit_linalg2
         write_mfpt_heuristic(N_range_alt, curve_fit_linalg1, filename_mod="_%s_linalgALLZ" % dataid)
         write_mfpt_heuristic(N_range_alt, curve_fit_linalg2, filename_mod="_%s_linalgZHAT" % dataid)
+
+        # mfpt FPE heuristic (TODO how to combine these))
+        """
+        N_range_timeBoundary = N_range[0:7]  # np.logspace(np.log10(N_range[0]), np.log10(N_range[-1]), 1*len(N_range))
+        curve_fit_guessTime1 = [1 / (params.mu * n * yfrac_pt0 *
+                                 time_to_hit_boundary(n, dual_absorb=False, int_lower=0.0, int_upper=fp_stable[2], init_z=1.0))
+                                 for n in N_range_timeBoundary]
+        curve_fit_guessTime2 = [1 / (params.mu * n * yfrac_pt0 *
+                                 time_to_hit_boundary(n, dual_absorb=False, int_lower=0.0, int_upper=None, init_z=1.0))
+                                 for n in N_range_timeBoundary]
+        curve_fit_guessTime3 = [1 / (params.mu * n * yfrac_pt0 *
+                                 time_to_hit_boundary(n, dual_absorb=True, int_lower=0.0, int_upper=fp_stable[2], init_z=1.0))
+                                 for n in N_range_timeBoundary]
+        curve_fit_guessTime4 = [1 / (params.mu * n * yfrac_pt0 *
+                                 time_to_hit_boundary(n, dual_absorb=True, int_lower=0.0, int_upper=None, init_z=1.0))
+                                 for n in N_range_timeBoundary]
+        write_mfpt_heuristic(N_range_timeBoundary, curve_fit_guessTime1, filename_mod="_%s_guessBoundaryTimeMono1" % dataid)
+        write_mfpt_heuristic(N_range_timeBoundary, curve_fit_guessTime2, filename_mod="_%s_guessBoundaryTimeMono2" % dataid)
+        write_mfpt_heuristic(N_range_timeBoundary, curve_fit_guessTime3, filename_mod="_%s_guessBoundaryTimeDual1" % dataid)
+        write_mfpt_heuristic(N_range_timeBoundary, curve_fit_guessTime4, filename_mod="_%s_guessBoundaryTimeDual2" % dataid)
+        """
+        # prob hit boundary heuristic
+        N_range_probBoundary = N_range[0:7]  # np.logspace(np.log10(N_range[0]), np.log10(N_range[-1]), 1*len(N_range))
+        curve_fit_guessProb1 = [1 / (params.mu * n * yfrac_pt0 *
+                                 prob_to_hit_boundary(n, int_lower=0.0, int_upper=fp_stable[2], init_z=1.0))
+                                 for n in N_range]
+        curve_fit_guessProb2 = [1 / (params.mu * n * yfrac_pt0 *
+                                 prob_to_hit_boundary(n, int_lower=0.0, int_upper=0.5, init_z=1.0))
+                                 for n in N_range_probBoundary]
+        curve_fit_guessProb3 = [1 / (params.mu * n * yfrac_pt0 *
+                                 prob_to_hit_boundary(n, int_lower=0.0, int_upper=1.0, init_z=1.0))
+                                 for n in N_range_probBoundary]
+        write_mfpt_heuristic(N_range, curve_fit_guessProb1, filename_mod="_%s_guessBoundaryProb1" % dataid)
+        write_mfpt_heuristic(N_range_probBoundary, curve_fit_guessProb2, filename_mod="_%s_guessBoundaryProb2" % dataid)
+        write_mfpt_heuristic(N_range_probBoundary, curve_fit_guessProb3, filename_mod="_%s_guessBoundaryProb3" % dataid)
 
     elif dataid == 'TR4g':
         assert params.mult_inc == 4.0 and params.feedback != 'constant'
