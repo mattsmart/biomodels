@@ -148,6 +148,23 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
         print 'blobtime', n, blobtime_A, blobtime_B
         return blobtime
 
+    def pfix_laplace_blobtime(s, n):
+        T = get_blobtime(n, outer_int_upper=None)
+        alphaplus = ((2 + s + params.mu) + np.sqrt((2 + s + params.mu) ** 2 - 4 * (1 + s))) / (2 * (1 + s))
+        alphaminus = ((2 + s + params.mu) - np.sqrt((2 + s + params.mu) ** 2 - 4 * (1 + s))) / (2 * (1 + s))
+        N0 = alphaplus - 1
+        N1 = 1 - alphaminus
+        expco = (1 + s) * (alphaplus - alphaminus)
+        # expansion of den of phi(mu,t) coefficients
+        a0 = 1/(N0+N1)
+        a1 = (N1 * expco)/(N0+N1)**2
+        # pfix coefficients
+        c0 = N0 * (alphaminus - alphaplus) * a0 + alphaplus
+        c1 = N0 * (alphaminus - alphaplus) * a1
+        pfix = 1 - c0 - c1 * T
+        return pfix
+
+
     def time_to_hit_boundary(Nval, dual_absorb=False, int_lower=0.0, int_upper=None, init_z=1.0):
         assert int_lower == 0.0
         init_z_normed = init_z / Nval
@@ -368,13 +385,18 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
                            for n in N_range]
         write_mfpt_heuristic(N_range, curve_fit_guess, filename_mod="_%s_guessPfixTerm123" % dataid)
 
-        # TRg100 heuristic blobtimes
+        # TRg100 heuristic blobtimes v1
         N_range_dense = np.logspace(np.log10(N_range[0]), np.log10(N_range[-5]), 2*len(N_range))
+        """
         curve_fit_guess = [1/(params.mu * n * yfrac_pt0 * (1 - np.exp(-params.mu * get_blobtime(n,outer_int_upper=None)**2)))  # last factor is pfix
                            + 0 * 1/(params.mu * n * zfrac_pt1)                                               # direct flux from z1
                            + 0 * 1/(params.mu * n * yfrac_pt1) * 1/(np.sqrt(params.mu * n * s_renorm))       # flux from y->z->zhat
                            for n in N_range_dense]
-        write_mfpt_heuristic(N_range_dense, curve_fit_guess, filename_mod="_%s_guessBlobtimes" % dataid)
+        """
+        # TRg100 heuristic blobtimes v2
+        curve_fit_guess = [1/(params.mu * n * yfrac_pt0 * pfix_laplace_blobtime(s_renorm, n))
+                           for n in N_range_dense]
+        write_mfpt_heuristic(N_range_dense, curve_fit_guess, filename_mod="_%s_guessBlobtimesLaplace" % dataid)
 
         """curve_fit_guess = [1 / (params.mu**2 * n**2 * zfrac_pt1)
                    for n in N_range]"""
@@ -572,6 +594,8 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
     plt.plot(N_range, curve_heuristic, '-or', label='curve_heuristic')
     plt.plot(N_range[:len(mean_fpt_varying)], mean_fpt_varying, '-ok', label='data')
     #plt.plot(N_range, curve_fit, '--b', label=r'fit $1/(a \mu N), a=%.2f$' % fit_guess)
+    plt.plot(N_range_dense, curve_fit_guess, '--b', label=r'blobtime laplace')
+    
     """
     # prob absorb b end block
     plt.plot(N_range_alt, curve_fit_guess1, '--g', label=r'prob b zmax ~$0.2$ ($z_{us}$)')
@@ -621,7 +645,7 @@ if __name__ == '__main__':
 
     # DYNAMICS PARAMETERS
     system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
-    feedback = "constant"  # "constant", "hill", "step", "pwlinear", "tanh"
+    feedback = "tanh"  # "constant", "hill", "step", "pwlinear", "tanh"
     params_dict = {
         'alpha_plus': 0.2,
         'alpha_minus': 1.0,  # 0.5
@@ -636,11 +660,11 @@ if __name__ == '__main__':
         'mu_base': 0.0,
         'c2': 0.0,
         'v_z2': 0.0,
-        'mult_inc': 1.0,
-        'mult_dec': 1.0,
+        'mult_inc': 100.0,
+        'mult_dec': 100.0,
     }
     params = Params(params_dict, system, feedback=feedback)
-    data_id = 'BL1g'
+    data_id = 'TR100g'
 
     N_range = [int(a) for a in np.logspace(1.50515, 4.13159, num=11)] + [int(a) for a in np.logspace(4.8, 7, num=4)]
 
