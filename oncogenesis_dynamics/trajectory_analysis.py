@@ -148,6 +148,7 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
         print 'blobtime', n, blobtime_A, blobtime_B
         return blobtime
 
+
     def pfix_laplace_blobtime(s, n):
         T = get_blobtime(n, outer_int_upper=None)
         alphaplus = ((2 + s + params.mu) + np.sqrt((2 + s + params.mu) ** 2 - 4 * (1 + s))) / (2 * (1 + s))
@@ -161,7 +162,14 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
         # pfix coefficients
         c0 = N0 * (alphaminus - alphaplus) * a0 + alphaplus
         c1 = N0 * (alphaminus - alphaplus) * a1
+        # option A
         pfix = 1 - c0 - c1 * T
+        # option B
+        """
+        a2 = 1/(N0+N1) * (N1 * expco**2 / (N0+N1) - N1**2 * expco**2 / (N0+N1)**2)
+        c2 = N0 * (alphaminus - alphaplus) * a2
+        pfix = 1 - c0 - c1 * T - c2 * T**2
+        """
         return pfix
 
 
