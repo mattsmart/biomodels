@@ -304,7 +304,7 @@ def figure_mfpt_varying_collapsed(means, sds, param_vary_name, param_set, params
 
 if __name__ == "__main__":
     multihist = False
-    simplex_and_zdist = False
+    simplex_and_zdist = True
     only_fp_zloc_times_joint = False
     composite_simplex_zdist = False
     composite_hist_simplex_zdist = False
@@ -403,7 +403,7 @@ if __name__ == "__main__":
             ax1 = plot_simplex2D(params, smallfig=False)
             plt.savefig(basedir + os.sep + 'simplex_%s' % key + '.pdf')
             plt.close('all')
-            ax2 = simplex_heatmap(fpt, fps, params, smallfig=False, flag_show=False, figname_mod='_%s' % key, outdir=basedir, colour=False)
+            ax2 = simplex_heatmap(fpt, fps, params, smallfig=True, flag_show=False, figname_mod='_%s' % key, outdir=basedir, colour=False)
             plt.close('all')
             ax3 = fp_state_zloc_hist(fpt, fps, params, normalize=True, flag_show=False, kde=True, figname_mod='_%s' % key, outdir=basedir)
             plt.close('all')

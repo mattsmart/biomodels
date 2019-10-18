@@ -288,7 +288,7 @@ def simplex_heatmap(fp_times, fp_states, params, ax=None, fp=True, streamlines=T
         if cbar:
             plt.colorbar(paths, pad=0.18)
     else:
-        ax.scatter(conv_x, conv_y, c='RosyBrown', marker='o', s=3, alpha=0.4, zorder=3)
+        ax.scatter(conv_x, conv_y, c='RosyBrown', marker='o', s=3, alpha=0.7, zorder=3)
 
     # save
     if save:
@@ -401,14 +401,14 @@ def fp_zloc_times_joint(fp_times, fp_states, params, ax=None, normalize=False, f
         xbins = np.logspace(np.log10(np.min(fp_times)), np.log10(np.max(fp_times)), nbins)
 
     g = seaborn.JointGrid(x=fp_times, y=fp_zcoord)
-    g = g.plot_joint(plt.scatter, color=color, alpha=0.6, s=40)#, edgecolor="white")
+    g = g.plot_joint(plt.scatter, color=color, alpha=0.7, s=40)#, edgecolor="white")
     #g = g.plot_marginals(seaborn.distplot, kde=kde, color="g")
-    _ = g.ax_marg_y.hist(fp_zcoord, color="grey", alpha=.6, orientation="horizontal", bins=nbins)
+    _ = g.ax_marg_y.hist(fp_zcoord, color="grey", alpha=.7, orientation="horizontal", bins=nbins)
     if logx:
         xbins = np.logspace(np.log10(np.min(fp_times)), np.log10(np.max(fp_times)), nbins)
-        _ = g.ax_marg_x.hist(fp_times, color="grey", alpha=.6, bins=xbins)
+        _ = g.ax_marg_x.hist(fp_times, color="grey", alpha=.7, bins=xbins)
     else:
-        _ = g.ax_marg_x.hist(fp_times, color="grey", alpha=.6)
+        _ = g.ax_marg_x.hist(fp_times, color="grey", alpha=.7)
 
     if logx:
         g.ax_joint.set_xscale('log')
