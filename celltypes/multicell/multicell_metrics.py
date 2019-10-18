@@ -97,7 +97,7 @@ def test_compression_ratio():
     x_list = [x1, x2, x3, x4, x5, x6, x7]
     x_labels = ['all +1', 'all -1', 'all 0',
                 'all 0 except all 1 first col', 'rand floats -1 to 1',
-                'rand floats -1, 0, 1', 'rand floats -1, 1']
+                'rand ints -1, 0, 1', 'rand ints -1, 1']
     for idx, elem in enumerate(x_list):
         eta_ratio, eta, eta_0 = calc_compression_ratio(elem, eta_0=None, datatype='custom', method='manual')
         print x_labels[idx], 'gives', eta_ratio, eta, eta_0
