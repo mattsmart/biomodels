@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 from singlecell.singlecell_functions import hamiltonian
 
@@ -47,7 +48,15 @@ def calc_compression_ratio(x, eta_0=None, datatype='full', method='manual'):
     """
     assert method in ['manual', 'package']
     assert datatype in ['full', 'custom']
-    if datatype == 'full'
+
+    def foo(x_to_compress):
+        fname = 'tmp.npz'
+        np.savez_compressed(fname, a=x_to_compress)
+        fsize = os.path.getsize(fname)
+        os.remove(fname)
+        return fsize
+
+    if datatype == 'full':
         if eta_0 is None:
             # TODO compute eta_0
             x_random = None
@@ -58,10 +67,10 @@ def calc_compression_ratio(x, eta_0=None, datatype='full', method='manual'):
         x = np.array(x)
         if eta_0 is None:
             assert -1 <= np.min(x) <= np.max(x) <= 1
-            x_random = np.random.rand(x.shape[0], x.shape[1])*2 - 1
+            x_random = np.random.rand(*(x.shape))*2 - 1
             eta_0 = foo(x_random)  # consider max over few realizations?
         eta = foo(x)
-    return eta / eta_0, eta, eta_0
+    return float(eta)/eta_0, eta, eta_0
 
 
 def test_compression_ratio():
@@ -76,24 +85,22 @@ def test_compression_ratio():
     print x2, 'gives', eta_ratio_2, eta_2, eta_0_2
     print x3, 'gives', eta_ratio_3, eta_3, eta_0_3
     print "test_compression_ratio for x: 100x50 array..."
-    x1 = np.ones((100, 50))
-    x2 = -np.ones((100, 50))
-    x3 = np.zeros((100, 50))
-    x4 = np.zeros((100, 50))
+    xshape = (100, 50)
+    x1 = np.ones(xshape)
+    x2 = -np.ones(xshape)
+    x3 = np.zeros(xshape)
+    x4 = np.zeros(xshape)
     x4[:,0] = 1
-    x5 = np.random.rand(x.shape[0], x.shape[1])*2 - 1
-    x6 = np.random.randint(-1, high=1, size=x.shape * 2 - 1
-    x7 = np.random.randint(-1, high=1, size=x.shape * 2 - 1
-    eta_ratio_1, eta_1, eta_0_1 = calc_compression_ratio(x1, eta_0=None, datatype='custom', method='manual')
-    eta_ratio_2, eta_2, eta_0_2 = calc_compression_ratio(x2, eta_0=None, datatype='custom', method='manual')
-    eta_ratio_3, eta_3, eta_0_3 = calc_compression_ratio(x3, eta_0=None, datatype='custom', method='manual')
-    print 'all +1', 'gives', eta_ratio_1, eta_1, eta_0_1
-    print 'all -1', 'gives', eta_ratio_2, eta_2, eta_0_2
-    print 'all 0 except all 1 first col', 'gives', eta_ratio_3, eta_3, eta_0_3
-    print 'rand floats -1 to 1', 'gives', eta_ratio_3, eta_3, eta_0_3
-    print 'rand int -1 or 1', 'gives', eta_ratio_3, eta_3, eta_0_3
-    print 'rand int -1,0, 1', 'gives', eta_ratio_3, eta_3, eta_0_3
-
+    x5 = np.random.rand(*xshape)*2 - 1
+    x6 = np.random.randint(-1, high=1, size=xshape)
+    x7 = np.random.randint(0, high=1, size=xshape) * 2 - 1
+    x_list = [x1, x2, x3, x4, x5, x6, x7]
+    x_labels = ['all +1', 'all -1', 'all 0',
+                'all 0 except all 1 first col', 'rand floats -1 to 1',
+                'rand floats -1, 0, 1', 'rand floats -1, 1']
+    for idx, elem in enumerate(x_list):
+        eta_ratio, eta, eta_0 = calc_compression_ratio(elem, eta_0=None, datatype='custom', method='manual')
+        print x_labels[idx], 'gives', eta_ratio, eta, eta_0
     return None
 
 
