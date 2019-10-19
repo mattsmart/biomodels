@@ -305,7 +305,7 @@ def figure_mfpt_varying_collapsed(means, sds, param_vary_name, param_set, params
 if __name__ == "__main__":
     multihist = False
     simplex_and_zdist = True
-    only_fp_zloc_times_joint = False
+    only_fp_zloc_times_joint = True
     composite_simplex_zdist = False
     composite_hist_simplex_zdist = False
     inspect_fpt_flux = False
