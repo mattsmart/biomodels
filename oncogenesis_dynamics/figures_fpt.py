@@ -583,7 +583,7 @@ if __name__ == "__main__":
                     """
                     continue
                 elif datakey == 'linalgZHAT':
-                    ax.plot(x, y, '-*', marker=None, markeredgecolor='k', color=colours[idx],
+                    ax.plot(x, y, '-*', markeredgecolor='k', color=colours[idx],
                             label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{1D}}$' % gammaval, zorder=3)
                 elif datakey == 'fpRouteFlux':
                     ax.plot(x, y, '--', marker=None, markeredgecolor='k', color=colours[idx],
