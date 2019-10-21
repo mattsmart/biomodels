@@ -121,12 +121,12 @@ def make_mastereqn_matrix(params, flag_zhat=True):
                 elif j == n and i == n-1:
                     W[i, j] = 0
                 elif j == n - 1 and i == n:
-                    W[i, j] = (f_of_n[j] + s_of_n[j]) * j + 1 * params.mu * y_of_n[j]
+                    W[i, j] = (1 + s_of_n[j]) * j + 1 * params.mu * y_of_n[j]
                 else:
                     if i == j + 1:
-                        W[i, j] = (f_of_n[j] + s_of_n[j]) * j + 1 * params.mu * y_of_n[j]
+                        W[i, j] = (1 + s_of_n[j]) * j + 1 * params.mu * y_of_n[j]
                     elif i == j - 1:
-                        W[i, j] = f_of_n[j] * j
+                        W[i, j] = 1 * j
                     else:
                         continue
     else:
@@ -137,13 +137,13 @@ def make_mastereqn_matrix(params, flag_zhat=True):
                 elif j == n and i == n - 1:
                     W[i, j] = 0
                 elif j == n - 1 and i == n:
-                    W[i, j] = (f_of_n[j] + s_of_n[j]) * j + 1 * params.mu * y_of_n[j]
-                    print n, i, j, W[i,j], (f_of_n[j] + s_of_n[j]) * j, params.mu * y_of_n[j]
+                    W[i, j] = (1 + s_of_n[j]) * j + 1 * params.mu * y_of_n[j]
+                    print n, i, j, W[i,j], (1 + s_of_n[j]) * j, params.mu * y_of_n[j]
                 else:
                     if i == j + 1:
-                        W[i, j] = (f_of_n[j] + s_of_n[j]) * j + 1 * params.mu * y_of_n[j]
+                        W[i, j] = (1 + s_of_n[j]) * j + 1 * params.mu * y_of_n[j]
                     elif i == j - 1:
-                        W[i, j] = f_of_n[j] * j
+                        W[i, j] = 1 * j
                     else:
                         continue
     for d in xrange(statespace):
