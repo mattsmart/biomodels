@@ -10,6 +10,14 @@ from plotting import plot_trajectory_mono, plot_endpoint_mono, plot_table_params
 from trajectory import get_centermanifold_traj, trajectory_simulate
 
 
+fnames = {'BL1g': 'mfpt_Nvary_mu1e-4_BL_ens240_xall_g1',
+          'BL4g': 'mfpt_Nvary_mu1e-4_BL_ens240_xall_g4',
+          'BL100g': 'mfpt_Nvary_mu1e-4_BL_ens240_xall_g100',
+          'TR1g': 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g1',
+          'TR4g': 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g4',
+          'TR100g': 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g100'}
+
+
 def corner_to_flux(corner, params):
     Z_FRACTIONS = {'BL4g': 0.000212,
                    'BR4g': 1.0,
@@ -19,9 +27,12 @@ def corner_to_flux(corner, params):
                    'TR100g': 0.16514,
                    'BL1g': 0.00020599,
                    'TR1g': 1.0}
-    z_fp = Z_FRACTIONS[corner] * params.N  # number entering zhat state per unit time
-    MU_1 = 0.0001
-    avg_flux = 1/(z_fp * MU_1)
+    if corner in fnames:
+        z_fp = Z_FRACTIONS[corner] * params.N  # number entering zhat state per unit time
+        MU_1 = 0.0001
+        avg_flux = 1/(z_fp * MU_1)
+    else:
+        avg_flux = 0
     return avg_flux
 
 
@@ -83,25 +94,23 @@ def compute_heuristic_mfpt(params):
     return mfpt
 
 
-def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_flag=False, outdir=OUTPUT_DIR, fs=20):
+def plot_heuristic_mfpt(params, N_range, curve_heuristic, param_vary_name, dataid, show_flag=False, outdir=OUTPUT_DIR, fs=20):
     # load data to compare against
-    fnames = {'BL1g': 'mfpt_Nvary_mu1e-4_BL_ens240_xall_g1',
-              'BL4g': 'mfpt_Nvary_mu1e-4_BL_ens240_xall_g4',
-              'BL100g': 'mfpt_Nvary_mu1e-4_BL_ens240_xall_g100',
-              'TR1g': 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g1',
-              'TR4g': 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g4',
-              'TR100g': 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g100'}
-    mfpt_data_dir = 'data' + os.sep + 'mfpt' + os.sep + fnames[dataid]
-    mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params = \
-        read_varying_mean_sd_fpt_and_params(mfpt_data_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N.txt',
-                                            mfpt_data_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N_params.csv')
-    if dataid == 'TR1g':
-        mfpt_data_dir = 'data' + os.sep + 'mfpt' + os.sep + 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g1_extra'
-        mean_fpt_varying_extra, sd_fpt_varying_extra, param_to_vary, param_set, params = \
+    if data_id in fnames.keys():
+        mfpt_data_dir = 'data' + os.sep + 'mfpt' + os.sep + fnames[dataid]
+        mean_fpt_varying, sd_fpt_varying, param_to_vary, param_set, params = \
             read_varying_mean_sd_fpt_and_params(mfpt_data_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N.txt',
                                                 mfpt_data_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N_params.csv')
-        mean_fpt_varying = mean_fpt_varying + mean_fpt_varying_extra
-        sd_fpt_varying = sd_fpt_varying + sd_fpt_varying_extra
+        if dataid == 'TR1g':
+            mfpt_data_dir = 'data' + os.sep + 'mfpt' + os.sep + 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g1_extra'
+            mean_fpt_varying_extra, sd_fpt_varying_extra, param_to_vary, param_set, params = \
+                read_varying_mean_sd_fpt_and_params(mfpt_data_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N.txt',
+                                                    mfpt_data_dir + os.sep + 'fpt_stats_collected_mean_sd_varying_N_params.csv')
+            mean_fpt_varying = mean_fpt_varying + mean_fpt_varying_extra
+            sd_fpt_varying = sd_fpt_varying + sd_fpt_varying_extra
+    else:
+        print "Warning: %s dataid not in fnames.keys()" % dataid
+        mean_fpt_varying = [0 for idx in N_range]
 
     curve_fpflux = [corner_to_flux(dataid, params.mod_copy({'N':n})) for n in N_range]
     write_mfpt_heuristic(N_range, curve_fpflux, filename_mod="_%s_fpFlux" % dataid)
@@ -148,7 +157,6 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
         print 'blobtime', n, blobtime_A, blobtime_B
         return blobtime
 
-
     def pfix_laplace_blobtime(s, n):
         T = get_blobtime(n, outer_int_upper=None)
         alphaplus = ((2 + s + params.mu) + np.sqrt((2 + s + params.mu) ** 2 - 4 * (1 + s))) / (2 * (1 + s))
@@ -171,7 +179,6 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
         pfix = 1 - c0 - c1 * T - c2 * T**2
         """
         return pfix
-
 
     def time_to_hit_boundary(Nval, dual_absorb=False, int_lower=0.0, int_upper=None, init_z=1.0):
         assert int_lower == 0.0
@@ -287,12 +294,13 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
         print 'time_to_hit_boundary BLg100', Nval, time_to_hit_zf
         return time_to_hit_zf
 
-    def prob_to_hit_boundary(Nval, int_lower=0.0, int_upper=1.0, init_z=1.0, hitb=True):
+    def prob_to_hit_boundary(Nval, int_lower=0.0, int_upper=1.0, init_z=1.0, hitb=True,
+                             fr1=False, fr2=False):
         assert int_lower == 0.0
         init_z_normed = init_z / Nval
         pmc = params.mod_copy({'N': Nval})
 
-        f_arr, s_arr, z_arr, y_arr = get_centermanifold_traj(pmc, norm=True)
+        f_arr, s_arr, z_arr, y_arr = get_centermanifold_traj(pmc, norm=True, force_region_1=fr1, force_region_2=fr2)
         num_pts = len(z_arr)
 
         def A(n, n_idx):
@@ -595,14 +603,51 @@ def plot_heuristic_mfpt(N_range, curve_heuristic, param_vary_name, dataid, show_
         write_mfpt_heuristic(N_range_probBoundary, curve_fit_guess3, filename_mod="_%s_guessBoundaryProb3" % dataid)
 
     else:
-        curve_fit_guess = [0 for n in N_range]
-        print 'no fit guess for %s' % dataid
+        assert dataid not in fnames.keys()
+        print "Warning: %s dataid not in fnames.keys()" % dataid
+        mean_fpt_varying = [0 for idx in N_range]
+
+        assert params.mult_inc in [1.0, 100.0]
+        assert dataid in ['1region1g', '1region100g', '2region1g', '2region100g']
+
+        fp_lows = {
+            '1region1g': np.array([83.32060255912937, 16.662731931547082, 0.016665509323548378]) / 100.0,
+            '1region100g': np.array([74.88478244041383, 25.090121140143346, 0.025096419442824924]) / 100.0,
+            '2region1g': np.array([83.34837879374416, 16.66828671556507, -0.01666550930923094]) / 100.0,
+            '2region100g': np.array([74.96028867279259, 25.064769817738842, -0.02505849053142839]) / 100.0}
+        force_region_flags = {'1region1g': (True, False),
+                              '1region100g': (True, False),
+                              '2region1g': (False, True),
+                              '2region100g': (False, True)}
+        fp_low = fp_lows[dataid]
+        fr1, fr2 = force_region_flags[dataid]
+
+        yfrac_pt0 = fp_low[1]
+        # MASTER EQN SOLVE BLOCK
+        N_range_alt = N_range[0:9]
+        curve_fit_linalg1 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=False, force_region_1=fr1,
+                                         force_region_2=fr2, y_0_frac_override=yfrac_pt0)[0] for n in N_range_alt]
+        curve_fit_linalg2 = [linalg_mfpt(params=params.mod_copy({'N': n}), flag_zhat=True, force_region_1=fr1,
+                                         force_region_2=fr2, y_0_frac_override=yfrac_pt0)[0] for n in N_range_alt]
+        write_mfpt_heuristic(N_range_alt, curve_fit_linalg1, filename_mod="_%s_linalgALLZ" % dataid)
+        write_mfpt_heuristic(N_range_alt, curve_fit_linalg2, filename_mod="_%s_linalgZHAT" % dataid)
+
+        # prob hit boundary heuristic
+        N_range_probBoundary = N_range[0:8]  # np.logspace(np.log10(N_range[0]), np.log10(N_range[-1]), 1*len(N_range))
+        curve_fit_guess1 = [1 / (params.mu * n * yfrac_pt0 *
+                                 prob_to_hit_boundary(n, int_lower=0.0, int_upper=0.2, init_z=1.0, fr1=fr1, fr2=fr2))
+                                 for n in N_range_probBoundary]
+        curve_fit_guess2 = [1 / (params.mu * n * yfrac_pt0 *
+                                 prob_to_hit_boundary(n, int_lower=0.0, int_upper=1.0, init_z=1.0, fr1=fr1, fr2=fr2))
+                                 for n in N_range_probBoundary]
+        write_mfpt_heuristic(N_range_probBoundary, curve_fit_guess1, filename_mod="_%s_guessBoundaryProb1" % dataid)
+        write_mfpt_heuristic(N_range_probBoundary, curve_fit_guess2, filename_mod="_%s_guessBoundaryProb2" % dataid)
 
     plt.plot(N_range, curve_fpflux, '--k', label='curve_fpflux')
     plt.plot(N_range, curve_heuristic, '-or', label='curve_heuristic')
     plt.plot(N_range[:len(mean_fpt_varying)], mean_fpt_varying, '-ok', label='data')
     #plt.plot(N_range, curve_fit, '--b', label=r'fit $1/(a \mu N), a=%.2f$' % fit_guess)
-    plt.plot(N_range_dense, curve_fit_guess, '--b', label=r'blobtime laplace')
+    #plt.plot(N_range_dense, curve_fit_guess, '--b', label=r'blobtime laplace')
     
     """
     # prob absorb b end block
@@ -680,10 +725,11 @@ if __name__ == '__main__':
     #init_cond = np.zeros(params.numstates, dtype=int)
     #init_cond[0] = int(params.N)
     curve_heuristic = [0]*len(N_range)
-    for idx, N in enumerate(N_range):
-        pv = params.mod_copy({'N': N})
-        curve_heuristic[idx] = compute_heuristic_mfpt(pv)
-        print N, curve_heuristic[idx]
-    write_mfpt_heuristic(N_range, curve_heuristic, filename_mod="_%s_fpRouteFlux" % data_id)
+    if data_id in fnames:
+        for idx, N in enumerate(N_range):
+            pv = params.mod_copy({'N': N})
+            curve_heuristic[idx] = compute_heuristic_mfpt(pv)
+            print N, curve_heuristic[idx]
+        write_mfpt_heuristic(N_range, curve_heuristic, filename_mod="_%s_fpRouteFlux" % data_id)
 
-    plot_heuristic_mfpt(N_range, curve_heuristic, 'N', data_id, fs=20)
+    plot_heuristic_mfpt(params, N_range, curve_heuristic, 'N', data_id, fs=20)

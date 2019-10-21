@@ -79,31 +79,35 @@ def map_n_to_sf_idx(params, z_arr, s_xyz_arr, f_xyz_arr, y_arr):
     return z_of_n, s_of_n, f_of_n, y_of_n
 
 
-def make_mastereqn_matrix(params, flag_zhat=True):
+def make_mastereqn_matrix(params, flag_zhat=True, y_0_frac_override=None, force_region_1=False, force_region_2=False):
     n = params.N
     if n > 1e5:
         print 'Warning large N', n
 
     # BL g100 supported currently
-    assert params.b in [0.8, 1.2]
-    if params.b == 0.8:
-        if params.mult_inc == 1.0 or params.feedback == 'constant':
-            y_0_frac = 14.585869420527702 / 100.0
-        elif params.mult_inc == 4.0 and params.feedback != 'constant':
-            y_0_frac = 14.89695736662967 / 100.0
-        else:
-            assert params.mult_inc == 100.0 and params.feedback != 'constant'
-            y_0_frac = 22.471588735222426 / 100.0
+    if y_0_frac_override is not None:
+        y_0_frac = y_0_frac_override
     else:
-        if params.mult_inc == 1.0 or params.feedback == 'constant':
-            y_0_frac = 19.262827700935464 / 100.0
-        elif params.mult_inc == 4.0 and params.feedback != 'constant':
-            y_0_frac = 19.652759713453463 / 100.0
+        assert params.b in [0.8, 1.2]
+        if not params.b == 0.8:
+            if params.mult_inc == 1.0 or params.feedback == 'constant':
+                y_0_frac = 14.585869420527702 / 100.0
+            elif params.mult_inc == 4.0 and params.feedback != 'constant':
+                y_0_frac = 14.89695736662967 / 100.0
+            else:
+                assert params.mult_inc == 100.0 and params.feedback != 'constant'
+                y_0_frac = 22.471588735222426 / 100.0
         else:
-            assert params.mult_inc == 100.0 and params.feedback != 'constant'
-            y_0_frac = 28.094892239342407 / 100.0
+            if params.mult_inc == 1.0 or params.feedback == 'constant':
+                y_0_frac = 19.262827700935464 / 100.0
+            elif params.mult_inc == 4.0 and params.feedback != 'constant':
+                y_0_frac = 19.652759713453463 / 100.0
+            else:
+                assert params.mult_inc == 100.0 and params.feedback != 'constant'
+                y_0_frac = 28.094892239342407 / 100.0
 
-    f_arr, s_arr, z_arr, y_arr = get_centermanifold_traj(params, norm=False)
+    f_arr, s_arr, z_arr, y_arr = get_centermanifold_traj(params, norm=False, force_region_1=force_region_1,
+                                                         force_region_2=force_region_2)
     z_of_n, s_of_n, f_of_n, y_of_n = map_n_to_sf_idx(params, z_arr, s_arr, f_arr, y_arr)
 
     statespace = int(n + 1)
@@ -152,9 +156,10 @@ def make_mastereqn_matrix(params, flag_zhat=True):
     return W
 
 
-def linalg_mfpt(W=None, params=None, flag_zhat=False):
+def linalg_mfpt(W=None, params=None, flag_zhat=False, y_0_frac_override=None, force_region_1=False, force_region_2=False):
     if W is None:
-        W = make_mastereqn_matrix(params, flag_zhat=flag_zhat)
+        W = make_mastereqn_matrix(params, flag_zhat=flag_zhat, y_0_frac_override=y_0_frac_override,
+                                  force_region_1=force_region_1, force_region_2=force_region_2)
     W_tilde = W[:-1, :-1]
     inv_W_tilde = np.linalg.inv(W_tilde.T)
     tau_vec = -1 * np.dot(inv_W_tilde, np.ones(len(W[0,:]) - 1))

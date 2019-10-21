@@ -17,7 +17,7 @@ def trajectory_infoprint(init_cond, t0, t1, num_steps, params):
 
 
 def trajectory_simulate(params, init_cond=INIT_COND, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
-                        sim_method=SIM_METHOD, flag_info=False, fp_comparison=False):
+                        sim_method=SIM_METHOD, flag_info=False, fp_comparison=True):
 
     times = np.linspace(t0, t1, num_steps + 1)
     if flag_info:
@@ -30,8 +30,9 @@ def trajectory_simulate(params, init_cond=INIT_COND, t0=TIME_START, t1=TIME_END,
     if fp_comparison:
         predicted_fps = fp_location_general(params, solver_fsolve=True)
         print "Predicted FPs:"
-        for i in xrange(3):
-            print "FP", i, predicted_fps[i], "Stable:", is_stable(params, predicted_fps[i])
+        print predicted_fps
+        for i in xrange(len(predicted_fps)):
+            print "FP", i, predicted_fps[i], "Stable:", is_stable(params, predicted_fps[i][0:2])
     return r, times
 
 
@@ -66,7 +67,8 @@ def phase_portrait(params, num_traj=NUM_TRAJ, sim_method=SIM_METHOD, figname_mod
     ax_traj.view_init(5, 35)  # ax.view_init(-45, -15)
     plt.title(plt_title)
     for idx, init_cond in enumerate(init_conds):
-        r, times, = trajectory_simulate(params, init_cond=init_cond, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS, sim_method=sim_method)
+        r, times, = trajectory_simulate(params, init_cond=init_cond, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
+                                        sim_method=sim_method, fp_comparison=False)
         if basins_flag:
             endpt = r[-1,:]
             for idx, fp in enumerate(all_fps):
@@ -103,13 +105,13 @@ def conserved_quantity(state, params):
     return val
 
 
-def get_centermanifold_traj(params, norm=False):
+def get_centermanifold_traj(params, norm=False, force_region_1=False, force_region_2=False):
     sim_method = "libcall"  # see constants.py -- sim_methods_valid
     time_start = 0.0
     time_end = 300.0  # 20.0
     num_steps = 400*2  # number of timesteps in each trajectory
 
-    if (params.b == 1.2 and (params.mult_inc == 1.0 or params.feedback == 'constant')):
+    if (params.b == 1.2 and (params.mult_inc == 1.0 or params.feedback == 'constant')) or force_region_2:
 
         num_pts = 800*2
         z_arr = np.zeros(num_pts)
@@ -131,9 +133,8 @@ def get_centermanifold_traj(params, norm=False):
             s_xy_arr[idx] = params.c / f_xy_arr[idx] - 1
             z_arr[idx] = z
             y_arr[idx] = y
-
     elif (params.b == 1.2 and params.feedback != 'constant') or \
-            (params.b == 0.8 and (params.mult_inc == 1.0 or params.feedback == 'constant')):
+            (params.b == 0.8 and (params.mult_inc == 1.0 or params.feedback == 'constant')) or force_region_1:
 
         num_pts = 800*2
         mid = 400*2
@@ -257,10 +258,17 @@ if __name__ == "__main__":
         'mu_base': 0.0,
         'c2': 0.0,
         'v_z2': 0.0,
-        'mult_inc': 4.0,
-        'mult_dec': 4.0
+        'mult_inc': 100.0,
+        'mult_dec': 100.0
     }
     params = Params(params_dict, system, feedback=feedback)
+    fregion1 = False  # set if b=1.0, c=0.9
+    fregion2 = False  # set if b=1.0, c=1.1
+    if params.b==1.0 and params.c==0.9:
+        fregion1 = True
+    if params.b==1.0 and params.c==1.1:
+        fregion2 = True
+
     init_cond = map_init_name_to_init_cond(params, "x_all")
 
     if run_singletraj:
@@ -298,14 +306,15 @@ if __name__ == "__main__":
 
     if get_fitness_curve:
 
-        f_xyz_arr, s_xyz_arr, z_arr, y_arr = get_centermanifold_traj(params)
+        f_xyz_arr, s_xyz_arr, z_arr, y_arr = get_centermanifold_traj(params,
+                                                                     force_region_1=fregion1, force_region_2=fregion2)
 
         plt.plot(s_xyz_arr, label='s')
         plt.plot(f_xyz_arr, label='f')
         plt.plot(z_arr, label='z')
         plt.plot(y_arr, label='y')
         plt.legend()
-        #plt.ylim(-0.1,0.1)
+        plt.ylim(-0.1,0.1)
         plt.show()
 
         plt.plot(z_arr, s_xyz_arr, '--k', label=r'$s1 = c/f_{xyz} - 1$')
