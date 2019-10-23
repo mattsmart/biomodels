@@ -165,7 +165,7 @@ def mc_sim(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring
                  ['field_remove_ratio', field_remove_ratio], ['app_field_strength', app_field_strength],
                  ['ext_field_strength', ext_field_strength], ['app_field', app_field], ['beta', beta],
                  ['search_radius', search_radius_txt], ['random_mem', simsetup['random_mem']],
-                 ['random_W', simsetup['random_W']], ['meanfield', meanfield]]
+                 ['random_W', simsetup['random_W']], ['meanfield', meanfield], ['housekeeping', simsetup['K']]]
     runinfo_append(io_dict, info_list, multi=True)
     # conditionally store random mem and W
     np.savetxt(io_dict['simsetupdir'] + os.sep + 'simsetup_XI.txt', simsetup['XI'], delimiter=',', fmt='%d')
@@ -213,21 +213,31 @@ def mc_sim(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring
         plt.clf()  #plt.show()
 
     # write and plot cell state timeseries
+    # TODO convert to 'write data dict' and 'plot data dict' fn calls
     #write_state_all_cells(lattice, io_dict['datadir'])
     if state_int:
         write_grid_state_int(data_dict['grid_state_int'], io_dict['datadir'])
     if 'lattice_energy' in data_dict.keys():
         write_general_arr(data_dict['lattice_energy'], io_dict['datadir'], 'lattice_energy', txt=True, compress=False)
         plt.plot(data_dict['lattice_energy'][:, 0], '--ok', label=r'$H_{\mathrm{total}}$')
-        plt.plot(data_dict['lattice_energy'][:, 1], '--b', label=r'$H_{\mathrm{self}}$')
-        plt.plot(data_dict['lattice_energy'][:, 2], '--g', label=r'$H_{\mathrm{app}}$')
-        plt.plot(data_dict['lattice_energy'][:, 3], '--r', label=r'$H_{\mathrm{pairwise}}$')
-
+        plt.plot(data_dict['lattice_energy'][:, 1], '--b', alpha=0.7, label=r'$H_{\mathrm{self}}$')
+        plt.plot(data_dict['lattice_energy'][:, 2], '--g', alpha=0.7, label=r'$H_{\mathrm{app}}$')
+        plt.plot(data_dict['lattice_energy'][:, 3], '--r', alpha=0.7, label=r'$H_{\mathrm{pairwise}}$')
+        plt.plot(data_dict['lattice_energy'][:, 0] - data_dict['lattice_energy'][:, 2], '--o', color='gray',
+                 label=r'$H_{\mathrm{total}} - H_{\mathrm{app}}$')
         plt.title(r'Multicell hamiltonian over time')
         plt.ylabel(r'Lattice energy')
         plt.xlabel(r'$t$ (lattice steps)')
         plt.legend()
         plt.savefig(io_dict['plotdatadir'] + os.sep + '%s_%s_n%d_t%d_hamiltonian_remove%.2f_exo%.2f.png' %
+                    (exosome_string, buildstring, gridsize, num_steps, field_remove_ratio, ext_field_strength))
+        # zoom on relevant part
+        ylow = min(np.min(data_dict['lattice_energy'][:, [1,3]]),
+                   np.min(data_dict['lattice_energy'][:, 0] - data_dict['lattice_energy'][:, 2]))
+        yhigh = max(np.max(data_dict['lattice_energy'][:, [1,3]]),
+                    np.max(data_dict['lattice_energy'][:, 0] - data_dict['lattice_energy'][:, 2]))
+        plt.ylim(ylow - 0.1, yhigh + 0.1)
+        plt.savefig(io_dict['plotdatadir'] + os.sep + '%s_%s_n%d_t%d_hamiltonianZoom_remove%.2f_exo%.2f.png' %
                     (exosome_string, buildstring, gridsize, num_steps, field_remove_ratio, ext_field_strength))
         plt.clf()  # plt.show()
     if 'compressibility_full' in data_dict.keys():
@@ -257,10 +267,10 @@ def mc_sim(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring
 if __name__ == '__main__':
     random_mem = False
     random_W = False
-    simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, curated=True)
+    simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, curated=True, housekeeping=0)
 
     n = 20  # global GRIDSIZE
-    steps = 200  # global NUM_LATTICE_STEPS
+    steps = 10  # global NUM_LATTICE_STEPS
     buildstring = "dual"  # mono/dual/memory_sequence/random
     fieldstring = "no_exo_field"  # on/off/all/no_exo_field, note e.g. 'off' means send info about 'off' genes only
     meanfield = False  # set to true to use infinite signal distance (no neighbour searching; track mean field)
@@ -269,13 +279,19 @@ if __name__ == '__main__':
     #app_field = construct_app_field_from_genes(IPSC_EXTENDED_GENES_EFFECTS, simsetup['GENE_ID'], num_steps=steps)        # size N x timesteps or None
 
     app_field = None
-    KAPPA = 1.0
+    # housekeeping genes block
+    KAPPA = 10.0
     if KAPPA > 0:
-        print 'Note gene 0 (on), 1 (on), 2 (on) are HK in A1 memories'
-        print 'Note gene 4 (off), 5 (on) are HK in C1 memories'
+        # housekeeping auto (via model extension)
         app_field = np.zeros(simsetup['N'])
-        app_field[4] = 1.0
-        app_field[5] = 1.0
+        if simsetup['K'] > 0:
+            app_field[-simsetup['K']:] = 1.0
+            print app_field
+        else:
+            print 'Note gene 0 (on), 1 (on), 2 (on) are HK in A1 memories'
+            print 'Note gene 4 (off), 5 (on) are HK in C1 memories'
+            app_field[4] = 1.0
+            app_field[5] = 1.0
 
     plot_period = 1
     state_int = True
