@@ -9,30 +9,46 @@ from singlecell_visualize import plot_state_prob_map, hypercube_visualize
 
 
 if __name__ == '__main__':
-    HOUSEKEEPING = 0
-    KAPPA = 2.0
+    HOUSEKEEPING_EXTEND = 0
+    KAPPA = 1.0
+    housekeeping_manual = True  # if True, set housekeeping to 0 so model is not extended
+    if housekeeping_manual:
+        HOUSEKEEPING = 5
+    else:
+        HOUSEKEEPING = HOUSEKEEPING_EXTEND
 
     random_mem = False
     random_W = False
     #simsetup = singlecell_simsetup(unfolding=False, random_mem=random_mem, random_W=random_W, npzpath=MEMS_MEHTA, housekeeping=HOUSEKEEPING)
-    simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, npzpath=MEMS_UNFOLD, housekeeping=HOUSEKEEPING)
-    print 'note: N =', simsetup['N']
+    simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, npzpath=MEMS_UNFOLD, housekeeping=HOUSEKEEPING_EXTEND, curated=True)
+    print 'note: N =', simsetup['N'], 'P =', simsetup['P']
 
-    DIM = 3
-    METHOD = 'diffusion_custom'  # diffusion_custom, spectral_custom
+    DIM = 2
+    METHOD = 'pca'  # diffusion_custom, spectral_custom, pca
+    use_hd = False
+    use_proj = False
+    plot_X = False
+    beta = 1  # 2.0
+    """
+    METHOD = 'spectral_custom'  # diffusion_custom, spectral_custom, pca
     use_hd = True
     use_proj = True
     plot_X = False
     beta = 1  # 2.0
+    """
 
     exostring = "no_exo_field"  # on/off/all/no_exo_field, note e.g. 'off' means send info about 'off' genes only
     exoprune = 0.0              # amount of exosome field idx to randomly prune from each cell
     gamma = 0.0                 # global EXT_FIELD_STRENGTH tunes exosomes AND sent field
     app_field = None
-    if KAPPA > 0 and HOUSEKEEPING > 0:
+    if KAPPA > 0:
+        #app_field = np.zeros(simsetup['N'])
+        #app_field[-HOUSEKEEPING:] = 1.0
+        # weird field
         app_field = np.zeros(simsetup['N'])
-        app_field[-HOUSEKEEPING:] = 1.0
-    print app_field
+        app_field[0:4] = +1 * 1  # delete anti mem basin
+        app_field[5:7] = -1 * 0.71
+    print "app_field", app_field
 
     # additional visualizations based on field
     """
