@@ -37,7 +37,7 @@ class SpatialCell(Cell):
         sent_signals = np.zeros(self.N)
         for loc in neighbour_locs:
             nbr_cell_state = lattice[loc[0]][loc[1]].get_current_state()
-            nbr_cell_state_01_rep = (nbr_cell_state + 1) / 2  # convert to 0, 1 rep for biological dot product below
+            nbr_cell_state_01_rep = (nbr_cell_state + 1) / 2.0  # convert to 0, 1 rep for biological dot product below
             sent_signals += np.dot(simsetup['FIELD_SEND'], nbr_cell_state_01_rep)
         return sent_signals
 

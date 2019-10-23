@@ -81,6 +81,8 @@ def build_lattice_main(n, list_of_celltype_idx, buildstring, simsetup):
 
 def prep_lattice_data_dict(n, duration, list_of_celltype_idx, buildstring, data_dict):
     data_dict['memory_proj_arr'] = {}
+    data_dict['lattice_energy'] = np.zeros((duration, 4))        # stores: H_multi, H_self, H_app, H_pairwise_scaled
+    data_dict['compressibility_full'] = np.zeros((duration, 3))  # stores: ratio, eta, eta0
     if buildstring == "mono":
         for idx in list_of_celltype_idx:
             data_dict['memory_proj_arr'][idx] = np.zeros((n*n, duration))
@@ -153,3 +155,36 @@ def read_grid_state_int(fname):
     Reads the n x n grid of integer states (for a single timestep)
     """
     return np.loadtxt(fname, dtype='int', delimiter=',')
+
+
+def write_general_arr(X, data_folder, fname, txt=True, compress=False):
+    """
+    Writes general data array (txt, npy, or compressed npz)
+    """
+    if txt:
+        assert not compress
+        fpath = data_folder + os.sep + fname + '.txt'
+        np.savetxt(fpath, X, delimiter=',')
+    else:
+        if compress:
+            fpath = data_folder + os.sep + fname + '.npy'
+            np.save(fpath, X)
+        else:
+            fpath = data_folder + os.sep + fname + '.npz'
+            np.savez(fpath, a=X)
+    return fpath
+
+
+def read_general_arr(fpath, txt=True, compress=False):
+    """
+    Reads general data array (txt, npy, or compressed npz)
+    """
+    if txt:
+        assert not compress
+        return np.loadtxt(fpath, delimiter=',')
+    else:
+        X = np.load(fpath)
+        if compress:
+            return X['a']
+        else:
+            return X

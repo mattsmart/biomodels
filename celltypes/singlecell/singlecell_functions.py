@@ -23,7 +23,7 @@ def hamiltonian(state_vec, intxn_matrix, field=None, fs=0.0):
     if field is None:
         H = -0.5 * reduce(np.dot, [state_vec.T, intxn_matrix, state_vec])
     else:
-        H = -0.5 * reduce(np.dot, [state_vec.T, intxn_matrix, state_vec]) - fs * np.dot(state_vec, field)
+        H = -0.5 * reduce(np.dot, [state_vec.T, intxn_matrix, state_vec]) - fs * np.dot(state_vec.T, field)
     return H
 
 

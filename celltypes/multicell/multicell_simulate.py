@@ -5,7 +5,9 @@ import matplotlib.pyplot as plt
 
 from multicell_constants import GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS, VALID_BUILDSTRINGS, MEANFIELD, \
     VALID_EXOSOME_STRINGS, EXOSTRING, BUILDSTRING, LATTICE_PLOT_PERIOD, FIELD_REMOVE_RATIO
-from multicell_lattice import build_lattice_main, get_cell_locations, prep_lattice_data_dict, write_state_all_cells, write_grid_state_int
+from multicell_lattice import build_lattice_main, get_cell_locations, prep_lattice_data_dict, write_state_all_cells, \
+    write_grid_state_int, write_general_arr, read_general_arr
+from multicell_metrics import calc_lattice_energy, calc_compression_ratio, get_state_of_lattice
 from multicell_visualize import lattice_uniplotter, reference_overlap_plotter, lattice_projection_composite
 from singlecell.singlecell_constants import EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, BETA
 from singlecell.singlecell_data_io import run_subdir_setup, runinfo_append
@@ -37,6 +39,7 @@ def run_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_st
             assert len(app_field[1]) == num_lattice_steps
         else:
             app_field = np.array([app_field for _ in xrange(num_lattice_steps)]).T
+        app_field_step = app_field[:, 0]
     else:
         app_field_step = None
 
@@ -56,6 +59,11 @@ def run_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_st
         for mem_idx in memory_idx_list:
             proj = cell.get_memories_projection(simsetup['A_INV'], simsetup['XI'])
             data_dict['memory_proj_arr'][mem_idx][loc_to_idx[loc], 0] = proj[mem_idx]
+    data_dict['lattice_energy'][0, :] = calc_lattice_energy(lattice, simsetup, app_field_step, app_field_strength, ext_field_strength,
+                                                            SEARCH_RADIUS_CELL, field_remove_ratio, exosome_string, meanfield)
+    data_dict['compressibility_full'][0, :] = calc_compression_ratio(get_state_of_lattice(lattice, simsetup, datatype='full'),
+                                                                     eta_0=None, datatype='full', elemtype=np.int, method='manual')
+
     # initial condition plot
     lattice_projection_composite(lattice, 0, n, io_dict['latticedir'], simsetup, state_int=state_int)
     reference_overlap_plotter(lattice, 0, n, io_dict['latticedir'], simsetup, state_int=state_int)
@@ -67,10 +75,10 @@ def run_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_st
     if meanfield:
         assert exosome_string == 'no_exo_field'  # TODO careful: not clear best way to update exo field as cell state changes in a time step, refactor exo fn?
         print 'Initializing mean field...'
-        # TODO decode of want scale factor to be rescaled by total popsize (i.e. *mean*field or total field?)
+        # TODO decide if want scale factor to be rescaled by total popsize (i.e. *mean*field or total field?)
         state_total = np.zeros(simsetup['N'])
         field_global = np.zeros(simsetup['N'])
-        neighbours = [[a, b] for a in xrange(len(lattice[0])) for b in xrange(len(lattice))]
+        neighbours = [[a, b] for a in xrange(len(lattice[0])) for b in xrange(len(lattice))]  # TODO ok that cell is neighbour with self as well? remove diag
         if simsetup['FIELD_SEND'] is not None:
             for loc in neighbours:
                 state_total += lattice[loc[0]][loc[1]].get_current_state()
@@ -119,6 +127,16 @@ def run_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_st
             #    for mem_idx in memory_idx_list:
             #        lattice_uniplotter(lattice, turn, n, io_dict['latticedir'], mem_idx, simsetup)
 
+        # compute lattice properties
+        # TODO 1 - consider lattice energy at each cell update (not lattice update)
+        # TODO 2 - speedup lattice energy calc by using info from state update calls...
+        data_dict['lattice_energy'][turn, :] = calc_lattice_energy(
+            lattice, simsetup, app_field_step, app_field_strength, ext_field_strength, SEARCH_RADIUS_CELL,
+            field_remove_ratio, exosome_string, meanfield)
+        data_dict['compressibility_full'][turn, :] = calc_compression_ratio(
+            get_state_of_lattice(lattice, simsetup, datatype='full'),
+            eta_0=data_dict['compressibility_full'][0,2], datatype='full', elemtype=np.int, method='manual')
+
     return lattice, data_dict, io_dict
 
 
@@ -138,11 +156,16 @@ def mc_sim(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring
 
     # setup io dict
     io_dict = run_subdir_setup()
+    if meanfield:
+        search_radius_txt = 'None'
+    else:
+        search_radius_txt = SEARCH_RADIUS_CELL
     info_list = [['memories_path', simsetup['memories_path']], ['script', 'multicell_simulate.py'], ['gridsize', gridsize],
                  ['num_steps', num_steps], ['buildstring', buildstring], ['fieldstring', exosome_string],
                  ['field_remove_ratio', field_remove_ratio], ['app_field_strength', app_field_strength],
                  ['ext_field_strength', ext_field_strength], ['app_field', app_field], ['beta', beta],
-                 ['random_mem', simsetup['random_mem']], ['random_W', simsetup['random_W']], ['meanfield', meanfield]]
+                 ['search_radius', search_radius_txt], ['random_mem', simsetup['random_mem']],
+                 ['random_W', simsetup['random_W']], ['meanfield', meanfield]]
     runinfo_append(io_dict, info_list, multi=True)
     # conditionally store random mem and W
     np.savetxt(io_dict['simsetupdir'] + os.sep + 'simsetup_XI.txt', simsetup['XI'], delimiter=',', fmt='%d')
@@ -189,10 +212,43 @@ def mc_sim(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring
                     (exosome_string, buildstring, gridsize, num_steps, memory_idx, field_remove_ratio, ext_field_strength))
         plt.clf()  #plt.show()
 
-    # write cell state TODO: and data_dict to file
+    # write and plot cell state timeseries
     #write_state_all_cells(lattice, io_dict['datadir'])
     if state_int:
         write_grid_state_int(data_dict['grid_state_int'], io_dict['datadir'])
+    if 'lattice_energy' in data_dict.keys():
+        write_general_arr(data_dict['lattice_energy'], io_dict['datadir'], 'lattice_energy', txt=True, compress=False)
+        plt.plot(data_dict['lattice_energy'][:, 0], '--ok', label=r'$H_{\mathrm{total}}$')
+        plt.plot(data_dict['lattice_energy'][:, 1], '--b', label=r'$H_{\mathrm{self}}$')
+        plt.plot(data_dict['lattice_energy'][:, 2], '--g', label=r'$H_{\mathrm{app}}$')
+        plt.plot(data_dict['lattice_energy'][:, 3], '--r', label=r'$H_{\mathrm{pairwise}}$')
+
+        plt.title(r'Multicell hamiltonian over time')
+        plt.ylabel(r'Lattice energy')
+        plt.xlabel(r'$t$ (lattice steps)')
+        plt.legend()
+        plt.savefig(io_dict['plotdatadir'] + os.sep + '%s_%s_n%d_t%d_hamiltonian_remove%.2f_exo%.2f.png' %
+                    (exosome_string, buildstring, gridsize, num_steps, field_remove_ratio, ext_field_strength))
+        plt.clf()  # plt.show()
+    if 'compressibility_full' in data_dict.keys():
+        write_general_arr(data_dict['compressibility_full'], io_dict['datadir'], 'compressibility_full', txt=True, compress=False)
+        plt.plot(data_dict['compressibility_full'][:,0], '--o', color='orange')
+        plt.title(r'File compressibility ratio of the full lattice spin state')
+        plt.ylabel(r'$\eta(t)/\eta_0$')
+        plt.axhline(y=1.0, ls='--', color='k')
+
+        ref_0 = calc_compression_ratio(x=np.zeros((len(lattice), len(lattice[0]), simsetup['N']), dtype=int),
+                                       eta_0=data_dict['compressibility_full'][0,2], datatype='full', elemtype=np.int, method='manual')
+        ref_1 = calc_compression_ratio(x=np.ones((len(lattice), len(lattice[0]), simsetup['N']), dtype=int),
+                                       eta_0=data_dict['compressibility_full'][0,2], datatype='full', elemtype=np.int, method='manual')
+        plt.axhline(y=ref_0[0], ls='-.', color='gray')
+        plt.axhline(y=ref_1[0], ls='-.', color='blue')
+        print ref_0,ref_0,ref_0,ref_0, 'is', ref_0, 'vs', ref_1
+        plt.xlabel(r'$t$ (lattice steps)')
+        plt.ylim(-0.05, 1.01)
+        plt.savefig(io_dict['plotdatadir'] + os.sep + '%s_%s_n%d_t%d_comp_remove%.2f_exo%.2f.png' %
+                    (exosome_string, buildstring, gridsize, num_steps, field_remove_ratio, ext_field_strength))
+        plt.clf()  # plt.show()
 
     print "\nMulticell simulation complete - output in %s" % io_dict['basedir']
     return lattice, data_dict, io_dict
@@ -204,16 +260,16 @@ if __name__ == '__main__':
     simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, curated=True)
 
     n = 20  # global GRIDSIZE
-    steps = 50  # global NUM_LATTICE_STEPS
+    steps = 200  # global NUM_LATTICE_STEPS
     buildstring = "dual"  # mono/dual/memory_sequence/random
     fieldstring = "no_exo_field"  # on/off/all/no_exo_field, note e.g. 'off' means send info about 'off' genes only
     meanfield = False  # set to true to use infinite signal distance (no neighbour searching; track mean field)
     fieldprune = 0.0  # amount of external field idx to randomly prune from each cell
-    ext_field_strength = 0.1  #/ (n*n) * 8                                                 # global EXT_FIELD_STRENGTH tunes exosomes AND sent field
+    ext_field_strength = 0.1  #  / (n*n) * 8                                # global GAMMA = EXT_FIELD_STRENGTH tunes exosomes AND sent field
     #app_field = construct_app_field_from_genes(IPSC_EXTENDED_GENES_EFFECTS, simsetup['GENE_ID'], num_steps=steps)        # size N x timesteps or None
 
     app_field = None
-    KAPPA = 100.0
+    KAPPA = 1.0
     if KAPPA > 0:
         print 'Note gene 0 (on), 1 (on), 2 (on) are HK in A1 memories'
         print 'Note gene 4 (off), 5 (on) are HK in C1 memories'

@@ -3,10 +3,11 @@ import os
 
 from singlecell.singlecell_functions import hamiltonian
 
-def calc_lattice_energy(lattice, simsetup, field, fs, gamma, search_radius, ratio_to_remove, exosome_string):
+def calc_lattice_energy(lattice, simsetup, field, fs, gamma, search_radius, ratio_to_remove, exosome_string, meanfield,
+                        norm=True):
     """
     Lattice energy is the multicell hamiltonian
-        H_multi = Sum (H_i) + gamma * Sum (interactions)
+        H_multi = [Sum (H_internal)] - gamma * [Sum (interactions)] - fs * [app_field dot Sum (state)]
     Returns total energy and the two main terms
     """
     M1 = len(lattice)
@@ -14,28 +15,72 @@ def calc_lattice_energy(lattice, simsetup, field, fs, gamma, search_radius, rati
     num_cells = M1 * M2
     assert M1 == M2  # TODO relax
     H_multi = 0
-    term1 = 0
-    term2 = 0
-    # compute self energies
+    H_self = 0
+    H_pairwise = 0
+    H_app = 0
+    # compute self energies and applied field contribution separately
     for i in xrange(M1):
         for j in xrange(M2):
             cell = lattice[i][j]
-            term1 += hamiltonian(cell.get_current_state(), simsetup['J'], field=field, fs=fs)
+            H_self += hamiltonian(cell.get_current_state(), simsetup['J'], field=None, fs=0.0)
+            if field is not None:
+                H_app -= fs * np.dot(cell.get_current_state().T, field)
     # compute interactions  # TODO check validity
+    # meanfield case
+    if meanfield:
+        mf_search_radius = None
+        mf_neighbours = [[a, b] for a in xrange(M2) for b in xrange(M1)]  # TODO ok that cell is neighbour with self as well? remove diag
+    else:
+        assert search_radius is not None
     for i in xrange(M1):
         for j in xrange(M2):
             cell = lattice[i][j]
-            nbr_states_sent, neighbours = cell.get_local_exosome_field(lattice, search_radius, M1,
-                                                                       exosome_string=exosome_string,
-                                                                       ratio_to_remove=ratio_to_remove)
-            if simsetup['FIELD_SEND'] is not None:
-                nbr_states_sent += cell.get_local_paracrine_field(lattice, neighbours, simsetup)
+            if meanfield:
+                nbr_states_sent, neighbours = cell.get_local_exosome_field(lattice, mf_search_radius, M1,
+                                                                           exosome_string=exosome_string,
+                                                                           ratio_to_remove=ratio_to_remove,
+                                                                           neighbours=mf_neighbours)
+                if simsetup['FIELD_SEND'] is not None:
+                    nbr_states_sent += cell.get_local_paracrine_field(lattice, neighbours, simsetup)
+            else:
+                nbr_states_sent, neighbours = cell.get_local_exosome_field(lattice, search_radius, M1,
+                                                                           exosome_string=exosome_string,
+                                                                           ratio_to_remove=ratio_to_remove,
+                                                                           neighbours=None)
+                if simsetup['FIELD_SEND'] is not None:
+                    nbr_states_sent += cell.get_local_paracrine_field(lattice, neighbours, simsetup)
+            """
             nbr_states_sent_01 = (nbr_states_sent + len(neighbours)) / 2.0
             field_neighbours = np.dot(simsetup['FIELD_SEND'], nbr_states_sent_01)
-            term2 += np.dot(field_neighbours, cell.get_current_state())
-    term2_scaled = term2 * gamma / 2  # divide by two because of double-counting neighbours
-    H_multi = term1 - term2_scaled
-    return H_multi, term1, term2_scaled
+
+            print 'Hpair:', i,j, 'adding', np.dot(field_neighbours, cell.get_current_state())
+            print 'neighbours are', neighbours
+            print cell.get_current_label(), 'receiving from', [lattice[p[0]][p[1]].get_current_label() for p in neighbours]
+            print 'cell state', cell.get_current_state()
+            print 'nbr field', nbr_states_sent
+            print 'nbr field 01', nbr_states_sent_01
+            print 'field_neighbours', field_neighbours
+            """
+            H_pairwise += np.dot(nbr_states_sent, cell.get_current_state())
+    H_pairwise_scaled = - H_pairwise * gamma / 2  # divide by two because of double-counting neighbours
+    if norm:
+        H_self = H_self / num_cells
+        H_app = H_app / num_cells
+        H_pairwise_scaled = H_pairwise_scaled / num_cells
+    H_multi = H_self + H_app + H_pairwise_scaled
+    return H_multi, H_self, H_app, H_pairwise_scaled
+
+
+def get_state_of_lattice(lattice, simsetup, datatype='full'):
+    M1 = len(lattice)
+    M2 = len(lattice[0])
+    if datatype == 'full':
+        x = np.zeros((M1, M2, simsetup['N']), dtype=int)
+        for i in xrange(M1):
+            for j in xrange(M2):
+                cell = lattice[i][j]
+                x[i,j,:] = (1 + cell.get_current_state()) / 2.0  # note 01 rep
+    return x
 
 
 def calc_compression_ratio(x, eta_0=None, datatype='full', elemtype=np.bool, method='manual'):
@@ -59,9 +104,11 @@ def calc_compression_ratio(x, eta_0=None, datatype='full', elemtype=np.bool, met
 
     if datatype == 'full':
         if eta_0 is None:
-            # TODO compute eta_0
-            x_random = None
+            x_random = np.random.randint(0, high=2, size=x.shape, dtype=np.int)
             eta_0 = foo(x_random)  # consider max over few realizations?
+        if x.dtype != elemtype:
+            print 'NOTE: Recasting x as elemtype', elemtype, 'from', x.dtype
+            x = x.astype(dtype=elemtype)
         eta = foo(x)
     else:
         assert datatype == 'custom'
