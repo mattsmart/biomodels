@@ -85,7 +85,7 @@ def get_state_of_lattice(lattice, simsetup, datatype='full'):
 
 def calc_compression_ratio(x, eta_0=None, datatype='full', elemtype=np.bool, method='manual'):
     """
-    TODO compare vs conv 01 -1 1 on state array
+    TODO add an eta_min ref point as all zeros of np.int with shape x.shape
     x - the data object (assume lies between -1 and 1)
     eta_0 is meant to be a rough upper bound on eta(x)
         - compute via 'maximally disordered' input x (random data)
