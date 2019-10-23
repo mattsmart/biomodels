@@ -6,34 +6,12 @@ from singlecell_constants import NETWORK_METHOD, DEFAULT_MEMORIES_NPZPATH, J_RAN
 from singlecell_linalg import memory_corr_matrix_and_inv, interaction_matrix, predictivity_matrix
 from dataprocess.data_standardize import load_npz_of_arr_genes_cells, save_npz_of_arr_genes_cells
 from dataprocess.unfolding_csv_to_npz import load_npz_of_arr_genes_cells_signals
+from singlecell_simsetup_curated import CURATED_XI, CURATED_W, CURATED_CELLTYPE_LABELS, CURATED_GENE_LABELS
 
 """
 Conventions follow from Lang & Mehta 2014, PLOS Comp. Bio
 - note the memory matrix is transposed throughout here (dim N x p instead of dim p x N)
 """
-
-
-"""Curated XI"""
-CURATED_XI = np.array([
-    [1, -1],  # TF 1
-    [-1, 1],  # TF 2
-    [1, -1],  # identity gene
-    [-1, 1],  # identity gene
-    [1, 1],   # housekeeping gene (hardcoded)
-    [1, 1]])  # housekeeping gene (hardcoded)
-"""Curated W for above XI:
-    when gene 0 (col 1) is ON as in mem A, it promoted mem A and inhibits mem B
-    when gene 1 (col 2) is ON as in mem B, it promoted mem A and inhibits mem B
-"""
-CURATED_W = np.array([
-    [-5, 0, 0, 0, 0, 0],
-    [0, -5, 0, 0, 0, 0],
-    [-5, 5, 0, 0, 0, 0],
-    [5, -5, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0]])
-CURATED_CELLTYPE_LABELS = ['mem_A', 'mem_B']
-CURATED_GENE_LABELS = ['A_signal', 'B_signal', 'A_identity', 'B_identity', 'HK_1', 'HK_2']
 
 
 def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath=DEFAULT_MEMORIES_NPZPATH,
