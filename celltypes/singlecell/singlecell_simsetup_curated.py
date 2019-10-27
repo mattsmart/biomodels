@@ -23,8 +23,8 @@ curated = {
           'gene_labels': ['A_signal', 'B_signal', 'A_identity', 'B_identity', 'HK_1', 'HK_2']
          },
     'ferro':
-        {'XI': np.ones((10,1)),
-          'W': np.zeros((10,10)),
+        {'XI': np.ones((10, 1)),
+          'W': np.zeros((10, 10)),
           'celltype_labels': [r'$\xi$'],
           'gene_labels': ['gene_%d' % idx for idx in xrange(10)],
          }

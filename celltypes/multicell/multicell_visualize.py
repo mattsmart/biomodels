@@ -63,7 +63,7 @@ def lattice_uniplotter(lattice, time, n, lattice_plot_dir, uniplot_key, simsetup
     return
 
 
-def lattice_projection_composite(lattice, time, n, lattice_plot_dir, simsetup, state_int=False):
+def lattice_projection_composite(lattice, time, n, lattice_plot_dir, simsetup, state_int=False, cmap_vary=False):
     """
     state_int: plot state integer rep inside cell (useful only for small state spaces e.g. fewer than 10 genes)
     """
@@ -82,12 +82,23 @@ def lattice_projection_composite(lattice, time, n, lattice_plot_dir, simsetup, s
     fig.set_size_inches(16, 16)
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
     fig.suptitle('Lattice projection onto p=%d memories (Step=%d)' % (simsetup['P'], time), fontsize=20)
-    colourmap = plt.get_cmap('PiYG')  # 'PiYG' or 'Spectral'
+
+    def get_colourmap(mem_idx):
+        if cmap_vary:
+            assert simsetup['P'] == 2
+            from matplotlib.colors import LinearSegmentedColormap
+            c3 = {0: '#9dc3e6', 1: '#ffd966'}[mem_idx]
+            colours = [(0.0, 'black'), (0.5, 'white'), (1.0, c3)]
+            colourmap = LinearSegmentedColormap.from_list('customcmap', colours, N=1e4)
+        else:
+            colourmap = plt.get_cmap('PiYG')  # 'PiYG' or 'Spectral'
+        return colourmap
 
     mem_idx = 0
     for row in xrange(nrow):
         for col in xrange(ncol):
             if mem_idx < simsetup['P']:
+                colourmap = get_colourmap(mem_idx)
                 subax = ax[row][col]
                 # plot data
                 proj_vals = get_lattice_uniproj(lattice, time, n, mem_idx, simsetup)
@@ -108,6 +119,13 @@ def lattice_projection_composite(lattice, time, n, lattice_plot_dir, simsetup, s
                 subax.set_xticks(np.arange(-.5, n, 1))
                 subax.set_yticks(np.arange(-.5, n, 1))
                 subax.grid(which='major', axis='both', linestyle='-', color='k', linewidth=1)
+                # add cmap if cmap_vary
+                if cmap_vary:
+                    #cbar = fig.colorbar(im, ax=ax.ravel().tolist(), ticks=[-1, 0, 1], orientation='horizontal',
+                    #                    fraction=0.046, pad=0.04)
+                    cbar = fig.colorbar(im, ax=subax, ticks=[-1, 0, 1], orientation='horizontal',
+                                        fraction=0.046, pad=0.04)
+                    cbar.ax.tick_params(labelsize=16)
                 mem_idx += 1
             else:
                 empty_subplots.append((row, col))
@@ -116,8 +134,9 @@ def lattice_projection_composite(lattice, time, n, lattice_plot_dir, simsetup, s
     for pair in empty_subplots:
         ax[pair[0], pair[1]].axis('off')
     # plot colourbar
-    cbar = fig.colorbar(im, ax=ax.ravel().tolist(), ticks=[-1, 0, 1], orientation='horizontal', fraction=0.046, pad=0.04)
-    cbar.ax.tick_params(labelsize=12)
+    if not cmap_vary:
+        cbar = fig.colorbar(im, ax=ax.ravel().tolist(), ticks=[-1, 0, 1], orientation='horizontal', fraction=0.046, pad=0.04)
+        cbar.ax.tick_params(labelsize=16)
     # save figure
     plt.savefig(os.path.join(lattice_plot_dir, 'composite_lattice_step%d.png' % time), dpi=max(120.0, n/2.0))
     plt.close()

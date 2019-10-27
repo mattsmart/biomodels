@@ -42,12 +42,10 @@ def build_lattice_memories(simsetup, M):
         for col in xrange(num_x):
             if row in (1,2) and col in range(2,7):
                 mem1[row][col] = 'mem_B'
-            elif row in range(3,9) and col in (5,6):
-                mem1[row][col] = 'mem_A'
-            elif row in (10,11) and col in range(2,10):
+            if row in range(3,9) and col in (5,6):
                 mem1[row][col] = 'mem_B'
-            else:
-                mem1[row][col] = 'mem_A'
+            if row in (9,10) and col in range(2,10):
+                mem1[row][col] = 'mem_B'
     mem1 = conv_grid_to_vector(mem1)
     # build mem 2 -- number 2 on 12x12 grid
     for row in xrange(num_y):
@@ -127,7 +125,7 @@ def sim_lattice_as_cell(simsetup, num_steps, beta, app_field, app_field_strength
                 cell.steps += 1
                 cell.state = new_cellstate            # TODO: make sure don't need array copy
                 cell.state_array = state_array_ext
-        lattice_projection_composite(lattice, turn, sqrtM, io_dict['latticedir'], simsetup, state_int=True)
+        lattice_projection_composite(lattice, turn, sqrtM, io_dict['latticedir'], simsetup, state_int=True, cmap_vary=True)
         reference_overlap_plotter(lattice, turn, sqrtM, io_dict['latticedir'], simsetup, state_int=True)
         #if flag_uniplots:
         #    for mem_idx in memory_idx_list:
