@@ -63,7 +63,21 @@ def build_lattice_random(n, simsetup):
     return lattice
 
 
-def build_lattice_main(n, list_of_celltype_idx, buildstring, simsetup):
+def build_lattice_explicit(n, simsetup, state=None):
+    assert len(state) == n**2 * simsetup['N']
+    lattice = [[0 for _ in xrange(n)] for _ in xrange(n)]  # TODO: this can be made faster as np array    idx = 0
+    for i in xrange(n):
+        for j in xrange(n):
+            cellname = str(i*j)
+            posn = n * i + j
+            start_spin = posn * simsetup['N']
+            end_spin = (posn + 1) * simsetup['N']
+            cellstate = state[start_spin:end_spin].T
+            lattice[i][j] = SpatialCell(cellstate, "%d,%d_%s" % (i, j, cellname), [i, j], simsetup)
+    return lattice
+
+
+def build_lattice_main(n, list_of_celltype_idx, buildstring, simsetup, state=None):
     print "Building %s lattice with types %s" % (buildstring, list_of_celltype_idx)
     if buildstring == "mono":
         assert len(list_of_celltype_idx) == 1
@@ -75,6 +89,8 @@ def build_lattice_main(n, list_of_celltype_idx, buildstring, simsetup):
         return build_lattice_memory_sequence(n, list_of_celltype_idx, simsetup)
     elif buildstring == "random":
         return build_lattice_random(n, simsetup)
+    elif buildstring == "explicit":
+        return build_lattice_explicit(n, simsetup, state=state)
     else:
         raise ValueError("buildstring arg invalid, must be one of %s" % VALID_BUILDSTRINGS)
 

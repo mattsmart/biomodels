@@ -91,41 +91,70 @@ def hopfield_on_lattice_memories(simsetup, M, lattice_memories):
     return intxn_matrix
 
 
-def sim_lattice_as_cell(num_steps):
-    # specify single cell model
-    random_mem = False
-    random_W = False
-    simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, curated=True, housekeeping=0)
+def sim_lattice_as_cell(simsetup, num_steps, beta, app_field, app_field_strength):
     # build multicell intxn matrix
     gamma = 1.0
     M = 144
+    sqrtM = 12
     total_spins = M * simsetup['N']
     lattice_memories = build_lattice_memories(simsetup, M)
     lattice_memories_list = ['%d' % idx for idx, elem in enumerate(lattice_memories)]
     lattice_gene_list =['site_%d' % idx for idx in xrange(total_spins)]
     lattice_intxn_matrix = np.kron(np.eye(M), simsetup['J']) + \
                            gamma * (hopfield_on_lattice_memories(simsetup, M, lattice_memories))
+    # build lattice applied field (extended)
+    app_field_on_lattice = np.array([app_field for _ in xrange(M)]).reshape(total_spins)
+    # setup IO
+    io_dict = run_subdir_setup()
     # initialize
     init_cond = np.random.randint(0,2,total_spins)*2 - 1  # TODO alternatives
     lattice_as_cell = Cell(init_cond, 'lattice_as_cell', lattice_memories_list, lattice_gene_list, state_array=None, steps=None)
+    lattice = build_lattice_main(sqrtM, None, "explicit", simsetup,
+                                 state=lattice_as_cell.get_current_state())  # TODO hacky
     # simulate for t steps
-    for t in xrange(num_steps):
-        print 'step', t
-        lattice_as_cell.update_state(lattice_intxn_matrix, beta=BETA, app_field=None,
-                                     app_field_strength=APP_FIELD_STRENGTH, async_batch=True)
+    for turn in xrange(num_steps):
+        print 'step', turn
+        lattice_as_cell.update_state(lattice_intxn_matrix, beta=beta, app_field=app_field_on_lattice,
+                                     app_field_strength=app_field_strength, async_batch=True)
+        # fill in lattice info from update  # TODO convert to spatial cell method from explicit lattice vec?
+        lattice_vec = lattice_as_cell.get_current_state()
+        for i in xrange(sqrtM):
+            for j in xrange(sqrtM):
+                cell = lattice[i][j]
+                posn = sqrtM * i + j
+                start_spin = posn * simsetup['N']
+                end_spin = (posn + 1) * simsetup['N']
+                new_cellstate = lattice_vec[start_spin:end_spin].T
+                state_array_ext = np.zeros((simsetup['N'], np.shape(cell.state_array)[1] + 1))
+                state_array_ext[:, :-1] = cell.state_array  # TODO: make sure don't need array copy
+                state_array_ext[:, -1] = new_cellstate
+                cell.steps += 1
+                cell.state = new_cellstate            # TODO: make sure don't need array copy
+                cell.state_array = state_array_ext
+        lattice_projection_composite(lattice, turn, sqrtM, io_dict['latticedir'], simsetup, state_int=True)
+        reference_overlap_plotter(lattice, turn, sqrtM, io_dict['latticedir'], simsetup, state_int=True)
+        #if flag_uniplots:
+        #    for mem_idx in memory_idx_list:
+        #        lattice_uniplotter(lattice, turn, n, io_dict['latticedir'], mem_idx, simsetup)
+
     # statistics and plots
     # TODO
+    return lattice, io_dict
 
 
 if __name__ == '__main__':
-    sim_lattice_as_cell(10)
-    print 'Done'
+    num_steps = 20
+    beta = 10.0
+
+    # specify single cell model
+    random_mem = False
+    random_W = False
+    simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, curated=True, housekeeping=0)
 
     # TODO housekeeping field
-    """
     app_field = None
     # housekeeping genes block
-    KAPPA = 10.0
+    KAPPA = 1.0
     if KAPPA > 0:
         # housekeeping auto (via model extension)
         app_field = np.zeros(simsetup['N'])
@@ -137,8 +166,12 @@ if __name__ == '__main__':
             print 'Note gene 4 (off), 5 (on) are HK in C1 memories'
             app_field[4] = 1.0
             app_field[5] = 1.0
-    """
-    
+
+    sim_lattice_as_cell(simsetup, num_steps, beta, app_field, KAPPA)
+    print 'Done'
+
+
+
     """
     plot_period = 1
     state_int = True
@@ -155,3 +188,14 @@ if __name__ == '__main__':
                field_remove_ratio=fieldprune, ext_field_strength=ext_field_strength, app_field=app_field,
                app_field_strength=app_field_strength, beta=beta, plot_period=plot_period, state_int=state_int, meanfield=meanfield)
     """
+    if make_video:
+        basedir = RUNS_FOLDER + os.sep + "expC1_fsHigh_beta1.0_radius1"
+        source_dir = "lattice" + os.sep + "overlapRef_0_0"
+        # fhead = "composite_lattice_step"
+        fhead = "lattice_overlapRef_0_0_step"
+        ftype = ".png"
+        nmax = 100
+        fps = 2
+        sourcepath = basedir + os.sep + source_dir
+        outpath = basedir + os.sep + 'movie2_expC1_fsHigh_beta1.mp4'
+        make_video_ffmpeg(sourcepath, outpath, fps=1, fhead=fhead, ftype=ftype, nmax=nmax)
