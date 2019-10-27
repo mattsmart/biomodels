@@ -3,17 +3,13 @@ import os
 import random
 import matplotlib.pyplot as plt
 
-from multicell_constants import GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS, VALID_BUILDSTRINGS, MEANFIELD, \
-    VALID_EXOSOME_STRINGS, EXOSTRING, BUILDSTRING, LATTICE_PLOT_PERIOD, FIELD_REMOVE_RATIO
 from multicell_lattice import build_lattice_main, get_cell_locations, prep_lattice_data_dict, write_state_all_cells, \
     write_grid_state_int, write_general_arr, read_general_arr
-from multicell_metrics import calc_lattice_energy, calc_compression_ratio, get_state_of_lattice
 from multicell_visualize import lattice_uniplotter, reference_overlap_plotter, lattice_projection_composite
 from singlecell.singlecell_class import Cell
-from singlecell.singlecell_constants import EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, BETA
 from singlecell.singlecell_data_io import run_subdir_setup, runinfo_append
-from singlecell.singlecell_fields import construct_app_field_from_genes
 from singlecell.singlecell_simsetup import singlecell_simsetup # N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS, GENE_ID
+from utils.make_video import make_video_ffmpeg
 
 
 def build_lattice_memories(simsetup, M):
@@ -137,14 +133,13 @@ def sim_lattice_as_cell(simsetup, num_steps, beta, app_field, app_field_strength
         #    for mem_idx in memory_idx_list:
         #        lattice_uniplotter(lattice, turn, n, io_dict['latticedir'], mem_idx, simsetup)
 
-    # statistics and plots
-    # TODO
     return lattice, io_dict
 
 
 if __name__ == '__main__':
     num_steps = 20
     beta = 10.0
+    make_video = True
 
     # specify single cell model
     random_mem = False
@@ -167,9 +162,8 @@ if __name__ == '__main__':
             app_field[4] = 1.0
             app_field[5] = 1.0
 
-    sim_lattice_as_cell(simsetup, num_steps, beta, app_field, KAPPA)
+    lattice, io_dict = sim_lattice_as_cell(simsetup, num_steps, beta, app_field, KAPPA)
     print 'Done'
-
 
 
     """
@@ -189,13 +183,9 @@ if __name__ == '__main__':
                app_field_strength=app_field_strength, beta=beta, plot_period=plot_period, state_int=state_int, meanfield=meanfield)
     """
     if make_video:
-        basedir = RUNS_FOLDER + os.sep + "expC1_fsHigh_beta1.0_radius1"
-        source_dir = "lattice" + os.sep + "overlapRef_0_0"
+        print 'Making video...'
         # fhead = "composite_lattice_step"
-        fhead = "lattice_overlapRef_0_0_step"
-        ftype = ".png"
-        nmax = 100
+        fhead = "composite_lattice_step"
         fps = 2
-        sourcepath = basedir + os.sep + source_dir
-        outpath = basedir + os.sep + 'movie2_expC1_fsHigh_beta1.mp4'
-        make_video_ffmpeg(sourcepath, outpath, fps=1, fhead=fhead, ftype=ftype, nmax=nmax)
+        outpath = io_dict['basedir'] + os.sep + 'movie2_expC1_fsHigh_beta1.mp4'
+        make_video_ffmpeg(io_dict['latticedir'], outpath, fps=1, fhead=fhead, ftype=".png", nmax=num_steps)
