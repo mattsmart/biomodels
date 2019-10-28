@@ -2,7 +2,7 @@ import numpy as np
 
 
 curated = {
-    'mutual_inhibtion':
+    'mutual_inhibition':
         {'XI': np.array([
             [1, -1],  # TF 1
             [-1, 1],  # TF 2
@@ -30,7 +30,7 @@ curated = {
          }
 }
 
-LABEL = 'mutual_inhibtion'
+LABEL = 'mutual_inhibition'
 assert LABEL in curated.keys()
 CURATED_XI = curated[LABEL]['XI']
 CURATED_W = curated[LABEL]['W']
