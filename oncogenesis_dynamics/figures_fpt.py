@@ -304,8 +304,8 @@ def figure_mfpt_varying_collapsed(means, sds, param_vary_name, param_set, params
 
 if __name__ == "__main__":
     multihist = False
-    simplex_and_zdist = True
-    only_fp_zloc_times_joint = True
+    simplex_and_zdist = False
+    only_fp_zloc_times_joint = False
     composite_simplex_zdist = False
     composite_hist_simplex_zdist = False
     inspect_fpt_flux = False
@@ -553,6 +553,7 @@ if __name__ == "__main__":
         ax=None
         fs=12
         colours = [X_DARK, '#ffd966', Z_DARK, BLUE, 'pink', 'brown']  # ['black', 'red', 'green', 'blue']
+        #colours = [X_DARK, BLUE, Z_DARK, 'pink', 'brown']  # ['black', 'red', 'green', 'blue'] NOV 7 ALT
 
         if ax is None:
             plt.figure(figsize=(4, 3))
@@ -583,7 +584,7 @@ if __name__ == "__main__":
                     """
                     continue
                 elif datakey == 'linalgZHAT':
-                    ax.plot(x, y, '-*', markeredgecolor='k', color=colours[idx],
+                    ax.plot(x, y, '-', markeredgecolor='k', color=colours[idx],
                             label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{1D}}$' % gammaval, zorder=3)
                 elif datakey == 'fpRouteFlux':
                     ax.plot(x, y, '--', marker=None, markeredgecolor='k', color=colours[idx],
@@ -601,7 +602,7 @@ if __name__ == "__main__":
                     #        label=r'$\gamma=%d$: pfix1' % gammaval, zorder=3)
                 elif datakey == 'guessBlobtimes' and key=='TR100g':
                     #continue
-                    ax.plot(x, y, '-.', marker=None, markeredgecolor='k', color='gray',  # colours[idx],
+                    ax.plot(x[0:16], y[0:16], '-.', marker=None, markeredgecolor='k', color='gray',  # colours[idx],
                             label=r'$\gamma=100$: $\langle\tau\rangle_{\mathrm{b}}$', zorder=3)
                 elif datakey == 'guessBlobtimesPosSvals' and key=='TR100g':
                     continue
@@ -625,7 +626,7 @@ if __name__ == "__main__":
         plt.xticks(fontsize=fs - 2)
         plt.yticks(fontsize=fs - 2)
         #plt.legend(bbox_to_anchor=(1.1, 1.05), fontsize=fs-4)
-        plt.legend(fontsize=fs-6)
+        plt.legend(fontsize=fs-4, ncol=2)
         # log options
         flag_xlog10 = True
         flag_ylog10 = True
@@ -633,13 +634,13 @@ if __name__ == "__main__":
             # ax.set_xscale("log", nonposx='clip')
             ax.set_xscale("log")
             # ax_dual.set_xscale("log", nonposx='clip')
-            ax.set_xlim([np.min(param_set) * 0.9, 1.5 * 1e7]) #ax.set_xlim([np.min(param_set) * 0.9, 1.5 * 1e6])
+            ax.set_xlim([np.min(param_set) * 0.9, 2.5 * 1e6]) #ax.set_xlim([np.min(param_set) * 0.9, 1.5 * 1e6])
         if flag_ylog10:
             # ax.set_yscale("log", nonposx='clip')
             ax.set_yscale("log")
             # ax_dual.set_yscale("log", nonposx='clip')
             #ax.set_ylim([6 * 1e-1, 3 * 1e6])
-            ax.set_ylim([0.8*1e1, 3 * 1e6])
+            ax.set_ylim([0.8*1e1, 2 * 1e5])
         #plt.show()
         plt.savefig(basedir + os.sep + 'mfpt_TR_heuristics.pdf')
 
@@ -670,6 +671,7 @@ if __name__ == "__main__":
         ax=None
         fs=12
         colours = [X_DARK, '#ffd966', Z_DARK, BLUE, 'pink', 'brown']  # ['black', 'red', 'green', 'blue']
+        #colours = [X_DARK, BLUE, Z_DARK, 'pink', 'brown']  # ['black', 'red', 'green', 'blue'] NOV 7 ALT
 
         if ax is None:
             plt.figure(figsize=(4, 3))
@@ -701,7 +703,7 @@ if __name__ == "__main__":
                     #        label=r'$\gamma=%d$: ME allz' % gammaval, zorder=3)
                     continue
                 elif datakey == 'linalgZHAT':
-                    ax.plot(x, y, '-*', markeredgecolor='k', color=colours[idx],
+                    ax.plot(x, y, '-', markeredgecolor='k', color=colours[idx],
                             label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{1D}}$' % gammaval, zorder=3)
                 elif datakey == 'fpRouteFlux':
                     ax.plot(x, y, '--', marker=None, markeredgecolor='k', color=colours[idx],
@@ -719,8 +721,12 @@ if __name__ == "__main__":
                     #        label=r'$\gamma=%d$: BP2' % gammaval, zorder=3)
                     continue
                 elif datakey == 'guessBoundaryProb3':
-                    ax.plot(x, y, ':', marker=None, markeredgecolor='k', color=colours[idx],  # colours[idx],
-                            label=r'$\gamma=%d$: $\langle\tau\rangle_{z=N}$' % (gammaval), zorder=3)
+                    if gammaval == 1:
+                        ax.plot(x[0:3], y[0:3], ':', marker=None, markeredgecolor='k', color=colours[idx],  # colours[idx],
+                                label=r'$\gamma=%d$: $\langle\tau\rangle_{z=N}$' % (gammaval), zorder=3)
+                    else:
+                        ax.plot(x[0:6], y[0:6], ':', marker=None, markeredgecolor='k', color=colours[idx],
+                                label=r'$\gamma=%d$: $\langle\tau\rangle_{z=N}$' % (gammaval), zorder=3)
                 """
                 elif datakey == 'guessBoundaryTimeDual1':
                     print 'a', key, y
@@ -745,7 +751,7 @@ if __name__ == "__main__":
         plt.xticks(fontsize=fs - 2)
         plt.yticks(fontsize=fs - 2)
         #plt.legend(bbox_to_anchor=(1.07, 1.00), fontsize=fs-6)
-        plt.legend(fontsize=fs-6)
+        plt.legend(fontsize=fs-4, ncol=2)
         # log options
         flag_xlog10 = True
         flag_ylog10 = True
@@ -759,6 +765,6 @@ if __name__ == "__main__":
             ax.set_yscale("log")
             # ax_dual.set_yscale("log", nonposx='clip')
             #ax.set_ylim([6 * 1e-1, 3 * 1e6])
-            ax.set_ylim([1*1e3, 3 * 1e7])
+            ax.set_ylim([1*1e3, 2 * 1e6])
         #plt.show()
         plt.savefig(basedir + os.sep + 'mfpt_BL_heuristics.pdf')
