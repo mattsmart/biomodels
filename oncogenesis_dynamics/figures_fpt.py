@@ -587,23 +587,23 @@ if __name__ == "__main__":
                     ax.plot(x, y, '-', markeredgecolor='k', color=colours[idx],
                             label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{1D}}$' % gammaval, zorder=3)
                 elif datakey == 'fpRouteFlux':
-                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color=colours[idx],
-                            label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{path}}$' % gammaval, zorder=5-idx)
+                    ax.plot(x[6:], y[6:], '--', marker=None, markeredgecolor='k', color=colours[idx],
+                            label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{P}}$' % gammaval, zorder=5-idx)
                 elif datakey == 'fpFlux':
                     continue
                     #ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',#colours[idx],
                     #        label=r'$\gamma=%d$: FP flux' % gammaval, zorder=3)
                 elif datakey == 'guessPfixTerm123':
-                    ax.plot(x, y, '-.', marker=None, markeredgecolor='k', color=colours[idx],  # 'k'
-                            label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{neutral}}$' % gammaval, zorder=5-idx)
+                    ax.plot(x[:-3], y[:-3], '-.', marker=None, markeredgecolor='k', color=colours[idx],  # 'k'
+                            label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{S}}$' % gammaval, zorder=5-idx)
                 elif datakey == 'guessPfixTerm1':
                     continue
                     #ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='gray',  # colours[idx],
                     #        label=r'$\gamma=%d$: pfix1' % gammaval, zorder=3)
                 elif datakey == 'guessBlobtimes' and key=='TR100g':
                     #continue
-                    ax.plot(x[0:16], y[0:16], '-.', marker=None, markeredgecolor='k', color='gray',  # colours[idx],
-                            label=r'$\gamma=100$: $\langle\tau\rangle_{\mathrm{b}}$', zorder=3)
+                    ax.plot(x[0:16], y[0:16], '--', marker='*', markeredgecolor='k', color=colours[idx],
+                            label=r'$\gamma=100$: $\langle\tau\rangle_{\mathrm{W}}$', zorder=3)
                 elif datakey == 'guessBlobtimesPosSvals' and key=='TR100g':
                     continue
                     #ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
@@ -617,7 +617,7 @@ if __name__ == "__main__":
                     cols = {'1': 'red', '2':'blue', '3':'black'}
                     if datakey[-1] == '3':
                         ax.plot(x, y, ':', marker=None, markeredgecolor='k', color=colours[idx],  # colours[idx],
-                                label=r'$\gamma=100$: $\langle\tau\rangle_{z=N}$', zorder=3)
+                                label=r'$\gamma=100$: $\langle\tau\rangle_{\mathrm{B}}$', zorder=3)
                 else:
                     print 'skipping', datakey
 
@@ -706,8 +706,12 @@ if __name__ == "__main__":
                     ax.plot(x, y, '-', markeredgecolor='k', color=colours[idx],
                             label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{1D}}$' % gammaval, zorder=3)
                 elif datakey == 'fpRouteFlux':
-                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color=colours[idx],
-                            label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{path}}$' % gammaval, zorder=3)
+                    if gammaval == 1:
+                        ax.plot(x[1:], y[1:], '--', marker=None, markeredgecolor='k', color=colours[idx],
+                                label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{P}}$' % gammaval, zorder=3)
+                    else:
+                        ax.plot(x[4:], y[4:], '--', marker=None, markeredgecolor='k', color=colours[idx],
+                                label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{P}}$' % gammaval, zorder=3)
                 elif datakey == 'fpFlux':
                     #ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',#colours[idx],
                     #        label=r'$\gamma=%d$: FP flux' % gammaval, zorder=3)
@@ -723,10 +727,10 @@ if __name__ == "__main__":
                 elif datakey == 'guessBoundaryProb3':
                     if gammaval == 1:
                         ax.plot(x[0:3], y[0:3], ':', marker=None, markeredgecolor='k', color=colours[idx],  # colours[idx],
-                                label=r'$\gamma=%d$: $\langle\tau\rangle_{z=N}$' % (gammaval), zorder=3)
+                                label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{B}}$' % (gammaval), zorder=3)
                     else:
                         ax.plot(x[0:6], y[0:6], ':', marker=None, markeredgecolor='k', color=colours[idx],
-                                label=r'$\gamma=%d$: $\langle\tau\rangle_{z=N}$' % (gammaval), zorder=3)
+                                label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{B}}$' % (gammaval), zorder=3)
                 """
                 elif datakey == 'guessBoundaryTimeDual1':
                     print 'a', key, y
