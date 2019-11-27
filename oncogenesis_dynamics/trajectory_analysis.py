@@ -403,17 +403,23 @@ def plot_heuristic_mfpt(params, N_range, curve_heuristic, param_vary_name, datai
 
         # TRg100 heuristic blobtimes v1
         N_range_dense = np.logspace(np.log10(N_range[0]), np.log10(N_range[-5]), 2*len(N_range))
-        """
-        curve_fit_guess = [1/(params.mu * n * yfrac_pt0 * (1 - np.exp(-params.mu * get_blobtime(n,outer_int_upper=None)**2)))  # last factor is pfix
-                           + 0 * 1/(params.mu * n * zfrac_pt1)                                               # direct flux from z1
-                           + 0 * 1/(params.mu * n * yfrac_pt1) * 1/(np.sqrt(params.mu * n * s_renorm))       # flux from y->z->zhat
-                           for n in N_range_dense]
-        """
+        blobtimes = [get_blobtime(n,outer_int_upper=None) for n in N_range_dense]
+        print "TR100 blobtimes"
+        for idx, n in enumerate(N_range_dense):
+            print idx, n, blobtimes[idx]
+        plt.plot(N_range_dense, blobtimes)
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+        plt.show()
+        curve_fit_guess = [1/(params.mu * n * yfrac_pt0 * (1 - np.exp(-params.mu * blobtimes[idx]**2)))  # last factor is pfix
+                           for idx, n in enumerate(N_range_dense)]
         # TRg100 heuristic blobtimes v2
+        """
+        N_range_dense = np.logspace(np.log10(N_range[0]), np.log10(N_range[-5]), 2*len(N_range))
         curve_fit_guess = [1/(params.mu * n * yfrac_pt0 * pfix_laplace_blobtime(s_renorm, n))
                            for n in N_range_dense]
         write_mfpt_heuristic(N_range_dense, curve_fit_guess, filename_mod="_%s_guessBlobtimesLaplace" % dataid)
-
+        """
         """curve_fit_guess = [1 / (params.mu**2 * n**2 * zfrac_pt1)
                    for n in N_range]"""
         #vertlne = 1/(zfrac_pt1 * s_renorm)   # when N = 1/(s0z0)
@@ -704,8 +710,8 @@ if __name__ == '__main__':
         'alpha_minus': 1.0,  # 0.5
         'mu': 1e-4,  # 0.01
         'a': 1.0,
-        'b': 0.8,
-        'c': 0.9,  # 1.2
+        'b': 1.2,
+        'c': 1.1,  # 1.2
         'N': 100.0,  # 100.0
         'v_x': 0.0,
         'v_y': 0.0,
