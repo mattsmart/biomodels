@@ -1,7 +1,10 @@
+import matplotlib.colors as clr
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-import matplotlib.colors as clr
+import time
+from multiprocessing import Pool
+from multiprocessing import cpu_count
 from scipy.optimize import fsolve
 
 
@@ -58,14 +61,14 @@ def is_stable(mval, params, eps=1e-4):
 
 
 def get_stable_roots(params, tol=1e-6):
-    unique_roots = get_all_roots(params, tol=1e-6)
+    unique_roots = get_all_roots(params, tol=tol)
     stable_roots = [mval for mval in unique_roots if is_stable(mval, params)]
     return stable_roots
 
 
-def plot_f_and_df(params):
+def plot_f_and_df(params, num_pts=20):
     fig, axarr = plt.subplots(1, 2)
-    mvals = np.linspace(-2, 2, 100)
+    mvals = np.linspace(-2, 2, num_pts)
     axarr[0].plot(mvals, [free_energy(m, params) for m in mvals])
     axarr[0].set_ylabel(r'$f(m)$')
     axarr[1].plot(mvals, [free_energy_dm(m, params) for m in mvals])
@@ -80,14 +83,45 @@ def plot_f_and_df(params):
     return
 
 
-def make_phase_diagram(p1, p2, p1range, p2range, params_base):
+def get_fp_data_2d(p1, p2, p1range, p2range, params_base):
     fp_data_2d = np.zeros((len(p1range), len(p2range)), dtype=int)
     for i, p1val in enumerate(p1range):
-        print "row", i, "of", len(p1range)
         for j, p2val in enumerate(p2range):
             params = params_fill(params_base, {p1: p1val, p2: p2val})
             fp_data_2d[i,j] = len(get_stable_roots(params, tol=1e-6))
+    return fp_data_2d
 
+
+def get_data_wrapper(fn_args_dict):
+    return get_fp_data_2d(*fn_args_dict['args'], **fn_args_dict['kwargs'])
+
+
+def get_data_parallel(p1, p2, p1range, p2range, params, num_proc=cpu_count()):
+    fn_args_dict = [0] * num_proc
+    print "NUM_PROCESSES:", num_proc
+    assert len(p1range) % num_proc == 0
+    for i in xrange(num_proc):
+        range_step = len(p1range) / num_proc
+        p1range_reduced = p1range[i * range_step: (1 + i) * range_step]
+        print "process:", i, "job size:", len(p1range_reduced), "x", len(p2range)
+        fn_args_dict[i] = {'args': (p1, p2, p1range_reduced, p2range, params),
+                           'kwargs': {}}
+        print i, p1, np.min(p1range_reduced), np.max(p1range_reduced)
+    t0 = time.time()
+    pool = Pool(num_proc)
+    results = pool.map(get_data_wrapper, fn_args_dict)
+    pool.close()
+    pool.join()
+    print "TIMER:", time.time() - t0
+
+    results_dim = np.shape(results[0])
+    results_collected = np.zeros((results_dim[0] * num_proc, results_dim[1]))
+    for i, result in enumerate(results):
+        results_collected[i * results_dim[0]:(i + 1) * results_dim[0], :] = result
+    return results_collected
+
+
+def make_phase_diagram(fp_data_2d, p1, p2, p1range, p2range, params_base):
     fs = 16
     # MAKE COLORBAR: https://stackoverflow.com/questions/9707676/defining-a-discrete-colormap-for-imshow-in-matplotlib
     assert np.max(fp_data_2d) <= 4
@@ -137,14 +171,17 @@ if __name__ == '__main__':
 
     if phase_diagram:
         params = {
-            'N': 100.0,
-            'beta': 4.0,
+            'N': 1000.0,
+            'beta': 100.0,
             'r1': 0,
             'r2': 0,
             'kappa1': 0.0,
             'kappa2': 0.0}
         p1 = 'kappa1'
-        p1range = np.linspace(0.1, 2.0, 30)
+        p1range = np.linspace(0.1, 2.0, 12)
         p2 = 'r1'
         p2range = np.linspace(0.0, 0.50, 51)
-        make_phase_diagram(p1, p2, p1range, p2range, params)
+        # parallelize scan
+        fp_data_2d = get_data_parallel(p1, p2, p1range, p2range, params, num_proc=cpu_count())
+        # plot data
+        make_phase_diagram(fp_data_2d, p1, p2, p1range, p2range, params)
