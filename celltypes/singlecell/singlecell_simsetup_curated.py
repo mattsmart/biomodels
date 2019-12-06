@@ -30,7 +30,7 @@ curated = {
          }
 }
 
-LABEL = 'mutual_inhibition'
+LABEL = 'ferro'
 assert LABEL in curated.keys()
 CURATED_XI = curated[LABEL]['XI']
 CURATED_W = curated[LABEL]['W']
