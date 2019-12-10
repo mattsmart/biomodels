@@ -38,15 +38,15 @@ curated = {
          },
     '3MemCorr':
         {'XI': np.array([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-                         [1, 1, 1, 1, 1, 1, 1, 1, 1,-1,-1,-1],
-                         [1, 1, 1, 1, 1, 1,-1,-1,-1, 1, 1, 1]]).T,
+                         [1, 1, 1, 1, 1, 1, 1, 1,-1,-1,-1,-1],
+                         [1, 1, 1, 1,-1,-1,-1,-1, 1, 1, 1, 1]]).T,
          'W': np.zeros((12, 12)),
          'celltype_labels': [r'$\xi_A$', r'$\xi_B$', r'$\xi_C$'],
          'gene_labels': ['gene_%d' % idx for idx in xrange(12)],
          }
 }
 
-LABEL = '3MemOrthog'
+LABEL = '3MemCorr'
 assert LABEL in curated.keys()
 CURATED_XI = curated[LABEL]['XI']
 CURATED_W = curated[LABEL]['W']

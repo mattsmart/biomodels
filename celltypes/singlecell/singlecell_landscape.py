@@ -46,8 +46,8 @@ if __name__ == '__main__':
         #app_field[-HOUSEKEEPING:] = 1.0
         # weird field
         app_field = np.zeros(simsetup['N'])
-        app_field[0:4] = +1 * 1  # delete anti mem basin
-        app_field[5:7] = -1 * 0.71
+        app_field[0:8] = +1 * 0  # delete anti mem basin
+        app_field[5:7] = -1 * 0
     print "app_field", app_field
 
     # additional visualizations based on field
@@ -81,7 +81,8 @@ if __name__ == '__main__':
     fp_annotation, minima, maxima = get_all_fp(simsetup, field=app_field, fs=KAPPA)
     print 'MINIMA labels', minima
     for minimum in minima:
-        print minimum, label_to_state(minimum, simsetup['N'])
+        minstate = label_to_state(minimum, simsetup['N'])
+        print minimum, minstate, np.dot(simsetup['XI'].T, minstate)/simsetup['N'], np.dot(simsetup['ETA'], minstate), energies[minimum]
     print 'MAXIMA labels', maxima
     for maximum in maxima:
         print maximum, label_to_state(maximum, simsetup['N'])

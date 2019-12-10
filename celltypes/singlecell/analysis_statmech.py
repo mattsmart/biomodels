@@ -7,6 +7,8 @@ from multiprocessing import Pool
 from multiprocessing import cpu_count
 from scipy.optimize import fsolve
 
+from singlecell_simsetup import singlecell_simsetup
+
 
 def params_unpack(params):
     return params['N'], params['beta'], params['r1'], params['r2'], params['kappa1'], params['kappa2']
@@ -153,9 +155,92 @@ def make_phase_diagram(fp_data_2d, p1, p2, p1range, p2range, params_base):
     return plt.gca()
 
 
+def free_energy_pdim(c, simsetup, beta=10**3):
+    xi = simsetup['XI']
+    xi_dot_c = np.dot(xi, c)  # this is N x 1 object
+    term1 = 0.5 * np.dot(xi_dot_c, xi_dot_c)
+    term2 = 0
+    for idx in xrange(simsetup['N']):
+        term2 += np.log( np.cosh( beta * xi_dot_c[idx] ) )
+    term2_scaled = term2 / beta
+    return term1 - term2_scaled
+
+
+def free_energy_pdim_neg_grad(c, simsetup, beta=10**3):
+    xi = simsetup['XI']
+    xi_dot_c = np.dot(xi, c)  # this is N x 1 object
+    tanh_factor = np.tanh(beta * xi_dot_c)
+    cdot_term1 = np.dot(xi.T, xi_dot_c)
+    cdot_term2 = np.zeros(simsetup['P'])
+    for idx in xrange(simsetup['N']):
+        for mu in xrange(simsetup['P']):
+            cdot_term2[mu] += xi[idx, mu] * tanh_factor[idx]
+    return -1 * cdot_term1 + cdot_term2
+
+
+def free_energy_pdim_hessian(c, simsetup, beta=10**3):
+    xi = simsetup['XI']
+    xi_dot_c = np.dot(xi, c)  # this is N x 1 object
+    sech_factor = 1/np.cosh(beta * xi_dot_c)
+    A_unscaled = np.dot(xi.T, xi)
+    hess_term1 = A_unscaled  # this is the first term of the p x p matrix
+    hess_term2_unscaled = np.zeros((simsetup['P'], simsetup['P']))
+    for mu in xrange(simsetup['P']):
+        for nu in xrange(simsetup['P']):
+            for idx in xrange(simsetup['N']):
+                hess_term2_unscaled[mu, nu] += xi[idx, mu] * xi[idx, nu] * sech_factor[idx]
+    hess = hess_term1 + hess_term2_unscaled * beta
+    return hess
+
+
+def pdim_minima_search(simsetup, tol=1e-4):
+    c0_coord_step = 0.5
+    c0_coord_init = -1 - 0.5 * c0_coord_step
+    c0_base = c0_coord_init * np.ones(simsetup['P'])
+    pts_per_axis = 1 + int((np.abs(c0_coord_init) - c0_coord_init) / c0_coord_step)
+    num_pts = pts_per_axis ** simsetup['P']
+    print "Running: pdim minima search with num_pts", num_pts, "step size", c0_coord_step
+
+    def step_vec(pt):
+        step_vec = np.zeros(simsetup['P'], dtype=int)
+        for mu in xrange(simsetup['P']):
+            step_vec[mu] = (pt / (pts_per_axis ** mu)) % pts_per_axis
+        return step_vec
+
+    unique_roots = []
+    for pt in xrange(num_pts):
+        c0_pt = c0_base + c0_coord_step * step_vec(pt)
+        print pt, c0_pt
+        solution, infodict, _, _ = fsolve(free_energy_pdim_neg_grad, c0_pt, args=simsetup, full_output=True)
+        append_flag = True
+        for k, usol in enumerate(unique_roots):
+            if np.linalg.norm(solution - usol) <= tol:  # only store unique roots from list of all roots
+                append_flag = False
+                break
+        if append_flag:
+            if np.linalg.norm(infodict["fvec"]) <= 10e-3:  # only append actual roots (i.e. f(x)=0)
+                unique_roots.append(solution)
+        # remove those which are not stable (keep minima)
+
+    def check_if_minima(c0, simsetup):
+        hess = free_energy_pdim_hessian(c0, simsetup, beta=10 ** 3)
+        eigenvalues, V = np.linalg.eig(hess)
+        return all(np.real(eig) > 0 for eig in eigenvalues)
+
+    minima = []
+    for cRoot in unique_roots:
+        boolv = check_if_minima(cRoot, simsetup)
+        print "is minimum:", cRoot, boolv
+        if boolv:
+            minima.append(cRoot)
+
+    return minima
+
+
 if __name__ == '__main__':
     simple_test = False
-    phase_diagram = True
+    phase_diagram = False
+    pdim = True
 
     if simple_test:
         params = {
@@ -185,3 +270,11 @@ if __name__ == '__main__':
         fp_data_2d = get_data_parallel(p1, p2, p1range, p2range, params, num_proc=cpu_count())
         # plot data
         make_phase_diagram(fp_data_2d, p1, p2, p1range, p2range, params)
+
+    if pdim:
+        random_mem = False
+        random_W = False
+        # simsetup = singlecell_simsetup(unfolding=False, random_mem=random_mem, random_W=random_W, npzpath=MEMS_MEHTA, housekeeping=HOUSEKEEPING)
+        simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, housekeeping=0, curated=True)
+        print 'note: N =', simsetup['N'], 'P =', simsetup['P']
+        minima = pdim_minima_search(simsetup, tol=1e-4)
