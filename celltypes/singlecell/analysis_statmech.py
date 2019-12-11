@@ -193,8 +193,21 @@ def free_energy_pdim_hessian(c, simsetup, beta=10**3):
     return hess
 
 
-def pdim_minima_search(simsetup, tol=1e-4):
-    c0_coord_step = 0.5
+def unique_roots_check(unique_roots, solution, infodict, tol=1e-4):
+    append_flag = True
+    for k, usol in enumerate(unique_roots):
+        if np.linalg.norm(solution - usol) <= tol:  # only store unique roots from list of all roots
+            append_flag = False
+            break
+    if append_flag:
+        if np.linalg.norm(infodict["fvec"]) <= 10e-3:  # only append actual roots (i.e. f(x)=0)
+            unique_roots.append(solution)
+            print solution, np.linalg.norm(infodict["fvec"]), infodict["fvec"]
+    return unique_roots
+
+
+def pdim_fixedpoints_gridsearch(simsetup):
+    c0_coord_step = 0.4
     c0_coord_init = -1 - 0.5 * c0_coord_step
     c0_base = c0_coord_init * np.ones(simsetup['P'])
     pts_per_axis = 1 + int((np.abs(c0_coord_init) - c0_coord_init) / c0_coord_step)
@@ -208,28 +221,52 @@ def pdim_minima_search(simsetup, tol=1e-4):
         return step_vec
 
     unique_roots = []
+    # TODO parallelize
     for pt in xrange(num_pts):
         c0_pt = c0_base + c0_coord_step * step_vec(pt)
-        print pt, c0_pt
         solution, infodict, _, _ = fsolve(free_energy_pdim_neg_grad, c0_pt, args=simsetup, full_output=True)
-        append_flag = True
-        for k, usol in enumerate(unique_roots):
-            if np.linalg.norm(solution - usol) <= tol:  # only store unique roots from list of all roots
-                append_flag = False
-                break
-        if append_flag:
-            if np.linalg.norm(infodict["fvec"]) <= 10e-3:  # only append actual roots (i.e. f(x)=0)
-                unique_roots.append(solution)
-        # remove those which are not stable (keep minima)
+        unique_roots = unique_roots_check(unique_roots, solution, infodict)
 
-    def check_if_minima(c0, simsetup):
-        hess = free_energy_pdim_hessian(c0, simsetup, beta=10 ** 3)
+    return unique_roots
+
+
+def pdim_fixedpoints_randomsearch(simsetup, num_pts=500):
+    pdim_hypercube_corner = 1.05
+    pdim_hypercube_edge = 2 * pdim_hypercube_corner
+    c0_bottom_left = -pdim_hypercube_corner * np.ones(simsetup["P"])
+
+    def c0_randomize():
+        rvec = np.random.uniform(size=simsetup["P"])
+        return c0_bottom_left + rvec * pdim_hypercube_edge
+
+    unique_roots = []
+    # TODO parallelize
+    c0_pt_arr = np.zeros((num_pts,3))
+    for pt in xrange(num_pts):
+        c0_pt = c0_randomize()
+
+        c0_pt_arr[pt, :] = c0_pt
+        print pt, c0_pt
+
+        solution, infodict, _, _ = fsolve(free_energy_pdim_neg_grad, c0_pt, args=simsetup, full_output=True)
+        unique_roots = unique_roots_check(unique_roots, solution, infodict)
+
+    plt.scatter(c0_pt_arr[:,0], c0_pt_arr[:,1], c0_pt_arr[:,2])
+    return unique_roots
+
+
+def minima_from_fixed_points(fixed_points, simsetup, beta=10**3, verbose=False):
+
+    def check_if_minimum(c0, simsetup):
+        hess = free_energy_pdim_hessian(c0, simsetup, beta=beta)
         eigenvalues, V = np.linalg.eig(hess)
+        print "\n", eigenvalues
         return all(np.real(eig) > 0 for eig in eigenvalues)
 
     minima = []
-    for cRoot in unique_roots:
-        boolv = check_if_minima(cRoot, simsetup)
+    for cRoot in fixed_points:
+        boolv = check_if_minimum(cRoot, simsetup)
+        print free_energy_pdim_neg_grad(cRoot, simsetup)
         print "is minimum:", cRoot, boolv
         if boolv:
             minima.append(cRoot)
@@ -277,4 +314,8 @@ if __name__ == '__main__':
         # simsetup = singlecell_simsetup(unfolding=False, random_mem=random_mem, random_W=random_W, npzpath=MEMS_MEHTA, housekeeping=HOUSEKEEPING)
         simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, housekeeping=0, curated=True)
         print 'note: N =', simsetup['N'], 'P =', simsetup['P']
-        minima = pdim_minima_search(simsetup, tol=1e-4)
+        fixed_points = pdim_fixedpoints_gridsearch(simsetup)
+        #fixed_points = pdim_fixedpoints_randomsearch(simsetup)
+        minima = minima_from_fixed_points(fixed_points, simsetup)
+        for idx, minimum in enumerate(minima):
+            print idx, minimum
