@@ -189,7 +189,7 @@ def free_energy_pdim_hessian(c, simsetup, beta=10**3):
         for nu in xrange(simsetup['P']):
             for idx in xrange(simsetup['N']):
                 hess_term2_unscaled[mu, nu] += xi[idx, mu] * xi[idx, nu] * sech_factor[idx]
-    hess = hess_term1 + hess_term2_unscaled * beta
+    hess = hess_term1 - hess_term2_unscaled * beta
     return hess
 
 
@@ -260,13 +260,13 @@ def minima_from_fixed_points(fixed_points, simsetup, beta=10**3, verbose=False):
     def check_if_minimum(c0, simsetup):
         hess = free_energy_pdim_hessian(c0, simsetup, beta=beta)
         eigenvalues, V = np.linalg.eig(hess)
-        print "\n", eigenvalues
+        print "\n", "Hessian evals", eigenvalues
         return all(np.real(eig) > 0 for eig in eigenvalues)
 
     minima = []
     for cRoot in fixed_points:
         boolv = check_if_minimum(cRoot, simsetup)
-        print free_energy_pdim_neg_grad(cRoot, simsetup)
+        print "gradient", free_energy_pdim_neg_grad(cRoot, simsetup)
         print "is minimum:", cRoot, boolv
         if boolv:
             minima.append(cRoot)
@@ -314,8 +314,8 @@ if __name__ == '__main__':
         # simsetup = singlecell_simsetup(unfolding=False, random_mem=random_mem, random_W=random_W, npzpath=MEMS_MEHTA, housekeeping=HOUSEKEEPING)
         simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, housekeeping=0, curated=True)
         print 'note: N =', simsetup['N'], 'P =', simsetup['P']
-        fixed_points = pdim_fixedpoints_gridsearch(simsetup)
-        #fixed_points = pdim_fixedpoints_randomsearch(simsetup)
+        #fixed_points = pdim_fixedpoints_gridsearch(simsetup)
+        fixed_points = pdim_fixedpoints_randomsearch(simsetup, num_pts=500)
         minima = minima_from_fixed_points(fixed_points, simsetup)
         for idx, minimum in enumerate(minima):
             print idx, minimum
