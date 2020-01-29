@@ -10,7 +10,7 @@ from singlecell_visualize import plot_state_prob_map, hypercube_visualize
 
 if __name__ == '__main__':
     HOUSEKEEPING_EXTEND = 0
-    KAPPA = 1.0
+    KAPPA = 0  # 1.0
     housekeeping_manual = True  # if True, set housekeeping to 0 so model is not extended
     if housekeeping_manual:
         HOUSEKEEPING = 5
@@ -22,6 +22,7 @@ if __name__ == '__main__':
     #simsetup = singlecell_simsetup(unfolding=False, random_mem=random_mem, random_W=random_W, npzpath=MEMS_MEHTA, housekeeping=HOUSEKEEPING)
     simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, npzpath=MEMS_UNFOLD, housekeeping=HOUSEKEEPING_EXTEND, curated=True)
     print 'note: N =', simsetup['N'], 'P =', simsetup['P']
+    print simsetup['J']
 
     DIM = 2
     METHOD = 'pca'  # diffusion_custom, spectral_custom, pca
@@ -77,15 +78,22 @@ if __name__ == '__main__':
         print
     """
     # get & report energy levels data
+    print "\nSorting energy levels, finding extremes..."
     sorted_data, energies = sorted_energies(simsetup, field=app_field, fs=KAPPA)
     fp_annotation, minima, maxima = get_all_fp(simsetup, field=app_field, fs=KAPPA)
-    print 'MINIMA labels', minima
+    print 'Minima labels:'
+    print minima
+    print 'label, state vec, overlap vec, proj vec, energy'
     for minimum in minima:
         minstate = label_to_state(minimum, simsetup['N'])
         print minimum, minstate, np.dot(simsetup['XI'].T, minstate)/simsetup['N'], np.dot(simsetup['ETA'], minstate), energies[minimum]
-    print 'MAXIMA labels', maxima
+    print 'Maxima labels:'
+    print maxima
+    print 'label, state vec, overlap vec, proj vec, energy'
     for maximum in maxima:
-        print maximum, label_to_state(maximum, simsetup['N'])
+        maxstate = label_to_state(maximum, simsetup['N'])
+        print maximum, maxstate, np.dot(simsetup['XI'].T, maxstate)/simsetup['N'], np.dot(simsetup['ETA'], maxstate), energies[maxstate]
+
     basins_dict, label_to_fp_label = partition_basins(simsetup, X=None, minima=minima, field=app_field, fs=KAPPA, dynamics='async_fixed')
     for key in basins_dict.keys():
         print key, label_to_state(key, simsetup['N']), len(basins_dict[key]), key in minima

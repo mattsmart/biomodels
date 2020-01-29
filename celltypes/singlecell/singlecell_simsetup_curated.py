@@ -28,6 +28,12 @@ curated = {
           'celltype_labels': [r'$\xi$'],
           'gene_labels': ['gene_%d' % idx for idx in xrange(10)],
          },
+    'ferroCorrupted':
+        {'XI': np.array([[1], [1], [1], [1], [0.5]]),
+         'W': np.zeros((5, 5)),
+         'celltype_labels': [r'$\xi$'],
+         'gene_labels': ['gene_%d' % idx for idx in xrange(5)],
+         },
     '3MemOrthog':
         {'XI': np.array([[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
                          [ 1, 1, 1, 1, 1, 1,-1,-1,-1,-1,-1,-1],
@@ -46,7 +52,7 @@ curated = {
          }
 }
 
-LABEL = '3MemCorr'
+LABEL = 'ferroCorrupted'
 assert LABEL in curated.keys()
 CURATED_XI = curated[LABEL]['XI']
 CURATED_W = curated[LABEL]['W']
