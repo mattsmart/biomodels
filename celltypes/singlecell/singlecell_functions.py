@@ -145,7 +145,7 @@ def state_to_label(state):
     # "0" corresponds to all -1
     # 2^N - 1 corresponds to all +1
     label = 0
-    bitlist = (1+np.array(state, dtype=int))/2
+    bitlist = (1+np.sign(np.array(state, dtype=int)))/2  # was np.array, now np.sign to handle xi corruption experiments
     for bit in bitlist:
         label = (label << 1) | bit
     return label
@@ -231,7 +231,7 @@ def calc_state_dist_to_local_min(simsetup, minima, X=None, norm=True):
     return hamming_dist
 
 
-def check_min_or_max(simsetup, state, energy=None, field=None, fs=0.0):
+def check_min_or_max(simsetup, state, energy=None, field=None, fs=0.0, inspection=False):
     # 1) is it a fixed point of the deterministic dynamics?
     is_fp = False
     field_term = 0
@@ -241,10 +241,15 @@ def check_min_or_max(simsetup, state, energy=None, field=None, fs=0.0):
     # TODO speedup
     if np.array_equal(np.sign(total_field), np.sign(state)):
         is_fp = True
+        if inspection:
+            print "is_fp verify"
+            print np.sign(total_field), total_field
+            print np.sign(state), state
 
     # 2) is it a min or a max?
     is_min = None
     if is_fp:
+        print 'Warning: min max check only looks at first spin (use inspection flag)'
         state_perturb = np.zeros(state.shape)
         state_perturb[:] = state[:]
         state_perturb[0] = -1 * state[0]
@@ -255,6 +260,27 @@ def check_min_or_max(simsetup, state, energy=None, field=None, fs=0.0):
             is_min = False
         else:
             is_min = True
+
+        if inspection:
+            print "check_min_or_max(): state", state
+            print 'checking... (TODO remove this testing block)'
+            utilvec = np.zeros(simsetup['N'])
+            for idx in xrange(simsetup['N']):
+                state_perturb = np.zeros(state.shape)
+                state_perturb[:] = state[:]
+                state_perturb[idx] = -1 * state[idx]  # TODO this is very local perturbation -- just first spin... is it OK?
+                energy_perturb = hamiltonian(state_perturb, simsetup['J'], field, fs)
+                if np.abs(energy - energy_perturb) < 1e-3:
+                    utilvec[idx] = 0
+                    ll = 'flip equal'
+                elif energy < energy_perturb:
+                    utilvec[idx] = 1
+                    ll = 'flip higher'
+                else:
+                    utilvec[idx] = -1
+                    ll = 'flip lower'
+                print idx, energy, energy_perturb, ll
+            print 'state summary: (ismin, ismax)', (utilvec>0).all(), (utilvec<0).all(), utilvec
     return is_fp, is_min
 
 

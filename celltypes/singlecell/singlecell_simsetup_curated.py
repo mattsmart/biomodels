@@ -28,8 +28,8 @@ curated = {
           'celltype_labels': [r'$\xi$'],
           'gene_labels': ['gene_%d' % idx for idx in xrange(10)],
          },
-    'ferroCorrupted':
-        {'XI': np.array([[1], [1], [1], [1], [0.5]]),
+    'ferroPerturb':
+        {'XI': np.array([[1], [1], [1], [1], [2.5]]),
          'W': np.zeros((5, 5)),
          'celltype_labels': [r'$\xi$'],
          'gene_labels': ['gene_%d' % idx for idx in xrange(5)],
@@ -49,10 +49,18 @@ curated = {
          'W': np.zeros((12, 12)),
          'celltype_labels': [r'$\xi_A$', r'$\xi_B$', r'$\xi_C$'],
          'gene_labels': ['gene_%d' % idx for idx in xrange(12)],
+         },
+    '3MemCorrPerturb':
+        {'XI': np.array([[2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                         [4, 1, 1, 1, 1, 1, 1, 1, -1, -1, -1, -1],
+                         [1, 2, 1, 1, -1, -1, -1, -1, 1, 1, 1, 1]]).T,
+         'W': np.zeros((12, 12)),
+         'celltype_labels': [r'$\xi_A$', r'$\xi_B$', r'$\xi_C$'],
+         'gene_labels': ['gene_%d' % idx for idx in xrange(12)],
          }
 }
 
-LABEL = 'ferroCorrupted'
+LABEL = '3MemCorrPerturb'
 assert LABEL in curated.keys()
 CURATED_XI = curated[LABEL]['XI']
 CURATED_W = curated[LABEL]['W']
