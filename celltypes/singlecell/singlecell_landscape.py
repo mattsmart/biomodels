@@ -80,23 +80,26 @@ if __name__ == '__main__':
     # get & report energy levels data
     print "\nSorting energy levels, finding extremes..."
     sorted_data, energies = sorted_energies(simsetup, field=app_field, fs=KAPPA)
-    fp_annotation, minima, maxima = get_all_fp(simsetup, field=app_field, fs=KAPPA)
+    fp_annotation, minima, maxima = get_all_fp(simsetup, field=app_field, fs=KAPPA)  # TODO this may have bug where it says something is maxima but partition_basins() says minima
     print 'Minima labels:'
     print minima
     print 'label, state vec, overlap vec, proj vec, energy'
     for minimum in minima:
         minstate = label_to_state(minimum, simsetup['N'])
         print minimum, minstate, np.dot(simsetup['XI'].T, minstate)/simsetup['N'], np.dot(simsetup['ETA'], minstate), energies[minimum]
-    print 'Maxima labels:'
+    print '\nMaxima labels:'
     print maxima
     print 'label, state vec, overlap vec, proj vec, energy'
     for maximum in maxima:
         maxstate = label_to_state(maximum, simsetup['N'])
         print maximum, maxstate, np.dot(simsetup['XI'].T, maxstate)/simsetup['N'], np.dot(simsetup['ETA'], maxstate), energies[maxstate]
 
+    print "\nPartitioning basins..."
     basins_dict, label_to_fp_label = partition_basins(simsetup, X=None, minima=minima, field=app_field, fs=KAPPA, dynamics='async_fixed')
+    print "\nMore minima stats"
+    print "key, label_to_state(key, simsetup['N']), len(basins_dict[key]), key in minima, energy"
     for key in basins_dict.keys():
-        print key, label_to_state(key, simsetup['N']), len(basins_dict[key]), key in minima
+        print key, label_to_state(key, simsetup['N']), len(basins_dict[key]), key in minima, energies[key]
     # reduce dimension
     X_new = reduce_hypercube_dim(simsetup, METHOD, dim=DIM,  use_hd=use_hd, use_proj=use_proj, add_noise=False,
                                  plot_X=plot_X, field=app_field, fs=KAPPA, beta=beta)
