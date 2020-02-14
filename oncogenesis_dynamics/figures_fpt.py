@@ -313,7 +313,7 @@ if __name__ == "__main__":
     mfpt_composite = False
     mfpt_details = False
     mfpt_composite_TR = True
-    mfpt_composite_BL = True
+    mfpt_composite_BL = False
 
 
     basedir = "data"
@@ -587,15 +587,21 @@ if __name__ == "__main__":
                     ax.plot(x, y, '-', markeredgecolor='k', color=colours[idx],
                             label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{1D}}$' % gammaval, zorder=3)
                 elif datakey == 'fpRouteFlux':
+                    """
                     ax.plot(x[6:], y[6:], '--', marker=None, markeredgecolor='k', color=colours[idx],
                             label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{P}}$' % gammaval, zorder=5-idx)
+                    """
+                    continue
                 elif datakey == 'fpFlux':
                     continue
                     #ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',#colours[idx],
                     #        label=r'$\gamma=%d$: FP flux' % gammaval, zorder=3)
                 elif datakey == 'guessPfixTerm123':
+                    """
                     ax.plot(x[:-3], y[:-3], '-.', marker=None, markeredgecolor='k', color=colours[idx],  # 'k'
                             label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{S}}$' % gammaval, zorder=5-idx)
+                    """
+                    continue
                 elif datakey == 'guessPfixTerm1':
                     continue
                     #ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='gray',  # colours[idx],
@@ -634,13 +640,14 @@ if __name__ == "__main__":
             # ax.set_xscale("log", nonposx='clip')
             ax.set_xscale("log")
             # ax_dual.set_xscale("log", nonposx='clip')
-            ax.set_xlim([np.min(param_set) * 0.9, 2.5 * 1e6]) #ax.set_xlim([np.min(param_set) * 0.9, 1.5 * 1e6])
+            ax.set_xlim([np.min(param_set) * 0.9, 1.5 * 1e4]) #ax.set_xlim([np.min(param_set) * 0.9, 1.5 * 1e6])
         if flag_ylog10:
             # ax.set_yscale("log", nonposx='clip')
             ax.set_yscale("log")
             # ax_dual.set_yscale("log", nonposx='clip')
             #ax.set_ylim([6 * 1e-1, 3 * 1e6])
-            ax.set_ylim([0.8*1e1, 2 * 1e5])
+            #ax.set_ylim([0.8*1e1, 2 * 1e5])
+            ax.set_ylim([0.8 * 1e2, 2 * 1e5])
         #plt.show()
         plt.savefig(basedir + os.sep + 'mfpt_TR_heuristics.pdf')
 
