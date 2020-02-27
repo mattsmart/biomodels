@@ -25,8 +25,8 @@ PLOT_PERIOD = 10
 # TODO compute indiv energies, interaction term, display in plot somehow neatly?
 
 
-def twocell_sim(lattice, simsetup, num_steps, data_dict, io_dict, beta=BETA, exostring=EXOSOME_STRING,
-                exoprune=EXOSOME_PRUNE, gamma=1.0, app_field=None, app_field_strength=0.0):
+def twocell_sim_fast(lattice, simsetup, num_steps, beta=BETA, exostring=EXOSOME_STRING, exoprune=EXOSOME_PRUNE,
+                     gamma=1.0, app_field=None, app_field_strength=0.0):
 
     cell_A = lattice[0][0]
     cell_B = lattice[0][1]
@@ -34,7 +34,43 @@ def twocell_sim(lattice, simsetup, num_steps, data_dict, io_dict, beta=BETA, exo
     neighbours_A = [[0, 1]]
     neighbours_B = [[0, 0]]
     # initial condition vis
-    simple_vis(lattice, simsetup, io_dict['plotlatticedir'], 'Initial condition', savemod='_%d' % 0)
+    for step in xrange(num_steps-1):
+        # TODO could compare against whole model random update sequence instead of this block version
+        app_field_step = app_field  # TODO housekeeping applied field; N vs N+M
+        # update cell A
+        total_field_A, _ = cell_A.get_local_exosome_field(lattice, None, None, exosome_string=exostring,
+                                                          ratio_to_remove=exoprune, neighbours=neighbours_A)
+        if simsetup['FIELD_SEND'] is not None:
+            total_field_A += cell_A.get_local_paracrine_field(lattice, neighbours_A, simsetup)
+        cell_A.update_state(simsetup['J'], beta=beta,
+                            ext_field=total_field_A,
+                            ext_field_strength=gamma,
+                            app_field=app_field_step,
+                            app_field_strength=app_field_strength)
+        # update cell B
+        total_field_B, _ = cell_B.get_local_exosome_field(lattice, None, None, exosome_string=exostring,
+                                                          ratio_to_remove=exoprune, neighbours=neighbours_B)
+        if simsetup['FIELD_SEND'] is not None:
+            total_field_B += cell_B.get_local_paracrine_field(lattice, neighbours_B, simsetup)
+        cell_B.update_state(simsetup['J'], beta=beta,
+                            ext_field=total_field_B,
+                            ext_field_strength=gamma,
+                            app_field=app_field_step,
+                            app_field_strength=app_field_strength)
+    return lattice
+
+
+def twocell_sim(lattice, simsetup, num_steps, data_dict, io_dict, beta=BETA, exostring=EXOSOME_STRING,
+                exoprune=EXOSOME_PRUNE, gamma=1.0, app_field=None, app_field_strength=0.0, ioflag=True):
+
+    cell_A = lattice[0][0]
+    cell_B = lattice[0][1]
+    # local fields initialization
+    neighbours_A = [[0, 1]]
+    neighbours_B = [[0, 0]]
+    # initial condition vis
+    if ioflag:
+        simple_vis(lattice, simsetup, io_dict['plotlatticedir'], 'Initial condition', savemod='_%d' % 0)
     for step in xrange(num_steps-1):
         # TODO could compare against whole model random update sequence instead of this block version
 
@@ -50,7 +86,7 @@ def twocell_sim(lattice, simsetup, num_steps, data_dict, io_dict, beta=BETA, exo
                             ext_field_strength=gamma,
                             app_field=app_field_step,
                             app_field_strength=app_field_strength)
-        if num_steps % PLOT_PERIOD == 0:
+        if ioflag and num_steps % PLOT_PERIOD == 0:
             simple_vis(lattice, simsetup, io_dict['plotlatticedir'], 'Step %dA' % step, savemod='_%dA' % step)
         # update cell B
         total_field_B, _ = cell_B.get_local_exosome_field(lattice, None, None, exosome_string=exostring,
@@ -62,7 +98,7 @@ def twocell_sim(lattice, simsetup, num_steps, data_dict, io_dict, beta=BETA, exo
                             ext_field_strength=gamma,
                             app_field=app_field_step,
                             app_field_strength=app_field_strength)
-        if num_steps % PLOT_PERIOD == 0:
+        if ioflag and num_steps % PLOT_PERIOD == 0:
             simple_vis(lattice, simsetup, io_dict['plotlatticedir'], 'Step %dB' % step, savemod='_%dB' % step)
 
     # fill in data

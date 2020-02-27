@@ -23,10 +23,10 @@ curated = {
           'gene_labels': ['A_signal', 'B_signal', 'A_identity', 'B_identity', 'HK_1', 'HK_2']
          },
     'ferro':
-        {'XI': np.ones((10, 1)),
-          'W': np.zeros((10, 10)),
+        {'XI': np.ones((20, 1)),
+          'W': np.zeros((20, 20)),
           'celltype_labels': [r'$\xi$'],
-          'gene_labels': ['gene_%d' % idx for idx in xrange(10)],
+          'gene_labels': ['gene_%d' % idx for idx in xrange(20)],
          },
     'ferroPerturb':
         {'XI': np.array([[1], [1], [1], [1], [2.5]]),
@@ -60,7 +60,14 @@ curated = {
          }
 }
 
-LABEL = '3MemCorrPerturb'
+Ntot = 20
+curated['ferro']['W'][1, 1] = 10/Ntot
+curated['ferro']['W'][2, 1] = 10/Ntot
+curated['ferro']['W'][3, 1] = -50/Ntot
+curated['ferro']['W'][4, 7] = -10/Ntot
+
+
+LABEL = 'ferro'
 assert LABEL in curated.keys()
 CURATED_XI = curated[LABEL]['XI']
 CURATED_W = curated[LABEL]['W']
