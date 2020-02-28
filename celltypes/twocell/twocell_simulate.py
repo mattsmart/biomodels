@@ -29,6 +29,7 @@ def twocell_sim_as_onelargemodel(lattice, simsetup, num_steps, beta=BETA, gamma=
     W_matrix = simsetup['FIELD_SEND']
     W_matrix_sym = 0.5 * (W_matrix + W_matrix.T)
 
+    # build multicell Jij matrix (2N x 2N)
     numspins = 2*simsetup['N']
     J_multicell = np.zeros((numspins, numspins))
     block_diag = J_singlecell
@@ -38,6 +39,7 @@ def twocell_sim_as_onelargemodel(lattice, simsetup, num_steps, beta=BETA, gamma=
     J_multicell[0:simsetup['N'], -simsetup['N']:] = block_offdiag
     J_multicell[-simsetup['N']:, 0:simsetup['N']] = block_offdiag
 
+    # build multicell applied field vector (2N x 1)
     h_multicell = np.zeros(numspins)
     W_dot_one_scaled = np.dot(W_matrix, np.ones(simsetup['N'])) * gamma / 2
     h_multicell[0:simsetup['N']] = W_dot_one_scaled
@@ -63,38 +65,22 @@ def twocell_sim_as_onelargemodel(lattice, simsetup, num_steps, beta=BETA, gamma=
     return lattice
 
 
-def twocell_sim_fast(lattice, simsetup, num_steps, beta=BETA, exostring=EXOSOME_STRING, exoprune=EXOSOME_PRUNE,
-                     gamma=1.0, app_field=None, app_field_strength=0.0):
-
+def twocell_sim_fast(lattice, simsetup, num_steps, beta=BETA, gamma=1.0, app_field=None, app_field_strength=0.0):
     cell_A = lattice[0][0]
     cell_B = lattice[0][1]
-    # local fields initialization
-    neighbours_A = [[0, 1]]
-    neighbours_B = [[0, 0]]
-    # initial condition vis
+
     for step in xrange(num_steps-1):
         # TODO could compare against whole model random update sequence instead of this block version
-        app_field_step = app_field  # TODO housekeeping applied field; N vs N+M
-        # update cell A
-        total_field_A, _ = cell_A.get_local_exosome_field(lattice, None, None, exosome_string=exostring,
-                                                          ratio_to_remove=exoprune, neighbours=neighbours_A)
-        if simsetup['FIELD_SEND'] is not None:
-            total_field_A += cell_A.get_local_paracrine_field(lattice, neighbours_A, simsetup)
-        cell_A.update_state(simsetup['J'], beta=beta,
-                            ext_field=total_field_A,
-                            ext_field_strength=gamma,
-                            app_field=app_field_step,
-                            app_field_strength=app_field_strength)
-        # update cell B
-        total_field_B, _ = cell_B.get_local_exosome_field(lattice, None, None, exosome_string=exostring,
-                                                          ratio_to_remove=exoprune, neighbours=neighbours_B)
-        if simsetup['FIELD_SEND'] is not None:
-            total_field_B += cell_B.get_local_paracrine_field(lattice, neighbours_B, simsetup)
-        cell_B.update_state(simsetup['J'], beta=beta,
-                            ext_field=total_field_B,
-                            ext_field_strength=gamma,
-                            app_field=app_field_step,
-                            app_field_strength=app_field_strength)
+        # update cell A -- first get nbr field
+        nbr_cell_state_01_rep = (lattice[0][1].get_current_state() + 1) / 2.0  # convert to 0, 1 rep
+        total_field_A = gamma * np.dot(simsetup['FIELD_SEND'], nbr_cell_state_01_rep)
+        cell_A.update_state(simsetup['J'], beta=beta, ext_field_strength=1.0, app_field=None, ext_field=total_field_A)
+
+        # update cell B -- first get nbr field
+        nbr_cell_state_01_rep = (lattice[0][0].get_current_state() + 1) / 2.0  # convert to 0, 1 rep
+        total_field_B = gamma * np.dot(simsetup['FIELD_SEND'], nbr_cell_state_01_rep)
+        cell_B.update_state(simsetup['J'], beta=beta, ext_field_strength=1.0, app_field=None, ext_field=total_field_B)
+
     return lattice
 
 

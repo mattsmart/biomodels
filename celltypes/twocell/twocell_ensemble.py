@@ -11,6 +11,11 @@ from singlecell.singlecell_simsetup import singlecell_simsetup
 
 
 def twocell_ensemble_stats(simsetup, steps, beta, gamma, ens=10, monolothic_flag=False):
+    # TODO issue: the monolothic sim (big Jij) has different statistics than the cell-by-cell sim
+    # TODO        more differences than one would expect -- can only see for nonzero gamma
+    # TODO        CHECK: behaviour of each approach for one low temp traj at high gamma
+    # TODO also note that any asymmetry (on the x=y reflection line) in the mA vs mB scatterplot is unexpected
+
     overlap_data = np.zeros((ens, 2 * simsetup['P']))
     assert simsetup['P'] == 1
 
@@ -20,8 +25,7 @@ def twocell_ensemble_stats(simsetup, steps, beta, gamma, ens=10, monolothic_flag
         cell_a_init = np.array([2*int(np.random.rand() < .5) - 1 for _ in xrange(simsetup['N'])]).T
         cell_b_init = np.array([2*int(np.random.rand() < .5) - 1 for _ in xrange(simsetup['N'])]).T
         lattice = [[SpatialCell(cell_a_init, 'Cell A', [0, 0], simsetup),
-                    SpatialCell(cell_b_init, 'Cell B', [0, 1],
-                                simsetup)]]  # list of list to conform to multicell slattice funtions
+                    SpatialCell(cell_b_init, 'Cell B', [0, 1], simsetup)]]
         return lattice
 
     for traj in xrange(ens):
@@ -33,10 +37,10 @@ def twocell_ensemble_stats(simsetup, steps, beta, gamma, ens=10, monolothic_flag
         if monolothic_flag:
             lattice = twocell_sim_as_onelargemodel(lattice, simsetup, steps, beta=beta, gamma=gamma)
         else:
-            lattice = twocell_sim_fast(lattice, simsetup, steps, beta=beta, exostring='no_exo_field',
-                                       gamma=gamma, app_field=None, app_field_strength=0.0)
-        cell_A_endstate = lattice[0][0].get_state_array()[:,-1]
-        cell_B_endstate = lattice[0][1].get_state_array()[:,-1]
+            lattice = twocell_sim_fast(lattice, simsetup, steps, beta=beta, gamma=gamma,
+                                       app_field=None, app_field_strength=0.0)
+        cell_A_endstate = lattice[0][0].get_state_array()[:, -1]
+        cell_B_endstate = lattice[0][1].get_state_array()[:, -1]
         cell_A_overlaps = np.dot(XI_scaled.T, cell_A_endstate)
         cell_B_overlaps = np.dot(XI_scaled.T, cell_B_endstate)
         overlap_data[traj, 0:simsetup['P']] = cell_A_overlaps
@@ -76,10 +80,13 @@ if __name__ == '__main__':
                                    curated=True)
     print 'note: N =', simsetup['N']
 
-    ensemble = 500
+    ensemble = 399
     steps = 20
     beta = 2.0  # 2.0
-    #gamma = 1.0
-    for gamma in [0.0, 0.1, 0.5, 1.0, 2.0, 3.0, 5.0, 10000.0]:
-        twocell_ensemble_stats(simsetup, steps, beta, gamma, ens=ensemble, monolothic_flag=False)
-        twocell_ensemble_stats(simsetup, steps, beta, gamma, ens=ensemble, monolothic_flag=True)
+    gamma = 10000.0
+    twocell_ensemble_stats(simsetup, steps, beta, gamma, ens=ensemble, monolothic_flag=False)
+    twocell_ensemble_stats(simsetup, steps, beta, gamma, ens=ensemble, monolothic_flag=True)
+
+    #for gamma in [0.0, 0.1, 0.5, 1.0, 2.0, 3.0, 5.0, 10000.0]:
+    #    twocell_ensemble_stats(simsetup, steps, beta, gamma, ens=ensemble, monolothic_flag=False)
+    #    twocell_ensemble_stats(simsetup, steps, beta, gamma, ens=ensemble, monolothic_flag=True)
