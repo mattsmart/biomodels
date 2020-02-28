@@ -4,7 +4,7 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 
-from twocell_simulate import twocell_sim_fast
+from twocell_simulate import twocell_sim_fast, twocell_sim_as_onelargemodel
 from multicell.multicell_class import SpatialCell
 from singlecell.singlecell_constants import MEMS_UNFOLD, BETA, RUNS_FOLDER
 from singlecell.singlecell_simsetup import singlecell_simsetup
@@ -29,6 +29,7 @@ def twocell_ensemble_stats(simsetup, steps, beta, gamma, ens=10):
             print "Running traj", traj, "..."
         lattice = random_twocell_lattice()
 
+        # TODO replace with twocell_sim_as_onelargemodel (i.e. one big ising model)
         lattice = twocell_sim_fast(lattice, simsetup, steps, beta=beta, exostring='no_exo_field',
                                    gamma=gamma, app_field=None, app_field_strength=0.0)
         cell_A_endstate = lattice[0][0].get_state_array()[:,-1]
@@ -39,10 +40,13 @@ def twocell_ensemble_stats(simsetup, steps, beta, gamma, ens=10):
         overlap_data[traj, simsetup['P']:] = cell_B_overlaps
 
     if simsetup['P'] == 1:
+        plt.figure()
         plt.scatter(overlap_data[:,0], overlap_data[:,1], alpha=0.2)
+        plt.title("overlaps_ens%d_beta%.2f_gamma%.2f.png" % (ens, beta, gamma))
+        plt.xlabel(r"$m_A$")
+        plt.ylabel(r"$m_B$")
         fname = "overlaps_ens%d_beta%.2f_gamma%.2f.png" % (ens, beta, gamma)
         plt.savefig(RUNS_FOLDER + os.sep + "twocell_analysis" + os.sep + fname)
-        plt.show()
 
         """
         import seaborn as sns; sns.set()
@@ -69,8 +73,9 @@ if __name__ == '__main__':
                                    curated=True)
     print 'note: N =', simsetup['N']
 
-    ensemble = 400
-    steps = 20
+    ensemble = 500
+    steps = 10
     beta = 20.0  # 2.0
-    gamma = 1.0
-    twocell_ensemble_stats(simsetup, steps, beta, gamma, ens=ensemble)
+    #gamma = 1.0
+    for gamma in [0.0, 0.1, 0.5, 1.0, 2.0, 3.0, 5.0, 10000.0]:
+        twocell_ensemble_stats(simsetup, steps, beta, gamma, ens=ensemble)

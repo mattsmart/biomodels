@@ -25,6 +25,11 @@ PLOT_PERIOD = 10
 # TODO compute indiv energies, interaction term, display in plot somehow neatly?
 
 
+def twocell_sim_as_onelargemodel():
+    # TODO
+    return
+
+
 def twocell_sim_fast(lattice, simsetup, num_steps, beta=BETA, exostring=EXOSOME_STRING, exoprune=EXOSOME_PRUNE,
                      gamma=1.0, app_field=None, app_field_strength=0.0):
 

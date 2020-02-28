@@ -61,11 +61,13 @@ curated = {
 }
 
 Ntot = 20
+"""
 curated['ferro']['W'][1, 1] = 10/Ntot
 curated['ferro']['W'][2, 1] = 10/Ntot
 curated['ferro']['W'][3, 1] = -50/Ntot
 curated['ferro']['W'][4, 7] = -10/Ntot
-
+"""
+curated['ferro']['W'] = (np.random.rand(20,20) - 1) * 2 / Ntot
 
 LABEL = 'ferro'
 assert LABEL in curated.keys()
