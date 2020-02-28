@@ -2,19 +2,17 @@ import singlecell.init_multiprocessing  # BEFORE numpy
 
 import numpy as np
 import os
-import random
-import matplotlib.pyplot as plt
 
 from twocell_visualize import simple_vis, lattice_timeseries_proj_grid, lattice_timeseries_overlap, \
     lattice_timeseries_energy, lattice_timeseries_state_grid
 from multicell.multicell_class import SpatialCell
 from multicell.multicell_constants import VALID_EXOSOME_STRINGS
-from singlecell.singlecell_constants import MEMS_MEHTA, MEMS_UNFOLD, BETA
+from singlecell.singlecell_class import Cell
+from singlecell.singlecell_constants import MEMS_UNFOLD, BETA
 from singlecell.singlecell_data_io import run_subdir_setup, runinfo_append
-from singlecell.singlecell_fields import construct_app_field_from_genes
-from singlecell.singlecell_functions import single_memory_projection_timeseries, hamiltonian, sorted_energies, label_to_state
-from singlecell.singlecell_simsetup import singlecell_simsetup # N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS, GENE_ID
-from singlecell.singlecell_visualize import plot_state_prob_map, hypercube_visualize
+from singlecell.singlecell_functions import single_memory_projection_timeseries, hamiltonian
+from singlecell.singlecell_simsetup import singlecell_simsetup
+
 
 EXOSOME_STRING = 'no_exo_field'
 EXOSOME_PRUNE = 0.0
@@ -25,9 +23,44 @@ PLOT_PERIOD = 10
 # TODO compute indiv energies, interaction term, display in plot somehow neatly?
 
 
-def twocell_sim_as_onelargemodel():
-    # TODO
-    return
+def twocell_sim_as_onelargemodel(lattice, simsetup, num_steps, beta=BETA, gamma=1.0):
+
+    J_singlecell = simsetup['J']
+    W_matrix = simsetup['FIELD_SEND']
+    W_matrix_sym = 0.5 * (W_matrix + W_matrix.T)
+
+    numspins = 2*simsetup['N']
+    J_multicell = np.zeros((numspins, numspins))
+    block_diag = J_singlecell
+    block_offdiag = gamma * W_matrix_sym
+    J_multicell[0:simsetup['N'], 0:simsetup['N']] = block_diag
+    J_multicell[-simsetup['N']:, -simsetup['N']:] = block_diag
+    J_multicell[0:simsetup['N'], -simsetup['N']:] = block_offdiag
+    J_multicell[-simsetup['N']:, 0:simsetup['N']] = block_offdiag
+
+    h_multicell = np.zeros(numspins)
+    W_dot_one_scaled = np.dot(W_matrix, np.ones(simsetup['N'])) * gamma / 2
+    h_multicell[0:simsetup['N']] = W_dot_one_scaled
+    h_multicell[-simsetup['N']:] = W_dot_one_scaled
+
+    # cell setup
+    init_state = np.zeros(numspins)
+    init_state[0:simsetup['N']] = lattice[0][0].get_current_state()
+    init_state[-simsetup['N']:] = lattice[0][1].get_current_state()
+    genelabels_multicell = simsetup['GENE_LABELS'] + simsetup['GENE_LABELS']
+    singlecell = Cell(init_state, 'multicell', memories_list=simsetup['CELLTYPE_LABELS'], gene_list=genelabels_multicell)
+
+    # simulate
+    for step in xrange(num_steps):
+        singlecell.update_state(J_multicell, beta=beta, app_field=h_multicell, app_field_strength=1.0, async_batch=True)
+
+    # repackage final state as multicell lattice
+    final_state = singlecell.get_current_state()
+    cell_a_init = final_state[0:simsetup['N']]
+    cell_b_init = final_state[-simsetup['N']:]
+    lattice = [[SpatialCell(cell_a_init, 'Cell A', [0, 0], simsetup),
+                SpatialCell(cell_b_init, 'Cell B', [0, 1], simsetup)]]
+    return lattice
 
 
 def twocell_sim_fast(lattice, simsetup, num_steps, beta=BETA, exostring=EXOSOME_STRING, exoprune=EXOSOME_PRUNE,

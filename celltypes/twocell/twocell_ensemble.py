@@ -10,7 +10,7 @@ from singlecell.singlecell_constants import MEMS_UNFOLD, BETA, RUNS_FOLDER
 from singlecell.singlecell_simsetup import singlecell_simsetup
 
 
-def twocell_ensemble_stats(simsetup, steps, beta, gamma, ens=10):
+def twocell_ensemble_stats(simsetup, steps, beta, gamma, ens=10, monolothic_flag=False):
     overlap_data = np.zeros((ens, 2 * simsetup['P']))
     assert simsetup['P'] == 1
 
@@ -30,8 +30,11 @@ def twocell_ensemble_stats(simsetup, steps, beta, gamma, ens=10):
         lattice = random_twocell_lattice()
 
         # TODO replace with twocell_sim_as_onelargemodel (i.e. one big ising model)
-        lattice = twocell_sim_fast(lattice, simsetup, steps, beta=beta, exostring='no_exo_field',
-                                   gamma=gamma, app_field=None, app_field_strength=0.0)
+        if monolothic_flag:
+            lattice = twocell_sim_as_onelargemodel(lattice, simsetup, steps, beta=beta, gamma=gamma)
+        else:
+            lattice = twocell_sim_fast(lattice, simsetup, steps, beta=beta, exostring='no_exo_field',
+                                       gamma=gamma, app_field=None, app_field_strength=0.0)
         cell_A_endstate = lattice[0][0].get_state_array()[:,-1]
         cell_B_endstate = lattice[0][1].get_state_array()[:,-1]
         cell_A_overlaps = np.dot(XI_scaled.T, cell_A_endstate)
@@ -42,10 +45,10 @@ def twocell_ensemble_stats(simsetup, steps, beta, gamma, ens=10):
     if simsetup['P'] == 1:
         plt.figure()
         plt.scatter(overlap_data[:,0], overlap_data[:,1], alpha=0.2)
-        plt.title("overlaps_ens%d_beta%.2f_gamma%.2f.png" % (ens, beta, gamma))
+        fname = "overlaps_ens%d_beta%.2f_gamma%.2f_mono%d.png" % (ens, beta, gamma, monolothic_flag)
+        plt.title(fname)
         plt.xlabel(r"$m_A$")
         plt.ylabel(r"$m_B$")
-        fname = "overlaps_ens%d_beta%.2f_gamma%.2f.png" % (ens, beta, gamma)
         plt.savefig(RUNS_FOLDER + os.sep + "twocell_analysis" + os.sep + fname)
 
         """
@@ -74,8 +77,9 @@ if __name__ == '__main__':
     print 'note: N =', simsetup['N']
 
     ensemble = 500
-    steps = 10
-    beta = 20.0  # 2.0
+    steps = 20
+    beta = 2.0  # 2.0
     #gamma = 1.0
     for gamma in [0.0, 0.1, 0.5, 1.0, 2.0, 3.0, 5.0, 10000.0]:
-        twocell_ensemble_stats(simsetup, steps, beta, gamma, ens=ensemble)
+        twocell_ensemble_stats(simsetup, steps, beta, gamma, ens=ensemble, monolothic_flag=False)
+        twocell_ensemble_stats(simsetup, steps, beta, gamma, ens=ensemble, monolothic_flag=True)
