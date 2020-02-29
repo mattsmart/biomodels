@@ -60,18 +60,26 @@ curated = {
          }
 }
 
-Ntot = 20
-"""
-curated['ferro']['W'][1, 1] = 10/Ntot
-curated['ferro']['W'][2, 1] = 10/Ntot
-curated['ferro']['W'][3, 1] = -50/Ntot
-curated['ferro']['W'][4, 7] = -10/Ntot
-"""
-curated['ferro']['W'] = (np.random.rand(20,20) - 1) * 2 / Ntot
-
 LABEL = 'ferro'
 assert LABEL in curated.keys()
 CURATED_XI = curated[LABEL]['XI']
 CURATED_W = curated[LABEL]['W']
 CURATED_CELLTYPE_LABELS = curated[LABEL]['celltype_labels']
 CURATED_GENE_LABELS = curated[LABEL]['gene_labels']
+
+
+refine_W = True
+random_W = True
+if refine_W:
+    # manually refine the W matrix of the chosen scheme
+    Ntot = curated[LABEL]['XI'].shape[0]
+    if random_W:
+        W_0 = np.random.rand(Ntot, Ntot) * 2 - 1  # scale to Uniform [-1, 1]
+        W_lower = np.tril(W_0, k=-1)
+        W_diag = np.diag(np.diag(W_0))
+        curated[LABEL]['W'] = (W_lower + W_lower.T + W_diag) / Ntot
+    else:
+        curated[LABEL]['W'][1, 1] = 10.0/Ntot
+        curated[LABEL]['W'][2, 1] = 10.0/Ntot
+        curated[LABEL]['W'][3, 1] = -50.0/Ntot
+        curated[LABEL]['W'][4, 3] = -10.0/Ntot
