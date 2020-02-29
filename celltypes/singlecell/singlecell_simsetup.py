@@ -59,16 +59,21 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath
         xi = np.random.choice([-1, 1], (N, P))
     # optional random W (cell-cell signalling)
     if random_W:
-        print "WARNING: simsetup random_W, creating U[-1,1], size %d x %d" % (N, N)
-        field_send = np.random.rand(N, N)*2 - 1  # scale to Uniform [-1, 1]
+        print "WARNING: simsetup random_W, creating symmetric U[-1,1], size %d x %d" % (N, N)
+        W_0 = np.random.rand(N, N)*2 - 1  # scale to Uniform [-1, 1]
+        W_lower = np.tril(W_0, k=-1)
+        W_diag = np.diag(np.diag(W_0))
+        field_send = W_lower + W_lower.T + W_diag
         # subsample block -- randomly remove 2/3 of columns representing non-signalling genes
         """
         print "WARNING: subsampling random W"
         cols_to_remove = np.random.choice(N, int(N*0.67), replace=False)
         field_send[:, cols_to_remove] = 0
         """
+    # currently require symmewtry of cell-cell signal matrix W
+    if field_send is not None:
+        assert np.all(np.abs(field_send - field_send.T) < 1e-8)
     # data processing into sim object
-
     xi = xi.astype(np.float64)
     a, a_inv = memory_corr_matrix_and_inv(xi)
     j = interaction_matrix(xi, a_inv, method=NETWORK_METHOD, flag_prune_intxn_matrix=flag_prune_intxn_matrix)
