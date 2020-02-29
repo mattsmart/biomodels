@@ -33,12 +33,15 @@ class SpatialCell(Cell):
         surroundings.remove(self.location)  # TODO test behaviour
         return surroundings
 
-    def get_local_paracrine_field(self, lattice, neighbour_locs, simsetup):
+    def get_local_paracrine_field(self, lattice, neighbour_locs, simsetup, flag_01=False):
         sent_signals = np.zeros(self.N)
         for loc in neighbour_locs:
             nbr_cell_state = lattice[loc[0]][loc[1]].get_current_state()
-            nbr_cell_state_01_rep = (nbr_cell_state + 1) / 2.0  # convert to 0, 1 rep for biological dot product below
-            sent_signals += np.dot(simsetup['FIELD_SEND'], nbr_cell_state_01_rep)
+            if flag_01:
+                nbr_cell_state_sent = (nbr_cell_state + 1) / 2.0  # convert to 0, 1 rep for biological dot product below
+            else:
+                nbr_cell_state_sent = nbr_cell_state
+            sent_signals += np.dot(simsetup['FIELD_SEND'], nbr_cell_state_sent)
         return sent_signals
 
     def get_local_exosome_field(self, lattice, search_radius, gridsize, exosome_string=EXOSTRING, ratio_to_remove=0.0,
