@@ -165,44 +165,49 @@ def label_to_state(label, N, use_neg=True):
     return state
 
 
-def sorted_energies(simsetup, field=None, fs=0.0):
-    N = simsetup['N']
+def sorted_energies(intxn_matrix, field=None, fs=0.0, flag_sort=True):
+    N = intxn_matrix.shape[0]
     num_states = 2 ** N
     energies = np.zeros(num_states)
     for label in xrange(num_states):
         state = label_to_state(label, N, use_neg=True)
-        energies[label] = hamiltonian(state, simsetup['J'], field=field, fs=fs)
-    energies_ranked = np.argsort(energies)
-    sorted_data = {}
-    last_rank = 0
-    last_energy = 0
-    for rank, idx in enumerate(energies_ranked):
-        energy = energies[idx]
-        if np.abs(energy - last_energy) < 1e-4:
-            sorted_data[last_rank]['labels'].append(idx)
-            sorted_data[last_rank]['ranks'].append(idx)
-        else:
-            sorted_data[rank] = {'energy': energy, 'labels': [idx], 'ranks': [rank]}
-            last_rank = rank
-            last_energy = energy
-    return sorted_data, energies
+        energies[label] = hamiltonian(state, intxn_matrix, field=field, fs=fs)
+
+    sorted_data = None
+    if flag_sort:
+        energies_ranked = np.argsort(energies)
+        sorted_data = {}
+        last_rank = 0
+        last_energy = 0
+        for rank, idx in enumerate(energies_ranked):
+            energy = energies[idx]
+            if np.abs(energy - last_energy) < 1e-4:
+                sorted_data[last_rank]['labels'].append(idx)
+                sorted_data[last_rank]['ranks'].append(idx)
+            else:
+                sorted_data[rank] = {'energy': energy, 'labels': [idx], 'ranks': [rank]}
+                last_rank = rank
+                last_energy = energy
+    return energies, sorted_data
 
 
-def get_all_fp(intxn_matrix, field=None, fs=0.0):
+def get_all_fp(intxn_matrix, field=None, fs=0.0, statespace=None, energies=None):
     # TODO 1 - is it possible to partition all 2^N into basins? are many of the points ambiguous where they wont roll into one basin but multiple?
     N = intxn_matrix.shape[0]
     num_states = 2 ** N
-    energies = np.zeros(num_states)
-    X = np.array([label_to_state(label, N) for label in xrange(num_states)])
 
-    for label in xrange(num_states):
-        energies[label] = hamiltonian(X[label,:], intxn_matrix, field=field, fs=fs)
+    if statespace is None:
+        statespace = np.array([label_to_state(label, N) for label in xrange(num_states)])
+    if energies is None:
+        energies = np.zeros(num_states)
+        for label in xrange(num_states):
+            energies[label] = hamiltonian(statespace[label,:], intxn_matrix, field=field, fs=fs)
 
     minima = []
     maxima = []
     fp_annotation = {}
     for label in xrange(num_states):
-        is_fp, is_min = check_min_or_max(intxn_matrix, X[label,:], energy=energies[label], field=field, fs=fs)
+        is_fp, is_min = check_min_or_max(intxn_matrix, statespace[label,:], energy=energies[label], field=field, fs=fs)
         if is_fp:
             if is_min:
                 minima.append(label)
@@ -210,7 +215,7 @@ def get_all_fp(intxn_matrix, field=None, fs=0.0):
                 maxima.append(label)
             fp_info = [0 for _ in xrange(N)]
             for idx in xrange(N):
-                nbr_state = np.copy(X[label, :])
+                nbr_state = np.copy(statespace[label, :])
                 nbr_state[idx] = -1 * nbr_state[idx]
                 nbr_label = state_to_label(nbr_state)
                 fp_info[idx] = energies[label] <= energies[nbr_label]  # higher or equal energy after flip -> True, else False (nbr is lower)

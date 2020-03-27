@@ -79,8 +79,8 @@ if __name__ == '__main__':
     """
     # get & report energy levels data
     print "\nSorting energy levels, finding extremes..."
-    sorted_data, energies = sorted_energies(simsetup, field=app_field, fs=KAPPA)
-    fp_annotation, minima, maxima = get_all_fp(simsetup['J'], field=app_field, fs=KAPPA)  # TODO this may have bug where it says something is maxima but partition_basins() says minima
+    energies, _ = sorted_energies(simsetup['J'], field=app_field, fs=KAPPA, flag_sort=False)
+    fp_annotation, minima, maxima = get_all_fp(simsetup['J'], field=app_field, fs=KAPPA, energies=energies)  # TODO this may have bug where it says something is maxima but partition_basins() says minima
     print 'Minima labels:'
     print minima
     print 'label, state vec, overlap vec, proj vec, energy'
