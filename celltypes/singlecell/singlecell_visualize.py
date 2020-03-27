@@ -82,23 +82,23 @@ def plot_as_radar(projection_vec, memory_labels, color='b', rotate_labels=True, 
     return fig, ax
 
 
-def plot_state_prob_map(simsetup, beta=None, field=None, fs=0.0, ax=None, decorate_FP=True):
+def plot_state_prob_map(intxn_matrix, beta=None, field=None, fs=0.0, ax=None, decorate_FP=True):
     if ax is None:
         ax = plt.figure(figsize=(8,6)).gca()
 
     fstring = 'None'
     if field is not None:
         fstring = '%.2f' % fs
-    N = simsetup['N']
+    N = intxn_matrix.shape[0]
     num_states = 2 ** N
     energies = np.zeros(num_states)
     colours = ['blue' for i in xrange(num_states)]
     fpcolor = {True: 'green', False: 'red'}
     for label in xrange(num_states):
         state = label_to_state(label, N, use_neg=True)
-        energies[label] = hamiltonian(state, simsetup['J'], field=field, fs=fs)
+        energies[label] = hamiltonian(state, intxn_matrix, field=field, fs=fs)
         if decorate_FP:
-            is_fp, is_min = check_min_or_max(simsetup, state, energy=energies[label], field=field, fs=fs)
+            is_fp, is_min = check_min_or_max(intxn_matrix, state, energy=energies[label], field=field, fs=fs)
             if is_fp:
                 colours[label] = fpcolor[is_min]
     if beta is None:
@@ -207,7 +207,7 @@ def hypercube_visualize(simsetup, X_reduced, energies, num_cells=1, elevate3D=Tr
             ax.annotate(txt, xy=(state_new[0], state_new[1]), fontsize=12)
 
     if edges:
-        print 'Adding edges to plot...'
+        print 'Adding edges to plot...'  # TODO these appear incorrect for twocell visualization
         for label in xrange(2 ** N):
             state_orig = states[label, :]
             state_new = X_reduced[label, :]

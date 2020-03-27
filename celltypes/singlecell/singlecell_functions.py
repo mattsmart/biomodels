@@ -188,21 +188,21 @@ def sorted_energies(simsetup, field=None, fs=0.0):
     return sorted_data, energies
 
 
-def get_all_fp(simsetup, field=None, fs=0.0):
+def get_all_fp(intxn_matrix, field=None, fs=0.0):
     # TODO 1 - is it possible to partition all 2^N into basins? are many of the points ambiguous where they wont roll into one basin but multiple?
-    N = simsetup['N']
+    N = intxn_matrix.shape[0]
     num_states = 2 ** N
     energies = np.zeros(num_states)
     X = np.array([label_to_state(label, N) for label in xrange(num_states)])
 
     for label in xrange(num_states):
-        energies[label] = hamiltonian(X[label,:], simsetup['J'], field=field, fs=fs)
+        energies[label] = hamiltonian(X[label,:], intxn_matrix, field=field, fs=fs)
 
     minima = []
     maxima = []
     fp_annotation = {}
     for label in xrange(num_states):
-        is_fp, is_min = check_min_or_max(simsetup, X[label,:], energy=energies[label], field=field, fs=fs)
+        is_fp, is_min = check_min_or_max(intxn_matrix, X[label,:], energy=energies[label], field=field, fs=fs)
         if is_fp:
             if is_min:
                 minima.append(label)
@@ -231,13 +231,15 @@ def calc_state_dist_to_local_min(simsetup, minima, X=None, norm=True):
     return hamming_dist
 
 
-def check_min_or_max(simsetup, state, energy=None, field=None, fs=0.0, inspection=False):
+def check_min_or_max(intxn_matrix, state, energy=None, field=None, fs=0.0, inspection=False):
     # 1) is it a fixed point of the deterministic dynamics?
+    N = intxn_matrix.shape[0]
+
     is_fp = False
     field_term = 0
     if field is not None:
         field_term = field * fs
-    total_field = np.dot(simsetup['J'], state) + field_term
+    total_field = np.dot(intxn_matrix, state) + field_term
     # TODO speedup
     if np.array_equal(np.sign(total_field), np.sign(state)):
         is_fp = True
@@ -253,9 +255,9 @@ def check_min_or_max(simsetup, state, energy=None, field=None, fs=0.0, inspectio
         state_perturb = np.zeros(state.shape)
         state_perturb[:] = state[:]
         state_perturb[0] = -1 * state[0]
-        energy_perturb = hamiltonian(state_perturb, simsetup['J'], field, fs)
+        energy_perturb = hamiltonian(state_perturb, intxn_matrix, field, fs)
         if energy is None:
-            energy = hamiltonian(state, simsetup['J'], field, fs)
+            energy = hamiltonian(state, intxn_matrix, field, fs)
         if energy > energy_perturb:
             is_min = False
         else:
@@ -264,12 +266,12 @@ def check_min_or_max(simsetup, state, energy=None, field=None, fs=0.0, inspectio
         if inspection:
             print "check_min_or_max(): state", state
             print 'checking... (TODO remove this testing block)'
-            utilvec = np.zeros(simsetup['N'])
-            for idx in xrange(simsetup['N']):
+            utilvec = np.zeros(N)
+            for idx in xrange(N):
                 state_perturb = np.zeros(state.shape)
                 state_perturb[:] = state[:]
                 state_perturb[idx] = -1 * state[idx]  # TODO this is very local perturbation -- just first spin... is it OK?
-                energy_perturb = hamiltonian(state_perturb, simsetup['J'], field, fs)
+                energy_perturb = hamiltonian(state_perturb, intxn_matrix, field, fs)
                 if np.abs(energy - energy_perturb) < 1e-3:
                     utilvec[idx] = 0
                     ll = 'flip equal'
@@ -284,13 +286,13 @@ def check_min_or_max(simsetup, state, energy=None, field=None, fs=0.0, inspectio
     return is_fp, is_min
 
 
-def fp_of_state(simsetup, state_start, app_field=0, dynamics='sync', zero_override=True):
+def fp_of_state(intxn_matrix, state_start, app_field=0, dynamics='sync', zero_override=True):
     """
     Given a state e.g. (1,1,1,1, ... 1) i.e. hypercube vertex, return the corresponding FP of specified dynamics
     """
     assert dynamics in ['sync', 'async_fixed', 'async_batch']
     i = 0
-    sites = range(simsetup['N'])
+    sites = range(intxn_matrix.shape[0])
     state_next = np.copy(state_start)
     state_current = np.zeros(state_start.shape)
     if zero_override:
@@ -301,14 +303,14 @@ def fp_of_state(simsetup, state_start, app_field=0, dynamics='sync', zero_overri
         # TODO how to handle the flickering/oscillation in sync mode? store extra state, catch 2 cycle, and impute FP?
         while not np.array_equal(state_next, state_current):
             state_current = state_next
-            total_field = np.dot(simsetup['J'], state_next) + app_field
+            total_field = np.dot(intxn_matrix, state_next) + app_field
             state_next = np.sign(total_field)
             i += 1
     elif dynamics == 'async_fixed':
         while not np.array_equal(state_next, state_current):
             state_current = np.copy(state_next)
             for i in sites:
-                total_field_on_i = np.dot(simsetup['J'][i, :], state_next) + app_field[i]
+                total_field_on_i = np.dot(intxn_matrix[i, :], state_next) + app_field[i]
                 state_next[i] = np.sign(total_field_on_i)
                 i += 1
     else:
@@ -317,18 +319,18 @@ def fp_of_state(simsetup, state_start, app_field=0, dynamics='sync', zero_overri
             shuffle(sites)  # randomize site ordering each timestep updates
             state_current = state_next
             for i in sites:
-                total_field_on_i = np.dot(simsetup['J'][i, :], state_next) + app_field[i]
+                total_field_on_i = np.dot(intxn_matrix[i, :], state_next) + app_field[i]
                 state_next[i] = np.sign(total_field_on_i)
                 i += 1
     fp = state_next
     return fp
 
 
-def partition_basins(simsetup, X=None, minima=None, field=None, fs=0.0, dynamics='sync'):
+def partition_basins(intxn_matrix, X=None, minima=None, field=None, fs=0.0, dynamics='sync'):
     assert dynamics in ['sync', 'async_fixed', 'async_batch']
     if minima is None:
-        _, minima, _ = get_all_fp(simsetup, field=field, fs=fs)
-    N = simsetup['N']
+        _, minima, _ = get_all_fp(intxn_matrix, field=field, fs=fs)
+    N = intxn_matrix.shape[0]
     num_states = 2 ** N
     if field is not None:
         app_field = field * fs
@@ -340,7 +342,7 @@ def partition_basins(simsetup, X=None, minima=None, field=None, fs=0.0, dynamics
         X = np.array([label_to_state(label, N) for label in xrange(num_states)])
     for label in xrange(num_states):
         state = X[label, :]
-        fp = fp_of_state(simsetup, state, app_field=app_field, dynamics=dynamics)
+        fp = fp_of_state(intxn_matrix, state, app_field=app_field, dynamics=dynamics)
         fp_label = state_to_label(fp)
         if fp_label in minima:
             basins_dict[fp_label].append(label)
@@ -355,7 +357,7 @@ def partition_basins(simsetup, X=None, minima=None, field=None, fs=0.0, dynamics
     return basins_dict, label_to_fp_label
 
 
-def glauber_transition_matrix(simsetup, field=None, fs=0.0, beta=BETA, override=0.0, DTMC=False):
+def glauber_transition_matrix(intxn_matrix, field=None, fs=0.0, beta=BETA, override=0.0, DTMC=False):
     # TODO why are diagonals so large?  ~ 0.5 as temp -> infty? we see the global minima go to 1 as T->0
 
     # TODO is it prob per unit time i.e. rate or is it prob in fixed time?
@@ -366,12 +368,11 @@ def glauber_transition_matrix(simsetup, field=None, fs=0.0, beta=BETA, override=
     directly with a single 1 all else 0 in the 2^N states, and have eval 0.
     -Ongoing issue with C1: xi 1 and xi 2 completely overlap in spectral embedding, 2D or 3D, varying beta -- why?
     """
-
-    N = simsetup['N']
+    N = intxn_matrix.shape[0]
     num_states = 2 ** N
     choice_factor = 1.0 / N
     M = np.zeros((num_states, num_states))
-    states = np.array([label_to_state(label, simsetup['N']) for label in xrange(2 ** N)])
+    states = np.array([label_to_state(label, N) for label in xrange(2 ** N)])
     if field is None:
         app_field = np.ones(N) * override
     else:
@@ -386,7 +387,7 @@ def glauber_transition_matrix(simsetup, field=None, fs=0.0, beta=BETA, override=
             j = state_to_label(state_start)
             # compute glauber_factor
             site_end = state_end[idx]
-            total_field_site_start = np.dot(simsetup['J'][idx, :], state_start) + app_field[idx]
+            total_field_site_start = np.dot(intxn_matrix[idx, :], state_start) + app_field[idx]
             if beta is None:
                 if np.sign(total_field_site_start) == site_end:
                     glauber_factor = 1
@@ -396,7 +397,7 @@ def glauber_transition_matrix(simsetup, field=None, fs=0.0, beta=BETA, override=
                 glauber_factor = 1 / (1 + np.exp(-2 * beta * total_field_site_start * site_end))
             """
             # compute glauber_factor V1 - has expeted structure for B1 C1 but FP overlap for C1...
-            total_field = np.dot(simsetup['J'][idx, :], state_end) + app_field[idx]
+            total_field = np.dot(intxn_matrix[idx, :], state_end) + app_field[idx]
             if beta is None:
                 if np.sign(total_field) == state_end[idx]:
                     glauber_factor = 1
@@ -418,7 +419,7 @@ def glauber_transition_matrix(simsetup, field=None, fs=0.0, beta=BETA, override=
     return M
 
 
-def spectral_custom(L, dim, norm_each=False, plot_evec=False, skip_pss=False):
+def spectral_custom(L, dim, norm_each=False, plot_evec=False, skip_small_eval=False):
     # see https://github.com/hlml-toronto/machinelearning/blob/master/guides/unsupervised/spectral.ipynb
     E_unsorted, V_unsorted = np.linalg.eig(L)
     E_unsorted = np.real(E_unsorted)
@@ -434,12 +435,14 @@ def spectral_custom(L, dim, norm_each=False, plot_evec=False, skip_pss=False):
             plt.plot(range(statevol), evec[:, i], label='evec %d' % i)
         plt.legend()
         plt.show()
-    print eval[0:3]
-    print eval[-3:]
+    print eval[0:6]
+    print eval[-6:]
     # get first dim evecs, sorted
-    if skip_pss:
-        dim_reduced = evec[:, 1:dim+1]
-        assert np.abs(eval[1]) >= 1e-10  # was 1e-9
+    if skip_small_eval:
+        start_idx = 0
+        while eval[start_idx] < 1e-13:
+            start_idx += 1
+        dim_reduced = evec[:, start_idx:dim+start_idx]
     else:
         dim_reduced = evec[:, 0:dim]
 
@@ -498,7 +501,7 @@ def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, use_proj=False,
         else:
             X = projdist
     if method in ['spectral_auto', 'spectral_custom', 'diffusion']:
-        X = glauber_transition_matrix(simsetup, field=field, fs=fs, beta=beta, override=0)
+        X = glauber_transition_matrix(simsetup['J'], field=field, fs=fs, beta=beta, override=0)
     if plot_X:
         import matplotlib.pyplot as plt
         im = plt.imshow(X, aspect='auto')
@@ -544,7 +547,7 @@ def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, use_proj=False,
         # TODO cleanup see yale paper
         dim_spectral = 3
         num_steps = 1
-        X_DTMC = glauber_transition_matrix(simsetup, field=field, fs=fs, beta=beta, override=0, DTMC=True)
+        X_DTMC = glauber_transition_matrix(simsetup['J'], field=field, fs=fs, beta=beta, override=0, DTMC=True)
         X_bigstep = np.linalg.matrix_power(X_DTMC, num_steps)
         X_lower = spectral_custom(-X_bigstep, dim_spectral, norm_each=False, plot_evec=False, skip_pss=True)
         from sklearn.decomposition import PCA
@@ -574,7 +577,7 @@ def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, use_proj=False,
 
 if __name__ == '__main__':
     simsetup = singlecell_simsetup(unfolding=True, npzpath=MEMS_UNFOLD)
-    M = glauber_transition_matrix(simsetup, field=None, fs=0.0, beta=None, override=0.0)
+    M = glauber_transition_matrix(simsetup['J'], field=None, fs=0.0, beta=None, override=0.0)
     print M
     E, V = np.linalg.eig(M)
     eig_ranked = np.argsort(E)[::-1]
