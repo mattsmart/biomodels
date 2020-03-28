@@ -191,7 +191,7 @@ def sorted_energies(intxn_matrix, field=None, fs=0.0, flag_sort=True):
     return energies, sorted_data
 
 
-def get_all_fp(intxn_matrix, field=None, fs=0.0, statespace=None, energies=None):
+def get_all_fp(intxn_matrix, field=None, fs=0.0, statespace=None, energies=None, inspection=False):
     # TODO 1 - is it possible to partition all 2^N into basins? are many of the points ambiguous where they wont roll into one basin but multiple?
     N = intxn_matrix.shape[0]
     num_states = 2 ** N
@@ -207,7 +207,8 @@ def get_all_fp(intxn_matrix, field=None, fs=0.0, statespace=None, energies=None)
     maxima = []
     fp_annotation = {}
     for label in xrange(num_states):
-        is_fp, is_min = check_min_or_max(intxn_matrix, statespace[label,:], energy=energies[label], field=field, fs=fs)
+        is_fp, is_min = check_min_or_max(intxn_matrix, statespace[label,:], energy=energies[label], field=field, fs=fs,
+                                         inspection=inspection)
         if is_fp:
             if is_min:
                 minima.append(label)
@@ -245,11 +246,12 @@ def check_min_or_max(intxn_matrix, state, energy=None, field=None, fs=0.0, inspe
     if field is not None:
         field_term = field * fs
     total_field = np.dot(intxn_matrix, state) + field_term
+
     # TODO speedup
     if np.array_equal(np.sign(total_field), np.sign(state)):
         is_fp = True
         if inspection:
-            print "is_fp verify"
+            print "\nis_fp verify", state
             print np.sign(total_field), total_field
             print np.sign(state), state
 
@@ -288,63 +290,113 @@ def check_min_or_max(intxn_matrix, state, energy=None, field=None, fs=0.0, inspe
                     ll = 'flip lower'
                 print idx, energy, energy_perturb, ll
             print 'state summary: (ismin, ismax)', (utilvec>0).all(), (utilvec<0).all(), utilvec
+
     return is_fp, is_min
 
 
-def fp_of_state(intxn_matrix, state_start, app_field=0, dynamics='sync', zero_override=True):
+def fp_of_state(intxn_matrix, state_start, app_field=0, dynamics='sync', zero_override=False):
+    # TODO cycle support
     """
     Given a state e.g. (1,1,1,1, ... 1) i.e. hypercube vertex, return the corresponding FP of specified dynamics
     """
     assert dynamics in ['sync', 'async_fixed', 'async_batch']
+
+    def safe_field_sign_update_sync(state_current, total_field):
+        # tricky parallel site update with check for 0 total field
+        # TODO check bugfix for case where an element is zero - try flip sites which have zero field
+        # out_template = np.copy(state_current)
+        out_template = np.zeros(intxn_matrix.shape[0])
+        out_template[:] = state_current[:]
+        state_next = np.sign(total_field, where=(total_field != 0), out=-out_template)
+        return state_next
+
     i = 0
     sites = range(intxn_matrix.shape[0])
     state_next = np.copy(state_start)
     state_current = np.zeros(state_start.shape)
     if zero_override:
+        print 'Warning fp_of_state() flag "zero override" can lead to bugs'
         # TODO characterize this choice; affects basin characterization confirmed w memories in block form +--, -+-, ---
+        # TODO alternative override is to always flip the site if total field is zero
+        # When the internal field on a site is zero, it is naturally a coin flip whether to put that spin up or down.
+        # We should not have FPs which have 0 total field on one of the spins
         override_sign = 1
-        app_field = app_field + np.ones(app_field.shape) * 1e-8 * override_sign
+        perturb_field = np.ones(intxn_matrix.shape[0]) * 1e-8 * override_sign
+        if app_field is None:
+            app_field = perturb_field
+        else:
+            app_field = app_field + perturb_field
+
     if dynamics == 'sync':
+        assert dynamics != 'sync'  # too unpredictable
+        # TODO bug if sign of total field is zero
+        # TODO cycle support
         # TODO how to handle the flickering/oscillation in sync mode? store extra state, catch 2 cycle, and impute FP?
+        CYCLE_THRESHOLD = 2 ** intxn_matrix.shape[0]  # i.e. 2^N
+        state_back_two = np.zeros(intxn_matrix.shape[0])  # To catch 2-state flickering
         while not np.array_equal(state_next, state_current):
+            i += 1
+            state_back_two = state_current
             state_current = state_next
             total_field = np.dot(intxn_matrix, state_next) + app_field
-            state_next = np.sign(total_field)
-            i += 1
-    elif dynamics == 'async_fixed':
+            state_next = safe_field_sign_update_sync(state_current, total_field)
+
+            if np.array_equal(state_back_two, state_next):
+                # This is a flicker, so pick the one with lower energy
+                energy_next = hamiltonian(state_next, intxn_matrix, field=app_field, fs=1.0)
+                energy_current = hamiltonian(state_current, intxn_matrix, field=app_field, fs=1.0)
+                print '\nWARNING - sync dynamics fp_of_state() has 2-state flicker, for', state_start
+                if state_to_label(state_start) == 3:
+                    print 'state_to_label(state_start) == 3:'
+                    print energy_next, energy_current
+                    print state_to_label(state_next), state_to_label(state_current)
+
+                if energy_next > energy_current:
+                    state_next = state_current
+                break
+
+            if i > CYCLE_THRESHOLD:
+                # This is to catch longer cycles, which have max size of 2^N -- the state space
+                state_next = None
+                break
+
+    else:
+        assert dynamics in ['async_batch', 'async_fixed']
         while not np.array_equal(state_next, state_current):
+            if dynamics == 'async_batch':
+                shuffle(sites)  # randomize site ordering each update
             state_current = np.copy(state_next)
             for i in sites:
                 total_field_on_i = np.dot(intxn_matrix[i, :], state_next) + app_field[i]
-                state_next[i] = np.sign(total_field_on_i)
-                i += 1
-    else:
-        assert dynamics == 'async_batch'
-        while not np.array_equal(state_next, state_current):
-            shuffle(sites)  # randomize site ordering each timestep updates
-            state_current = state_next
-            for i in sites:
-                total_field_on_i = np.dot(intxn_matrix[i, :], state_next) + app_field[i]
-                state_next[i] = np.sign(total_field_on_i)
+                if total_field_on_i == 0:
+                    state_next[i] = state_next[i] * -1
+                else:
+                    state_next[i] = np.sign(total_field_on_i)
                 i += 1
     fp = state_next
     return fp
 
 
 def partition_basins(intxn_matrix, X=None, minima=None, field=None, fs=0.0, dynamics='sync'):
+    # TODO cycle attractor support
     assert dynamics in ['sync', 'async_fixed', 'async_batch']
+
     if minima is None:
         _, minima, _ = get_all_fp(intxn_matrix, field=field, fs=fs)
+
     N = intxn_matrix.shape[0]
     num_states = 2 ** N
+
     if field is not None:
         app_field = field * fs
     else:
         app_field = np.zeros(N)
+
     basins_dict = {label: [] for label in minima}
     label_to_fp_label = {}
     if X is None:
         X = np.array([label_to_state(label, N) for label in xrange(num_states)])
+
     for label in xrange(num_states):
         state = X[label, :]
         fp = fp_of_state(intxn_matrix, state, app_field=app_field, dynamics=dynamics)
@@ -382,7 +434,6 @@ def glauber_transition_matrix(intxn_matrix, field=None, fs=0.0, beta=BETA, overr
         app_field = np.ones(N) * override
     else:
         app_field = field * fs + override
-    print 'Building 2 ** %d glauber transition matrix' % (N)
     for i in xrange(num_states):
         state_end = states[i, :]
         for idx in xrange(N):
