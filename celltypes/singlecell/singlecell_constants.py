@@ -25,6 +25,7 @@ MEMS_UNFOLD = UNFOLDINGDIR + os.sep + "unfold_expC1_mems_genes_types_signals.npz
 # MODEL SPECIFICATION -- TODO print used vars in simsetup dict, write to run_info.txt
 DEFAULT_MEMORIES_NPZPATH = MEMS_UNFOLD    # choose which memories to embed
 NETWORK_METHOD = "projection"             # supported: 'projection' or 'hopfield'
+HOLLOW_INTXN_MATRIX = True                # set diagonals of J_ij to zero (standard)
 BETA = 2.2*1e1                            # value used in Mehta 2014 (low temperature: BETA=2.2)
 EXT_FIELD_STRENGTH = 0.30                 # relative strength of exosome local field effect
 FIELD_PROTOCOL = None                     # e.g. None, 'yamanaka', 'miR_21'

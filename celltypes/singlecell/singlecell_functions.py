@@ -2,6 +2,7 @@ import numpy as np
 from random import random, shuffle
 
 from singlecell_constants import BETA, EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, MEMS_UNFOLD
+from singlecell_linalg import sorted_eig
 from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
 
 """
@@ -477,12 +478,7 @@ def glauber_transition_matrix(intxn_matrix, field=None, fs=0.0, beta=BETA, overr
 
 def spectral_custom(L, dim, norm_each=False, plot_evec=False, skip_small_eval=False):
     # see https://github.com/hlml-toronto/machinelearning/blob/master/guides/unsupervised/spectral.ipynb
-    E_unsorted, V_unsorted = np.linalg.eig(L)
-    E_unsorted = np.real(E_unsorted)
-    V_unsorted = np.real(V_unsorted)
-    sortlist = np.argsort(E_unsorted)
-    eval = E_unsorted[sortlist]
-    evec = V_unsorted[:, sortlist]
+    eval, evec = sorted_eig(L, take_real=True)
 
     if plot_evec:
         statevol = evec.shape[0]

@@ -4,6 +4,7 @@ import numpy as np
 
 from singlecell.singlecell_constants import MEMS_MEHTA, MEMS_UNFOLD, BETA, DISTINCT_COLOURS
 from singlecell.singlecell_functions import hamiltonian, sorted_energies, label_to_state, get_all_fp, glauber_transition_matrix, partition_basins, reduce_hypercube_dim, state_to_label, spectral_custom
+from singlecell.singlecell_linalg import sorted_eig
 from singlecell.singlecell_simsetup import singlecell_simsetup # N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS, GENE_ID
 from singlecell.singlecell_visualize import plot_state_prob_map, hypercube_visualize
 
@@ -152,99 +153,161 @@ def build_colour_dict(basins_dict, label_to_fp_label, N_multicell):
 
 
 if __name__ == '__main__':
-    # model settings
-    beta = 6  # 2.0
-    GAMMA = 0.5
-    NUM_CELLS = 2
-    HOUSEKEEPING = 0
-    KAPPA = 0.0
-    FLAG_01 = False
-    assert NUM_CELLS == 2  # try 3 later maybe
+    # main flags
+    basic_run = False
+    basic_visualize = False
+    scan_gamma = True
 
-    # build singlecell J and the signalling array W
-    random_mem = False
-    random_W = False
-    CURATED = True
-    simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, npzpath=MEMS_UNFOLD,
-                                   housekeeping=HOUSEKEEPING, curated=CURATED)
-    print 'note: total N = (%d) x %d' % (simsetup['N'], NUM_CELLS)
-    N_multicell = simsetup['N'] * NUM_CELLS
+    if basic_run:
+        # model settings
+        beta = 6  # 2.0
+        GAMMA = 0.5
+        NUM_CELLS = 2
+        HOUSEKEEPING = 0
+        FLAG_01 = False
+        assert NUM_CELLS == 2  # try 3 later maybe
 
-    # dynamics and im reduction settings
-    DIM_REDUCE = 2
-    plot_X = False
+        # build singlecell J and the signalling array W
+        random_mem = False
+        random_W = False
+        CURATED = True
+        simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, npzpath=MEMS_UNFOLD,
+                                       housekeeping=HOUSEKEEPING, curated=CURATED)
+        print 'note: total N = (%d) x %d' % (simsetup['N'], NUM_CELLS)
+        N_multicell = simsetup['N'] * NUM_CELLS
 
-    # (housekeeping) applied field preparation
-    KAPPA = 0
+        # dynamics and im reduction settings
+        DIM_REDUCE = 2
+        plot_X = False
 
-    # manual applied field on both cells
-    manual_field = None
+        # (housekeeping) applied field preparation
+        KAPPA = 0
 
-    # prep multicell state space, interaction matrix
-    statespace_multicell = np.array([label_to_state(label, N_multicell) for label in xrange(2 ** N_multicell)])
-    J_multicell, h_multicell = build_twocell_J_h(simsetup, GAMMA, flag_01=FLAG_01)
-    h_multicell = refine_applied_field_twocell(N_multicell, h_multicell, housekeeping=HOUSEKEEPING, kappa=KAPPA,
-                                               manual_field=manual_field)
+        # manual applied field on both cells
+        manual_field = None
 
-    # get & report energy levels data
-    print "\nSorting energy levels, finding extremes..."
-    energies, _ = sorted_energies(J_multicell, field=h_multicell, fs=1.0, flag_sort=False)
-    print "\nRunning 'get_all_fp()'..."
-    fp_annotation, minima, maxima = get_all_fp(J_multicell, field=h_multicell, fs=1.0, statespace=statespace_multicell,
-                                               energies=energies, inspection=False)
-    print_fp_info_twocell(simsetup, N_multicell, minima, maxima, energies)
+        # prep multicell state space, interaction matrix
+        statespace_multicell = np.array([label_to_state(label, N_multicell) for label in xrange(2 ** N_multicell)])
+        J_multicell, h_multicell = build_twocell_J_h(simsetup, GAMMA, flag_01=FLAG_01)
+        h_multicell = refine_applied_field_twocell(N_multicell, h_multicell, housekeeping=HOUSEKEEPING, kappa=KAPPA,
+                                                   manual_field=manual_field)
 
-    print "\nPartitioning basins..."
-    # TODO resolve partitioning and get_all_fp discrepancies
-    basins_dict, label_to_fp_label = partition_basins(J_multicell, X=statespace_multicell, minima=minima,
-                                                      field=h_multicell, fs=1.0, dynamics='async_batch')
-    print "\nMore minima stats"
-    print 'partition basin dict labels:', sorted(basins_dict.keys())
-    print "key, energy, state, basin size, key in minima"
-    for key in basins_dict.keys():
-        print key, energies[key], label_to_state(key, N_multicell), len(basins_dict[key]), key in minima
+        # get & report energy levels data
+        print "\nSorting energy levels, finding extremes..."
+        energies, _ = sorted_energies(J_multicell, field=h_multicell, fs=1.0, flag_sort=False)
+        print "\nRunning 'get_all_fp()'..."
+        fp_annotation, minima, maxima = get_all_fp(J_multicell, field=h_multicell, fs=1.0, statespace=statespace_multicell,
+                                                   energies=energies, inspection=False)
+        print_fp_info_twocell(simsetup, N_multicell, minima, maxima, energies)
 
-    # setup basin colours for visualization
-    cdict = build_colour_dict(basins_dict, label_to_fp_label, N_multicell)
+        print "\nPartitioning basins..."
+        # TODO resolve partitioning and get_all_fp discrepancies
+        basins_dict, label_to_fp_label = partition_basins(J_multicell, X=statespace_multicell, minima=minima,
+                                                          field=h_multicell, fs=1.0, dynamics='async_batch')
+        print "\nMore minima stats"
+        print 'partition basin dict labels:', sorted(basins_dict.keys())
+        print "key, energy, state, basin size, key in minima"
+        for key in basins_dict.keys():
+            print key, energies[key], label_to_state(key, N_multicell), len(basins_dict[key]), key in minima
 
-    # setup basin labels depending on npz
-    print "\nBuilding multicell basin labels..."
-    basin_labels = build_multicell_basin_labels(simsetup, N_multicell, minima)
+    if basic_visualize:
+        # setup basin colours for visualization
+        cdict = build_colour_dict(basins_dict, label_to_fp_label, N_multicell)
 
-    # TODO  mulicell revise
-    """ 
-    # reduce dimension (SC script)
-    X_new = reduce_hypercube_dim(simsetup, METHOD, dim=DIM, use_hd=use_hd, use_proj=use_proj, add_noise=False,
-                                 plot_X=plot_X, field=app_field, fs=KAPPA, beta=beta)
-    """
-    # reduce dimension via spectral embedding
-    print '\nBuilding 2 ** %d glauber transition matrix...' % (N_multicell)
-    X = glauber_transition_matrix(J_multicell, field=h_multicell, fs=1.0, beta=beta, override=0.0, DTMC=False)
-    dim_spectral = 20  # use dim >= number of known minima?
-    X_lower = spectral_custom(-X, dim_spectral, norm_each=False, plot_evec=False, skip_small_eval=False)
-    from sklearn.decomposition import PCA
-    X_new = PCA(n_components=DIM_REDUCE).fit_transform(X_lower)
+        # setup basin labels depending on npz
+        print "\nBuilding multicell basin labels..."
+        basin_labels = build_multicell_basin_labels(simsetup, N_multicell, minima)
 
-    # TODO  multicell revise
-    # visualize with and without basins colouring
-    hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
-                        elevate3D=True, edges=True, all_edges=False, surf=False, colours_dict=None, beta=None)
-    hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
-                        elevate3D=True, edges=False, all_edges=False, surf=True, colours_dict=None, beta=None)
-    hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
-                        elevate3D=True, edges=True, all_edges=False, surf=False, colours_dict=None, beta=beta)
-    hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
-                        elevate3D=True, edges=False, all_edges=False, surf=True, colours_dict=None, beta=beta)
-    hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
-                        elevate3D=True, edges=False, all_edges=False, surf=False, colours_dict=cdict)
-    hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
-                        elevate3D=True, edges=True, all_edges=False, surf=False, colours_dict=cdict)
-    hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
-                        elevate3D=False, edges=False, all_edges=False, surf=False, colours_dict=None)
-    hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
-                        elevate3D=False, edges=True, all_edges=False, surf=False, colours_dict=cdict)
+        # TODO  mulicell revise
+        """ 
+        # reduce dimension (SC script)
+        X_new = reduce_hypercube_dim(simsetup, METHOD, dim=DIM, use_hd=use_hd, use_proj=use_proj, add_noise=False,
+                                     plot_X=plot_X, field=app_field, fs=KAPPA, beta=beta)
+        """
+        # reduce dimension via spectral embedding
+        print '\nBuilding 2 ** %d glauber transition matrix...' % (N_multicell)
+        X = glauber_transition_matrix(J_multicell, field=h_multicell, fs=1.0, beta=beta, override=0.0, DTMC=False)
+        dim_spectral = 20  # use dim >= number of known minima?
+        X_lower = spectral_custom(-X, dim_spectral, norm_each=False, plot_evec=False, skip_small_eval=False)
+        from sklearn.decomposition import PCA
+        X_new = PCA(n_components=DIM_REDUCE).fit_transform(X_lower)
 
-    plot_state_prob_map(J_multicell, beta=None)
-    plot_state_prob_map(J_multicell, beta=5.0)
-    plot_state_prob_map(J_multicell, beta=None, field=h_multicell, fs=1.0)
-    plot_state_prob_map(J_multicell, beta=1.0, field=h_multicell, fs=1.0)
+        # TODO  multicell revise
+        # visualize with and without basins colouring
+        hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
+                            elevate3D=True, edges=True, all_edges=False, surf=False, colours_dict=None, beta=None)
+        hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
+                            elevate3D=True, edges=False, all_edges=False, surf=True, colours_dict=None, beta=None)
+        hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
+                            elevate3D=True, edges=True, all_edges=False, surf=False, colours_dict=None, beta=beta)
+        hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
+                            elevate3D=True, edges=False, all_edges=False, surf=True, colours_dict=None, beta=beta)
+        hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
+                            elevate3D=True, edges=False, all_edges=False, surf=False, colours_dict=cdict)
+        hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
+                            elevate3D=True, edges=True, all_edges=False, surf=False, colours_dict=cdict)
+        hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
+                            elevate3D=False, edges=False, all_edges=False, surf=False, colours_dict=None)
+        hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
+                            elevate3D=False, edges=True, all_edges=False, surf=False, colours_dict=cdict)
+
+        plot_state_prob_map(J_multicell, beta=None)
+        plot_state_prob_map(J_multicell, beta=5.0)
+        plot_state_prob_map(J_multicell, beta=None, field=h_multicell, fs=1.0)
+        plot_state_prob_map(J_multicell, beta=1.0, field=h_multicell, fs=1.0)
+
+    if scan_gamma:
+        # model settings
+        beta = 6  # 2.0
+        NUM_CELLS = 2
+        HOUSEKEEPING = 0  # to pass to simsetup
+        FLAG_01 = False
+        assert NUM_CELLS == 2  # try 3 later maybe
+        gamma_vals = np.linspace(0.0, 1.0, 5)  # TODO choose range based on spectral dynamics of J(gamma)
+
+        # gamma independent steps
+        simsetup = singlecell_simsetup(unfolding=True, random_mem=False, random_W=False, npzpath=MEMS_UNFOLD,
+                                       housekeeping=HOUSEKEEPING, curated=True)
+        print 'note: total N = (%d) x %d' % (simsetup['N'], NUM_CELLS)
+        N_multicell = simsetup['N'] * NUM_CELLS
+        # dynamics and im reduction settings
+        DIM_REDUCE = 2
+        plot_X = False
+        # (housekeeping) applied field preparation
+        KAPPA = 0
+        # manual applied field on both cells
+        manual_field = None
+        # prep multicell state space, interaction matrix
+        statespace_multicell = np.array([label_to_state(label, N_multicell) for label in xrange(2 ** N_multicell)])
+
+        print "\nRunning gamma_scan in (%.2f, %.2f) (%d points)" % (gamma_vals[0], gamma_vals[-1], len(gamma_vals))
+        for idx, gamma in enumerate(gamma_vals):
+            J_multicell, h_multicell = build_twocell_J_h(simsetup, gamma, flag_01=FLAG_01)
+            h_multicell = refine_applied_field_twocell(N_multicell, h_multicell, housekeeping=HOUSEKEEPING, kappa=KAPPA,
+                                                       manual_field=manual_field)
+
+            eval, evec = sorted_eig(J_multicell)
+            print idx, gamma, eval
+
+
+
+            """
+            # get & report energy levels data
+            print "\nSorting energy levels, finding extremes..."
+            energies, _ = sorted_energies(J_multicell, field=h_multicell, fs=1.0, flag_sort=False)
+            print "\nRunning 'get_all_fp()'..."
+            fp_annotation, minima, maxima = get_all_fp(J_multicell, field=h_multicell, fs=1.0,
+                                                       statespace=statespace_multicell,
+                                                       energies=energies, inspection=False)
+            print_fp_info_twocell(simsetup, N_multicell, minima, maxima, energies)
+
+            print "\nPartitioning basins..."
+            # TODO resolve partitioning and get_all_fp discrepancies
+            basins_dict, label_to_fp_label = partition_basins(J_multicell, X=statespace_multicell, minima=minima,
+                                                              field=h_multicell, fs=1.0, dynamics='async_batch')
+            print "\nMore minima stats"
+            print 'partition basin dict labels:', sorted(basins_dict.keys())
+            print "key, energy, state, basin size, key in minima"
+            for key in basins_dict.keys():
+                print key, energies[key], label_to_state(key, N_multicell), len(basins_dict[key]), key in minima
+            """
