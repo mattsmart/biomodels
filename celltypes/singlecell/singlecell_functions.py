@@ -478,7 +478,7 @@ def glauber_transition_matrix(intxn_matrix, field=None, fs=0.0, beta=BETA, overr
 
 def spectral_custom(L, dim, norm_each=False, plot_evec=False, skip_small_eval=False):
     # see https://github.com/hlml-toronto/machinelearning/blob/master/guides/unsupervised/spectral.ipynb
-    eval, evec = sorted_eig(L, take_real=True)
+    evals, evecs = sorted_eig(L, take_real=True)
 
     if plot_evec:
         statevol = evec.shape[0]

@@ -40,6 +40,6 @@ def sorted_eig(arr, take_real=True):
         E_unsorted = np.real(E_unsorted)
         V_unsorted = np.real(V_unsorted)
     sortlist = np.argsort(E_unsorted)
-    eval = E_unsorted[sortlist]
-    evec = V_unsorted[:, sortlist]
-    return eval, evec
+    evals = E_unsorted[sortlist]
+    evecs = V_unsorted[:, sortlist]
+    return evals, evecs
