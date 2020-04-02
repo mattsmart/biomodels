@@ -1,8 +1,9 @@
 import singlecell.init_multiprocessing  # BEFORE numpy
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
-from singlecell.singlecell_constants import MEMS_MEHTA, MEMS_UNFOLD, BETA, DISTINCT_COLOURS
+from singlecell.singlecell_constants import MEMS_MEHTA, MEMS_UNFOLD, DISTINCT_COLOURS, RUNS_FOLDER, HOLLOW_INTXN_MATRIX
 from singlecell.singlecell_functions import hamiltonian, sorted_energies, label_to_state, get_all_fp, glauber_transition_matrix, partition_basins, reduce_hypercube_dim, state_to_label, spectral_custom
 from singlecell.singlecell_linalg import sorted_eig
 from singlecell.singlecell_simsetup import singlecell_simsetup # N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS, GENE_ID
@@ -152,6 +153,19 @@ def build_colour_dict(basins_dict, label_to_fp_label, N_multicell):
     return cdict
 
 
+def plot_evals_vs_gamma(gamma_vary, evals, hollow=False, norm=False, show=False):
+    plt.figure(figsize=(10.0,8.0))
+    plt.plot(gamma_vary, evals.T)
+    plt.xlabel(r'$\gamma$')
+    plt.ylabel(r'$\lambda_i(\gamma)$')
+    plt.grid()
+    plt.title(r"($\gamma$ normalized, $J$ hollow) = (%r, %r)" % (norm, hollow))
+    plt.savefig(RUNS_FOLDER + os.sep + 'spectral_dynamics_eval_norm%r_hollow%r.png' % (norm, hollow))
+    if show:
+        plt.show()
+    return
+
+
 if __name__ == '__main__':
     # main flags
     basic_run = False
@@ -257,13 +271,16 @@ if __name__ == '__main__':
         plot_state_prob_map(J_multicell, beta=1.0, field=h_multicell, fs=1.0)
 
     if scan_gamma:
+        # TODO choose range based on spectral dynamics of J(gamma)
+        # TODO this means ^ get some spectral visuals, one is N curves change vs gamma -- the evals (normalize by gamma?)
+
         # model settings
         beta = 6  # 2.0
         NUM_CELLS = 2
         HOUSEKEEPING = 0  # to pass to simsetup
         FLAG_01 = False
         assert NUM_CELLS == 2  # try 3 later maybe
-        gamma_vals = np.linspace(0.0, 1.0, 5)  # TODO choose range based on spectral dynamics of J(gamma)
+        gamma_vals = np.linspace(0.0, 2.0, 500)  # TODO choose range based on spectral dynamics of J(gamma)
 
         # gamma independent steps
         simsetup = singlecell_simsetup(unfolding=True, random_mem=False, random_W=False, npzpath=MEMS_UNFOLD,
@@ -280,34 +297,48 @@ if __name__ == '__main__':
         # prep multicell state space, interaction matrix
         statespace_multicell = np.array([label_to_state(label, N_multicell) for label in xrange(2 ** N_multicell)])
 
+        gamma_norm_eval = False
+        evals_vary = np.zeros((N_multicell, len(gamma_vals)))  # TODO dtype = complex or not? symmetric case care assert
         print "\nRunning gamma_scan in (%.2f, %.2f) (%d points)" % (gamma_vals[0], gamma_vals[-1], len(gamma_vals))
         for idx, gamma in enumerate(gamma_vals):
             J_multicell, h_multicell = build_twocell_J_h(simsetup, gamma, flag_01=FLAG_01)
             h_multicell = refine_applied_field_twocell(N_multicell, h_multicell, housekeeping=HOUSEKEEPING, kappa=KAPPA,
                                                        manual_field=manual_field)
 
-            eval, evec = sorted_eig(J_multicell)
-            print idx, gamma, eval
+            evals, evecs = sorted_eig(J_multicell)
+            print "idx %d, gamma %.3f" % (idx, gamma)
+            with np.printoptions(precision=2, suppress=True):
+                if gamma_norm_eval:
+                    anchor = 1
+                    evals_vary[:, idx] = evals[:] / (anchor + gamma)
+                    """if gamma == 0.0:
+                        evals_vary[:, idx] = evals[:]
+                    else:
+                        # eps=1e-10
+                        evals_vary[:, idx] = evals[:] / (gamma)  # normalize by gamma to flatten as gamma to inf"""
+                else:
+                    evals_vary[:, idx] = evals[:]
+                print "\t", evals_vary[:, idx]
+        plot_evals_vs_gamma(gamma_vals, evals_vary, show=False, hollow=HOLLOW_INTXN_MATRIX, norm=gamma_norm_eval)
 
 
+        """
+        # get & report energy levels data
+        print "\nSorting energy levels, finding extremes..."
+        energies, _ = sorted_energies(J_multicell, field=h_multicell, fs=1.0, flag_sort=False)
+        print "\nRunning 'get_all_fp()'..."
+        fp_annotation, minima, maxima = get_all_fp(J_multicell, field=h_multicell, fs=1.0,
+                                                   statespace=statespace_multicell,
+                                                   energies=energies, inspection=False)
+        print_fp_info_twocell(simsetup, N_multicell, minima, maxima, energies)
 
-            """
-            # get & report energy levels data
-            print "\nSorting energy levels, finding extremes..."
-            energies, _ = sorted_energies(J_multicell, field=h_multicell, fs=1.0, flag_sort=False)
-            print "\nRunning 'get_all_fp()'..."
-            fp_annotation, minima, maxima = get_all_fp(J_multicell, field=h_multicell, fs=1.0,
-                                                       statespace=statespace_multicell,
-                                                       energies=energies, inspection=False)
-            print_fp_info_twocell(simsetup, N_multicell, minima, maxima, energies)
-
-            print "\nPartitioning basins..."
-            # TODO resolve partitioning and get_all_fp discrepancies
-            basins_dict, label_to_fp_label = partition_basins(J_multicell, X=statespace_multicell, minima=minima,
-                                                              field=h_multicell, fs=1.0, dynamics='async_batch')
-            print "\nMore minima stats"
-            print 'partition basin dict labels:', sorted(basins_dict.keys())
-            print "key, energy, state, basin size, key in minima"
-            for key in basins_dict.keys():
-                print key, energies[key], label_to_state(key, N_multicell), len(basins_dict[key]), key in minima
-            """
+        print "\nPartitioning basins..."
+        # TODO resolve partitioning and get_all_fp discrepancies
+        basins_dict, label_to_fp_label = partition_basins(J_multicell, X=statespace_multicell, minima=minima,
+                                                          field=h_multicell, fs=1.0, dynamics='async_batch')
+        print "\nMore minima stats"
+        print 'partition basin dict labels:', sorted(basins_dict.keys())
+        print "key, energy, state, basin size, key in minima"
+        for key in basins_dict.keys():
+            print key, energies[key], label_to_state(key, N_multicell), len(basins_dict[key]), key in minima
+        """
