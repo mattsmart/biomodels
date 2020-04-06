@@ -1,6 +1,8 @@
 import numpy as np
 
 
+N_FERRO = 5
+
 curated = {
     'mutual_inhibition':
         {'XI': np.array([
@@ -23,10 +25,10 @@ curated = {
           'gene_labels': ['A_signal', 'B_signal', 'A_identity', 'B_identity', 'HK_1', 'HK_2']
          },
     'ferro':
-        {'XI': np.ones((20, 1)),
-          'W': np.zeros((20, 20)),
+        {'XI': np.ones((N_FERRO, 1)),
+          'W': np.zeros((N_FERRO, N_FERRO)),
           'celltype_labels': [r'$\xi$'],
-          'gene_labels': ['gene_%d' % idx for idx in xrange(20)],
+          'gene_labels': ['gene_%d' % idx for idx in xrange(N_FERRO)],
          },
     'ferroPerturb':
         {'XI': np.array([[1], [1], [1], [1], [2.5]]),
@@ -62,14 +64,9 @@ curated = {
 
 LABEL = 'ferro'
 assert LABEL in curated.keys()
-CURATED_XI = curated[LABEL]['XI']
-CURATED_W = curated[LABEL]['W']
-CURATED_CELLTYPE_LABELS = curated[LABEL]['celltype_labels']
-CURATED_GENE_LABELS = curated[LABEL]['gene_labels']
-
 
 refine_W = True
-random_W = True
+random_W = False
 if refine_W:
     # manually refine the W matrix of the chosen scheme
     Ntot = curated[LABEL]['XI'].shape[0]
@@ -80,6 +77,10 @@ if refine_W:
         curated[LABEL]['W'] = (W_lower + W_lower.T + W_diag) / Ntot
     else:
         curated[LABEL]['W'][1, 1] = 10.0/Ntot
-        curated[LABEL]['W'][2, 1] = 10.0/Ntot
-        curated[LABEL]['W'][3, 1] = -50.0/Ntot
-        curated[LABEL]['W'][4, 3] = -10.0/Ntot
+        curated[LABEL]['W'][2, 3] = -10.0/Ntot
+        curated[LABEL]['W'][3, 2] = -10.0/Ntot
+
+CURATED_XI = curated[LABEL]['XI']
+CURATED_W = curated[LABEL]['W']
+CURATED_CELLTYPE_LABELS = curated[LABEL]['celltype_labels']
+CURATED_GENE_LABELS = curated[LABEL]['gene_labels']
