@@ -481,22 +481,22 @@ def spectral_custom(L, dim, norm_each=False, plot_evec=False, skip_small_eval=Fa
     evals, evecs = sorted_eig(L, take_real=True)
 
     if plot_evec:
-        statevol = evec.shape[0]
+        statevol = evecs.shape[0]
         import matplotlib.pyplot as plt
         for i in xrange(dim):
-            plt.plot(range(statevol), evec[:, i], label='evec %d' % i)
+            plt.plot(range(statevol), evecs[:, i], label='evec %d' % i)
         plt.legend()
         plt.show()
-    print eval[0:6]
-    print eval[-6:]
+    print evals[0:6]
+    print evals[-6:]
     # get first dim evecs, sorted
     if skip_small_eval:
         start_idx = 0
-        while eval[start_idx] < 1e-13:
+        while evals[start_idx] < 1e-13:
             start_idx += 1
-        dim_reduced = evec[:, start_idx:dim+start_idx]
+        dim_reduced = evecs[:, start_idx:dim+start_idx]
     else:
-        dim_reduced = evec[:, 0:dim]
+        dim_reduced = evecs[:, 0:dim]
 
     # normalize column sum to 1
     for j in xrange(dim):
