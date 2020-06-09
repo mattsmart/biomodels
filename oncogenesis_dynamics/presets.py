@@ -7,7 +7,7 @@ from params import Params
 VALID_PRESET_LABELS = ["preset_xyz_constant", "preset_xyz_constant_fast", "preset_xyz_hillorig",
                        "preset_xyz_hill", "preset_xyz_hill_onlyinc", "preset_xyz_hill_onlydec",
                        "preset_xyz_tanh", "preset_xyz_tanh_onlyinc", "preset_xyz_tanh_onlydec",
-                       "valley_2hit"]
+                       "valley_2hit", "BL1g", "BL100g", "TR1g", "TR100g"]
 
 
 def presets(preset_label):
@@ -21,7 +21,7 @@ def presets(preset_label):
             'alpha_plus': 0.2,
             'alpha_minus': 1.0,  # 0.5
             'mu': 0.0001,  # 0.01
-            'mu_1': 0.001,
+            'mu_1': 0.0001,
             'a': 1.0,
             'b': 0.8,  # 0.8 and 1.2
             'c': 0.9,  # 0.9 and 1.1
@@ -66,8 +66,8 @@ def presets(preset_label):
             'mu': 0.0001,  # 0.01
             'mu_1': 0.0001,
             'a': 1.0,
-            'b': 0.8,
-            'c': 0.9,  # 1.2
+            'b': 1.2,
+            'c': 1.1,  # 1.2
             'N': 100.0,  # 100.0
             'v_x': 0.0,
             'v_y': 0.0,
@@ -134,6 +134,106 @@ def presets(preset_label):
             'switching_ratio': 0.0,
             'mult_inc': 0.0,
             'mult_dec': 0.0,
+        }
+        params = Params(params_dict, system, feedback=feedback)
+
+    elif preset_label == "BL1g":
+        # DYNAMICS PARAMETERS
+        system = "default"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
+        feedback = "constant"  # "constant", "hill", "step", "pwlinear", "tanh"
+        params_dict = {
+            'alpha_plus': 0.2,
+            'alpha_minus': 1.0,  # 0.5
+            'mu': 0.0001,  # 0.01
+            'mu_1': 0.0001,
+            'a': 1.0,
+            'b': 0.8,
+            'c': 0.9,  # 1.2
+            'N': 100.0,  # 100.0
+            'v_x': 0.0,
+            'v_y': 0.0,
+            'v_z': 0.0,
+            'mu_base': 0.0,
+            'c2': 0.0,
+            'v_z2': 0.0,
+            'switching_ratio': 0.5,
+            'mult_inc': 1.0,
+            'mult_dec': 1.0,
+        }
+        params = Params(params_dict, system, feedback=feedback)
+
+    elif preset_label == "BL100g":
+        # DYNAMICS PARAMETERS
+        system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
+        feedback = "tanh"  # "constant", "hill", "step", "pwlinear", "tanh"
+        params_dict = {
+            'alpha_plus': 0.2,
+            'alpha_minus': 1.0,  # 0.5
+            'mu': 0.0001,  # 0.01
+            'mu_1': 0.0001,
+            'a': 1.0,
+            'b': 0.8,
+            'c': 0.9,  # 1.2
+            'N': 100.0,  # 100.0
+            'v_x': 0.0,
+            'v_y': 0.0,
+            'v_z': 0.0,
+            'mu_base': 0.0,
+            'c2': 0.0,
+            'v_z2': 0.0,
+            'switching_ratio': 0.5,
+            'mult_inc': 100.0,
+            'mult_dec': 100.0,
+        }
+        params = Params(params_dict, system, feedback=feedback)
+
+    elif preset_label == "TR1g":
+        # DYNAMICS PARAMETERS
+        system = "default"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
+        feedback = "constant"  # "constant", "hill", "step", "pwlinear", "tanh"
+        params_dict = {
+            'alpha_plus': 0.2,
+            'alpha_minus': 1.0,  # 0.5
+            'mu': 0.0001,  # 0.01
+            'mu_1': 0.0001,
+            'a': 1.0,
+            'b': 1.2,
+            'c': 1.1,  # 1.2
+            'N': 100.0,  # 100.0
+            'v_x': 0.0,
+            'v_y': 0.0,
+            'v_z': 0.0,
+            'mu_base': 0.0,
+            'c2': 0.0,
+            'v_z2': 0.0,
+            'switching_ratio': 0.5,
+            'mult_inc': 1.0,
+            'mult_dec': 1.0,
+        }
+        params = Params(params_dict, system, feedback=feedback)
+
+    elif preset_label == "TR100g":
+        # DYNAMICS PARAMETERS
+        system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
+        feedback = "tanh"  # "constant", "hill", "step", "pwlinear", "tanh"
+        params_dict = {
+            'alpha_plus': 0.2,
+            'alpha_minus': 1.0,  # 0.5
+            'mu': 0.0001,  # 0.01
+            'mu_1': 0.0001,
+            'a': 1.0,
+            'b': 1.2,
+            'c': 1.1,  # 1.2
+            'N': 100.0,  # 100.0
+            'v_x': 0.0,
+            'v_y': 0.0,
+            'v_z': 0.0,
+            'mu_base': 0.0,
+            'c2': 0.0,
+            'v_z2': 0.0,
+            'switching_ratio': 0.5,
+            'mult_inc': 100.0,
+            'mult_dec': 100.0,
         }
         params = Params(params_dict, system, feedback=feedback)
 

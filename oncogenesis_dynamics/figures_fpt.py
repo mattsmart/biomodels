@@ -313,7 +313,7 @@ if __name__ == "__main__":
     mfpt_composite = False
     mfpt_details = False
     mfpt_composite_TR = True
-    mfpt_composite_BL = False
+    mfpt_composite_BL = True
 
 
     basedir = "data"
@@ -330,6 +330,7 @@ if __name__ == "__main__":
         num_hists = len(keys)
         """
 
+        """
         title = "N100_xall"
         keys = ['BL_%s_g1' % title, 'BL_%s_g4' % title, 'BL_%s_g100' % title,
                 'TR_%s_g1' % title, 'TR_%s_g4' % title, 'TR_%s_g100' % title]
@@ -337,6 +338,14 @@ if __name__ == "__main__":
         labels = [r"$b=0.8$, $c=0.9$, $\gamma=1$", r"$b=0.8$, $c=0.9$, $\gamma=4$", r"$b=0.8$, $c=0.9$, $\gamma=100$",
                   r"$b=1.2$, $c=1.1$, $\gamma=1$", r"$b=1.2$, $c=1.1$, $\gamma=4$", r"$b=1.2$, $c=1.1$, $\gamma=100$",]
         corners = ['BL1g', 'BL4g', 'BL100g', 'TR1g', 'TR4g', 'TR100g']
+        num_hists = len(keys)
+        """
+
+        title = "N10k_xall"
+        keys = ['TR_%s_g1' % title]
+        # labels = ["b=0.80, c=1.10 (Region II)", "b=1.20, c=1.10 (Region III)", "b=0.80, c=0.90 (Region IV)", "b=1.20, c=0.90 (Region I)"]
+        labels = [r"$b=1.2$, $c=1.1$, $\gamma=1$"]
+        corners = ['TR1g']
         num_hists = len(keys)
 
     if multihist:
@@ -518,6 +527,19 @@ if __name__ == "__main__":
 
     if mfpt_composite_TR:
 
+        TR_curves_to_plot = [
+            'data', 'linalgZHATExpl', 'linalgALLZExpl', 'fpRouteFlux',
+            'guessBlobtimesExplicit',
+            'tauBintegral'
+            #'guessBoundaryProb3', 'guessBoundaryProb3Expl', 'guessBoundaryProb1', 'guessBoundaryProb1Expl',
+            #'guessBoundaryTimeMono1Expl', 'guessBoundaryTimeMono2Expl',
+            #'guessPfixTerm123', 'guessPfixTerm1',
+            #'linalgALLZExplAltAbsorb'
+            #'guessBoundaryProb3Expl', 'linalgALLZevalExpl', 'guessBoundaryTimeMono2Expl', 'fpFlux',
+            #'guessBoundaryTimeMono1NoDivExpl', 'guessBoundaryTimeMono2NoDivExpl',
+            #'guessBoundaryProb1NoDivExpl', 'guessBoundaryProb3NoDivExpl',
+        ]
+
         data_ids = ['TR1g', 'TR100g'] #'TR4g'
         data_ids_to_data = {'TR1g': 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g1',
                             #'TR4g': 'mfpt_Nvary_mu1e-4_TR_ens240_xall_g4',
@@ -571,59 +593,111 @@ if __name__ == "__main__":
                     assert key == 'TR100g'
                     gammaval = 100
 
-                if datakey == 'data':
+                if datakey == 'data' and datakey in TR_curves_to_plot:
                     ax.plot(x, y, '-', linewidth=0.0, marker='o', markeredgecolor='k', color=colours[idx],
                             label=r'$\gamma=%d$: data' % gammaval, zorder=15)
-                elif datakey == 'linalgALLZ':
-                    """
+
+                elif datakey == 'linalgALLZExpl' and datakey in TR_curves_to_plot:
                     if key == 'TR100g':
-                        x = x[0:7]
-                        y = y[0:7]
-                    ax.plot(x, y, '-.', marker='*', markeredgecolor='k', color=colours[idx],
-                            label=r'$\gamma=%d$: ME allz' % gammaval, zorder=3)
-                    """
-                    continue
-                elif datakey == 'linalgZHAT':
+                        x = x[0:6]
+                        y = y[0:6]
+                    ax.plot(x, y, ':', marker='^', markersize=4, markeredgecolor='k', markeredgewidth=0.5, color=colours[idx],
+                            label=r'$\gamma=%d$: $\langle\tau\rangle_{z=N}$' % gammaval, zorder=4)
+                elif datakey == 'linalgALLZevalExpl' and datakey in TR_curves_to_plot:
+                    if key == 'TR100g':
+                        x = x[0:8]
+                        y = y[0:8]
+                    if key == 'TR1g':
+                        x = x[0:4]
+                        y = y[0:4]
+                    ax.plot(x, y, '-.', marker='^', markeredgecolor='k', color=colours[idx],
+                            label=r'$\gamma=%d$: $\langle\tau\rangle_{z=N}$ to $z=N$; $\lambda_1$' % gammaval, zorder=3)
+                elif datakey == 'linalgZHATExpl' and datakey in TR_curves_to_plot:
+                    if key == 'TR100g':
+                        zmod = 2
+                    else:
+                        zmod = 3
                     ax.plot(x, y, '-', markeredgecolor='k', color=colours[idx],
-                            label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{1D}}$' % gammaval, zorder=3)
-                elif datakey == 'fpRouteFlux':
-                    """
-                    ax.plot(x[6:], y[6:], '--', marker=None, markeredgecolor='k', color=colours[idx],
-                            label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{P}}$' % gammaval, zorder=5-idx)
-                    """
-                    continue
-                elif datakey == 'fpFlux':
-                    continue
-                    #ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',#colours[idx],
-                    #        label=r'$\gamma=%d$: FP flux' % gammaval, zorder=3)
-                elif datakey == 'guessPfixTerm123':
-                    """
-                    ax.plot(x[:-3], y[:-3], '-.', marker=None, markeredgecolor='k', color=colours[idx],  # 'k'
+                            label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{1D}}$' % gammaval, zorder=zmod)
+                elif datakey == 'linalgALLZExplAltAbsorb' and datakey in TR_curves_to_plot:
+                    ax.plot(x[2:], y[2:], ':', marker='s', markersize=4, markeredgecolor='k', color=colours[idx],
+                            label=r'$\gamma=%d$: $\langle\tau\rangle_{z=z_1}$' % gammaval, zorder=5)
+
+                elif datakey == 'fpRouteFlux' and datakey in TR_curves_to_plot:
+                    if gammaval == 1:
+                        ax.plot(x[6:], y[6:], '--', marker=None, markeredgecolor='k', color=colours[idx],
+                                label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{P}}$' % gammaval, zorder=3)
+                    else:
+                        ax.plot(x[6:], y[6:], '--', marker=None, markeredgecolor='k', color=colours[idx],
+                                label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{P}}$' % gammaval, zorder=3)
+                elif datakey == 'fpFlux' and datakey in TR_curves_to_plot:
+                    if gammaval == 1:
+                        ax.plot(x[1:], y[1:], '--', marker=None, markeredgecolor='k', color=colours[idx],
+                                label=r'$\gamma=%d$: $(\mu z_0)^{-1} $' % gammaval, zorder=3)
+                    else:
+                        ax.plot(x[2:], y[2:], '--', marker=None, markeredgecolor='k', color=colours[idx],
+                                label=r'$\gamma=%d$: $(\mu z_0)^{-1} $' % gammaval, zorder=3)
+
+                elif datakey == 'guessPfixTerm123' and datakey in TR_curves_to_plot:
+                    ax.plot(x, y, '-.', marker=None, markeredgecolor='k', color=colours[idx],  # 'k'
                             label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{S}}$' % gammaval, zorder=5-idx)
-                    """
-                    continue
-                elif datakey == 'guessPfixTerm1':
-                    continue
-                    #ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='gray',  # colours[idx],
-                    #        label=r'$\gamma=%d$: pfix1' % gammaval, zorder=3)
-                elif datakey == 'guessBlobtimes' and key=='TR100g':
-                    #continue
-                    ax.plot(x[0:16], y[0:16], '--', marker='*', markeredgecolor='k', color=colours[idx],
+
+                elif datakey == 'guessPfixTerm1' and datakey in TR_curves_to_plot:
+                    ax.plot(x, y, '--', marker='^', markeredgecolor='k', color=colours[idx],
+                            label=r'$\gamma=%d$: pfix1' % gammaval, zorder=3)
+
+                elif datakey == 'guessBlobtimes' and key=='TR100g' and datakey in TR_curves_to_plot:
+                    ax.plot(x[0:16], y[0:16], '--', marker='*', markeredgecolor='k', markeredgewidth=0.5, color=colours[idx],
                             label=r'$\gamma=100$: $\langle\tau\rangle_{\mathrm{W}}$', zorder=3)
-                elif datakey == 'guessBlobtimesPosSvals' and key=='TR100g':
-                    continue
-                    #ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
-                    #        label=r'$\gamma=100$: blobtimes $s>0$', zorder=3)
-                elif datakey[0:len('guessBoundaryTime')] == 'guessBoundaryTime' and key=='TR100g':
-                    continue
-                    #ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='gray',  # colours[idx],
-                    #        label=r'$\gamma=100$: FPE boundary time %s' % datakey[-5:], zorder=3)
-                elif datakey[0:len('guessBoundaryProb')] == 'guessBoundaryProb' and key=='TR100g':
-                    print x, datakey
-                    cols = {'1': 'red', '2':'blue', '3':'black'}
-                    if datakey[-1] == '3':
-                        ax.plot(x, y, ':', marker=None, markeredgecolor='k', color=colours[idx],  # colours[idx],
-                                label=r'$\gamma=100$: $\langle\tau\rangle_{\mathrm{B}}$', zorder=3)
+                elif datakey == 'guessBlobtimesPosSvals' and key=='TR100g' and datakey in TR_curves_to_plot:
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color=colours[idx],
+                            label=r'$\gamma=100$: blobtimes $s>0$', zorder=3)
+                elif datakey == 'guessBlobtimesExplicit' and key=='TR100g' and datakey in TR_curves_to_plot:
+                    ax.plot(x[0:17], y[0:17], '--', marker='*', markeredgecolor='k', markeredgewidth=0.5, color=colours[idx],
+                            label=r'$\gamma=100$: $\langle\tau\rangle_{\mathrm{W}}$', zorder=3)
+
+                elif datakey == 'guessBoundaryTimeMono1Expl' and datakey in TR_curves_to_plot:
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
+                            label=r'$\gamma=%d$: FPE boundary time 1' % (gammaval), zorder=3)
+                elif datakey == 'guessBoundaryTimeMono2Expl' and datakey in TR_curves_to_plot:
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='gray',  # colours[idx],
+                            label=r'$\gamma=%d$: FPE boundary time 2' % gammaval, zorder=3)
+
+                elif datakey == 'guessBoundaryTimeMono1NoDivExpl' and datakey in TR_curves_to_plot:
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='red',  # colours[idx],
+                            label=r'$\gamma=%d$: FPE boundary time 1 NoDiv' % (gammaval), zorder=3)
+                elif datakey == 'guessBoundaryTimeMono2NoDivExpl' and datakey in TR_curves_to_plot:
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='red',  # colours[idx],
+                            label=r'$\gamma=%d$: FPE boundary time 2 NoDiv' % gammaval, zorder=3)
+
+                elif datakey == 'guessBoundaryProb1' and datakey in TR_curves_to_plot:
+                    ax.plot(x, y, ':', marker='p', markeredgecolor='k', color=colours[idx],  # colours[idx],
+                            label=r'$\gamma=100$: $\langle\tau\rangle_{\mathrm{B}}$ prob 1', zorder=3)
+                elif datakey == 'guessBoundaryProb3' and datakey in TR_curves_to_plot:
+                    ax.plot(x, y, ':', marker='p', markeredgecolor='k', color=colours[idx],  # colours[idx],
+                            label=r'$\gamma=100$: $\langle\tau\rangle_{\mathrm{B}}$ prob 3', zorder=3)
+
+                elif datakey == 'guessBoundaryProb1Expl' and datakey in TR_curves_to_plot:
+                    ax.plot(x, y, ':', marker='p', markeredgecolor='k', color='gray',  # colours[idx],
+                            label=r'$\gamma=100$: $\langle\tau\rangle_{\mathrm{B}}$ prob 1 Expl', zorder=3)
+                elif datakey == 'guessBoundaryProb3Expl' and datakey in TR_curves_to_plot:
+                    print "==================================", datakey, idx
+                    ax.plot(x, y, ':', marker='p', markeredgecolor='k', color='gray',  # colours[idx],
+                            label=r'$\gamma=100$: $\langle\tau\rangle_{\mathrm{B}}$ prob 3 Expl', zorder=3)
+
+                elif datakey == 'guessBoundaryProb1NoDivExpl' and datakey in TR_curves_to_plot:
+                    ax.plot(x, y, ':', marker='p', markeredgecolor='k', color='blue',  # colours[idx],
+                            label=r'$\gamma=100$: $\langle\tau\rangle_{\mathrm{B}}$ prob 1 NoDiv Expl', zorder=3)
+                elif datakey == 'guessBoundaryProb3NoDivExpl' and datakey in TR_curves_to_plot:
+                    print "==================================", datakey, idx
+                    ax.plot(x, y, ':', marker='p', markeredgecolor='k', color='blue',  # colours[idx],
+                            label=r'$\gamma=100$: $\langle\tau\rangle_{\mathrm{B}}$ prob 3 NoDiv Expl', zorder=3)
+
+                elif datakey == 'tauBintegral' and datakey in TR_curves_to_plot:
+                    print 'd', key, y
+                    ax.plot(x, y, '--', marker='s', markeredgecolor='k', color='r',  # colours[idx],
+                            label=r'%s: $\tau_B$ integral' % key, zorder=3)
+
                 else:
                     print 'skipping', datakey
 
@@ -640,18 +714,31 @@ if __name__ == "__main__":
             # ax.set_xscale("log", nonposx='clip')
             ax.set_xscale("log")
             # ax_dual.set_xscale("log", nonposx='clip')
-            ax.set_xlim([np.min(param_set) * 0.9, 1.5 * 1e4]) #ax.set_xlim([np.min(param_set) * 0.9, 1.5 * 1e6])
+
+            ax.set_xlim([np.min(param_set) * 0.9, 1.5 * 1e6])
+            #ax.set_xlim([np.min(param_set) * 0.9, 1.5 * 1e4])
+
         if flag_ylog10:
             # ax.set_yscale("log", nonposx='clip')
             ax.set_yscale("log")
             # ax_dual.set_yscale("log", nonposx='clip')
             #ax.set_ylim([6 * 1e-1, 3 * 1e6])
-            #ax.set_ylim([0.8*1e1, 2 * 1e5])
-            ax.set_ylim([0.8 * 1e2, 2 * 1e5])
+
+            ax.set_ylim([0.8 * 1e1, 2 * 1e5])
+            #ax.set_ylim([0.8 * 1e2, 2 * 1e5])
+
+
         #plt.show()
         plt.savefig(basedir + os.sep + 'mfpt_TR_heuristics.pdf')
 
     if mfpt_composite_BL:
+
+        BL_curves_to_plot = [
+            'data', 'linalgZHATExpl', 'linalgALLZExpl', 'fpRouteFlux',
+            # 'guessBoundaryProb3Expl', linalgALLZevalExpl, 'guessBoundaryTimeMono2Expl', 'fpFlux'
+            'guessBoundaryTimeMono2Explrev', 'guessBoundaryProb3Explrev',
+            'tauBintegral'
+        ]
 
         data_ids = ['BL1g', 'BL100g'] #'TR4g'
         data_ids_to_data = {'BL1g': 'mfpt_Nvary_mu1e-4_BL_ens240_xall_g1',
@@ -696,66 +783,112 @@ if __name__ == "__main__":
                     assert key == 'BL100g'
                     gammaval = 100
 
-                if datakey == 'data':
+                if datakey == 'data' and datakey in BL_curves_to_plot:
                     ax.plot(x, y, '-', linewidth=0.0, marker='o', markeredgecolor='k', color=colours[idx],
                             label=r'$\gamma=%d$: data' % gammaval, zorder=3)
-                elif datakey == 'linalgALLZ':
+
+                elif datakey == 'linalgALLZExpl' and datakey in BL_curves_to_plot:
+                    if key == 'BL100g':
+                        x = x[0:6]
+                        y = y[0:6]
+                    if key == 'BL1g':
+                        x = x[0:3]
+                        y = y[0:3]
+                    #ax.plot(x, y, ':', marker=None, markeredgecolor='k', color=colours[idx],
+                    #        label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{B}}$' % gammaval, zorder=3)
+
+                    ax.plot(x, y, ':', marker='^', markersize=4, markeredgecolor='k', markeredgewidth=0.5, color=colours[idx],
+                            label=r'$\gamma=%d$: $\langle\tau\rangle_{z=N}$' % gammaval, zorder=3)
+
+                elif datakey == 'linalgALLZevalExpl' and datakey in BL_curves_to_plot:
                     if key == 'BL100g':
                         x = x[0:8]
                         y = y[0:8]
                     if key == 'BL1g':
                         x = x[0:4]
                         y = y[0:4]
-                    #ax.plot(x, y, '-.', marker='*', markeredgecolor='k', color=colours[idx],
-                    #        label=r'$\gamma=%d$: ME allz' % gammaval, zorder=3)
-                    continue
-                elif datakey == 'linalgZHAT':
+                    ax.plot(x, y, '-.', marker='^', markeredgecolor='k', color=colours[idx],
+                            label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{B}}$ to $z=N$; $\lambda_1$' % gammaval, zorder=3)
+                elif datakey == 'linalgZHATExpl' and datakey in BL_curves_to_plot:
                     ax.plot(x, y, '-', markeredgecolor='k', color=colours[idx],
-                            label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{1D}}$' % gammaval, zorder=3)
-                elif datakey == 'fpRouteFlux':
+                            label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{1D}}$' % gammaval, zorder=1)
+
+                elif datakey == 'fpRouteFlux' and datakey in BL_curves_to_plot:
                     if gammaval == 1:
                         ax.plot(x[1:], y[1:], '--', marker=None, markeredgecolor='k', color=colours[idx],
-                                label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{P}}$' % gammaval, zorder=3)
+                                label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{P}}$' % gammaval, zorder=1)
                     else:
                         ax.plot(x[4:], y[4:], '--', marker=None, markeredgecolor='k', color=colours[idx],
-                                label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{P}}$' % gammaval, zorder=3)
-                elif datakey == 'fpFlux':
-                    #ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',#colours[idx],
-                    #        label=r'$\gamma=%d$: FP flux' % gammaval, zorder=3)
-                    continue
-                elif datakey == 'guessBoundaryProb1' and key != 'BL1g':
-                    #ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
-                    #        label=r'$\gamma=%d$: BP1' % gammaval, zorder=3)
-                    continue
-                elif datakey == 'guessBoundaryProb2':
-                    #ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
-                    #        label=r'$\gamma=%d$: BP2' % gammaval, zorder=3)
-                    continue
-                elif datakey == 'guessBoundaryProb3':
+                                label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{P}}$' % gammaval, zorder=1)
+                elif datakey == 'fpFlux' and datakey in BL_curves_to_plot:
+                    if gammaval == 1:
+                        ax.plot(x[1:], y[1:], '--', marker=None, markeredgecolor='k', color=colours[idx],
+                                label=r'$\gamma=%d$: $(\mu z_0)^{-1} $' % gammaval, zorder=3)
+                    else:
+                        ax.plot(x[4:], y[4:], '--', marker=None, markeredgecolor='k', color=colours[idx],
+                                label=r'$\gamma=%d$: $(\mu z_0)^{-1} $' % gammaval, zorder=3)
+
+                elif datakey == 'guessBoundaryProb1' and key != 'BL1g' and datakey in BL_curves_to_plot:
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
+                            label=r'$\gamma=%d$: BP1' % gammaval, zorder=3)
+                elif datakey == 'guessBoundaryProb2' and datakey in BL_curves_to_plot:
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
+                            label=r'$\gamma=%d$: BP2' % gammaval, zorder=3)
+                elif datakey == 'guessBoundaryProb3' and datakey in BL_curves_to_plot:
                     if gammaval == 1:
                         ax.plot(x[0:3], y[0:3], ':', marker=None, markeredgecolor='k', color=colours[idx],  # colours[idx],
                                 label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{B}}$' % (gammaval), zorder=3)
                     else:
                         ax.plot(x[0:6], y[0:6], ':', marker=None, markeredgecolor='k', color=colours[idx],
                                 label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{B}}$' % (gammaval), zorder=3)
-                """
-                elif datakey == 'guessBoundaryTimeDual1':
-                    print 'a', key, y
+
+                elif datakey == 'guessBoundaryProb1Expl' and key != 'BL1g' and datakey in BL_curves_to_plot:
                     ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
-                            label=r'%s: BTD1' % key, zorder=3)
-                elif datakey == 'guessBoundaryTimeDual2':
-                    print 'b', key, y
+                            label=r'$\gamma=%d$: BP1' % gammaval, zorder=3)
+                elif datakey == 'guessBoundaryProb2Expl' and datakey in BL_curves_to_plot:
                     ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
-                            label=r'%s: BTD2' % key, zorder=3)
-                elif datakey == 'guessBoundaryTimeMono1':
+                            label=r'$\gamma=%d$: BP2' % gammaval, zorder=3)
+                elif datakey == 'guessBoundaryProb3Explrev' and datakey in BL_curves_to_plot:
+                    if gammaval == 1:
+                        ax.plot(x[0:3], y[0:3], ':', marker='s', markeredgecolor='k', color=colours[idx],  # colours[idx],
+                                label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{B}}$ heuristic' % (gammaval), zorder=3)
+                    else:
+                        ax.plot(x[0:6], y[0:6], ':', marker='s', markeredgecolor='k', color=colours[idx],
+                                label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{B}}$ heuristic' % (gammaval), zorder=3)
+                elif datakey == 'guessBoundaryTimeMono1' and datakey in BL_curves_to_plot:
                     print 'c', key, y
                     ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
-                            label=r'%s: BTM1' % key, zorder=3)
-                elif datakey == 'guessBoundaryTimeMono2':
+                            label=r'$\gamma=%d$: BTM1' % (gammaval), zorder=3)
+                elif datakey == 'guessBoundaryTimeMono2' and datakey in BL_curves_to_plot:
+                    print 'c', key, y
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='gray',  # colours[idx],
+                            label=r'$\gamma=%d$: BTM2' % gammaval, zorder=3)
+                elif datakey == 'guessBoundaryTimeMono1Expl' and datakey in BL_curves_to_plot:
+                    print 'c', key, y
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
+                            label=r'$\gamma=%d$: BTM1 explicit' % gammaval, zorder=3)
+                elif datakey == 'guessBoundaryTimeMono2Explrev' and datakey in BL_curves_to_plot:
+                    print 'c', key, y
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='gray',
+                            label=r'$\gamma=%d$: $\langle\tau\rangle_{\mathrm{B}}$ proxy - FPE MFPT to $z=N$' % gammaval, zorder=3)
+                elif datakey == 'guessBlobtimes1' and datakey in BL_curves_to_plot:
+                    print 'd', key, y
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='b',  # colours[idx],
+                            label=r'%s: W1' % key, zorder=3)
+                elif datakey == 'guessBlobtimes2' and datakey in BL_curves_to_plot:
                     print 'd', key, y
                     ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='k',  # colours[idx],
-                            label=r'%s: BTM2' % key, zorder=3)
-                """
+                            label=r'%s: W2' % key, zorder=3)
+                elif datakey == 'guessBlobtimes3' and datakey in BL_curves_to_plot:
+                    print 'd', key, y
+                    ax.plot(x, y, '--', marker=None, markeredgecolor='k', color='r',  # colours[idx],
+                            label=r'%s: W3' % key, zorder=3)
+
+                elif datakey == 'tauBintegral' and datakey in BL_curves_to_plot:
+                    print 'd', key, y
+                    ax.plot(x, y, '--', marker='s', markeredgecolor='k', color='r',  # colours[idx],
+                            label=r'%s: $\tau_B$ integral' % key, zorder=3)
+
 
         ax.set_xlabel(r'$N$', fontsize=fs)
         ax.set_ylabel(r'$\langle\tau\rangle$', fontsize=fs)

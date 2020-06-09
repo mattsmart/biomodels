@@ -280,7 +280,7 @@ def simplex_heatmap(fp_times, fp_states, params, ax=None, fp=True, streamlines=T
 
     # plot points
     if colour:
-        paths = ax.scatter(conv_x, conv_y, c=fp_times, marker='o', s=3, alpha=0.4, zorder=3)  # TODO colour or size change for fp_times
+        paths = ax.scatter(conv_x, conv_y, c=fp_times, marker='o', s=16, alpha=0.4, zorder=3)  # TODO colour or size change for fp_times
         # LEFT
         #cbaxes = fig.add_axes([0.1, 0.1, 0.03, 0.8])
         #plt.colorbar(cax=cbaxes, pad=-0.1)
@@ -288,7 +288,7 @@ def simplex_heatmap(fp_times, fp_states, params, ax=None, fp=True, streamlines=T
         if cbar:
             plt.colorbar(paths, pad=0.18)
     else:
-        ax.scatter(conv_x, conv_y, c='RosyBrown', marker='o', s=3, alpha=0.7, zorder=3)
+        ax.scatter(conv_x, conv_y, c='RosyBrown', marker='o', s=16, alpha=0.7, zorder=3)
 
     # save
     if save:
