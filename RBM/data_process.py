@@ -19,6 +19,7 @@ noise 'symmetric': the noise for each pattern basin is symmetric
 sampling 'balanced': 50% of samples drawn from each pattern basin (for 2 patterns) 
 """
 
+
 def data_mnist():
     # data structure: list of ~60,000 2-tuples: "image" and integer label
     training = torchvision.datasets.MNIST(root=DIR_DATA, train=True, transform=torchvision.transforms.ToTensor(), download=True)
@@ -27,7 +28,7 @@ def data_mnist():
     return training, testing
 
 
-def data_synthetic_dual(num_samples=SYNTHETIC_SAMPLES, noise='symmetric', sampling='balanced'):
+def data_synthetic_dual(num_samples=SYNTHETIC_SAMPLES, noise='symmetric', sampling='balanced', datasplit='balanced'):
     # 1. specify patterns
     assert SYNTHETIC_DIM == 8  # TODO alternative even integers? maybe very large is better (like images)?
     pattern_A = np.array([1, 1, 1, 1, -1, -1, -1, -1], dtype=int)  # label 0
@@ -43,25 +44,25 @@ def data_synthetic_dual(num_samples=SYNTHETIC_SAMPLES, noise='symmetric', sampli
         assert num_samples % 2 == 0
         labels_per_pattern = int(num_samples/2)
         for idx in range(labels_per_pattern):
-            pattern_A_sample = # TODO
+            pattern_A_sample = None  # TODO
             data_array[:, idx] = pattern_A_sample
             data_labels[idx] = 0
 
             pattern_B_sample_idx = labels_per_pattern
-            pattern_B_sample = # TODO
+            pattern_B_sample = None  # TODO
             data_array[:, pattern_B_sample_idx] = pattern_B_sample
             data_labels[pattern_B_sample_idx] = 1
-    else:
-        assert noise in SYNTHETIC_NOISE_VALID
+    else: assert noise in SYNTHETIC_NOISE_VALID
 
     # 3. save the data
     # TODO save to DIR_DATA subfolder (diff for each noise/size case?)
 
     # 4. split into training and testing (symmetrically or not?)
-    # TODO
-
-    training = ...
-    testing = ...
+    if datasplit == 'balanced':
+        # TODO
+        training = None
+        testing = None
+    else: assert datasplit in SYNTHETIC_DATASPLIT
 
     return training, testing
 
