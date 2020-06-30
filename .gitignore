@@ -45,3 +45,4 @@ celltypes/venv/
 celltypes/gpu/\.ipynb_checkpoints/
 transcriptome_clustering/output/
 oncogenesis_dynamics/figures/
+RBM/data/MNIST/
