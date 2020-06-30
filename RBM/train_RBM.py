@@ -15,12 +15,3 @@ if __name__ == '__main__':
     data_loader = torch.utils.data.DataLoader(mnist_training, batch_size=BATCH_SIZE, shuffle=True, num_workers=CPU_THREADS)
 
     print('TODO')
-    print(len(mnist_training), len(mnist_testing))
-    print(type(mnist_training[0]), len(mnist_training[0]))
-    print(type(mnist_training[0][0]), type(mnist_training[0][1]))
-    print(mnist_training[0][0].shape)
-    print(mnist_training[0][0].numpy()[0].shape)
-
-    plt.imshow(mnist_training[0][0].numpy()[0])
-    plt.colorbar()
-    plt.show()
