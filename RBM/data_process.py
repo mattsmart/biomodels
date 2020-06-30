@@ -1,17 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import torch
 import torchvision
+from settings import DIR_DATA, DIR_MODELS, SYNTHETIC_DIM, SYNTHETIC_SAMPLES, SYNTHETIC_NOISE_VALID, \
+    SYNTHETIC_SAMPLING_VALID, SYNTHETIC_DATASPLIT
 
-DIR_DATA = 'data'
-CPU_THREADS = 8
-BATCH_SIZE = 4
-
-SYNTHETIC_DIM = 8
-SYNTHETIC_SAMPLES = 10000
-SYNTHETIC_NOISE_VALID = ['symmetric']
-SYNTHETIC_SAMPLING_VALID = ['balanced']
-SYNTHETIC_DATASPLIT = ['balanced']
 
 """
 noise 'symmetric': the noise for each pattern basin is symmetric
@@ -25,6 +17,7 @@ def data_mnist():
     training = torchvision.datasets.MNIST(root=DIR_DATA, train=True, transform=torchvision.transforms.ToTensor(), download=True)
     testing = torchvision.datasets.MNIST(root=DIR_DATA, train=False, transform=torchvision.transforms.ToTensor(), download=True)
     #data_loader = torch.utils.data.DataLoader(training, batch_size=BATCH_SIZE, shuffle=True, num_workers=CPU_THREADS)  # TODO read
+    # TODO binarize?
     return training, testing
 
 
