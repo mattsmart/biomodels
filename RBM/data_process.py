@@ -2,8 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torchvision
 from settings import DIR_DATA, DIR_MODELS, SYNTHETIC_DIM, SYNTHETIC_SAMPLES, SYNTHETIC_NOISE_VALID, \
-    SYNTHETIC_SAMPLING_VALID, SYNTHETIC_DATASPLIT
-
+    SYNTHETIC_SAMPLING_VALID, SYNTHETIC_DATASPLIT, MNIST_BINARIZATION_CUTOFF
 
 """
 noise 'symmetric': the noise for each pattern basin is symmetric
@@ -12,13 +11,90 @@ sampling 'balanced': 50% of samples drawn from each pattern basin (for 2 pattern
 """
 
 
-def data_mnist():
+def binarize_image_data(numpy_obj, threshold=MNIST_BINARIZATION_CUTOFF):
+    numpy_obj[numpy_obj <= threshold] = 0
+    numpy_obj[numpy_obj > 0] = 1  # now 0, 1
+    numpy_obj.astype(int)
+    numpy_obj = 2 * numpy_obj - 1  # +1, -1 convention
+    return numpy_obj
+
+
+def torch_image_to_numpy(torch_tensor, binarize=False):
+    numpy_obj = torch_tensor.numpy()[0]
+    if binarize:
+        numpy_obj = binarize_image_data(numpy_obj)
+    return numpy_obj
+
+
+def data_mnist(binarize=False):
     # data structure: list of ~60,000 2-tuples: "image" and integer label
     training = torchvision.datasets.MNIST(root=DIR_DATA, train=True, transform=torchvision.transforms.ToTensor(), download=True)
     testing = torchvision.datasets.MNIST(root=DIR_DATA, train=False, transform=torchvision.transforms.ToTensor(), download=True)
     #data_loader = torch.utils.data.DataLoader(training, batch_size=BATCH_SIZE, shuffle=True, num_workers=CPU_THREADS)  # TODO read
-    # TODO binarize?
+
+    print("Processing MNIST data: numpy_binarize =", binarize)
+    training = [(torch_image_to_numpy(elem[0], binarize=binarize), elem[1]) for elem in training]
+    testing = [(torch_image_to_numpy(elem[0], binarize=binarize), elem[1]) for elem in testing]
+
     return training, testing
+
+
+def image_data_collapse(data):
+    if len(data.shape) == 3:
+        return data.reshape(-1, data.shape[-1])
+    else:
+        assert len(data.shape) == 2
+        return data.flatten()
+
+
+def samples_per_category(data):
+    category_counts = {}
+    for pair in data:
+        if pair[1] in category_counts.keys():
+            category_counts[pair[1]] += 1
+        else:
+            category_counts[pair[1]] = 1
+    return category_counts
+
+
+def data_dict_mnist(data):
+    data_dimension = data[0][0].shape
+    category_counts = samples_per_category(data)
+    print("category_counts:\n", category_counts)
+    print("Generating MNIST data dict")
+    label_counter = {idx: 0 for idx in range(10)}
+    data_dict = {idx: np.zeros((data_dimension[0], data_dimension[1], category_counts[idx])) for idx in range(10)}
+    for pair in data:
+        label = pair[1]
+        category_idx = label_counter[label]
+        label_counter[label] += 1
+        category_array = data_dict[label]
+        category_array[:, :, category_idx] = pair[0][:,:]
+    return data_dict, category_counts
+
+
+def hopfield_mnist_patterns(data_dict, category_counts, pattern_threshold=MNIST_BINARIZATION_CUTOFF):
+    """
+    data: list of tuples (numpy array, labe;)
+    pattern_threshold: threshold for setting value to 1 in the category-specific voting for pixel values
+    Returns:
+        xi: N x P binary pattern matrix
+    """
+    data_dimension = data_dict[0].shape[:2]
+    print("Forming the 10 MNIST patterns")
+    xi_images = np.zeros((*data_dimension, 10), dtype=int)
+    for idx in range(10):
+        samples = data_dict[idx]
+        samples_avg = np.sum(samples, axis=2) / category_counts[idx]
+        """plt.imshow(samples_avg)
+        plt.colorbar()
+        plt.show()"""
+        samples_avg[samples_avg <= pattern_threshold] = -1
+        samples_avg[samples_avg > 0] = 1
+        xi_images[:, :, idx] = samples_avg
+    xi_collapsed = image_data_collapse(xi_images)
+    print("xi_collapsed.shape", xi_collapsed.shape)
+    return xi_images, xi_collapsed
 
 
 def data_synthetic_dual(num_samples=SYNTHETIC_SAMPLES, noise='symmetric', sampling='balanced', datasplit='balanced'):
@@ -61,13 +137,28 @@ def data_synthetic_dual(num_samples=SYNTHETIC_SAMPLES, noise='symmetric', sampli
 
 
 if __name__ == '__main__':
+    # get data
     mnist_training, mnist_testing = data_mnist()
-    print(len(mnist_training), len(mnist_testing))
-    print(type(mnist_training[0]), len(mnist_training[0]))
-    print(type(mnist_training[0][0]), type(mnist_training[0][1]))
-    print(mnist_training[0][0].shape)
-    print(mnist_training[0][0].numpy()[0].shape)
+    # partition data
+    data_dict, category_counts = data_dict_mnist(mnist_training)
 
-    plt.imshow(mnist_training[0][0].numpy()[0])
-    plt.colorbar()
-    plt.show()
+    simple_pattern_vis = False
+    if simple_pattern_vis:
+        print("Plot hopfield patterns from 'voting'")
+        xi_mnist, _ = hopfield_mnist_patterns(data_dict, category_counts, pattern_threshold=0.5)
+        for idx in range(10):
+            plt.imshow(xi_mnist[:, :, idx])
+            plt.colorbar()
+            plt.show()
+    else:
+        thresholds = [0.3, 0.4, 0.5, 0.6]
+        print("Grid of pattern subplots for varying threshold param", thresholds)
+        fig, ax_arr = plt.subplots(4, 10)
+        for p, param in enumerate(thresholds):
+            xi_mnist, _ = hopfield_mnist_patterns(data_dict, category_counts, pattern_threshold=param)
+            for idx in range(10):
+                ax_arr[p, idx].imshow(xi_mnist[:, :, idx])
+                ax_arr[p, idx].set_xticklabels([])
+                ax_arr[p, idx].set_yticklabels([])
+        plt.suptitle('Top to bottom thresholds: %s' % thresholds)
+        plt.show()
