@@ -13,7 +13,15 @@ SYNTHETIC_DATASPLIT = ['balanced']
 DATA_CHOICE = 'mnist'
 
 # HYPERPARAMETERS
-# For threshold 0.4
+# For threshold 0.4 (no pre-binarizing)
 #   2.0 -> 65.5%, 5.0 -> 68.6%, 20.0 -> 67.5%, 200.0 -> 65.6%
-MNIST_BINARIZATION_CUTOFF = 0.4
+# Best accuracies so far:
+#    71% for ON threshold 0.3, pattern threshold 0.0, and beta 5.0
+#    72% for ON threshold 0.2, pattern threshold 0.0, and beta 5.0
+#    74% for ON threshold 0.1, pattern threshold 0.0, and beta 5.0
+#    74.4% for ON threshold 0.05, pattern threshold 0.0, and beta 5.0
+#    74.9% for ON threshold 0.02, pattern threshold 0.0, and beta 5.0
+#    75% for ON threshold 0.01, pattern threshold 0.0, and beta 5.0
+MNIST_BINARIZATION_CUTOFF = 0.001
+PATTERN_THRESHOLD = 0
 BETA = 5.0

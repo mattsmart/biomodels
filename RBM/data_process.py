@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torchvision
 from settings import DIR_DATA, DIR_MODELS, SYNTHETIC_DIM, SYNTHETIC_SAMPLES, SYNTHETIC_NOISE_VALID, \
-    SYNTHETIC_SAMPLING_VALID, SYNTHETIC_DATASPLIT, MNIST_BINARIZATION_CUTOFF
+    SYNTHETIC_SAMPLING_VALID, SYNTHETIC_DATASPLIT, MNIST_BINARIZATION_CUTOFF, PATTERN_THRESHOLD
 
 """
 noise 'symmetric': the noise for each pattern basin is symmetric
@@ -73,7 +73,7 @@ def data_dict_mnist(data):
     return data_dict, category_counts
 
 
-def hopfield_mnist_patterns(data_dict, category_counts, pattern_threshold=MNIST_BINARIZATION_CUTOFF):
+def hopfield_mnist_patterns(data_dict, category_counts, pattern_threshold=PATTERN_THRESHOLD):
     """
     data: list of tuples (numpy array, labe;)
     pattern_threshold: threshold for setting value to 1 in the category-specific voting for pixel values
@@ -81,25 +81,17 @@ def hopfield_mnist_patterns(data_dict, category_counts, pattern_threshold=MNIST_
         xi: N x P binary pattern matrix
     """
     data_dimension = data_dict[0].shape[:2]
-
     # testing additional pre-binarization step
-    """
     for i in range(10):
         for j in range(category_counts[i]):
-            data_dict[i][:, :, j] = binarize_image_data(data_dict[i][:, :, j], threshold=0.2)
-    pattern_threshold = pattern_threshold * 2 - 1
-    """
-
+            data_dict[i][:, :, j] = binarize_image_data(data_dict[i][:, :, j], threshold=MNIST_BINARIZATION_CUTOFF)
     print("Forming the 10 MNIST patterns")
     xi_images = np.zeros((*data_dimension, 10), dtype=int)
     for idx in range(10):
         samples = data_dict[idx]
         samples_avg = np.sum(samples, axis=2) / category_counts[idx]
-        """plt.imshow(samples_avg)
-        plt.colorbar()
-        plt.show()"""
-        samples_avg[samples_avg <= pattern_threshold] = -1
-        samples_avg[samples_avg > 0] = 1
+        samples_avg[samples_avg <= pattern_threshold] = -1  # samples_avg[samples_avg <= pattern_threshold] = -1
+        samples_avg[samples_avg > pattern_threshold] = 1
         xi_images[:, :, idx] = samples_avg
     xi_collapsed = image_data_collapse(xi_images)
     print("xi_collapsed.shape", xi_collapsed.shape)
@@ -160,13 +152,18 @@ if __name__ == '__main__':
             plt.colorbar()
             plt.show()
     else:
-        thresholds = [0.34, 0.37, 0.4, 0.43, 0.46]  # [0.3, 0.4, 0.5, 0.6]
+        thresholds = [-0.3, -0.2, -0.1, 0.0, 0.1]
         print("Grid of pattern subplots for varying threshold param", thresholds)
         fig, ax_arr = plt.subplots(len(thresholds), 10)
         for p, param in enumerate(thresholds):
             xi_mnist, _ = hopfield_mnist_patterns(data_dict, category_counts, pattern_threshold=param)
+            xi_mnist = xi_mnist.astype(int)
             for idx in range(10):
-                ax_arr[p, idx].imshow(xi_mnist[:, :, idx])
+                ax_arr[p, idx].imshow(xi_mnist[:, :, idx], cmap='gray', interpolation='none')
+                for i in range(28):
+                    for j in range(28):
+                        if xi_mnist[i, j, idx] not in [-1,1]:
+                            print(xi_mnist[i, j, idx])
                 ax_arr[p, idx].set_xticklabels([])
                 ax_arr[p, idx].set_yticklabels([])
         plt.suptitle('Top to bottom thresholds: %s' % thresholds)

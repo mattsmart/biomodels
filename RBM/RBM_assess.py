@@ -4,6 +4,7 @@ import torch
 import torchvision
 from data_process import image_data_collapse, torch_image_to_numpy, binarize_image_data
 from RBM_train import RBM, TRAINING, TESTING, build_rbm_hopfield
+from settings import MNIST_BINARIZATION_CUTOFF
 
 
 # TODO
@@ -93,7 +94,7 @@ if __name__ == '__main__':
     true_labels = [str(pair[1]) for pair in DATASET]
     for idx, pair in enumerate(DATASET):
         elem_arr, elem_label = pair
-        preprocessed_input = binarize_image_data(image_data_collapse(elem_arr))
+        preprocessed_input = binarize_image_data(image_data_collapse(elem_arr), threshold=MNIST_BINARIZATION_CUTOFF)
         predictions[idx] = classify_MNIST(rbm_hopfield, preprocessed_input)
         #print(true_labels[idx], predictions[idx])
         if true_labels[idx] == predictions[idx]:

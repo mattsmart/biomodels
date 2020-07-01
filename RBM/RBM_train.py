@@ -3,7 +3,7 @@ import numpy as np
 from scipy.linalg import qr
 import torch
 from data_process import data_mnist, data_synthetic_dual, hopfield_mnist_patterns, data_dict_mnist
-from settings import DIR_DATA, DIR_MODELS, CPU_THREADS, DATA_CHOICE, SYNTHETIC_DIM, MNIST_BINARIZATION_CUTOFF, BETA
+from settings import DIR_DATA, DIR_MODELS, CPU_THREADS, DATA_CHOICE, SYNTHETIC_DIM, MNIST_BINARIZATION_CUTOFF, BETA, PATTERN_THRESHOLD
 
 
 assert DATA_CHOICE in ['synthetic', 'mnist']
@@ -102,7 +102,7 @@ class RBM:
 
 
 def linalg_hopfield_patterns(data_dict, category_counts):
-    xi, xi_collapsed = hopfield_mnist_patterns(data_dict, category_counts, pattern_threshold=MNIST_BINARIZATION_CUTOFF)
+    xi, xi_collapsed = hopfield_mnist_patterns(data_dict, category_counts, pattern_threshold=PATTERN_THRESHOLD)
     Q, R = qr(xi_collapsed, mode='economic')
     print("Q.shape", Q.shape)
     print("R.shape", R.shape)
