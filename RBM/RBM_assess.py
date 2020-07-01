@@ -37,9 +37,11 @@ def classify_MNIST(rbm, visual_init):
 
     for idx in range(NUM_STEPS_CLASSIFY):
         visual_step, hidden_step, output_step = rbm.RBM_step(visual_step)
+        output_truncated = rbm.truncate_output(output_step)
         print("visual at step", idx, "is", visual_step)
         print("hidden at step", idx, "is", hidden_step)
         print("output at step", idx, "is", output_step)
+        print("output_truncated at step", idx, "is", output_truncated)
 
     classification = conv_class_vector_to_label(output_step)
     return classification
