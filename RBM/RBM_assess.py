@@ -86,7 +86,7 @@ if __name__ == '__main__':
     # TODO
 
     # ROUGH WORK fir hopfield RBM only
-    DATASET = TESTING #TESTING
+    DATASET = TESTING  # TESTING or TRAINING
     confusion_matrix = np.zeros((10, 11), dtype=int)  # last column is "unclassified"
     rbm_hopfield = build_rbm_hopfield()
     matches = [False for _ in DATASET]

@@ -22,6 +22,8 @@ DATA_CHOICE = 'mnist'
 #    74.4% for ON threshold 0.05, pattern threshold 0.0, and beta 5.0
 #    74.9% for ON threshold 0.02, pattern threshold 0.0, and beta 5.0
 #    75% for ON threshold 0.01, pattern threshold 0.0, and beta 5.0
-MNIST_BINARIZATION_CUTOFF = 0.001
-PATTERN_THRESHOLD = 0
-BETA = 5.0
+#    75% for ON threshold 0.001, pattern threshold 0.1, and beta 5.0
+#    75% for ON threshold 0.01, pattern threshold 0.0, and beta 8.0 <---- main
+MNIST_BINARIZATION_CUTOFF = 0.01
+PATTERN_THRESHOLD = 0.0
+BETA = 8.0
