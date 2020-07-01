@@ -159,7 +159,7 @@ if __name__ == '__main__':
             xi_mnist, _ = hopfield_mnist_patterns(data_dict, category_counts, pattern_threshold=param)
             xi_mnist = xi_mnist.astype(int)
             for idx in range(10):
-                ax_arr[p, idx].imshow(xi_mnist[:, :, idx], cmap='gray', interpolation='none')
+                ax_arr[p, idx].imshow(xi_mnist[:, :, idx], interpolation='none')
                 for i in range(28):
                     for j in range(28):
                         if xi_mnist[i, j, idx] not in [-1,1]:
