@@ -81,6 +81,15 @@ def hopfield_mnist_patterns(data_dict, category_counts, pattern_threshold=MNIST_
         xi: N x P binary pattern matrix
     """
     data_dimension = data_dict[0].shape[:2]
+
+    # testing additional pre-binarization step
+    """
+    for i in range(10):
+        for j in range(category_counts[i]):
+            data_dict[i][:, :, j] = binarize_image_data(data_dict[i][:, :, j], threshold=0.2)
+    pattern_threshold = pattern_threshold * 2 - 1
+    """
+
     print("Forming the 10 MNIST patterns")
     xi_images = np.zeros((*data_dimension, 10), dtype=int)
     for idx in range(10):
@@ -151,9 +160,9 @@ if __name__ == '__main__':
             plt.colorbar()
             plt.show()
     else:
-        thresholds = [0.3, 0.4, 0.5, 0.6]
+        thresholds = [0.34, 0.37, 0.4, 0.43, 0.46]  # [0.3, 0.4, 0.5, 0.6]
         print("Grid of pattern subplots for varying threshold param", thresholds)
-        fig, ax_arr = plt.subplots(4, 10)
+        fig, ax_arr = plt.subplots(len(thresholds), 10)
         for p, param in enumerate(thresholds):
             xi_mnist, _ = hopfield_mnist_patterns(data_dict, category_counts, pattern_threshold=param)
             for idx in range(10):

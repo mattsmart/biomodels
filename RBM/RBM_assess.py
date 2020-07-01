@@ -40,14 +40,34 @@ def classify_MNIST(rbm, visual_init):
         output_truncated = rbm.truncate_output(output_step)
         classified, classification = conv_class_vector_to_label(output_truncated)
         if classified:
-            print("classified at step:", idx)
+            #print("classified at step:", idx)
             break
         #print("visual at step", idx, "is", visual_step)
         #print("hidden at step", idx, "is", hidden_step)
         #print("output at step", idx, "is", output_step)
         #print("output_truncated at step", idx, "is", output_truncated)
+    if idx == MAX_STEPS_CLASSIFY - 1:
+        print("******************** Edge case unclassified")
+        print("\t classification:", classification)
 
     return classification
+
+
+def plot_confusion_matrix(confusion_matrix):
+    # Ref: https://stackoverflow.com/questions/35572000/how-can-i-plot-a-confusion-matrix
+    import seaborn as sn
+    import pandas as pd
+
+    ylabels = [str(i) for i in range(10)]
+    xlabels = ylabels + ['Other']
+    df_cm = pd.DataFrame(confusion_matrix, index=ylabels, columns=xlabels)
+
+    plt.figure(figsize=(11,7))
+    sn.set(font_scale=1.2)  # for label size
+    sn.heatmap(df_cm, annot=True, annot_kws={"size": 10}, cmap='Blues', fmt='d')  # font size
+    plt.gca().set(xlabel='Predicted', ylabel='True label')
+    plt.show()
+    return
 
 
 if __name__ == '__main__':
@@ -65,15 +85,23 @@ if __name__ == '__main__':
     # TODO
 
     # ROUGH WORK fir hopfield RBM only
+    DATASET = TESTING #TESTING
+    confusion_matrix = np.zeros((10, 11), dtype=int)  # last column is "unclassified"
     rbm_hopfield = build_rbm_hopfield()
-    matches = [False for _ in TESTING]
-    predictions = len(TESTING) * [0]
-    true_labels = [str(pair[1]) for pair in TESTING]
-    for idx, pair in enumerate(TESTING):
+    matches = [False for _ in DATASET]
+    predictions = len(DATASET) * [0]
+    true_labels = [str(pair[1]) for pair in DATASET]
+    for idx, pair in enumerate(DATASET):
         elem_arr, elem_label = pair
         preprocessed_input = binarize_image_data(image_data_collapse(elem_arr))
         predictions[idx] = classify_MNIST(rbm_hopfield, preprocessed_input)
-        print(true_labels[idx], predictions[idx])
+        #print(true_labels[idx], predictions[idx])
         if true_labels[idx] == predictions[idx]:
             matches[idx] = True
+        # update confusion matrix
+        if len(predictions[idx]) == 1:
+            confusion_matrix[elem_label, int(predictions[idx])] += 1
+        else:
+            confusion_matrix[elem_label, -1] += 1
     print("Successful test cases: %d/%d (%.3f)" % (matches.count(True), len(matches), float(matches.count(True) / len(matches))))
+    plot_confusion_matrix(confusion_matrix)
