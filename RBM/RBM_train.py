@@ -3,7 +3,7 @@ import numpy as np
 from scipy.linalg import qr
 import torch
 from data_process import data_mnist, data_synthetic_dual, hopfield_mnist_patterns, data_dict_mnist
-from settings import DIR_DATA, DIR_MODELS, CPU_THREADS, DATA_CHOICE, SYNTHETIC_DIM, MNIST_BINARIZATION_CUTOFF
+from settings import DIR_DATA, DIR_MODELS, CPU_THREADS, DATA_CHOICE, SYNTHETIC_DIM, MNIST_BINARIZATION_CUTOFF, BETA
 
 
 assert DATA_CHOICE in ['synthetic', 'mnist']
@@ -42,7 +42,7 @@ class RBM:
         self.output_weights = output_weights_trained
         return
 
-    def RBM_step(self, visible_init, beta=2.0):
+    def RBM_step(self, visible_init, beta=BETA):
 
         # TODO confirm/test distribution choices
         # hidden -> visible:  probabilistic  (from Barra 2012 -- Eq. 3)
@@ -62,7 +62,6 @@ class RBM:
         def update_hidden(state_visible):
             if self.type_hidden == 'gaussian':
                 means = np.dot(self.internal_weights.T, state_visible)
-                print("MEANS\n", means)
                 std_dev = np.sqrt(1/beta)
                 hidden_step = np.random.normal(means, std_dev, self.dim_hidden)
             else:

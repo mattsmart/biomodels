@@ -26,24 +26,27 @@ MNIST_output_to_label = setup_MNIST_classification()
 
 
 def classify_MNIST(rbm, visual_init):
-    NUM_STEPS_CLASSIFY = 4
+    MAX_STEPS_CLASSIFY = 20
     visual_step = visual_init
 
-    def conv_class_vector_to_label(output_arr):
-        if tuple(output_arr) in MNIST_output_to_label.keys():
-            return MNIST_output_to_label[tuple(output_arr)]
+    def conv_class_vector_to_label(output_as_ints):
+        if tuple(output_as_ints) in MNIST_output_to_label.keys():
+            return True, MNIST_output_to_label[tuple(output_as_ints)]
         else:
-            return output_arr
+            return False, output_as_ints
 
-    for idx in range(NUM_STEPS_CLASSIFY):
+    for idx in range(MAX_STEPS_CLASSIFY):
         visual_step, hidden_step, output_step = rbm.RBM_step(visual_step)
         output_truncated = rbm.truncate_output(output_step)
-        print("visual at step", idx, "is", visual_step)
-        print("hidden at step", idx, "is", hidden_step)
-        print("output at step", idx, "is", output_step)
-        print("output_truncated at step", idx, "is", output_truncated)
+        classified, classification = conv_class_vector_to_label(output_truncated)
+        if classified:
+            print("classified at step:", idx)
+            break
+        #print("visual at step", idx, "is", visual_step)
+        #print("hidden at step", idx, "is", hidden_step)
+        #print("output at step", idx, "is", output_step)
+        #print("output_truncated at step", idx, "is", output_truncated)
 
-    classification = conv_class_vector_to_label(output_step)
     return classification
 
 
@@ -56,16 +59,21 @@ if __name__ == '__main__':
     RBM_C = load_rbm_trained()
     RBM_D = load_rbm_trained()
     """
-
     # score each variant
     # TODO
-
     # plot
     # TODO
 
-    # ROUGH WORK
+    # ROUGH WORK fir hopfield RBM only
     rbm_hopfield = build_rbm_hopfield()
-    for elem_arr, elem_label in TESTING:
+    matches = [False for _ in TESTING]
+    predictions = len(TESTING) * [0]
+    true_labels = [str(pair[1]) for pair in TESTING]
+    for idx, pair in enumerate(TESTING):
+        elem_arr, elem_label = pair
         preprocessed_input = binarize_image_data(image_data_collapse(elem_arr))
-        prediction = classify_MNIST(rbm_hopfield, preprocessed_input)
-        print(elem_label, prediction, '\n')
+        predictions[idx] = classify_MNIST(rbm_hopfield, preprocessed_input)
+        print(true_labels[idx], predictions[idx])
+        if true_labels[idx] == predictions[idx]:
+            matches[idx] = True
+    print("Successful test cases: %d/%d (%.3f)" % (matches.count(True), len(matches), float(matches.count(True) / len(matches))))

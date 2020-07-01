@@ -12,3 +12,4 @@ SYNTHETIC_DATASPLIT = ['balanced']
 
 DATA_CHOICE = 'mnist'
 MNIST_BINARIZATION_CUTOFF = 0.4
+BETA = 20.0  # 2.0 gave 65.5%, 20.0 gave 67.5%, 200.0 gave 65.6% (for pattern threshold 0.4)
