@@ -85,7 +85,7 @@ class RBM:
         flag_any_large_patterns = np.any(np.where(np.abs(state_output) > threshold, True, False))
         if flag_any_large_patterns:
             above_T_idx = state_output > threshold
-            below_negT_idx = state_output < threshold
+            below_negT_idx = state_output < -threshold
             output_vector[above_T_idx] = 1
             output_vector[below_negT_idx] = -1
         return output_vector
