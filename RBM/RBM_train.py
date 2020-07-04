@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.linalg import qr
 import torch
-from data_process import data_mnist, data_synthetic_dual, hopfield_mnist_patterns, data_dict_mnist
+from data_process import data_mnist, data_synthetic_dual, hopfield_mnist_patterns, data_dict_mnist, binarize_image_data, image_data_collapse
 from settings import DIR_DATA, DIR_MODELS, CPU_THREADS, DATA_CHOICE, SYNTHETIC_DIM, MNIST_BINARIZATION_CUTOFF, BETA, PATTERN_THRESHOLD
 
 
@@ -24,6 +24,8 @@ class RBM:
         self.name = name
         self.internal_weights = None
         self.output_weights = None
+        self.visible_field = np.zeros(dim_visible)
+        self.hidden_field = np.zeros(dim_hidden)
 
     def set_internal_weights(self, weights):
         assert weights.shape == (self.dim_visible, self.dim_hidden)
@@ -32,6 +34,10 @@ class RBM:
     def set_output_weights(self, weights):
         assert weights.shape[1] == self.dim_hidden
         self.output_weights = weights
+
+    def set_visible_field(self, visible_field):
+        assert len(visible_field) == self.dim_visible
+        self.visible_field = visible_field
 
     def train_rbm(self, data=TRAINING, initialization=None):
         # TODO update weights
@@ -54,14 +60,14 @@ class RBM:
         #   <h_mu> = np.dot(weights[:, mu], visible[:])
 
         def update_visible(state_hidden):
-            input_vector = np.dot(self.internal_weights, state_hidden)
+            input_vector = np.dot(self.internal_weights, state_hidden) + self.visible_field
             visible_probability_one = 1/(1 + np.exp(- 2 * beta * input_vector))
             visible_step = np.random.binomial(1, visible_probability_one, self.dim_visible)
             return visible_step * 2 - 1  # +1, -1 convention
 
         def update_hidden(state_visible):
             if self.type_hidden == 'gaussian':
-                means = np.dot(self.internal_weights.T, state_visible)
+                means = np.dot(self.internal_weights.T, state_visible) + self.hidden_field
                 std_dev = np.sqrt(1/beta)
                 hidden_step = np.random.normal(means, std_dev, self.dim_hidden)
             else:
@@ -89,6 +95,14 @@ class RBM:
             output_vector[below_negT_idx] = -1
         return output_vector
 
+    def truncate_output_max(self, state_output, threshold=0.5):
+        output_vector = np.zeros(len(state_output), dtype=int)
+        max_arg = np.argmax(np.abs(state_output))
+        max_val = state_output[max_arg]
+        if np.abs(max_val) > threshold:
+            output_vector[max_arg] = 1 * np.sign(max_val)
+        return output_vector
+
     def save_rbm_trained(self):
         # TODO
         fpath = None
@@ -109,7 +123,7 @@ def linalg_hopfield_patterns(data_dict, category_counts):
     return xi, xi_collapsed, Q, R
 
 
-def build_rbm_hopfield(data=TRAINING):
+def build_rbm_hopfield(data=TRAINING, visible_field=False):
     # TODO
     # Step 1: convert data into patterns (using a prescribed rule)
     # Step 2: specify weights using the patterns
@@ -130,7 +144,30 @@ def build_rbm_hopfield(data=TRAINING):
     # build internal weights
     data_dict, category_counts = data_dict_mnist(TRAINING)
     xi, xi_collapsed, Q, R = linalg_hopfield_patterns(data_dict, category_counts)
+    """
+    metas = np.zeros((28,28))
+    for idx in range(10):
+        metas += xi[:,:,idx]
+    plt.imshow(metas)
+    plt.colorbar()
+    plt.show()"""
     rbm_hopfield.set_internal_weights(Q)
+    if visible_field:
+        pixel_means = np.zeros(dim_visible)
+        for idx, pair in enumerate(data):
+            elem_arr, elem_label = pair
+            #preprocessed_input = image_data_collapse(elem_arr)
+            preprocessed_input = binarize_image_data(image_data_collapse(elem_arr), threshold=MNIST_BINARIZATION_CUTOFF)
+            pixel_means += preprocessed_input
+        pixel_means = pixel_means / len(data)
+        # convert anything greater than 0 to a 1
+        pixel_means[pixel_means > 0] = 0
+        pixel_means[pixel_means < 0] = -1
+        plt.imshow(pixel_means.reshape((28,28)))
+        plt.colorbar()
+        plt.show()
+        rbm_hopfield.set_visible_field(-0.5*pixel_means)
+
     # build output/projection weights
     proj_remainder = np.dot( np.linalg.inv(np.dot(R.T, R)) , R.T)
     rbm_hopfield.set_output_weights(proj_remainder)
@@ -146,4 +183,4 @@ if __name__ == '__main__':
     #   C: vanilla RBM binary-gaussian
     #   D: vanilla RBM binary-binary
 
-    print('TODO')
+    build_rbm_hopfield(data=TRAINING, visible_field=True)
