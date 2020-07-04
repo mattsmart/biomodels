@@ -28,9 +28,9 @@ WHAT'S CHANGED:
 ########## CONFIGURATION ##########
 BATCH_SIZE = 64
 VISIBLE_UNITS = 784  # 28 x 28 images
-HIDDEN_UNITS = 128  # was 128 but try 10
+HIDDEN_UNITS = 10  # was 128 but try 10
 CD_K = 2
-EPOCHS = 10  # was 10
+EPOCHS = 3  # was 10
 DATA_FOLDER = 'data'
 
 
