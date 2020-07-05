@@ -109,7 +109,7 @@ def logistic_regression_on_visible(rbm, dataset_train, dataset_test, binarize=Fa
     y_train = np.zeros(len(dataset_train), dtype=int)
     for idx, pair in enumerate(dataset_train):
         elem_arr, elem_label = pair
-        preprocessed_input = binarize_image_data(image_data_collapse(elem_arr), threshold=MNIST_BINARIZATION_CUTOFF)
+        preprocessed_input = image_data_collapse(elem_arr)
         if binarize:
             preprocessed_input = binarize_image_data(preprocessed_input, threshold=MNIST_BINARIZATION_CUTOFF)
         X_train[idx, :] = preprocessed_input
@@ -184,10 +184,10 @@ if __name__ == '__main__':
     if logistic_regression_approach:
         confusion_matrix = logistic_regression_on_hidden(rbm_hopfield, TRAINING, TESTING)
         plot_confusion_matrix(confusion_matrix)
-        confusion_matrix_vis_binary = logistic_regression_on_visible(rbm_hopfield, TRAINING, TESTING, binarize=False)
-        plot_confusion_matrix(confusion_matrix_vis_binary)
-        confusion_matrix_vis_raw = logistic_regression_on_visible(rbm_hopfield, TRAINING, TESTING, binarize=True)
-        plot_confusion_matrix(confusion_matrix_vis_raw)
+        #confusion_matrix_vis_binary = logistic_regression_on_visible(rbm_hopfield, TRAINING, TESTING, binarize=False)
+        #plot_confusion_matrix(confusion_matrix_vis_binary)
+        #confusion_matrix_vis_raw = logistic_regression_on_visible(rbm_hopfield, TRAINING, TESTING, binarize=True)
+        #plot_confusion_matrix(confusion_matrix_vis_raw)
 
     else:
         confusion_matrix = np.zeros((10, 11), dtype=int)  # last column is "unclassified"
