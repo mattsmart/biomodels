@@ -78,18 +78,17 @@ class RBM_gaussian_custom():
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
         if load_init_weights:
-            self.weights = torch.randn(num_visible, num_hidden) * 0.1
-            self.visible_bias = torch.ones(num_visible) * 0.5
+            arr = self.load_rbm_trained(DIR_MODELS + os.sep + 'hopfield_weights.npy')
+            self.weights = torch.from_numpy(arr).float()
+            self.visible_bias = torch.zeros(num_visible).float()
         else:
-            self.weights = self.load_rbm_trained(DIR_MODELS + os.sep + 'hopfield_weights.npy')
-            self.visible_bias = torch.zeros(num_visible)
-        self.hidden_bias = torch.zeros(num_hidden)
+            self.weights = 0.1 * torch.randn(num_visible, num_hidden).float()
+            self.visible_bias = 0.5 * torch.ones(num_visible).float()
+        self.hidden_bias = torch.zeros(num_hidden).float()
 
     def sample_hidden(self, visible_state):
         hidden_activations = torch.matmul(visible_state, self.weights) + self.hidden_bias
         hidden_sampled = torch.normal(hidden_activations, np.sqrt(1/BETA))  # ********************************************************************* NEW
-        #print(hidden_activations)
-        #print(hidden_sampled)
         return hidden_sampled
 
     def sample_hidden_alt(self, visible_state):
@@ -98,10 +97,7 @@ class RBM_gaussian_custom():
 
     def sample_visible(self, hidden_state):
         visible_activations = torch.matmul(hidden_state, self.weights.t()) + self.visible_bias
-        #print('\n',hidden_state)
-        #print(visible_activations)
         visible_probabilities = self._sigmoid(2 * BETA * visible_activations)  # self._sigmoid(visible_activations)
-        #print(visible_probabilities)
         visible_sampled = torch.bernoulli(visible_probabilities)  # ********************************************************************* NEW
         visible_sampled_phys = -1 + visible_sampled * 2
         return visible_sampled_phys
