@@ -77,7 +77,7 @@ def logistic_regression_on_hidden(rbm, dataset_train, dataset_test):
         preprocessed_input = binarize_image_data(image_data_collapse(elem_arr), threshold=MNIST_BINARIZATION_CUTOFF)
         X_train[idx, :] = rbm_features_MNIST(rbm, preprocessed_input)
         y_train[idx] = elem_label
-    print("logistic_regression_on_hidden; Step 2: logistic regression on classes2")
+    print("logistic_regression_on_hidden; Step 2: logistic regression on classes")
     from sklearn.linear_model import LogisticRegression
     clf = LogisticRegression(C=1e5, multi_class='multinomial', penalty='l1', solver='saga', tol=0.1)
     clf.fit(X_train, y_train)  # fit data
@@ -114,7 +114,7 @@ def logistic_regression_on_visible(rbm, dataset_train, dataset_test, binarize=Fa
             preprocessed_input = binarize_image_data(preprocessed_input, threshold=MNIST_BINARIZATION_CUTOFF)
         X_train[idx, :] = preprocessed_input
         y_train[idx] = elem_label
-    print("logistic_regression_on_visible; Step 2: logistic regression on classes2")
+    print("logistic_regression_on_visible; Step 2: logistic regression on classes")
     from sklearn.linear_model import LogisticRegression
     clf = LogisticRegression(C=1e5, multi_class='multinomial', penalty='l1', solver='saga', tol=0.1)
     clf.fit(X_train, y_train)  # fit data
