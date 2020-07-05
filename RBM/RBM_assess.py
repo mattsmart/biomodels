@@ -142,7 +142,6 @@ def logistic_regression_on_visible(rbm, dataset_train, dataset_test, binarize=Fa
     return confusion_matrix
 
 
-
 def plot_confusion_matrix(confusion_matrix):
     # Ref: https://stackoverflow.com/questions/35572000/how-can-i-plot-a-confusion-matrix
     import seaborn as sn

@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 from scipy.linalg import qr
 import torch
 from data_process import data_mnist, data_synthetic_dual, hopfield_mnist_patterns, data_dict_mnist, binarize_image_data, image_data_collapse
@@ -104,15 +105,15 @@ class RBM:
         return output_vector
 
     def save_rbm_trained(self):
-        # TODO
-        fpath = None
+        fpath = DIR_MODELS + os.sep + 'hopfield_weights.npy'
+        with open(fpath, 'wb') as f:
+            np.save(f, self.internal_weights)
         return fpath
 
-
-    def load_rbm_trained(self):
-        # TODO
-        rbm_traine = None
-        return rbm_trained
+    def load_rbm_trained(self, fpath):
+        with open(fpath, 'rb') as f:
+            rbm_internal_weights = np.load(fpath)
+        return rbm_internal_weights
 
 
 def linalg_hopfield_patterns(data_dict, category_counts):
@@ -166,11 +167,13 @@ def build_rbm_hopfield(data=TRAINING, visible_field=False):
         plt.imshow(pixel_means.reshape((28,28)))
         plt.colorbar()
         plt.show()
-        rbm_hopfield.set_visible_field(-0.5*pixel_means)
+        rbm_hopfield.set_visible_field(pixel_means)
 
     # build output/projection weights
     proj_remainder = np.dot( np.linalg.inv(np.dot(R.T, R)) , R.T)
     rbm_hopfield.set_output_weights(proj_remainder)
+    # save weights
+    rbm_hopfield.save_rbm_trained()
     return rbm_hopfield
 
 
@@ -183,4 +186,4 @@ if __name__ == '__main__':
     #   C: vanilla RBM binary-gaussian
     #   D: vanilla RBM binary-binary
 
-    build_rbm_hopfield(data=TRAINING, visible_field=True)
+    build_rbm_hopfield(data=TRAINING, visible_field=False)

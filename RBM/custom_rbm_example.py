@@ -5,7 +5,8 @@ import torchvision.datasets
 import torchvision.models
 import torchvision.transforms
 
-from custom_rbm import RBM_custom
+from custom_rbm import RBM_custom, RBM_gaussian_custom
+from RBM_assess import plot_confusion_matrix
 from settings import MNIST_BINARIZATION_CUTOFF
 
 
@@ -30,9 +31,18 @@ BATCH_SIZE = 64
 VISIBLE_UNITS = 784  # 28 x 28 images
 HIDDEN_UNITS = 10  # was 128 but try 10
 CD_K = 2
-EPOCHS = 3  # was 10
+EPOCHS = 0  # was 10
 DATA_FOLDER = 'data'
+GAUSSIAN_RBM = True
+LOAD_INIT_WEIGHTS = True
 
+if RBM_gaussian_custom:
+    RBM = RBM_gaussian_custom
+else:
+    RBM = RBM_custom
+
+if LOAD_INIT_WEIGHTS:
+    assert HIDDEN_UNITS == 10
 
 ########## LOADING DATASET ##########
 print('Loading dataset...')
@@ -43,14 +53,14 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=BATCH_SIZE)
 
 ########## TRAINING RBM ##########
 print('Training RBM...')
-rbm = RBM_custom(VISIBLE_UNITS, HIDDEN_UNITS, CD_K)
+rbm = RBM(VISIBLE_UNITS, HIDDEN_UNITS, CD_K, load_init_weights=LOAD_INIT_WEIGHTS)
 for epoch in range(EPOCHS):
     epoch_error = 0.0
     for batch, _ in train_loader:
         batch = batch.view(len(batch), VISIBLE_UNITS)  # flatten input data
 
         ########## +1 -1 BATCH TREATMENT ########## ------------------------------------------------------------------ NEW
-        batch = (batch>MNIST_BINARIZATION_CUTOFF).float()    # convert to 0,1 form
+        batch = (batch > MNIST_BINARIZATION_CUTOFF).float()    # convert to 0,1 form
         batch = -1 + batch * 2  # convert to -1,1 form
 
         batch_error = rbm.contrastive_divergence(batch)
