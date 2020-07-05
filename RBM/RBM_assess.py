@@ -103,6 +103,46 @@ def logistic_regression_on_hidden(rbm, dataset_train, dataset_test):
     return confusion_matrix
 
 
+def logistic_regression_on_visible(rbm, dataset_train, dataset_test, binarize=False):
+    print("logistic_regression_on_visible; Step 1: get features for training")
+    X_train = np.zeros((len(dataset_train), rbm.dim_visible))
+    y_train = np.zeros(len(dataset_train), dtype=int)
+    for idx, pair in enumerate(dataset_train):
+        elem_arr, elem_label = pair
+        preprocessed_input = binarize_image_data(image_data_collapse(elem_arr), threshold=MNIST_BINARIZATION_CUTOFF)
+        if binarize:
+            preprocessed_input = binarize_image_data(preprocessed_input, threshold=MNIST_BINARIZATION_CUTOFF)
+        X_train[idx, :] = preprocessed_input
+        y_train[idx] = elem_label
+    print("logistic_regression_on_visible; Step 2: logistic regression on classes2")
+    from sklearn.linear_model import LogisticRegression
+    clf = LogisticRegression(C=1e5, multi_class='multinomial', penalty='l1', solver='saga', tol=0.1)
+    clf.fit(X_train, y_train)  # fit data
+    print("logistic_regression_on_visible; Step 3: get features for testing")
+    X_test = np.zeros((len(dataset_test), rbm.dim_visible))
+    y_test = np.zeros(len(dataset_test), dtype=int)
+    for idx, pair in enumerate(dataset_test):
+        elem_arr, elem_label = pair
+        preprocessed_input = image_data_collapse(elem_arr)
+        if binarize:
+            preprocessed_input = binarize_image_data(preprocessed_input, threshold=MNIST_BINARIZATION_CUTOFF)
+        X_test[idx, :] = preprocessed_input
+        y_test[idx] = elem_label
+    print("logistic_regression_on_visible; Step 4: classification metrics and confusion matrix")
+    """
+    sparsity1 = np.mean(clf1.coef_ == 0) * 100  # percentage of nonzero weights """
+    predictions = clf.predict(X_test).astype(int)
+    confusion_matrix = np.zeros((10, 10), dtype=int)
+    matches = [False for _ in dataset_test]
+    for idx, pair in enumerate(dataset_test):
+        if y_test[idx] == predictions[idx]:
+            matches[idx] = True
+        confusion_matrix[y_test[idx], predictions[idx]] += 1
+    print("Successful test cases: %d/%d (%.3f)" % (matches.count(True), len(matches), float(matches.count(True) / len(matches))))
+    return confusion_matrix
+
+
+
 def plot_confusion_matrix(confusion_matrix):
     # Ref: https://stackoverflow.com/questions/35572000/how-can-i-plot-a-confusion-matrix
     import seaborn as sn
@@ -144,6 +184,11 @@ if __name__ == '__main__':
     logistic_regression_approach = True
     if logistic_regression_approach:
         confusion_matrix = logistic_regression_on_hidden(rbm_hopfield, TRAINING, TESTING)
+        plot_confusion_matrix(confusion_matrix)
+        confusion_matrix_vis_binary = logistic_regression_on_visible(rbm_hopfield, TRAINING, TESTING, binarize=False)
+        plot_confusion_matrix(confusion_matrix_vis_binary)
+        confusion_matrix_vis_raw = logistic_regression_on_visible(rbm_hopfield, TRAINING, TESTING, binarize=True)
+        plot_confusion_matrix(confusion_matrix_vis_raw)
 
     else:
         confusion_matrix = np.zeros((10, 11), dtype=int)  # last column is "unclassified"
@@ -165,4 +210,4 @@ if __name__ == '__main__':
                     plt.imshow(preprocessed_input.reshape((28,28)))
                     plt.savefig(DIR_OUTPUT + os.sep + 'wrong_idx%s_true%s_%s.png' % (idx, true_labels[idx], predictions[idx]))
         print("Successful test cases: %d/%d (%.3f)" % (matches.count(True), len(matches), float(matches.count(True) / len(matches))))
-    plot_confusion_matrix(confusion_matrix)
+        plot_confusion_matrix(confusion_matrix)
