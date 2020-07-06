@@ -17,6 +17,10 @@ VISIBLE_UNITS = 784  # 28 x 28 images
 HIDDEN_UNITS = 10  # was 128
 CD_K = 2
 EPOCHS = 10  # was 10
+LOAD_INIT_WEIGHTS = True
+
+if LOAD_INIT_WEIGHTS:
+    assert HIDDEN_UNITS == 10
 
 DATA_FOLDER = 'data'
 
@@ -34,7 +38,7 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=BATCH_SIZE)
 
 ########## TRAINING RBM ##########
 print('Training RBM...')
-rbm = RBM(VISIBLE_UNITS, HIDDEN_UNITS, CD_K, use_cuda=CUDA)
+rbm = RBM(VISIBLE_UNITS, HIDDEN_UNITS, CD_K, use_cuda=CUDA, load_init_weights=LOAD_INIT_WEIGHTS)
 for epoch in range(EPOCHS):
     epoch_error = 0.0
     for batch, _ in train_loader:

@@ -1,11 +1,14 @@
 # sample code from git repo: https://github.com/GabrielBianconi/pytorch-rbm
 
+import numpy as np
+import os
 import torch
-
+from settings import DIR_MODELS
 
 class RBM():
 
-    def __init__(self, num_visible, num_hidden, k, learning_rate=1e-3, momentum_coefficient=0.5, weight_decay=1e-4, use_cuda=True):
+    def __init__(self, num_visible, num_hidden, k, learning_rate=1e-3, momentum_coefficient=0.5, weight_decay=1e-4,
+                 use_cuda=True, load_init_weights=False):
         self.num_visible = num_visible
         self.num_hidden = num_hidden
         self.k = k
@@ -14,13 +17,18 @@ class RBM():
         self.weight_decay = weight_decay
         self.use_cuda = use_cuda
 
-        self.weights = torch.randn(num_visible, num_hidden) * 0.1
-        self.visible_bias = torch.ones(num_visible) * 0.5
-        self.hidden_bias = torch.zeros(num_hidden)
-
         self.weights_momentum = torch.zeros(num_visible, num_hidden)
         self.visible_bias_momentum = torch.zeros(num_visible)
         self.hidden_bias_momentum = torch.zeros(num_hidden)
+
+        self.hidden_bias = torch.zeros(num_hidden)
+        if load_init_weights:
+            arr = self.load_rbm_trained(DIR_MODELS + os.sep + 'hopfield_weights.npy')
+            self.weights = arr
+            self.visible_bias = torch.zeros(num_visible).float()
+        else:
+            self.weights = 0.1 * torch.randn(num_visible, num_hidden).float()
+            self.visible_bias = 0.5 * torch.ones(num_visible).float()
 
         if self.use_cuda:
             self.weights = self.weights.cuda()
@@ -94,3 +102,8 @@ class RBM():
 
         return random_probabilities
 
+    def load_rbm_trained(self, fpath):
+        with open(fpath, 'rb') as f:
+            rbm_internal_weights = np.load(fpath)
+        self.weights = torch.from_numpy(rbm_internal_weights).float()
+        return rbm_internal_weights
