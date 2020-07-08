@@ -118,11 +118,11 @@ def plot_simplex2D(params, streamlines=True, fp=True, cbar=False, smallfig=False
     N = params.N
 
     if smallfig:
-        figsize = (2.0, 1.6)
+        figsize = (2.0*10, 1.6*5)
         text_fs = 20
         ms = 8
-        stlw = 0.75
-        nn = 20
+        stlw = 0.75*4
+        nn = 400
         ylim_mod = 0.08
     else:
         figsize=(3, 2.5)  # 4,3 orig, else 3, 2.5 for stoch fig
@@ -152,12 +152,13 @@ def plot_simplex2D(params, streamlines=True, fp=True, cbar=False, smallfig=False
         ax.text(params.N / 2.0 * 0.96, params.N * 1.07, r'$z$', fontsize=text_fs)
 
     if streamlines:
-        B, A = np.mgrid[0:N:nn*1j, 0:N:nn*1j]
+        B, A = np.mgrid[0:N*0.25:nn*1j, 0:N:nn*1j]
         # need to mask outside of simplex
         ADOT = np.zeros(np.shape(A))
         BDOT = np.zeros(np.shape(A))
         SPEEDS = np.zeros(np.shape(A))
         for i in xrange(nn):
+            print i
             for j in xrange(nn):
                 a = A[i, j]
                 b = B[i, j]
@@ -174,7 +175,7 @@ def plot_simplex2D(params, streamlines=True, fp=True, cbar=False, smallfig=False
                     BDOT[i, j] = dxvecdt[2]                      # zdot
 
         if smallfig:
-            strm = ax.streamplot(A, B, ADOT, BDOT, color=(0.34, 0.34, 0.34), linewidth=stlw, arrowsize=1.3, density=0.5, zorder=10), #maxlength=1.0)
+            strm = ax.streamplot(A, B, ADOT, BDOT, color=(0.34, 0.34, 0.34), linewidth=stlw, arrowsize=2.6*2, density=0.5, zorder=10), #maxlength=1.0)
         else:
             # this will color lines
             """
@@ -210,8 +211,15 @@ def plot_simplex2D(params, streamlines=True, fp=True, cbar=False, smallfig=False
             #plt.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', markerfacecolor="None")
             ax.plot(fp_x, fp[2], marker='o', markersize=ms, markeredgecolor='black', linewidth='3', color=(0.902, 0.902, 0.902), zorder=11)
 
-    ax.set_ylim(-N*ylim_mod, N*(1+ylim_mod))
+    #ax.set_ylim(-N*ylim_mod, N*(1+ylim_mod))
+
+    ax.set_xlim(-6, 1.05 * N)
+    ax.set_ylim(-0.1, 0.2 * N)
+
+    #ax.set_xlim(-N * 0.5, N * 0.3)
+    #ax.set_ylim(-N*ylim_mod, N*(1+ylim_mod))
     ax.axis('off')
+    plt.savefig('ttttt.pdf')
     return ax
 
 
@@ -397,6 +405,8 @@ if __name__ == '__main__':
     #fig = plot_simplex(100)
     #plt.show()
     params = presets('preset_xyz_tanh')
-    ax = plot_simplex2D(params, smallfig=False)
+    #params = presets('preset_xyz_constant')
+
+    ax = plot_simplex2D(params, smallfig=True)
     plt.savefig(OUTPUT_DIR + sep + 'simplex_plot.pdf')
     plt.show()
