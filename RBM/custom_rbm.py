@@ -78,7 +78,7 @@ class RBM_gaussian_custom():
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
         if load_init_weights:
-            arr = self.load_rbm_trained(DIR_MODELS + os.sep + 'hopfield_weights.npy')
+            arr = self.load_rbm_trained(DIR_MODELS + os.sep + 'saved' + os.sep + 'hopfield_mnist_10.npz')
             self.weights = torch.from_numpy(arr).float()
             self.visible_bias = torch.zeros(num_visible).float()
         else:
@@ -137,6 +137,6 @@ class RBM_gaussian_custom():
 
     def load_rbm_trained(self, fpath):
         with open(fpath, 'rb') as f:
-            rbm_internal_weights = np.load(fpath)
+            rbm_internal_weights = np.load(fpath)['Q']
         self.weights = rbm_internal_weights
         return rbm_internal_weights
