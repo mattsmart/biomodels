@@ -1,6 +1,10 @@
+import os
+
+
 DIR_DATA = 'data'
 DIR_MODELS = 'models'
 DIR_OUTPUT = 'output'
+DEFAULT_HOPFIELD = DIR_MODELS + os.sep + 'saved' + os.sep + 'hopfield_mnist_10.npz'
 
 CPU_THREADS = 8
 BATCH_SIZE = 4
@@ -27,6 +31,7 @@ DATA_CHOICE = 'mnist'
 #    75% for ON threshold 0.01, pattern threshold 0.0, and beta 8.0 <---- main
 MNIST_BINARIZATION_CUTOFF = 0.01
 PATTERN_THRESHOLD = 0.0
+K_PATTERN_DIV = 1
 BETA = 8.0
 HRBM_LOGREG_STEPS = 1
 HRBM_MANUAL_MAXSTEPS = 10
