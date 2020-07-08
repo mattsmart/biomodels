@@ -214,7 +214,7 @@ def load_rbm_hopfield(npzpath=DEFAULT_HOPFIELD):
     # MINOR PROCESSING
     dim_visible = Q.shape[0]
     dim_hidden = Q.shape[1]
-    pattern_idx_to_labels = {idx: pattern_labels[idx] for idx in range(dim_hidden)}
+    pattern_idx_to_labels = {idx: str(pattern_labels[idx]) for idx in range(dim_hidden)}
     # BUILD
     rbm_name = 'hopfield_loaded_%s' % DATA_CHOICE
     rbm_hopfield = RBM(dim_visible, dim_hidden, 'gaussian', rbm_name)

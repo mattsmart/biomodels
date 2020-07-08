@@ -4,30 +4,29 @@ import os
 import torch
 import torchvision
 from data_process import image_data_collapse, torch_image_to_numpy, binarize_image_data
-from RBM_train import RBM, TRAINING, TESTING, build_rbm_hopfield
-from settings import MNIST_BINARIZATION_CUTOFF, DIR_OUTPUT, VISIBLE_FIELD, HRBM_LOGREG_STEPS, HRBM_MANUAL_MAXSTEPS
+from RBM_train import RBM, TRAINING, TESTING, build_rbm_hopfield, load_rbm_hopfield
+from settings import MNIST_BINARIZATION_CUTOFF, DIR_OUTPUT, VISIBLE_FIELD, HRBM_LOGREG_STEPS, HRBM_MANUAL_MAXSTEPS, DEFAULT_HOPFIELD, DIR_MODELS
 
 
 # TODO
 #   Question: how to perform classification with binary-binary or binary-gaussian RBM? append module to end?
 
 
-def setup_MNIST_classification():
+def setup_MNIST_classification(rbm):
     label_dict = {}
-    for idx in range(10):
-        key_tuple = tuple([0 if a != idx else 1 for a in range(10)])
-        value_str = '%d' % idx
-        label_dict[key_tuple] = value_str
-        neg_key_tuple = tuple([0 if a != idx else -1 for a in range(10)])
-        neg_value_str = 'anti-%d' % idx
-        label_dict[neg_key_tuple] = neg_value_str
+    for idx in range(rbm.dim_hidden):
+
+        idx_to_patternlabel_exact = rbm.pattern_labels[idx]
+        idx_to_patternlabel_class = idx_to_patternlabel_exact[0]  # i.e. if its '7_0', take '7'
+
+        key_tuple = tuple([0 if a != idx else 1 for a in range(rbm.dim_hidden)])
+        label_dict[key_tuple] = idx_to_patternlabel_class
+        neg_key_tuple = tuple([0 if a != idx else -1 for a in range(rbm.dim_hidden)])
+        label_dict[neg_key_tuple] = 'anti-%s' % idx_to_patternlabel_class
     return label_dict
 
 
-MNIST_output_to_label = setup_MNIST_classification()
-
-
-def classify_MNIST(rbm, visual_init, dataset_idx, max_mode=False):
+def classify_MNIST(rbm, visual_init, dataset_idx, MNIST_output_to_label, sum_mode=False):
     visual_step = visual_init
 
     def conv_class_vector_to_label(output_as_ints):
@@ -36,28 +35,27 @@ def classify_MNIST(rbm, visual_init, dataset_idx, max_mode=False):
         else:
             return False, output_as_ints
 
-    if max_mode:
-        output_converter = rbm.truncate_output_max
+    if sum_mode:
+        output_converter = rbm.truncate_output_subpatterns
     else:
-        output_converter = rbm.truncate_output
+        output_converter = rbm.truncate_output  # rbm.truncate_output_max
 
     for idx in range(HRBM_MANUAL_MAXSTEPS):
         visual_step, hidden_step, output_step = rbm.RBM_step(visual_step)
         output_truncated = output_converter(output_step)
         classified, classification = conv_class_vector_to_label(output_truncated)
-        #if len(classification) > 1:
-        #    print(classification, "\n\t", hidden_step, "\n\t", output_step, "\n\t", output_truncated)
         if classified:
-            #print("classified at step:", idx, classification, dataset_idx)
             break
-        #print("visual at step", idx, "is", visual_step)
-        #print("hidden at step", idx, "is", hidden_step)
-        #print("output at step", idx, "is", output_step)
-        #print("output_truncated at step", idx, "is", output_truncated)
     if idx == HRBM_MANUAL_MAXSTEPS - 1:
         print("******************** Edge case unclassified: (%d) step == MAX_STEPS_CLASSIFY - 1" % dataset_idx)
-        print("\t classification:", classification)
-
+        #print("\t output_step:", output_step)
+        #output_special = np.zeros(10, dtype=float)
+        #K = 10
+        #for idx in range(10):
+        #    output_special[idx] = np.sum(output_step[K*idx:K*(idx + 1)])
+        #print("\t output_special:", output_special)
+        #print("\t output_truncated:", output_truncated)
+        #print("\t classification:", classification)
     return classification
 
 
@@ -93,14 +91,15 @@ def logistic_regression_on_hidden(rbm, dataset_train, dataset_test):
     """
     sparsity1 = np.mean(clf1.coef_ == 0) * 100  # percentage of nonzero weights """
     predictions = clf.predict(X_test).astype(int)
-    confusion_matrix = np.zeros((10, 10), dtype=int)
+    #confusion_matrix = np.zeros((rbm.dim_hidden, rbm.dim_hidden), dtype=int)
+    confusion_matrix_10 = np.zeros((10, 10), dtype=int)
     matches = [False for _ in dataset_test]
     for idx, pair in enumerate(dataset_test):
         if y_test[idx] == predictions[idx]:
             matches[idx] = True
-        confusion_matrix[y_test[idx], predictions[idx]] += 1
+        confusion_matrix_10[y_test[idx], predictions[idx]] += 1
     print("Successful test cases: %d/%d (%.3f)" % (matches.count(True), len(matches), float(matches.count(True) / len(matches))))
-    return confusion_matrix
+    return confusion_matrix_10
 
 
 def logistic_regression_on_visible(rbm, dataset_train, dataset_test, binarize=False):
@@ -132,23 +131,24 @@ def logistic_regression_on_visible(rbm, dataset_train, dataset_test, binarize=Fa
     """
     sparsity1 = np.mean(clf1.coef_ == 0) * 100  # percentage of nonzero weights """
     predictions = clf.predict(X_test).astype(int)
-    confusion_matrix = np.zeros((10, 10), dtype=int)
+    #confusion_matrix = np.zeros((rbm.dim_hidden, rbm.dim_hidden), dtype=int)
+    confusion_matrix_10 = np.zeros((10, 10), dtype=int)
     matches = [False for _ in dataset_test]
     for idx, pair in enumerate(dataset_test):
         if y_test[idx] == predictions[idx]:
             matches[idx] = True
-        confusion_matrix[y_test[idx], predictions[idx]] += 1
+        confusion_matrix_10[y_test[idx], predictions[idx]] += 1
     print("Successful test cases: %d/%d (%.3f)" % (matches.count(True), len(matches), float(matches.count(True) / len(matches))))
-    return confusion_matrix
+    return confusion_matrix_10
 
 
-def plot_confusion_matrix(confusion_matrix):
+def plot_confusion_matrix(confusion_matrix, classlabels=list(range(10))):
     # Ref: https://stackoverflow.com/questions/35572000/how-can-i-plot-a-confusion-matrix
     import seaborn as sn
     import pandas as pd
 
-    ylabels = [str(i) for i in range(10)]
-    if confusion_matrix.shape[1] == 11:
+    ylabels = classlabels
+    if confusion_matrix.shape[1] == len(ylabels) + 1:
         xlabels = ylabels + ['Other']
     else:
         xlabels = ylabels
@@ -178,9 +178,15 @@ if __name__ == '__main__':
     # TODO
     # ROUGH WORK for hopfield RBM only
     DATASET = TESTING  # TESTING or TRAINING
-    rbm_hopfield = build_rbm_hopfield(visible_field=VISIBLE_FIELD)
+    npzpath_default = DEFAULT_HOPFIELD  # DEFAULT_HOPFIELD
+    npzpath = DIR_MODELS + os.sep + 'saved' + os.sep + 'hopfield_mnist_10.npz'  # npzpath_default or None
 
-    logistic_regression_approach = True
+    if npzpath is None:
+        rbm_hopfield = build_rbm_hopfield(visible_field=VISIBLE_FIELD)
+    else:
+        rbm_hopfield = load_rbm_hopfield(npzpath=npzpath)
+
+    logistic_regression_approach = False
     if logistic_regression_approach:
         confusion_matrix = logistic_regression_on_hidden(rbm_hopfield, TRAINING, TESTING)
         plot_confusion_matrix(confusion_matrix)
@@ -194,10 +200,11 @@ if __name__ == '__main__':
         matches = [False for _ in DATASET]
         predictions = len(DATASET) * [0]
         true_labels = [str(pair[1]) for pair in DATASET]
+        MNIST_output_to_label = setup_MNIST_classification(rbm_hopfield)
         for idx, pair in enumerate(DATASET):
             elem_arr, elem_label = pair
             preprocessed_input = binarize_image_data(image_data_collapse(elem_arr), threshold=MNIST_BINARIZATION_CUTOFF)
-            predictions[idx] = classify_MNIST(rbm_hopfield, preprocessed_input, idx)
+            predictions[idx] = classify_MNIST(rbm_hopfield, preprocessed_input, idx, MNIST_output_to_label)
             if true_labels[idx] == predictions[idx]:
                 matches[idx] = True
             # update confusion matrix
