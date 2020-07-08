@@ -79,10 +79,25 @@ def map_n_to_sf_idx(params, z_arr, s_xyz_arr, f_xyz_arr, y_arr):
     return z_of_n, s_of_n, f_of_n, y_of_n
 
 
-def make_mastereqn_matrix(params, flag_zhat=True, y_0_frac_override=None, force_region_1=False, force_region_2=False):
+def make_mastereqn_matrix(params, flag_zhat=True, y_0_frac_override=None, force_region_1=False, force_region_2=False,
+                          explicit=False, alt_absorb_point=None):
     n = params.N
     if n > 1e5:
         print 'Warning large N', n
+
+    def rate_up(j, sval, yval):
+        if explicit:
+            val = params.c * j + params.mu * yval
+        else:
+            val = (1 + sval) * j + params.mu * yval
+        return val
+
+    def rate_down(j, fval):
+        if explicit:
+            val = fval * j
+        else:
+            val = 1.0 * j
+        return val
 
     # BL g100 supported currently
     if y_0_frac_override is not None:
@@ -113,8 +128,13 @@ def make_mastereqn_matrix(params, flag_zhat=True, y_0_frac_override=None, force_
     statespace = int(n + 1)
     if flag_zhat:
         statespace += 1
+    if alt_absorb_point is not None:
+        # set cutoff to consider absorbing at point below z=N
+        assert flag_zhat == False
+        statespace = int(alt_absorb_point + 1)
 
     W = np.zeros((statespace, statespace))
+    upper_bound = statespace - 1  # i.e. z=N or z = alt absorbing point
     if flag_zhat:
         for i in xrange(statespace):
             for j in xrange(statespace-1):
@@ -122,15 +142,15 @@ def make_mastereqn_matrix(params, flag_zhat=True, y_0_frac_override=None, force_
                     W[i, j] = params.mu * z_of_n[j]
                 elif j == 0 and i == 1:
                     W[i, j] = params.mu * y_0_frac * n
-                elif j == n and i == n-1:
+                elif j == upper_bound and i == upper_bound-1:
                     W[i, j] = 0
-                elif j == n - 1 and i == n:
-                    W[i, j] = (1 + s_of_n[j]) * j + 1 * params.mu * y_of_n[j]
+                elif j == upper_bound - 1 and i == upper_bound:
+                    W[i, j] = rate_up(j, s_of_n[j], y_of_n[j])
                 else:
                     if i == j + 1:
-                        W[i, j] = (1 + s_of_n[j]) * j + 1 * params.mu * y_of_n[j]
+                        W[i, j] = rate_up(j, s_of_n[j], y_of_n[j])
                     elif i == j - 1:
-                        W[i, j] = 1 * j
+                        W[i, j] = rate_down(j, f_of_n[j])
                     else:
                         continue
     else:
@@ -138,16 +158,15 @@ def make_mastereqn_matrix(params, flag_zhat=True, y_0_frac_override=None, force_
             for j in xrange(statespace):
                 if j == 0 and i == 1:
                     W[i, j] = params.mu * y_0_frac * n
-                elif j == n and i == n - 1:
+                elif j == upper_bound and i == upper_bound - 1:
                     W[i, j] = 0
-                elif j == n - 1 and i == n:
-                    W[i, j] = (1 + s_of_n[j]) * j + 1 * params.mu * y_of_n[j]
-                    print n, i, j, W[i,j], (1 + s_of_n[j]) * j, params.mu * y_of_n[j]
+                elif j == upper_bound - 1 and i == upper_bound:
+                    W[i, j] = rate_up(j, s_of_n[j], y_of_n[j])
                 else:
                     if i == j + 1:
-                        W[i, j] = (1 + s_of_n[j]) * j + 1 * params.mu * y_of_n[j]
+                        W[i, j] = rate_up(j, s_of_n[j], y_of_n[j])
                     elif i == j - 1:
-                        W[i, j] = 1 * j
+                        W[i, j] = rate_down(j, f_of_n[j])
                     else:
                         continue
     for d in xrange(statespace):
@@ -156,22 +175,21 @@ def make_mastereqn_matrix(params, flag_zhat=True, y_0_frac_override=None, force_
     return W
 
 
-def linalg_mfpt(W=None, params=None, flag_zhat=False, y_0_frac_override=None, force_region_1=False, force_region_2=False):
+def linalg_mfpt(W=None, params=None, flag_zhat=False, y_0_frac_override=None, force_region_1=False, force_region_2=False,
+                use_eval=False, explicit=False, alt_absorb_point=None):
     if W is None:
         W = make_mastereqn_matrix(params, flag_zhat=flag_zhat, y_0_frac_override=y_0_frac_override,
-                                  force_region_1=force_region_1, force_region_2=force_region_2)
-    W_tilde = W[:-1, :-1]
-    inv_W_tilde = np.linalg.inv(W_tilde.T)
-    tau_vec = -1 * np.dot(inv_W_tilde, np.ones(len(W[0,:]) - 1))
-    return tau_vec
-
-
-def sort_D_V(A):
-    D, V = np.linalg.eig(A)
-    D_ranks = np.argsort(D)[::-1]
-    D_sorted = D[D_ranks]
-    V_sorted = V[:, D_ranks]
-    return D_sorted, V_sorted
+                                  force_region_1=force_region_1, force_region_2=force_region_2, explicit=explicit,
+                                  alt_absorb_point=alt_absorb_point)
+    if use_eval:
+        D, _ = sort_D_V(W)
+        linalg_mfpt = -1/(D[1])
+    else:
+        W_tilde = W[:-1, :-1]
+        inv_W_tilde = np.linalg.inv(W_tilde.T)
+        tau_vec = -1 * np.dot(inv_W_tilde, np.ones(len(W[0,:]) - 1))
+        linalg_mfpt = tau_vec[0]
+    return linalg_mfpt
 
 
 if __name__ == '__main__':
