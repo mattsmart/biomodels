@@ -34,7 +34,7 @@ BATCH_SIZE = 64
 VISIBLE_UNITS = 784  # 28 x 28 images
 HIDDEN_UNITS = 10  # was 128 but try 10
 CD_K = 2
-EPOCHS = 0  # was 10
+EPOCHS = 10  # was 10
 DATA_FOLDER = 'data'
 GAUSSIAN_RBM = True
 LOAD_INIT_WEIGHTS = True
@@ -43,9 +43,6 @@ if RBM_gaussian_custom:
     RBM = RBM_gaussian_custom
 else:
     RBM = RBM_custom
-
-if LOAD_INIT_WEIGHTS:
-    assert HIDDEN_UNITS == 10
 
 ########## LOADING DATASET ##########
 print('Loading dataset...')
@@ -89,8 +86,7 @@ for i, (batch, labels) in enumerate(test_loader):
 
 ########## CLASSIFICATION ##########
 clf = LogisticRegression(C=1e5, multi_class='multinomial', penalty='l1', solver='saga', tol=0.1)
-#clf = LogisticRegression(solver='newton-cg', tol=1)
-#clf = LogisticRegression()
+#clf = LogisticRegression(solver='newton-cg', tol=1)   OR   clf = LogisticRegression()
 print('Classifying...')
 clf.fit(train_features, train_labels)
 predictions = clf.predict(test_features).astype(int)

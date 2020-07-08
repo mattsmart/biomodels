@@ -88,17 +88,19 @@ class RBM_gaussian_custom():
 
     def sample_hidden(self, visible_state):
         hidden_activations = torch.matmul(visible_state, self.weights) + self.hidden_bias
-        hidden_sampled = torch.normal(hidden_activations, np.sqrt(1/BETA))  # ********************************************************************* NEW
+        hidden_sampled = torch.normal(hidden_activations, np.sqrt(1/BETA))  # ***************** NEW
         return hidden_sampled
 
-    def sample_hidden_alt(self, visible_state):
-        means = np.dot(visible_state, self.weights)  # + self.hidden_bias
-        return np.random.normal(means, np.sqrt(1 / BETA))
+    def sample_hidden_forcebinary(self, visible_state):
+        visible_activations = torch.matmul(visible_state, self.weights)  # + self.hidden_bias
+        hidden_probabilities = self._sigmoid(2 * BETA * visible_activations)  # self._sigmoid(visible_activations)
+        hidden_sampled = torch.bernoulli(hidden_probabilities)  # **************************** NEW
+        return hidden_sampled
 
     def sample_visible(self, hidden_state):
         visible_activations = torch.matmul(hidden_state, self.weights.t()) + self.visible_bias
         visible_probabilities = self._sigmoid(2 * BETA * visible_activations)  # self._sigmoid(visible_activations)
-        visible_sampled = torch.bernoulli(visible_probabilities)  # ********************************************************************* NEW
+        visible_sampled = torch.bernoulli(visible_probabilities)  # ***************** NEW
         visible_sampled_phys = -1 + visible_sampled * 2
         return visible_sampled_phys
 
