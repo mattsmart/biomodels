@@ -74,6 +74,127 @@ def data_dict_mnist(data):
     return data_dict, category_counts
 
 
+def data_dict_mnist_inspect(data_dict, category_counts):
+    data_dimension = (28,28)
+    data_dimension_collapsed = data_dimension[0] * data_dimension[1]
+
+    """
+    print("CORRELATIONS")
+    tot = len(list(data_dict.keys()))
+    all_data_correlation = np.zeros((tot, tot))
+    start_idx = [0]*10
+    for idx in range(1,10):
+        start_idx[idx] = start_idx[idx-1] + category_counts[idx-1]
+    for i in range(10):
+        data_i = data_dict[i].reshape(784, category_counts[i])
+        i_a = start_idx[i]
+        if i == 9:
+            i_b = len(data)
+        else:
+            i_b = start_idx[i + 1]
+        for j in range(i+1):
+            print(i,j)
+            data_j = data_dict[j].reshape(784, category_counts[j])
+            corr = np.dot(data_i.T, data_j)
+            j_a = start_idx[j]
+            if j == 9:
+                j_b = len(data)
+            else:
+                j_b = start_idx[j + 1]
+            all_data_correlation[i_a:i_b, j_a:j_b] = corr
+            all_data_correlation[j_a:j_b, i_a:i_b] = corr.T
+            plt.imshow(corr)
+            plt.colorbar()
+            plt.title('%d,%d (corr)' % (i,j))
+            plt.show()
+    plt.imshow(all_data_correlation)  # out of memory error, show only in parts above
+    plt.colorbar()
+    plt.title('all data (corr)')
+    plt.show()
+    """
+
+    for idx in range(10):
+        print(idx)
+        category_amount = category_counts[idx]
+        data_idx_collapsed = data_dict[idx].reshape(data_dimension_collapsed, category_amount)
+
+        # assumes data will be binarized
+        data_idx_collapsed[data_idx_collapsed > MNIST_BINARIZATION_CUTOFF] = 1
+        data_idx_collapsed[data_idx_collapsed < MNIST_BINARIZATION_CUTOFF] = 0
+
+        print("DISTANCES")
+        category_amount_redux = int(category_amount)  # TODO enlarge
+        distance_arr = np.zeros((category_amount_redux, category_amount_redux))
+        for i in range(category_amount_redux):
+            a = data_idx_collapsed[:, i]
+            for j in range(i + 1):
+                b = data_idx_collapsed[:, j]
+                val = np.count_nonzero(a != b)
+                distance_arr[i, j] = val
+                distance_arr[j, i] = val
+
+        print("MANUAL DENDROGRAM")
+        from scipy.cluster.hierarchy import dendrogram, linkage
+        from scipy.spatial.distance import squareform
+        condensed_dist = squareform(distance_arr)
+
+        Z = linkage(condensed_dist, 'ward')
+        fig = plt.figure(figsize=(25, 10))
+        dn = dendrogram(Z)
+        plt.title(idx)
+        plt.savefig(DIR_OUTPUT + os.sep + 'dend_%d.png' % idx)
+    return
+
+
+def data_dict_mnist_detailed(data_dict, category_counts):
+    """
+    Idea here is to further divide the patterns into subtypes to aid classification: (7_0, 7_1, etc)
+        - should the binarization already be happening or not yet?
+    Intermediate form of data_dict_detailed:
+        {6: {0: array, 1: array}}  (representing 6_0, 6_1 subtypes for example)
+    Returned form:
+        {'6_0': array, '6_1': array}  (representing 6_0, 6_1 subtypes for example)
+    """
+    data_dimension = (28,28)
+    data_dimension_collapsed = data_dimension[0] * data_dimension[1]
+    data_dict_detailed = {idx: {} for idx in range(10)}
+
+    for idx in range(10):
+        print(idx)
+        category_amount = category_counts[idx]
+        data_idx_collapsed = data_dict[idx].reshape(data_dimension_collapsed, category_amount)
+
+        # assumes data will be biinarized
+        data_idx_collapsed[data_idx_collapsed > MNIST_BINARIZATION_CUTOFF] = 1
+        data_idx_collapsed[data_idx_collapsed < MNIST_BINARIZATION_CUTOFF] = 0
+
+        print("Auto AgglomerativeClustering")
+        # note euclidean is sqrt of 01 flip distance (for binary data), ward seems best, threshold 24 gave 2-5 clusters per digit
+        print(data_idx_collapsed.shape)
+        from sklearn.cluster import AgglomerativeClustering
+        cluster = AgglomerativeClustering(n_clusters=K_PATTERN_DIV, affinity='euclidean', linkage='ward', distance_threshold=None)
+        #cluster = AgglomerativeClustering(n_clusters=None, affinity='euclidean', linkage='ward', distance_threshold=24)
+        cluster_labels = cluster.fit_predict(data_idx_collapsed.T)
+
+        # pre-allocate subcategory arrays and fill in
+        unique, counts = np.unique(cluster_labels, return_counts=True)
+        sublabeldict = dict(zip(unique, counts))
+        print(sublabeldict)
+        for k in sublabeldict.keys():
+            sublabel_indices = np.argwhere(cluster_labels == k)
+            data_dict_detailed[idx][k] = np.squeeze( data_idx_collapsed[:, sublabel_indices] ).reshape(28, 28, len(sublabel_indices))
+
+    data_dict_detailed_flat = {}
+    category_counts_detailed_flat = {}
+    for idx in range(10):
+        for subkey in data_dict_detailed[idx].keys():
+            newkey = '%d_%d' % (idx, subkey)
+            data_dict_detailed_flat[newkey] = data_dict_detailed[idx][subkey]
+            category_counts_detailed_flat[newkey] = data_dict_detailed[idx][subkey].shape[2]
+
+    return data_dict_detailed_flat, category_counts_detailed_flat
+
+
 def hopfield_mnist_patterns(data_dict, category_counts, pattern_threshold=PATTERN_THRESHOLD):
     """
     data: list of tuples (numpy array, labe;)
@@ -81,22 +202,26 @@ def hopfield_mnist_patterns(data_dict, category_counts, pattern_threshold=PATTER
     Returns:
         xi: N x P binary pattern matrix
     """
-    data_dimension = data_dict[0].shape[:2]
+    keys = sorted(data_dict.keys())
+    pattern_idx_to_labels = {idx: keys[idx] for idx in range(len(keys))}
+
+    data_dimension = data_dict[keys[0]].shape[:2]
+
     # testing additional pre-binarization step
-    for i in range(10):
-        for j in range(category_counts[i]):
-            data_dict[i][:, :, j] = binarize_image_data(data_dict[i][:, :, j], threshold=MNIST_BINARIZATION_CUTOFF)
-    print("Forming the 10 MNIST patterns")
-    xi_images = np.zeros((*data_dimension, 10), dtype=int)
-    for idx in range(10):
-        samples = data_dict[idx]
-        samples_avg = np.sum(samples, axis=2) / category_counts[idx]
+    for key in keys:
+        data_dict[key] = binarize_image_data(data_dict[key], threshold=MNIST_BINARIZATION_CUTOFF)
+
+    print("Forming %d MNIST patterns" % len(keys))
+    xi_images = np.zeros((*data_dimension, len(keys)), dtype=int)
+    for idx, key in enumerate(keys):
+        samples = data_dict[key]
+        samples_avg = np.sum(samples, axis=2) / category_counts[key]
         samples_avg[samples_avg <= pattern_threshold] = -1  # samples_avg[samples_avg <= pattern_threshold] = -1
         samples_avg[samples_avg > pattern_threshold] = 1
         xi_images[:, :, idx] = samples_avg
     xi_collapsed = image_data_collapse(xi_images)
     print("xi_collapsed.shape", xi_collapsed.shape)
-    return xi_images, xi_collapsed
+    return xi_images, xi_collapsed, pattern_idx_to_labels
 
 
 def data_synthetic_dual(num_samples=SYNTHETIC_SAMPLES, noise='symmetric', sampling='balanced', datasplit='balanced'):
