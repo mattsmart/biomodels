@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 import torchvision
-from settings import DIR_DATA, DIR_MODELS, SYNTHETIC_DIM, SYNTHETIC_SAMPLES, SYNTHETIC_NOISE_VALID, \
-    SYNTHETIC_SAMPLING_VALID, SYNTHETIC_DATASPLIT, MNIST_BINARIZATION_CUTOFF, PATTERN_THRESHOLD
+from settings import DIR_DATA, DIR_MODELS, DIR_OUTPUT, SYNTHETIC_DIM, SYNTHETIC_SAMPLES, SYNTHETIC_NOISE_VALID, \
+    SYNTHETIC_SAMPLING_VALID, SYNTHETIC_DATASPLIT, MNIST_BINARIZATION_CUTOFF, PATTERN_THRESHOLD, K_PATTERN_DIV
 
 """
 noise 'symmetric': the noise for each pattern basin is symmetric
@@ -140,13 +141,20 @@ def data_synthetic_dual(num_samples=SYNTHETIC_SAMPLES, noise='symmetric', sampli
 if __name__ == '__main__':
     # get data
     mnist_training, mnist_testing = data_mnist()
-    # partition data
-    data_dict, category_counts = data_dict_mnist(mnist_training)
 
-    simple_pattern_vis = False
+    inspect_data_dict = True
+    if inspect_data_dict:
+        data_dict, category_counts = data_dict_mnist(mnist_training)
+        data_dict_detailed, category_counts_detailed = data_dict_mnist_detailed(data_dict, category_counts)
+        xi_images, xi_collapsed, pattern_idx_to_labels = hopfield_mnist_patterns(data_dict, category_counts, pattern_threshold=0.0)
+        for idx in range(xi_images.shape[-1]):
+            plt.imshow(xi_images[:, :, idx])
+
+    simple_pattern_vis = True
     if simple_pattern_vis:
         print("Plot hopfield patterns from 'voting'")
-        xi_mnist, _ = hopfield_mnist_patterns(data_dict, category_counts, pattern_threshold=0.5)
+        data_dict, category_counts = data_dict_mnist(mnist_training)
+        xi_mnist, _ = hopfield_mnist_patterns(data_dict, category_counts, pattern_threshold=0.0)
         for idx in range(10):
             plt.imshow(xi_mnist[:, :, idx])
             plt.colorbar()
