@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 from sklearn.linear_model import LogisticRegression
 import torch
 import torchvision.datasets
@@ -10,7 +11,7 @@ from custom_rbm import RBM_custom, RBM_gaussian_custom
 from data_process import image_data_collapse, binarize_image_data
 from RBM_train import build_rbm_hopfield
 from RBM_assess import plot_confusion_matrix, rbm_features_MNIST
-from settings import MNIST_BINARIZATION_CUTOFF
+from settings import MNIST_BINARIZATION_CUTOFF, DIR_OUTPUT
 
 
 """
@@ -30,14 +31,15 @@ WHAT'S CHANGED:
 
 
 ########## CONFIGURATION ##########
-BATCH_SIZE = 64
+BATCH_SIZE = 64  # default 64
 VISIBLE_UNITS = 784  # 28 x 28 images
 HIDDEN_UNITS = 10  # was 128 but try 10
-CD_K = 2
-EPOCHS = 10  # was 10
+CD_K = 1
+EPOCHS = 5  # was 10
 DATA_FOLDER = 'data'
 GAUSSIAN_RBM = True
 LOAD_INIT_WEIGHTS = True
+USE_FIELDS = False
 
 if RBM_gaussian_custom:
     RBM = RBM_gaussian_custom
@@ -53,7 +55,8 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=BATCH_SIZE)
 
 ########## TRAINING RBM ##########
 print('Training RBM...')
-rbm = RBM(VISIBLE_UNITS, HIDDEN_UNITS, CD_K, load_init_weights=LOAD_INIT_WEIGHTS)
+rbm = RBM(VISIBLE_UNITS, HIDDEN_UNITS, CD_K, load_init_weights=LOAD_INIT_WEIGHTS, use_fields=USE_FIELDS)
+rbm.plot_model(title='epoch_0')
 for epoch in range(EPOCHS):
     epoch_error = 0.0
     for batch, _ in train_loader:
@@ -62,7 +65,8 @@ for epoch in range(EPOCHS):
         batch = -1 + batch * 2                                 # convert to -1,1 form
         batch_error = rbm.contrastive_divergence(batch)
         epoch_error += batch_error
-    print('Epoch Error (epoch=%d): %.4f' % (epoch, epoch_error))
+    rbm.plot_model(title='epoch_%d' % (epoch+1))
+    print('Epoch Error (epoch=%d): %.4f' % (epoch+1, epoch_error))
 
 ########## EXTRACT FEATURES ##########
 print('Extracting features...')
@@ -98,5 +102,7 @@ for idx, pair in enumerate(test_dataset):
     if pair[1] == predictions[idx]:
         matches[idx] = True
     confusion_matrix[pair[1], predictions[idx]] += 1
-print("Successful test cases: %d/%d (%.3f)" % (matches.count(True), len(matches), float(matches.count(True) / len(matches))))
-plot_confusion_matrix(confusion_matrix)
+title = "Successful test cases: %d/%d (%.3f)" % (matches.count(True), len(matches), float(matches.count(True) / len(matches)))
+fpath = DIR_OUTPUT + os.sep + 'training' + os.sep + 'cm.jpg'
+cm = plot_confusion_matrix(confusion_matrix, title=title, save=fpath)
+print(title)
