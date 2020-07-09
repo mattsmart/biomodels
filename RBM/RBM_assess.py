@@ -142,7 +142,7 @@ def logistic_regression_on_visible(rbm, dataset_train, dataset_test, binarize=Fa
     return confusion_matrix_10
 
 
-def plot_confusion_matrix(confusion_matrix, classlabels=list(range(10))):
+def plot_confusion_matrix(confusion_matrix, classlabels=list(range(10)), title='', save=None):
     # Ref: https://stackoverflow.com/questions/35572000/how-can-i-plot-a-confusion-matrix
     import seaborn as sn
     import pandas as pd
@@ -154,11 +154,15 @@ def plot_confusion_matrix(confusion_matrix, classlabels=list(range(10))):
         xlabels = ylabels
     df_cm = pd.DataFrame(confusion_matrix, index=ylabels, columns=xlabels)
 
-    plt.figure(figsize=(11,7))
+    plt.figure(figsize=(11, 7))
     sn.set(font_scale=1.2)  # for label size
     sn.heatmap(df_cm, annot=True, annot_kws={"size": 10}, cmap='Blues', fmt='d')  # font size
     plt.gca().set(xlabel='Predicted', ylabel='True label')
-    plt.show()
+    plt.title(title)
+    if save is None:
+        plt.show()
+    else:
+        plt.savefig(save)
     return
 
 
