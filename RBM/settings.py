@@ -1,6 +1,7 @@
 import numpy as np
 import os
-
+from sklearn import svm
+from sklearn.linear_model import LogisticRegression
 
 DIR_DATA = 'data'
 DIR_MODELS = 'models'
@@ -35,6 +36,14 @@ PATTERN_THRESHOLD = 0.0
 K_PATTERN_DIV = 1
 BETA = 8.0
 GAUSSIAN_STDEV = np.sqrt(1/BETA)
-HRBM_LOGREG_STEPS = 1
-HRBM_MANUAL_MAXSTEPS = 10
 VISIBLE_FIELD = False
+
+HRBM_MANUAL_MAXSTEPS = 10
+HRBM_CLASSIFIER_STEPS = 1
+
+USE_SVM = False
+if USE_SVM:
+    # as in https://scikit-learn.org/stable/auto_examples/classification/plot_digits_classification.html;
+    CLASSIFIER = svm.SVC(gamma=0.001)  # try 'auto' or 'scale'
+else:
+    CLASSIFIER = LogisticRegression(C=1e5, multi_class='multinomial', penalty='l1', solver='saga', tol=0.1)

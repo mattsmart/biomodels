@@ -1,11 +1,12 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-import torch
-import torchvision
+
+from sklearn.decomposition import PCA
+
 from data_process import image_data_collapse, torch_image_to_numpy, binarize_image_data
 from RBM_train import RBM, TRAINING, TESTING, build_rbm_hopfield, load_rbm_hopfield
-from settings import MNIST_BINARIZATION_CUTOFF, DIR_OUTPUT, VISIBLE_FIELD, HRBM_LOGREG_STEPS, HRBM_MANUAL_MAXSTEPS, DEFAULT_HOPFIELD, DIR_MODELS
+from settings import MNIST_BINARIZATION_CUTOFF, DIR_OUTPUT, VISIBLE_FIELD, HRBM_CLASSIFIER_STEPS, HRBM_MANUAL_MAXSTEPS, DEFAULT_HOPFIELD, DIR_MODELS, CLASSIFIER
 
 
 # TODO
@@ -59,87 +60,109 @@ def classify_MNIST(rbm, visual_init, dataset_idx, MNIST_output_to_label, sum_mod
     return classification
 
 
-def rbm_features_MNIST(rbm, visual_init, steps=HRBM_LOGREG_STEPS):
+def rbm_features_MNIST(rbm, visual_init, steps=HRBM_CLASSIFIER_STEPS, use_hidden=True):
     visual_step = visual_init
     for idx in range(steps):
         visual_step, hidden_step, _ = rbm.RBM_step(visual_step)
-    return hidden_step
+    if use_hidden:
+        out = hidden_step
+    else:
+        out = visual_step
+    return out
 
 
-def logistic_regression_on_hidden(rbm, dataset_train, dataset_test):
-    print("logistic_regression_on_hidden; Step 1: get features for training")
-    X_train = np.zeros((len(dataset_train), rbm.dim_hidden))
-    y_train = np.zeros(len(dataset_train), dtype=int)
-    for idx, pair in enumerate(dataset_train):
-        elem_arr, elem_label = pair
-        preprocessed_input = binarize_image_data(image_data_collapse(elem_arr), threshold=MNIST_BINARIZATION_CUTOFF)
-        X_train[idx, :] = rbm_features_MNIST(rbm, preprocessed_input)
-        y_train[idx] = elem_label
-    print("logistic_regression_on_hidden; Step 2: logistic regression on classes")
-    from sklearn.linear_model import LogisticRegression
-    clf = LogisticRegression(C=1e5, multi_class='multinomial', penalty='l1', solver='saga', tol=0.1)
-    clf.fit(X_train, y_train)  # fit data
-    print("logistic_regression_on_hidden; Step 3: get features for testing")
-    X_test = np.zeros((len(dataset_test), rbm.dim_hidden))
-    y_test = np.zeros(len(dataset_test), dtype=int)
-    for idx, pair in enumerate(dataset_test):
-        elem_arr, elem_label = pair
-        preprocessed_input = binarize_image_data(image_data_collapse(elem_arr), threshold=MNIST_BINARIZATION_CUTOFF)
-        X_test[idx, :] = rbm_features_MNIST(rbm, preprocessed_input)
-        y_test[idx] = elem_label
-    print("logistic_regression_on_hidden; Step 4: classification metrics and confusion matrix")
-    """
-    sparsity1 = np.mean(clf1.coef_ == 0) * 100  # percentage of nonzero weights """
-    predictions = clf.predict(X_test).astype(int)
+def confusion_matrix_from_pred(predictions, true_labels):
     #confusion_matrix = np.zeros((rbm.dim_hidden, rbm.dim_hidden), dtype=int)
     confusion_matrix_10 = np.zeros((10, 10), dtype=int)
-    matches = [False for _ in dataset_test]
-    for idx, pair in enumerate(dataset_test):
-        if y_test[idx] == predictions[idx]:
+    matches = [False for _ in predictions]
+    for idx in range(len(predictions)):
+        if true_labels[idx] == predictions[idx]:
             matches[idx] = True
-        confusion_matrix_10[y_test[idx], predictions[idx]] += 1
-    print("Successful test cases: %d/%d (%.3f)" % (matches.count(True), len(matches), float(matches.count(True) / len(matches))))
-    return confusion_matrix_10
+        confusion_matrix_10[true_labels[idx], predictions[idx]] += 1
+    return confusion_matrix_10, matches
 
 
-def logistic_regression_on_visible(rbm, dataset_train, dataset_test, binarize=False):
-    print("logistic_regression_on_visible; Step 1: get features for training")
-    X_train = np.zeros((len(dataset_train), rbm.dim_visible))
-    y_train = np.zeros(len(dataset_train), dtype=int)
-    for idx, pair in enumerate(dataset_train):
-        elem_arr, elem_label = pair
-        preprocessed_input = image_data_collapse(elem_arr)
-        if binarize:
-            preprocessed_input = binarize_image_data(preprocessed_input, threshold=MNIST_BINARIZATION_CUTOFF)
-        X_train[idx, :] = preprocessed_input
-        y_train[idx] = elem_label
-    print("logistic_regression_on_visible; Step 2: logistic regression on classes")
-    from sklearn.linear_model import LogisticRegression
-    clf = LogisticRegression(C=1e5, multi_class='multinomial', penalty='l1', solver='saga', tol=0.1)
-    clf.fit(X_train, y_train)  # fit data
-    print("logistic_regression_on_visible; Step 3: get features for testing")
-    X_test = np.zeros((len(dataset_test), rbm.dim_visible))
-    y_test = np.zeros(len(dataset_test), dtype=int)
-    for idx, pair in enumerate(dataset_test):
-        elem_arr, elem_label = pair
-        preprocessed_input = image_data_collapse(elem_arr)
-        if binarize:
-            preprocessed_input = binarize_image_data(preprocessed_input, threshold=MNIST_BINARIZATION_CUTOFF)
-        X_test[idx, :] = preprocessed_input
-        y_test[idx] = elem_label
-    print("logistic_regression_on_visible; Step 4: classification metrics and confusion matrix")
-    """
-    sparsity1 = np.mean(clf1.coef_ == 0) * 100  # percentage of nonzero weights """
-    predictions = clf.predict(X_test).astype(int)
-    #confusion_matrix = np.zeros((rbm.dim_hidden, rbm.dim_hidden), dtype=int)
-    confusion_matrix_10 = np.zeros((10, 10), dtype=int)
-    matches = [False for _ in dataset_test]
-    for idx, pair in enumerate(dataset_test):
-        if y_test[idx] == predictions[idx]:
-            matches[idx] = True
-        confusion_matrix_10[y_test[idx], predictions[idx]] += 1
+def classifier_on_rbm_features(rbm, dataset_train, dataset_test, use_hidden=True, binarize=False, classifier=CLASSIFIER):
+
+    def get_X_y(dataset):
+        if use_hidden:
+            feature_dim = rbm.dim_hidden
+        else:
+            feature_dim = rbm.dim_visible
+        X = np.zeros((len(dataset), feature_dim))
+        y = np.zeros(len(dataset), dtype=int)
+        for idx, pair in enumerate(dataset):
+            elem_arr, elem_label = pair
+            if use_hidden:
+                preprocessed_input = binarize_image_data(image_data_collapse(elem_arr), threshold=MNIST_BINARIZATION_CUTOFF)
+                features = rbm_features_MNIST(rbm, preprocessed_input)
+            else:
+                preprocessed_input = image_data_collapse(elem_arr)
+                if binarize:
+                    preprocessed_input = binarize_image_data(preprocessed_input, threshold=MNIST_BINARIZATION_CUTOFF)
+                features = preprocessed_input
+            X[idx, :] = features
+            y[idx] = elem_label
+        return X, y
+
+    print("classifier_on_rbm_features; Step 1: get features for training")
+    X_train, y_train = get_X_y(dataset_train)
+    print("classifier_on_rbm_features; Step 2: train classifier layer")
+    classifier.fit(X_train, y_train)  # fit data
+    print("classifier_on_rbm_features; Step 3: get features for testing")
+    X_test, y_test = get_X_y(dataset_test)
+    print("classifier_on_rbm_features; Step 4: classification metrics and confusion matrix")
+    # sparsity1 = np.mean(clf1.coef_ == 0) * 100  # percentage of nonzero weights
+    predictions = classifier.predict(X_test).astype(int)
+    confusion_matrix, matches = confusion_matrix_from_pred(predictions, y_test)
     print("Successful test cases: %d/%d (%.3f)" % (matches.count(True), len(matches), float(matches.count(True) / len(matches))))
-    return confusion_matrix_10
+    return confusion_matrix
+
+
+def classifier_on_proj(dataset_train, dataset_test, dim_visible, binarize=False, dim=10, classifier=CLASSIFIER, proj=None):
+
+    if proj is not None:
+        assert proj.shape == (dim_visible, dim)
+
+    def get_X_y(dataset):
+        X = np.zeros((len(dataset), dim_visible))
+        y = np.zeros(len(dataset), dtype=int)
+        for idx, pair in enumerate(dataset):
+            elem_arr, elem_label = pair
+            preprocessed_input = image_data_collapse(elem_arr)
+            if binarize:
+                preprocessed_input = binarize_image_data(preprocessed_input, threshold=MNIST_BINARIZATION_CUTOFF)
+            features = preprocessed_input
+            X[idx, :] = features
+            y[idx] = elem_label
+        return X, y
+
+    print("classifier_on_proj; Step 1: get features for training")
+    X_train, y_train = get_X_y(dataset_train)
+    if proj is None:
+        pca = PCA(n_components=dim)
+        pca.fit(X_train)
+        X_train_reduced = pca.transform(X_train)
+    else:
+        X_train_reduced = np.dot(X_train, proj)
+
+    print("classifier_on_proj; Step 2: train classifier layer")
+    classifier.fit(X_train_reduced, y_train)  # fit data
+
+    print("classifier_on_proj; Step 3: get features for testing")
+    X_test, y_test = get_X_y(dataset_test)
+    # use PCA to reduce dim of testing set
+    X_test, y_test = get_X_y(dataset_test)
+    if proj is None:
+        X_test_reduced = pca.transform(X_test)
+    else:
+        X_test_reduced = np.dot(X_test, proj)
+
+    print("classifier_on_proj; Step 4: classification metrics and confusion matrix")
+    predictions = classifier.predict(X_test_reduced).astype(int)
+    confusion_matrix, matches = confusion_matrix_from_pred(predictions, y_test)
+    print("Successful test cases: %d/%d (%.3f)" % (matches.count(True), len(matches), float(matches.count(True) / len(matches))))
+    return confusion_matrix
 
 
 def plot_confusion_matrix(confusion_matrix, classlabels=list(range(10)), title='', save=None):
@@ -168,56 +191,66 @@ def plot_confusion_matrix(confusion_matrix, classlabels=list(range(10)), title='
 
 if __name__ == '__main__':
     plot_wrong = False
+    dont_use_rbm = True
+    use_random_proj = False
 
-    # load variants
-    """
-    RBM_A = load_rbm_trained()
-    RBM_B = load_rbm_trained()
-    RBM_C = load_rbm_trained()
-    RBM_D = load_rbm_trained()
-    """
-    # score each variant
-    # TODO
-    # plot
-    # TODO
     # ROUGH WORK for hopfield RBM only
     DATASET = TESTING  # TESTING or TRAINING
     npzpath_default = DEFAULT_HOPFIELD  # DEFAULT_HOPFIELD
-    npzpath = DIR_MODELS + os.sep + 'saved' + os.sep + 'hopfield_mnist_10.npz'  # npzpath_default or None
+    npzpath = DIR_MODELS + os.sep + 'saved' + os.sep + 'hopfield_mnist_200.npz'  # npzpath_default or None
 
     if npzpath is None:
         rbm_hopfield = build_rbm_hopfield(visible_field=VISIBLE_FIELD)
     else:
         rbm_hopfield = load_rbm_hopfield(npzpath=npzpath)
 
-    logistic_regression_approach = False
-    if logistic_regression_approach:
-        confusion_matrix = logistic_regression_on_hidden(rbm_hopfield, TRAINING, TESTING)
+    if dont_use_rbm:
+        N = rbm_hopfield.dim_visible
+        P = rbm_hopfield.dim_hidden
+        proj = None
+        if use_random_proj:
+            print('Using random projection...')
+            proj = np.random.rand(N,P)*2 - 1
+            print(proj.shape)
+        confusion_matrix = classifier_on_proj(TRAINING, TESTING, N, binarize=False, dim=P, proj=proj)
         plot_confusion_matrix(confusion_matrix)
-        #confusion_matrix_vis_binary = logistic_regression_on_visible(rbm_hopfield, TRAINING, TESTING, binarize=False)
-        #plot_confusion_matrix(confusion_matrix_vis_binary)
-        #confusion_matrix_vis_raw = logistic_regression_on_visible(rbm_hopfield, TRAINING, TESTING, binarize=True)
-        #plot_confusion_matrix(confusion_matrix_vis_raw)
+        confusion_matrix = classifier_on_proj(TRAINING, TESTING, N, binarize=True, dim=P, proj=proj)
+        plot_confusion_matrix(confusion_matrix)
 
     else:
-        confusion_matrix = np.zeros((10, 11), dtype=int)  # last column is "unclassified"
-        matches = [False for _ in DATASET]
-        predictions = len(DATASET) * [0]
-        true_labels = [str(pair[1]) for pair in DATASET]
-        MNIST_output_to_label = setup_MNIST_classification(rbm_hopfield)
-        for idx, pair in enumerate(DATASET):
-            elem_arr, elem_label = pair
-            preprocessed_input = binarize_image_data(image_data_collapse(elem_arr), threshold=MNIST_BINARIZATION_CUTOFF)
-            predictions[idx] = classify_MNIST(rbm_hopfield, preprocessed_input, idx, MNIST_output_to_label)
-            if true_labels[idx] == predictions[idx]:
-                matches[idx] = True
-            # update confusion matrix
-            if len(predictions[idx]) == 1:
-                confusion_matrix[elem_label, int(predictions[idx])] += 1
-            else:
-                confusion_matrix[elem_label, -1] += 1
-                if plot_wrong:
-                    plt.imshow(preprocessed_input.reshape((28,28)))
-                    plt.savefig(DIR_OUTPUT + os.sep + 'wrong_idx%s_true%s_%s.png' % (idx, true_labels[idx], predictions[idx]))
-        print("Successful test cases: %d/%d (%.3f)" % (matches.count(True), len(matches), float(matches.count(True) / len(matches))))
-        plot_confusion_matrix(confusion_matrix)
+        append_classifier_layer = True
+        if append_classifier_layer:
+            confusion_matrix = classifier_on_rbm_features(rbm_hopfield, TRAINING, TESTING, use_hidden=True, binarize=False)
+            plot_confusion_matrix(confusion_matrix)
+            """
+            confusion_matrix_vis_raw = classifier_on_rbm_features(rbm_hopfield, TRAINING, TESTING, use_hidden=False, binarize=False)
+            plot_confusion_matrix(confusion_matrix_vis_raw)
+            confusion_matrix_vis_binary = classifier_on_rbm_features(rbm_hopfield, TRAINING, TESTING, use_hidden=False, binarize=True)
+            plot_confusion_matrix(confusion_matrix_vis_binary)
+            """
+
+        else:  # manual RBM classification
+            predictions = len(DATASET) * [0]
+            true_labels = [str(pair[1]) for pair in DATASET]
+            MNIST_output_to_label = setup_MNIST_classification(rbm_hopfield)
+
+            confusion_matrix = np.zeros((10, 11), dtype=int)  # last column is "unclassified"
+            matches = [False for _ in DATASET]
+            for idx, pair in enumerate(DATASET):
+                elem_arr, elem_label = pair
+                preprocessed_input = binarize_image_data(image_data_collapse(elem_arr), threshold=MNIST_BINARIZATION_CUTOFF)
+                predictions[idx] = classify_MNIST(rbm_hopfield, preprocessed_input, idx, MNIST_output_to_label)
+                if true_labels[idx] == predictions[idx]:
+                    matches[idx] = True
+                    if len(predictions[idx]) == 1:
+                        confusion_matrix[elem_label, int(predictions[idx])] += 1
+                    else:
+                        confusion_matrix[elem_label, -1] += 1
+                        if plot_wrong:
+                            plt.imshow(preprocessed_input.reshape((28, 28)))
+                            plt.savefig(DIR_OUTPUT + os.sep + 'wrong_idx%s_true%s_%s.png'
+                                        % (idx, true_labels[idx], predictions[idx]))
+
+            cm_title = "Successful test cases: %d/%d (%.3f)" % (matches.count(True), len(matches), float(matches.count(True) / len(matches)))
+            print(cm_title)
+            plot_confusion_matrix(confusion_matrix, title=cm_title)
