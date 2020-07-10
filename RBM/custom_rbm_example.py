@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 from sklearn.linear_model import LogisticRegression
+from sklearn import svm
 import torch
 import torchvision.datasets
 import torchvision.models
@@ -11,7 +12,7 @@ from custom_rbm import RBM_custom, RBM_gaussian_custom
 from data_process import image_data_collapse, binarize_image_data
 from RBM_train import build_rbm_hopfield
 from RBM_assess import plot_confusion_matrix, rbm_features_MNIST
-from settings import MNIST_BINARIZATION_CUTOFF, DIR_OUTPUT
+from settings import MNIST_BINARIZATION_CUTOFF, DIR_OUTPUT, CLASSIFIER
 
 
 """
@@ -34,8 +35,8 @@ WHAT'S CHANGED:
 BATCH_SIZE = 64  # default 64
 VISIBLE_UNITS = 784  # 28 x 28 images
 HIDDEN_UNITS = 10  # was 128 but try 10
-CD_K = 1
-EPOCHS = 5  # was 10
+CD_K = 2
+EPOCHS = 0  # was 10
 DATA_FOLDER = 'data'
 GAUSSIAN_RBM = True
 LOAD_INIT_WEIGHTS = True
@@ -89,11 +90,10 @@ for i, (batch, labels) in enumerate(test_loader):
     test_labels[i*BATCH_SIZE:i*BATCH_SIZE+len(batch)] = labels.numpy()
 
 ########## CLASSIFICATION ##########
-clf = LogisticRegression(C=1e5, multi_class='multinomial', penalty='l1', solver='saga', tol=0.1)
-#clf = LogisticRegression(solver='newton-cg', tol=1)   OR   clf = LogisticRegression()
+print('Training Classifier...')
+CLASSIFIER.fit(train_features, train_labels)
 print('Classifying...')
-clf.fit(train_features, train_labels)
-predictions = clf.predict(test_features).astype(int)
+predictions = CLASSIFIER.predict(test_features).astype(int)
 
 ########## CONFUSION MATRIX ##########
 confusion_matrix = np.zeros((10, 10), dtype=int)
