@@ -4,7 +4,7 @@ import os
 from scipy.linalg import qr
 import torch
 from data_process import data_mnist, data_synthetic_dual, hopfield_mnist_patterns, data_dict_mnist, binarize_image_data, image_data_collapse, data_dict_mnist_detailed
-from settings import DIR_DATA, DIR_OUTPUT, DIR_MODELS, CPU_THREADS, DATA_CHOICE, MNIST_BINARIZATION_CUTOFF, BETA, PATTERN_THRESHOLD, DEFAULT_HOPFIELD, K_PATTERN_DIV
+from settings import DIR_DATA, DIR_OUTPUT, DIR_MODELS, CPU_THREADS, DATA_CHOICE, MNIST_BINARIZATION_CUTOFF, BETA, PATTERN_THRESHOLD, DEFAULT_HOPFIELD, K_PATTERN_DIV, DIR_CLASSIFY
 
 
 assert DATA_CHOICE in ['synthetic', 'mnist']
@@ -142,6 +142,13 @@ class RBM:
             rbm_internal_weights = np.load(fpath)
         return rbm_internal_weights
 
+    def plot_visible(self, visible_state, title='def'):
+        plt.imshow(visible_state.reshape(28,28))
+        plt.colorbar()
+        plt.title('Visible state (%s)' % title)
+        plt.savefig(DIR_CLASSIFY + os.sep + 'visible_%s' % title)
+        plt.close()
+        return
 
 def linalg_hopfield_patterns(data_dict, category_counts):
     xi, xi_collapsed, pattern_idx_to_labels = hopfield_mnist_patterns(data_dict, category_counts, pattern_threshold=PATTERN_THRESHOLD)

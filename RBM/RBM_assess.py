@@ -6,7 +6,8 @@ from sklearn.decomposition import PCA
 
 from data_process import image_data_collapse, torch_image_to_numpy, binarize_image_data
 from RBM_train import RBM, TRAINING, TESTING, build_rbm_hopfield, load_rbm_hopfield
-from settings import MNIST_BINARIZATION_CUTOFF, DIR_OUTPUT, VISIBLE_FIELD, HRBM_CLASSIFIER_STEPS, HRBM_MANUAL_MAXSTEPS, DEFAULT_HOPFIELD, DIR_MODELS, CLASSIFIER
+from settings import BETA, USE_BETA_SCHEDULER, DIR_OUTPUT, VISIBLE_FIELD, HRBM_CLASSIFIER_STEPS, HRBM_MANUAL_MAXSTEPS, \
+    MNIST_BINARIZATION_CUTOFF, DEFAULT_HOPFIELD, DIR_MODELS, DIR_CLASSIFY, CLASSIFIER
 
 
 # TODO
@@ -60,10 +61,28 @@ def classify_MNIST(rbm, visual_init, dataset_idx, MNIST_output_to_label, sum_mod
     return classification
 
 
-def rbm_features_MNIST(rbm, visual_init, steps=HRBM_CLASSIFIER_STEPS, use_hidden=True):
+def rbm_features_MNIST(rbm, visual_init, steps=HRBM_CLASSIFIER_STEPS, use_hidden=True, plot_visible=True, titlemod=''):
     visual_step = visual_init
+
+    # build temperature schedule  TODO move out for speed
+    beta_schedule = [BETA for _ in range(steps)]
+    if USE_BETA_SCHEDULER:
+        assert steps == 10
+        switchpoint = 7
+        for idx in range(steps):
+            if idx < switchpoint:
+                beta_schedule[idx] = 4.0  # 2 seems too strong, 8 too weak
+            else:
+                beta_schedule[idx] = 200.0
+
+    if plot_visible:
+        rbm.plot_visible(visual_init, title='%s_0' % titlemod)
     for idx in range(steps):
-        visual_step, hidden_step, _ = rbm.RBM_step(visual_step)
+        visual_step, hidden_step, _ = rbm.RBM_step(visual_step, beta=beta_schedule[idx])
+        if plot_visible:
+            title = '%s_%d' % (titlemod, idx+1)
+            print(title)
+            rbm.plot_visible(visual_step, title=title)
     if use_hidden:
         out = hidden_step
     else:
@@ -95,7 +114,7 @@ def classifier_on_rbm_features(rbm, dataset_train, dataset_test, use_hidden=True
             elem_arr, elem_label = pair
             if use_hidden:
                 preprocessed_input = binarize_image_data(image_data_collapse(elem_arr), threshold=MNIST_BINARIZATION_CUTOFF)
-                features = rbm_features_MNIST(rbm, preprocessed_input)
+                features = rbm_features_MNIST(rbm, preprocessed_input, titlemod='%d_true%d' % (idx,elem_label))
             else:
                 preprocessed_input = image_data_collapse(elem_arr)
                 if binarize:
@@ -191,13 +210,13 @@ def plot_confusion_matrix(confusion_matrix, classlabels=list(range(10)), title='
 
 if __name__ == '__main__':
     plot_wrong = False
-    dont_use_rbm = True
+    dont_use_rbm = False
     use_random_proj = False
 
     # ROUGH WORK for hopfield RBM only
     DATASET = TESTING  # TESTING or TRAINING
     npzpath_default = DEFAULT_HOPFIELD  # DEFAULT_HOPFIELD
-    npzpath = DIR_MODELS + os.sep + 'saved' + os.sep + 'hopfield_mnist_200.npz'  # npzpath_default or None
+    npzpath = DIR_MODELS + os.sep + 'saved' + os.sep + 'hopfield_mnist_10.npz'  # npzpath_default or None
 
     if npzpath is None:
         rbm_hopfield = build_rbm_hopfield(visible_field=VISIBLE_FIELD)
