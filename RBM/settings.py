@@ -6,7 +6,13 @@ from sklearn.linear_model import LogisticRegression
 DIR_DATA = 'data'
 DIR_MODELS = 'models'
 DIR_OUTPUT = 'output'
+DIR_CLASSIFY = DIR_OUTPUT + os.sep + 'classify'
+DIR_TRAINING = DIR_OUTPUT + os.sep + 'training'
 DEFAULT_HOPFIELD = DIR_MODELS + os.sep + 'saved' + os.sep + 'hopfield_mnist_10.npz'
+
+for dir in [DIR_DATA, DIR_MODELS, DIR_CLASSIFY, DIR_TRAINING]:
+    if not os.path.exists(dir):
+        os.makedirs(dir)
 
 CPU_THREADS = 8
 BATCH_SIZE = 4
