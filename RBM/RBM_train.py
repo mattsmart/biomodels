@@ -2,8 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 from scipy.linalg import qr
-import torch
+
 from data_process import data_mnist, data_synthetic_dual, hopfield_mnist_patterns, data_dict_mnist, binarize_image_data, image_data_collapse, data_dict_mnist_detailed
+from plotting import image_fancy
 from settings import DIR_DATA, DIR_OUTPUT, DIR_MODELS, CPU_THREADS, DATA_CHOICE, MNIST_BINARIZATION_CUTOFF, BETA, PATTERN_THRESHOLD, DEFAULT_HOPFIELD, K_PATTERN_DIV, DIR_CLASSIFY
 
 
@@ -57,6 +58,27 @@ class RBM:
         self.output_weights = output_weights_trained
         return
 
+    def update_visible(self, state_hidden, beta=BETA):
+        input_vector = np.dot(self.internal_weights, state_hidden) + self.visible_field
+        visible_probability_one = 1/(1 + np.exp(- 2 * beta * input_vector))
+        visible_step = np.random.binomial(1, visible_probability_one, self.dim_visible)
+        return visible_step * 2 - 1  # +1, -1 convention
+
+    def update_hidden(self, state_visible, beta=BETA):
+        if self.type_hidden == 'gaussian':
+            means = np.dot(self.internal_weights.T, state_visible) + self.hidden_field
+            std_dev = np.sqrt(1/beta)
+            hidden_step = np.random.normal(means, std_dev, self.dim_hidden)
+        else:
+            assert self.type_hidden == 'boolean'
+            # TODO investigate
+            assert 1 == 2
+            hidden_step = None
+        return hidden_step
+
+    def update_output(self, state_hidden):
+        return np.dot(self.output_weights, state_hidden)
+
     def RBM_step(self, visible_init, beta=BETA):
 
         # TODO confirm/test distribution choices
@@ -68,38 +90,17 @@ class RBM:
         #   h_mu ~ N(<h_mu>, var=1/beta)
         #   <h_mu> = np.dot(weights[:, mu], visible[:])
 
-        def update_visible(state_hidden):
-            input_vector = np.dot(self.internal_weights, state_hidden) + self.visible_field
-            visible_probability_one = 1/(1 + np.exp(- 2 * beta * input_vector))
-            visible_step = np.random.binomial(1, visible_probability_one, self.dim_visible)
-            return visible_step * 2 - 1  # +1, -1 convention
-
-        def update_hidden(state_visible):
-            if self.type_hidden == 'gaussian':
-                means = np.dot(self.internal_weights.T, state_visible) + self.hidden_field
-                std_dev = np.sqrt(1/beta)
-                hidden_step = np.random.normal(means, std_dev, self.dim_hidden)
-            else:
-                assert self.type_hidden == 'boolean'
-                # TODO investigate
-                assert 1 == 2
-                hidden_step = None
-            return hidden_step
-
-        def update_output(state_hidden):
-            return np.dot(self.output_weights, state_hidden)
-
-        hidden_step = update_hidden(visible_init)
-        visible_step = update_visible(hidden_step)
-        output_step = update_output(hidden_step)
+        hidden_step = self.update_hidden(visible_init, beta=beta)
+        visible_step = self.update_visible(hidden_step, beta=beta)
+        output_step = self.update_output(hidden_step)
         return visible_step, hidden_step, output_step
 
     def truncate_output(self, state_output, threshold=0.8):
         output_vector = np.zeros(len(state_output), dtype=int)
         flag_any_large_patterns = np.any(np.where(np.abs(state_output) > threshold, True, False))
         if flag_any_large_patterns:
-            above_T_idx = state_output > threshold
-            below_negT_idx = state_output < -threshold
+            above_T_idx = np.argwhere(state_output > threshold)
+            below_negT_idx = np.argwhere(state_output < -threshold)
             output_vector[above_T_idx] = 1
             output_vector[below_negT_idx] = -1
         return output_vector
@@ -158,22 +159,31 @@ def linalg_hopfield_patterns(data_dict, category_counts):
     return xi, xi_collapsed, pattern_idx_to_labels, Q, R
 
 
-def build_rbm_hopfield(data=TRAINING, visible_field=False, subpatterns=False):
-    # TODO
+def build_rbm_hopfield(data=TRAINING, visible_field=False, subpatterns=False, name=DATA_CHOICE, fast=None, save=True):
+    """
+    fast is None or a 2-tuple of (data_dict, category_counts)
+    """
     # Step 1: convert data into patterns (using a prescribed rule)
     # Step 2: specify weights using the patterns
-    # Step 3: conform to pytorch class
-    rbm_name = 'hopfield_%s' % DATA_CHOICE
-    # build internal weights
-    data_dict, category_counts = data_dict_mnist(TRAINING)
-    if subpatterns:
-        rbm_name += '_subpatterns'
-        data_dict, category_counts = data_dict_mnist_detailed(data_dict, category_counts)
+    rbm_name = 'hopfield_%s' % name
+    if fast is None:
+        # build internal weights
+        data_dict, category_counts = data_dict_mnist(data)
+        if subpatterns:
+            rbm_name += '_subpatterns'
+            data_dict, category_counts = data_dict_mnist_detailed(data_dict, category_counts)
+    else:
+        data_dict = fast[0]
+        category_counts = fast[1]
+
     xi, xi_collapsed, pattern_idx_to_labels, Q, R = linalg_hopfield_patterns(data_dict, category_counts)
-    print(data[0][0].shape)
-    dim_visible = data[0][0].shape[0] * data[0][0].shape[1]
-    print("dim_visible", dim_visible)
+    total_data = sum(category_counts.values())
+    dim_img = list(data_dict.values())[0][:, :, 0].shape
+    dim_visible = dim_img[0] * dim_img[1]
     dim_hidden = xi_collapsed.shape[-1]
+    print("total_data", total_data)
+    print("dim_hidden", dim_hidden)
+
     # prep class
     rbm_hopfield = RBM(dim_visible, dim_hidden, 'gaussian', rbm_name)
     """
@@ -193,7 +203,7 @@ def build_rbm_hopfield(data=TRAINING, visible_field=False, subpatterns=False):
             #preprocessed_input = image_data_collapse(elem_arr)
             preprocessed_input = binarize_image_data(image_data_collapse(elem_arr), threshold=MNIST_BINARIZATION_CUTOFF)
             pixel_means += preprocessed_input
-        pixel_means = pixel_means / len(data)
+        pixel_means = pixel_means / total_data
         # convert anything greater than 0 to a 1
         pixel_means[pixel_means > 0] = 0
         pixel_means[pixel_means < 0] = -1
@@ -206,7 +216,8 @@ def build_rbm_hopfield(data=TRAINING, visible_field=False, subpatterns=False):
     proj_remainder = np.dot( np.linalg.inv(np.dot(R.T, R)) , R.T)
     rbm_hopfield.set_output_weights(proj_remainder)
     # save weights
-    rbm_hopfield.save_rbm_trained()
+    if save:
+        rbm_hopfield.save_rbm_trained()
     return rbm_hopfield
 
 
@@ -244,12 +255,12 @@ if __name__ == '__main__':
 
     # trial building
     if build_instead_of_load:
-        k_patterns = 1
+        k_patterns = K_PATTERN_DIV
         rbm = build_rbm_hopfield(data=TRAINING, visible_field=False, subpatterns=True)
 
     # trial loading
     else:
-        k_patterns = 4
+        k_patterns = 1
         fname = 'hopfield_mnist_%d0.npz' % k_patterns
         rbm = load_rbm_hopfield(npzpath=DIR_MODELS + os.sep + 'saved' + os.sep + fname)
 
@@ -260,9 +271,14 @@ if __name__ == '__main__':
     for k in range(k_patterns):
         for i in range(10):
             print(i, k, k_patterns*i + k, rbm.pattern_labels[k_patterns*i + k])
-            ax_arr[k, i].imshow(xi_images[:, :, k_patterns*i + k], interpolation='none')
-            ax_arr[k, i].set_xticklabels([])
-            ax_arr[k, i].set_yticklabels([])
+            if k_patterns > 1:
+                axloc = ax_arr[k, i]
+            else:
+                axloc = ax_arr[i]
+            axloc.imshow(xi_images[:, :, k_patterns*i + k], interpolation='none')
+            axloc.set_xticklabels([])
+            axloc.set_yticklabels([])
+            # image_fancy(xi_images[:, :, k_patterns*i + k], ax=axloc)
     plt.suptitle('Heirarchical patterns example (K=%d)' % k_patterns)
     plt.tight_layout()
-    plt.savefig(DIR_OUTPUT + os.sep + 'subpatterns_%d.png' % k_patterns)
+    plt.savefig(DIR_OUTPUT + os.sep + 'subpatterns_%d.pdf' % k_patterns)
