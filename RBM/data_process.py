@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import torchvision
+from joblib import dump, load
+
 from settings import DIR_DATA, DIR_MODELS, DIR_OUTPUT, SYNTHETIC_DIM, SYNTHETIC_SAMPLES, SYNTHETIC_NOISE_VALID, \
     SYNTHETIC_SAMPLING_VALID, SYNTHETIC_DATASPLIT, MNIST_BINARIZATION_CUTOFF, PATTERN_THRESHOLD, K_PATTERN_DIV
 
@@ -64,7 +66,8 @@ def data_dict_mnist(data):
     print("category_counts:\n", category_counts)
     print("Generating MNIST data dict")
     label_counter = {idx: 0 for idx in range(10)}
-    data_dict = {idx: np.zeros((data_dimension[0], data_dimension[1], category_counts[idx])) for idx in range(10)}
+    #data_dict = {idx: np.zeros((data_dimension[0], data_dimension[1], category_counts[idx])) for idx in range(10)}
+    data_dict = {idx: np.zeros((data_dimension[0], data_dimension[1], category_counts[idx])) for idx in category_counts.keys()}
     for pair in data:
         label = pair[1]
         category_idx = label_counter[label]
@@ -146,7 +149,7 @@ def data_dict_mnist_inspect(data_dict, category_counts):
     return
 
 
-def data_dict_mnist_detailed(data_dict, category_counts):
+def data_dict_mnist_detailed(data_dict, category_counts, k_pattern=K_PATTERN_DIV):
     """
     Idea here is to further divide the patterns into subtypes to aid classification: (7_0, 7_1, etc)
         - should the binarization already be happening or not yet?
@@ -155,11 +158,13 @@ def data_dict_mnist_detailed(data_dict, category_counts):
     Returned form:
         {'6_0': array, '6_1': array}  (representing 6_0, 6_1 subtypes for example)
     """
-    data_dimension = (28,28)
+    data_dimension = (28, 28)
     data_dimension_collapsed = data_dimension[0] * data_dimension[1]
-    data_dict_detailed = {idx: {} for idx in range(10)}
+    #data_dict_detailed = {idx: {} for idx in range(10)}
+    data_dict_detailed = {idx: {} for idx in category_counts.keys()}
 
-    for idx in range(10):
+    #for idx in range(10):
+    for idx in category_counts.keys():
         print(idx)
         category_amount = category_counts[idx]
         data_idx_collapsed = data_dict[idx].reshape(data_dimension_collapsed, category_amount)
@@ -168,13 +173,20 @@ def data_dict_mnist_detailed(data_dict, category_counts):
         data_idx_collapsed[data_idx_collapsed > MNIST_BINARIZATION_CUTOFF] = 1
         data_idx_collapsed[data_idx_collapsed < MNIST_BINARIZATION_CUTOFF] = 0
 
+        # LOAD OPTION
         print("Auto AgglomerativeClustering")
         # note euclidean is sqrt of 01 flip distance (for binary data), ward seems best, threshold 24 gave 2-5 clusters per digit
         print(data_idx_collapsed.shape)
-        from sklearn.cluster import AgglomerativeClustering
-        cluster = AgglomerativeClustering(n_clusters=K_PATTERN_DIV, affinity='euclidean', linkage='ward', distance_threshold=None)
-        #cluster = AgglomerativeClustering(n_clusters=None, affinity='euclidean', linkage='ward', distance_threshold=24)
-        cluster_labels = cluster.fit_predict(data_idx_collapsed.T)
+        model_path = 'pickles' + os.sep + 'agglo%d_%d.joblib' % (idx, k_pattern)
+        if os.path.exists(model_path):
+            cluster = load(model_path)
+            cluster_labels = cluster.fit_predict(data_idx_collapsed.T)
+        else:
+            from sklearn.cluster import AgglomerativeClustering
+            cluster = AgglomerativeClustering(n_clusters=k_pattern, affinity='euclidean', linkage='ward', distance_threshold=None)
+            # cluster = AgglomerativeClustering(n_clusters=None, affinity='euclidean', linkage='ward', distance_threshold=24)
+            cluster_labels = cluster.fit_predict(data_idx_collapsed.T)
+            #dump(cluster, model_path)  # TODO figure out loading later; doesn't work if distance_threshold is None, which is mutually exclusive with n_clusters usage
 
         # pre-allocate subcategory arrays and fill in
         unique, counts = np.unique(cluster_labels, return_counts=True)
@@ -186,7 +198,8 @@ def data_dict_mnist_detailed(data_dict, category_counts):
 
     data_dict_detailed_flat = {}
     category_counts_detailed_flat = {}
-    for idx in range(10):
+    #for idx in range(10):
+    for idx in category_counts.keys():
         for subkey in data_dict_detailed[idx].keys():
             newkey = '%d_%d' % (idx, subkey)
             data_dict_detailed_flat[newkey] = data_dict_detailed[idx][subkey]
