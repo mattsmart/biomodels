@@ -39,18 +39,27 @@ DATA_CHOICE = 'mnist'
 #    75% for ON threshold 0.01, pattern threshold 0.0, and beta 8.0 <---- main
 MNIST_BINARIZATION_CUTOFF = 0.01
 PATTERN_THRESHOLD = 0.0
-K_PATTERN_DIV = 1
-BETA = 4.0
+K_PATTERN_DIV = 5
+BETA = 20.0
 GAUSSIAN_STDEV = np.sqrt(1/BETA)
 VISIBLE_FIELD = False
 
-HRBM_MANUAL_MAXSTEPS = 10
-HRBM_CLASSIFIER_STEPS = 10
-USE_BETA_SCHEDULER = True
+HRBM_MANUAL_MAXSTEPS = 5
+HRBM_CLASSIFIER_STEPS = 1
+USE_BETA_SCHEDULER = False
 
 USE_SVM = False
 if USE_SVM:
     # as in https://scikit-learn.org/stable/auto_examples/classification/plot_digits_classification.html;
-    CLASSIFIER = svm.SVC(gamma=0.001)  # try 'auto' or 'scale'
+    # FIRST USED:      gamma=0.001, C=1.0       -> p=50: 0.948 (10k), 0.961 (60k)
+    # ok/maybe better: gamma=1e-4, C=1.0        -> p=50: 0.955 (10k), 0.962 (60k)
+    # ok/maybe better: gamma=1e-4, C=6.0        -> p=50:              0.964 (60k)
+    # ok/maybe better: gamma=1.04*1e-4, C=6.0   -> p=50:              0.965 (60k) (best)
+    # ok/maybe better: gamma=1e-5, C=10.0       -> p=50: 0.953 (10k), 0.960 (60k)
+    # try 'auto' or 'scale'
+    CLASSIFIER = svm.SVC(gamma=1.04*1e-4, C=6)
+    # TODO try revert to 0.21.? from 0.23 to see if baseline improves
 else:
-    CLASSIFIER = LogisticRegression(C=1e5, multi_class='multinomial', penalty='l1', solver='saga', tol=0.1)
+    # FIRST USED:      C=1e5, multi_class='multinomial', penalty='l1', solver='saga', tol=0.1
+    # New:             C=1e5, multi_class='multinomial', penalty='l1', solver='saga', tol=0.001  decreasing C is OK
+    CLASSIFIER = LogisticRegression(C=1e5, multi_class='multinomial', penalty='l1', solver='saga', tol=0.001)

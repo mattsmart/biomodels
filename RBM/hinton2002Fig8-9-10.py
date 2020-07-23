@@ -134,7 +134,7 @@ def classifier_on_rbm_scores(models, dataset_train, dataset_test, clfs=None):
 
 
 if __name__ == '__main__':
-    #TRAINING = TRAINING[0:10000]  # take subset for faster evaluation  TODO remove subset
+    #TRAINING = TRAINING[0:10000]  # take subset for faster evaluation  TODO care using subset
     USE_SVM = False
     
     ks = [30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200]
@@ -157,6 +157,7 @@ if __name__ == '__main__':
         CLE = LogisticRegression(C=1e3, multi_class='multinomial', penalty='l2', solver='saga', tol=0.001)
         CLF = LogisticRegression(C=1e1, multi_class='multinomial', penalty='l2', solver='saga', tol=0.001)    
     clfs = [CLA]
+    #clfs = [CLA, CLB, CLC, CLD, CLE, CLF]
     assert len(clfs) == 1  # refactor code so we can have a list of clfs and a list of subpattern ints
 
     for idx, k in enumerate(ks):
