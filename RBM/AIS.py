@@ -16,23 +16,22 @@ from RBM_assess import get_X_y_dataset
 from settings import DIR_OUTPUT, DIR_MODELS
 
 
-def esimate_logZ_with_AIS(weights, N, p, beta=1.0, num_chains=100, num_steps=1000):
+def esimate_logZ_with_AIS(weights, field_visible, field_hidden, beta=1.0, num_chains=100, num_steps=1000):
     # TODO have both fields -- how to incorporate
     # Note: doing 9 'runs' of this for 1000 steps was ~1.5hr
     # Run num_chains AIS chains in parallel for num_steps
+    N = field_visible.shape[0]
+    p = field_hidden.shape[0]
     assert weights.shape[0] == N
     assert weights.shape[1] == p
-
-    # EXAMPLE CODE
-    # N = 3 spins
-    # Jij = [[0, 1, 1], [1, 0, 1], [1, 1, 0]]  # should behave like ferromagnet
-    # Z for this case is computable exactly
 
     dims = p
     dtype = tf.float32
 
-    # fix target model
+    # fix target model  # TODO minor speedup if we move out
     weights_tf = tf.convert_to_tensor(weights, dtype=dtype)
+    weights_tf = tf.convert_to_tensor(field_visible, dtype=dtype)
+    weights_tf = tf.convert_to_tensor(field_hidden, dtype=dtype)
 
     # define proposal distribution
     tfd = tfp.distributions
@@ -49,9 +48,10 @@ def esimate_logZ_with_AIS(weights, N, p, beta=1.0, num_chains=100, num_steps=100
         # TODO tensor speedup test with p > 1
         for idx, hidden in enumerate(hidden_states):
 
-            term1 = tf.tensordot(hidden, hidden, 1)
+            hidden_to_sqr = hidden - field_hidden
+            term1 = tf.tensordot(hidden_to_sqr, hidden_to_sqr, 1)
 
-            cosh_arg = beta * tf.tensordot(weights_tf, hidden, 1)
+            cosh_arg = beta * (tf.tensordot(weights_tf, hidden, 1) + field_visible)
             log_cosh_vec = tf.math.log(tf.math.cosh(cosh_arg))
             term2 = tf.math.reduce_sum(log_cosh_vec)
 
@@ -78,23 +78,22 @@ def esimate_logZ_with_AIS(weights, N, p, beta=1.0, num_chains=100, num_steps=100
     return log_Z.numpy()
 
 
-def get_obj_term(dataset_prepped, rbm, beta=1.0):
-    # TODO how to integrate out a non-zero hidden field?
-    weights = rbm.internal_weights
-    h = rbm.visible_field
+def get_obj_term_A(dataset_prepped, weights, field_visible, field_hidden, beta=1.0):
+    data_indep_term = - (beta / 2.0) * np.dot(field_hidden, field_hidden)
 
-    val = 0
+    data_sum = 0
     for x in dataset_prepped:
-        A = np.dot(h, x)
-        Bvec = np.dot(weights.T, x)
-        val += A + 0.5 * np.dot(Bvec, Bvec)
-    val_avg = beta * val / len(dataset_prepped)
+        A = np.dot(field_visible, x)
+        Bvec = field_hidden + np.dot(weights.T, x)
+        data_sum += A + 0.5 * np.dot(Bvec, Bvec)
+
+    val_avg = beta * data_sum / len(dataset_prepped) + data_indep_term
     return val_avg
 
 
 if __name__ == '__main__':
     # AIS settings
-    steps = 100  # 1000 and 5000 similar, very slow
+    steps = 10  # 1000 and 5000 similar, very slow
 
     # prep dataset
     training_subsample = TRAINING[:]
@@ -108,6 +107,8 @@ if __name__ == '__main__':
         fname = 'hopfield_mnist_%d0.npz' % k_patterns
         rbm = load_rbm_hopfield(npzpath=DIR_MODELS + os.sep + 'saved' + os.sep + fname)
         weights = rbm.internal_weights
+        visible_field = rbm.visible_field
+        hidden_field = rbm.hidden_field
 
         # get loss terms (simple term and logZ)
         runs = 1
@@ -120,11 +121,11 @@ if __name__ == '__main__':
 
         for idx in range(len(beta_list)):
             beta = beta_list[idx]
-            obj_term_A = get_obj_term(X, rbm, beta=beta)
+            obj_term_A = get_obj_term_A(X, weights, visible_field, hidden_field, beta=beta)
             for k in range(runs):
                 termA_arr[k, idx] = obj_term_A  # still keep duplicate values for the plot emphasis
                 #print('computing loss term B (ln Z)')
-                logZ = esimate_logZ_with_AIS(weights, rbm.dim_visible, rbm.dim_hidden, beta=beta, num_steps=steps)
+                logZ = esimate_logZ_with_AIS(weights, visible_field, hidden_field, beta=beta, num_steps=steps)
                 score = obj_term_A - logZ
                 print('mean log p(data):', score, '(run %d, beta=%.2f, A=%.2f, B=%.2f)' % (k, beta, obj_term_A, logZ))
                 logZ_arr[k, idx] = logZ
