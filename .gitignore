@@ -47,3 +47,4 @@ transcriptome_clustering/output/
 oncogenesis_dynamics/figures/
 RBM/data/MNIST/
 RBM/models/hopfield_weights.npy
+RBM/output/logZ/
