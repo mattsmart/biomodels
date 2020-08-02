@@ -29,9 +29,9 @@ def esimate_logZ_with_AIS(weights, field_visible, field_hidden, beta=1.0, num_ch
     dtype = tf.float32
 
     # fix target model  # TODO minor speedup if we move out
-    weights_tf = tf.convert_to_tensor(weights, dtype=dtype)
-    weights_tf = tf.convert_to_tensor(field_visible, dtype=dtype)
-    weights_tf = tf.convert_to_tensor(field_hidden, dtype=dtype)
+    weights = tf.convert_to_tensor(weights, dtype=dtype)
+    field_visible = tf.convert_to_tensor(field_visible, dtype=dtype)
+    field_hidden = tf.convert_to_tensor(field_hidden, dtype=dtype)
 
     # define proposal distribution
     tfd = tfp.distributions
@@ -40,7 +40,6 @@ def esimate_logZ_with_AIS(weights, field_visible, field_hidden, beta=1.0, num_ch
 
     # define target distribution
     target_log_prob_const = N * np.log(2.0) - (dims / 2.0) * np.log(2.0 * np.pi / beta)
-    print("target_log_prob_const", target_log_prob_const)
 
     def target_log_prob_fn(hidden_states):
         # given vector size N ints, return scalar for each chain
@@ -51,7 +50,7 @@ def esimate_logZ_with_AIS(weights, field_visible, field_hidden, beta=1.0, num_ch
             hidden_to_sqr = hidden - field_hidden
             term1 = tf.tensordot(hidden_to_sqr, hidden_to_sqr, 1)
 
-            cosh_arg = beta * (tf.tensordot(weights_tf, hidden, 1) + field_visible)
+            cosh_arg = beta * (tf.tensordot(weights, hidden, 1) + field_visible)
             log_cosh_vec = tf.math.log(tf.math.cosh(cosh_arg))
             term2 = tf.math.reduce_sum(log_cosh_vec)
 
@@ -74,7 +73,6 @@ def esimate_logZ_with_AIS(weights, field_visible, field_hidden, beta=1.0, num_ch
                 num_leapfrog_steps=2)))
 
     log_Z = (tf.reduce_logsumexp(ais_weights) - np.log(num_chains))
-
     return log_Z.numpy()
 
 
@@ -93,12 +91,11 @@ def get_obj_term_A(dataset_prepped, weights, field_visible, field_hidden, beta=1
 
 if __name__ == '__main__':
     # AIS settings
-    steps = 10  # 1000 and 5000 similar, very slow
+    steps = 200  #500  # 1000 and 5000 similar, very slow
 
     # prep dataset
     training_subsample = TRAINING[:]
     X, _ = get_X_y_dataset(training_subsample, dim_visible=28**2, binarize=True)
-
 
     k_list = [1,2,3,4,5,6,7,8,9,10]
 
