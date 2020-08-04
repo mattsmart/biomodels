@@ -17,7 +17,10 @@ from settings import DIR_OUTPUT, DIR_MODELS
 
 
 def esimate_logZ_with_AIS(weights, field_visible, field_hidden, beta=1.0, num_chains=100, num_steps=1000):
-    # TODO have both fields -- how to incorporate
+    # Note: without fields, for hopfield or generic bg-RBM
+    #   the ising/binary quadratic form is pos. semi. def and so all the boltzmann factors are >= 1 (=1 when E=0)
+    #   in the limit beta -> 0 the distribution approaches uniform distr. with 2^N terms of boltzmann weights 1
+    #   this means ln Z is bounded below by ln 2^N ~ 543.427
     # Note: doing 9 'runs' of this for 1000 steps was ~1.5hr
     # Run num_chains AIS chains in parallel for num_steps
     N = field_visible.shape[0]
