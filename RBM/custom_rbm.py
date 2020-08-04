@@ -85,8 +85,14 @@ class RBM_gaussian_custom():
             self.weights = torch.from_numpy(arr).float()
             self.visible_bias = torch.zeros(num_visible).float()
         else:
-            print("Setting random weights")
-            self.weights = 0.1 * torch.randn(num_visible, num_hidden).float()
+            use_normal = False
+            print("Setting random weights: use_normal=%s" % use_normal)
+            if use_normal:
+                self.weights = 0.1 * torch.randn(num_visible, num_hidden).float()
+            else:
+                scale = np.sqrt(6) / np.sqrt(num_visible + num_hidden)  # gaussian-binary ref cites bengio and glorot [40] on this choice
+                self.weights = 2 * scale * torch.rand(num_visible, num_hidden).float() - scale
+                print(scale, torch.min(self.weights), torch.max(self.weights))
             self.visible_bias = 0.5 * torch.ones(num_visible).float()
         self.hidden_bias = torch.zeros(num_hidden).float()
         self.use_fields = use_fields
@@ -95,10 +101,10 @@ class RBM_gaussian_custom():
             self.visible_bias = torch.zeros(num_visible).float()
             self.hidden_bias = torch.zeros(num_hidden).float()
 
-    def sample_hidden(self, visible_state, std=GAUSSIAN_STDEV):
+    def sample_hidden(self, visible_state, stdev=GAUSSIAN_STDEV):
         hidden_activations = torch.matmul(visible_state, self.weights) + self.hidden_bias
-        if std > 0:
-            hidden_sampled = torch.normal(hidden_activations, std)  # ***************** NEW
+        if stdev > 0:
+            hidden_sampled = torch.normal(hidden_activations, stdev)  # ***************** NEW
         else:
             hidden_sampled = hidden_activations
         return hidden_sampled
@@ -143,10 +149,10 @@ class RBM_gaussian_custom():
         return error
 
     def contrastive_divergence(self, input_data):
-        learning_rate_scaled = self.learning_rate / input_data.shape[0]
+        learning_rate_scaled = self.learning_rate / input_data.shape[0]  # larger batches mean higher learning rate
 
         # Positive phase (WIKI: Steps 1, 2)
-        positive_hidden_sampled = self.sample_hidden(input_data, std=0)            # math says it should be the mean
+        positive_hidden_sampled = self.sample_hidden(input_data, stdev=0)            # math says it should be the mean
         positive_gradient = torch.matmul(input_data.t(), positive_hidden_sampled)  # WIKI 2: v dot h
 
         # Negative phase (WIKI: Steps 3, 4) - use CD-k
@@ -210,4 +216,5 @@ class RBM_gaussian_custom():
         plot_title = 'trained_hiddenField_col%d_%s' % (col, title)
         plt.title(title)
         plt.savefig(DIR_OUTPUT + os.sep + 'training' + os.sep + plot_title + '.jpg')
+        plt.close()
         return
