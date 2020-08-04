@@ -93,73 +93,78 @@ def get_obj_term_A(dataset_prepped, weights, field_visible, field_hidden, beta=1
 
 
 if __name__ == '__main__':
-    # AIS settings
-    steps = 200  #500  # 1000 and 5000 similar, very slow
 
-    # prep dataset
-    training_subsample = TRAINING[:]
-    X, _ = get_X_y_dataset(training_subsample, dim_visible=28**2, binarize=True)
+    generate_data = False
 
-    k_list = [1,2,3,4,5,6,7,8,9,10]
+    if generate_data:
 
-    for k_patterns in k_list:
-        # load model
-        fname = 'hopfield_mnist_%d0.npz' % k_patterns
-        rbm = load_rbm_hopfield(npzpath=DIR_MODELS + os.sep + 'saved' + os.sep + fname)
-        weights = rbm.internal_weights
-        visible_field = rbm.visible_field
-        hidden_field = rbm.hidden_field
+        # AIS settings
+        steps = 200  #500  # 1000 and 5000 similar, very slow
 
-        # get loss terms (simple term and logZ)
-        runs = 1
-        beta_list = np.linspace(0.5, 20, 20).astype(np.float32)
-        #beta_list = np.linspace(2, 4, 3).astype(np.float32)
-        #beta_list = np.linspace(60, 200, 30).astype(np.float32)
-        termA_arr = np.zeros((runs, len(beta_list)))
-        logZ_arr = np.zeros((runs, len(beta_list)))
-        score_arr = np.zeros((runs, len(beta_list)))
+        # prep dataset
+        training_subsample = TRAINING[:]
+        X, _ = get_X_y_dataset(training_subsample, dim_visible=28**2, binarize=True)
 
-        for idx in range(len(beta_list)):
-            beta = beta_list[idx]
-            obj_term_A = get_obj_term_A(X, weights, visible_field, hidden_field, beta=beta)
-            for k in range(runs):
-                termA_arr[k, idx] = obj_term_A  # still keep duplicate values for the plot emphasis
-                #print('computing loss term B (ln Z)')
-                logZ = esimate_logZ_with_AIS(weights, visible_field, hidden_field, beta=beta, num_steps=steps)
-                score = obj_term_A - logZ
-                print('mean log p(data):', score, '(run %d, beta=%.2f, A=%.2f, B=%.2f)' % (k, beta, obj_term_A, logZ))
-                logZ_arr[k, idx] = logZ
-                score_arr[k, idx] = score
+        k_list = [1,2,3,4,5,6,7,8,9,10]
 
-        # save the data
-        out_dir = DIR_OUTPUT + os.sep + 'logZ' + os.sep + 'hopfield'
-        fpath = out_dir + os.sep + 'objective_%dpatterns_%dsteps' % (k_patterns, steps)
-        np.savez(fpath,
-                 beta=beta_list,
-                 termA=termA_arr,
-                 logZ=logZ_arr,
-                 score=score_arr)
+        for k_patterns in k_list:
+            # load model
+            fname = 'hopfield_mnist_%d0.npz' % k_patterns
+            rbm = load_rbm_hopfield(npzpath=DIR_MODELS + os.sep + 'saved' + os.sep + fname)
+            weights = rbm.internal_weights
+            visible_field = rbm.visible_field
+            hidden_field = rbm.hidden_field
 
-        var_name = r'$\beta$'
-        columns = [beta for beta in beta_list]
+            # get loss terms (simple term and logZ)
+            runs = 2
+            beta_list = np.linspace(0.5, 10, 20).astype(np.float32)
+            #beta_list = np.linspace(2, 4, 3).astype(np.float32)
+            #beta_list = np.linspace(60, 200, 30).astype(np.float32)
+            termA_arr = np.zeros((runs, len(beta_list)))
+            logZ_arr = np.zeros((runs, len(beta_list)))
+            score_arr = np.zeros((runs, len(beta_list)))
 
-        score_name = r'$\langle\ln \ p(x)\rangle$'
-        df_score = pd.DataFrame(score_arr, columns=columns).\
-            melt(var_name=var_name, value_name=score_name)
+            for idx in range(len(beta_list)):
+                beta = beta_list[idx]
+                obj_term_A = get_obj_term_A(X, weights, visible_field, hidden_field, beta=beta)
+                for k in range(runs):
+                    termA_arr[k, idx] = obj_term_A  # still keep duplicate values for the plot emphasis
+                    #print('computing loss term B (ln Z)')
+                    logZ = esimate_logZ_with_AIS(weights, visible_field, hidden_field, beta=beta, num_steps=steps)
+                    score = obj_term_A - logZ
+                    print('mean log p(data):', score, '(run %d, beta=%.2f, A=%.2f, B=%.2f)' % (k, beta, obj_term_A, logZ))
+                    logZ_arr[k, idx] = logZ
+                    score_arr[k, idx] = score
 
-        termA_name = r'$- \beta \langle H(s) \rangle$'
-        df_termA = pd.DataFrame(termA_arr, columns=columns).\
-            melt(var_name=var_name, value_name=termA_name)
+            # save the data
+            out_dir = DIR_OUTPUT + os.sep + 'logZ' + os.sep + 'hopfield'
+            fpath = out_dir + os.sep + 'objective_%dpatterns_%dsteps' % (k_patterns, steps)
+            np.savez(fpath,
+                     beta=beta_list,
+                     termA=termA_arr,
+                     logZ=logZ_arr,
+                     score=score_arr)
 
-        LogZ_name = r'$\ln \ Z$'
-        df_LogZ = pd.DataFrame(logZ_arr, columns=columns).\
-            melt(var_name=var_name, value_name=LogZ_name)
+            var_name = r'$\beta$'
+            columns = [beta for beta in beta_list]
 
-        plt.figure(); ax = sns.lineplot(x=var_name, y=score_name, data=df_score)
-        plt.savefig(out_dir + os.sep + 'score_%dpatterns_%dsteps.pdf' % (k_patterns, steps)); plt.close()
+            score_name = r'$\langle\ln \ p(x)\rangle$'
+            df_score = pd.DataFrame(score_arr, columns=columns).\
+                melt(var_name=var_name, value_name=score_name)
 
-        plt.figure(); ax = sns.lineplot(x=var_name, y=termA_name, data=df_termA)
-        plt.savefig(out_dir + os.sep + 'termA_%dpatterns_%dsteps.pdf' % (k_patterns, steps)); plt.close()
+            termA_name = r'$- \beta \langle H(s) \rangle$'
+            df_termA = pd.DataFrame(termA_arr, columns=columns).\
+                melt(var_name=var_name, value_name=termA_name)
 
-        plt.figure(); ax = sns.lineplot(x=var_name, y=LogZ_name, data=df_LogZ)
-        plt.savefig(out_dir + os.sep + 'LogZ_%dpatterns_%dsteps.pdf' % (k_patterns, steps)); plt.close()
+            LogZ_name = r'$\ln \ Z$'
+            df_LogZ = pd.DataFrame(logZ_arr, columns=columns).\
+                melt(var_name=var_name, value_name=LogZ_name)
+
+            plt.figure(); ax = sns.lineplot(x=var_name, y=score_name, data=df_score)
+            plt.savefig(out_dir + os.sep + 'score_%dpatterns_%dsteps.pdf' % (k_patterns, steps)); plt.close()
+
+            plt.figure(); ax = sns.lineplot(x=var_name, y=termA_name, data=df_termA)
+            plt.savefig(out_dir + os.sep + 'termA_%dpatterns_%dsteps.pdf' % (k_patterns, steps)); plt.close()
+
+            plt.figure(); ax = sns.lineplot(x=var_name, y=LogZ_name, data=df_LogZ)
+            plt.savefig(out_dir + os.sep + 'LogZ_%dpatterns_%dsteps.pdf' % (k_patterns, steps)); plt.close()
