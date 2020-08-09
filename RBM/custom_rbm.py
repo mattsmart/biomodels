@@ -85,7 +85,7 @@ class RBM_gaussian_custom():
             self.weights = torch.from_numpy(arr).float()
             self.visible_bias = torch.zeros(num_visible).float()
         else:
-            use_normal = False
+            use_normal = True
             print("Setting random weights: use_normal=%s" % use_normal)
             if use_normal:
                 self.weights = 0.1 * torch.randn(num_visible, num_hidden).float()
@@ -190,17 +190,20 @@ class RBM_gaussian_custom():
         self.weights = rbm_internal_weights
         return rbm_internal_weights
 
-    def plot_model(self, title='def'):
+    def plot_model(self, title='def', outdir=None):
         """
         Makes K + 2 plots
            where K = self.num_hidden
         """
+        if outdir is None:
+            outdir = DIR_OUTPUT + os.sep + 'training'
+
         for col in range(self.num_hidden):
             plt.imshow(self.weights[:, col].view(28, 28), interpolation='none')
             plt.colorbar()
             plot_title = 'trained_weights_col%d_%s' % (col, title)
             plt.title(plot_title)
-            plt.savefig(DIR_OUTPUT + os.sep + 'training' + os.sep + plot_title + '.jpg')
+            plt.savefig(outdir + os.sep + plot_title + '.jpg')
             plt.close()
 
         plt.title(title)
@@ -208,13 +211,13 @@ class RBM_gaussian_custom():
         plt.colorbar()
         plot_title = 'trained_visibleField_col%d_%s' % (col, title)
         plt.title(plot_title)
-        plt.savefig(DIR_OUTPUT + os.sep + 'training' + os.sep + plot_title + '.jpg')
+        plt.savefig(outdir + os.sep + plot_title + '.jpg')
         plt.close()
 
         plt.plot(self.hidden_bias)
         plt.hlines(0.0, 0.0, self.num_hidden, linestyles='--', colors='k')
         plot_title = 'trained_hiddenField_col%d_%s' % (col, title)
         plt.title(title)
-        plt.savefig(DIR_OUTPUT + os.sep + 'training' + os.sep + plot_title + '.jpg')
+        plt.savefig(outdir + os.sep + plot_title + '.jpg')
         plt.close()
         return
