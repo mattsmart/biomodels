@@ -32,18 +32,17 @@ WHAT'S CHANGED:
 """
 
 ########## CONFIGURATION ##########
-BATCH_SIZE = 64  # default 64
+BATCH_SIZE = 100  # default 64
 VISIBLE_UNITS = 784  # 28 x 28 images
 HIDDEN_UNITS = 10  # was 128 but try 10
-CD_K = 100
-LEARNING_RATE = 1e-5  # default 1e-3
-EPOCHS = 10  # was 10
-AIS_STEPS = 10
-DATA_FOLDER = 'data'
-GAUSSIAN_RBM = True
+CD_K = 20
+LEARNING_RATE = 1e-4  # default 1e-3
+EPOCHS = 100  # was 10
+AIS_STEPS = 200
 LOAD_INIT_WEIGHTS = True
 USE_FIELDS = False
 
+GAUSSIAN_RBM = True
 if RBM_gaussian_custom:
     RBM = RBM_gaussian_custom
 else:
@@ -128,16 +127,22 @@ def custom_RBM_loop(epochs=EPOCHS, cdk=CD_K, load_weights=LOAD_INIT_WEIGHTS, use
              logZ=obj_logP_termB,
              score=score_arr)
 
+    plot_scores(epochs, obj_logP_termA, obj_logP_termB, score_arr, scoredir, title_mod, 'epochs',
+                obj_reconstruction=obj_reconstruction)
+
     if classify:
         classify_with_rbm(rbm, outdir=outdir)
 
     return rbm
 
-def save_scores(timesteps, obj_reconstruction, obj_logP_termA, obj_logP_termB, score_arr, scoredir, title_mod, xlabel):
-    plt.plot(range(timesteps), obj_reconstruction)
-    plt.xlabel(xlabel);
-    plt.ylabel('reconstruction error')
-    plt.savefig(scoredir + os.sep + 'rbm_recon_%s.pdf' % (title_mod)); plt.close()
+
+def plot_scores(timesteps, obj_logP_termA, obj_logP_termB, score_arr, scoredir, title_mod, xlabel,
+                obj_reconstruction=None):
+    if obj_reconstruction is not None:
+        plt.plot(range(timesteps), obj_reconstruction)
+        plt.xlabel(xlabel);
+        plt.ylabel('reconstruction error')
+        plt.savefig(scoredir + os.sep + 'rbm_recon_%s.pdf' % (title_mod)); plt.close()
 
     plt.plot(range(timesteps + 1), obj_logP_termA)
     plt.xlabel(xlabel);
@@ -199,15 +204,35 @@ def classify_with_rbm(rbm, outdir=None):
 
     return
 
+
 if __name__ == '__main__':
+    single_run = False
     random_runs = True
+    load_scores = False
     # TODO print settings file for each run?
 
-    if random_runs:
-        for idx in range(10):
-            bigruns = DIR_OUTPUT + os.sep + 'archive' + os.sep + 'big_runs'
-            outdir = bigruns + os.sep + 'rbm' + os.sep + 'aug9_20cdk_1000batch' + os.sep + 'run%d' % idx
-            custom_RBM_loop(load_weights=False, outdir=outdir)
-    else:
-        outdir = DIR_OUTPUT + os.sep + 'logZ' + os.sep + 'rbm'
+    bigruns = DIR_OUTPUT + os.sep + 'archive' + os.sep + 'big_runs'
+    if single_run:
+        outdir = bigruns + os.sep + 'rbm' + os.sep + 'C_beta2duringTraining_%dbatch_%depochs_%dcdk_%.2Eeta_%dais' % (BATCH_SIZE, EPOCHS, CD_K, LEARNING_RATE, AIS_STEPS)
         custom_RBM_loop(outdir=outdir)
+
+    if random_runs:
+        num_runs = 5
+        for idx in range(num_runs):
+            outdir = bigruns + os.sep + 'rbm' + os.sep + 'aug9_20cdk_100batch' + os.sep + 'run%d' % idx
+            custom_RBM_loop(load_weights=False, outdir=outdir)
+
+    if load_scores:
+        outdir = bigruns + os.sep + 'rbm' + os.sep + 'C_beta2duringTraining_%dbatch_%depochs_%dcdk_%.2Eeta_%dais' % (BATCH_SIZE, EPOCHS, CD_K, LEARNING_RATE, AIS_STEPS)
+        fname = 'objective_10hidden_0fields_20cdk_200stepsAIS_2.00beta.npz'
+        dataobj = np.load(outdir + os.sep + fname)
+
+        obj_logP_termA = dataobj['termA']
+        obj_logP_termB = dataobj['logZ']
+        score_arr = dataobj['score']
+        epochs = dataobj['epochs']
+        timesteps = len(epochs) - 1
+
+        title_mod = '10hidden_0fields_20cdk_200stepsAIS_2.00beta'
+        plot_scores(timesteps, obj_logP_termA, obj_logP_termB, score_arr, outdir, title_mod,
+                    'epochs', obj_reconstruction=None)
