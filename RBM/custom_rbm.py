@@ -79,10 +79,9 @@ class RBM_gaussian_custom():
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
         if load_init_weights:
-            npzpath = DIR_MODELS + os.sep + 'saved' + os.sep + 'hopfield_mnist_10.npz'
+            npzpath = DIR_MODELS + os.sep + 'saved' + os.sep + 'hopfield_mnist_%d.npz' % num_hidden
             print("Loading weights from %s" % npzpath)
-            arr = self.load_rbm_trained(npzpath)
-            self.weights = torch.from_numpy(arr).float()
+            self.load_rbm_trained(npzpath)
             self.visible_bias = torch.zeros(num_visible).float()
         else:
             use_normal = True
@@ -184,11 +183,11 @@ class RBM_gaussian_custom():
         random_probabilities = torch.rand(num)
         return random_probabilities
 
-    def load_rbm_trained(self, fpath):
+    def load_rbm_trained(self, fpath, weights_id='Q'):
         with open(fpath, 'rb') as f:
-            rbm_internal_weights = np.load(fpath)['Q']
-        self.weights = rbm_internal_weights
-        return rbm_internal_weights
+            arr = np.load(fpath)[weights_id]
+        self.weights = torch.from_numpy(arr).float()
+        return
 
     def plot_model(self, title='def', outdir=None):
         """
