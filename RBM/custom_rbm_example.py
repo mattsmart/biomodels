@@ -78,6 +78,10 @@ def custom_RBM_loop(epochs=EPOCHS, cdk=CD_K, load_weights=LOAD_INIT_WEIGHTS, use
     ########## RBM INIT ##########
     rbm = RBM(VISIBLE_UNITS, HIDDEN_UNITS, cdk, load_init_weights=load_weights, use_fields=use_fields,
               learning_rate=LEARNING_RATE)
+
+    weights_timeseries = np.zeros((rbm.num_visible, rbm.num_hidden, epochs + 1))
+    weights_timeseries[:, :, 0] = rbm.weights
+
     rbm.plot_model(title='epoch_0', outdir=trainingdir)
 
     obj_reconstruction = np.zeros(epochs)
@@ -108,6 +112,9 @@ def custom_RBM_loop(epochs=EPOCHS, cdk=CD_K, load_weights=LOAD_INIT_WEIGHTS, use
         print('Estimating log Z...', )
         obj_logP_termB[epoch + 1] = esimate_logZ_with_AIS(rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta,
                                                           num_steps=AIS_STEPS)
+
+        weights_timeseries[:, :, epoch+1] = rbm.weights.numpy()
+
         print('Term A:', obj_logP_termA[epoch + 1], '| Log Z:', obj_logP_termB[epoch + 1], '| Score:',
               obj_logP_termA[epoch + 1] - obj_logP_termB[epoch + 1])
 
@@ -118,7 +125,6 @@ def custom_RBM_loop(epochs=EPOCHS, cdk=CD_K, load_weights=LOAD_INIT_WEIGHTS, use
         scoredir = DIR_OUTPUT + os.sep + 'logZ' + os.sep + 'rbm'
     else:
         scoredir = outdir
-
     title_mod = '%dhidden_%dfields_%dcdk_%dstepsAIS_%.2fbeta' % (HIDDEN_UNITS, use_fields, cdk, AIS_STEPS, beta)
     fpath = scoredir + os.sep + 'objective_%s' % title_mod
     np.savez(fpath,
@@ -126,6 +132,10 @@ def custom_RBM_loop(epochs=EPOCHS, cdk=CD_K, load_weights=LOAD_INIT_WEIGHTS, use
              termA=obj_logP_termA,
              logZ=obj_logP_termB,
              score=score_arr)
+    fpath = scoredir + os.sep + 'weights_%s' % title_mod
+    np.savez(fpath,
+             epochs=range(epochs + 1),
+             weights=weights_timeseries)
 
     plot_scores(epochs, obj_logP_termA, obj_logP_termB, score_arr, scoredir, title_mod, 'epochs',
                 obj_reconstruction=obj_reconstruction)
@@ -161,7 +171,9 @@ def plot_scores(timesteps, obj_logP_termA, obj_logP_termB, score_arr, scoredir, 
     return
 
 
-def classify_with_rbm(rbm, outdir=None):
+def classify_with_rbm(rbm, outdir=None, beta=BETA):
+    stdev = 1.0/np.sqrt(beta)
+
     print('Extracting features...')
     # TODO: check classification error after each epoch
     train_features = np.zeros((len(train_dataset), HIDDEN_UNITS))
@@ -172,14 +184,14 @@ def classify_with_rbm(rbm, outdir=None):
         batch = batch.view(len(batch), VISIBLE_UNITS)  # flatten input data
         batch = (batch > MNIST_BINARIZATION_CUTOFF).float()  # convert to 0,1 form
         batch = 2 * batch - 1  # convert to -1,1 form
-        train_features[i * BATCH_SIZE:i * BATCH_SIZE + len(batch), :] = rbm.sample_hidden(batch)
+        train_features[i * BATCH_SIZE:i * BATCH_SIZE + len(batch), :] = rbm.sample_hidden(batch, stdev=stdev)
         train_labels[i * BATCH_SIZE:i * BATCH_SIZE + len(batch)] = labels.numpy()
 
     for i, (batch, labels) in enumerate(test_loader):
         batch = batch.view(len(batch), VISIBLE_UNITS)  # flatten input data
         batch = (batch > MNIST_BINARIZATION_CUTOFF).float()  # convert to 0,1 form
         batch = 2 * batch - 1  # convert to -1,1 form
-        test_features[i * BATCH_SIZE:i * BATCH_SIZE + len(batch), :] = rbm.sample_hidden(batch)
+        test_features[i * BATCH_SIZE:i * BATCH_SIZE + len(batch), :] = rbm.sample_hidden(batch, stdev=stdev)
         test_labels[i * BATCH_SIZE:i * BATCH_SIZE + len(batch)] = labels.numpy()
 
     print('Training Classifier...')
@@ -206,20 +218,25 @@ def classify_with_rbm(rbm, outdir=None):
 
 
 if __name__ == '__main__':
-    single_run = False
-    random_runs = True
+    hopfield_runs = False
+    random_runs = False
     load_scores = False
+    load_weights = True
     # TODO print settings file for each run?
 
     bigruns = DIR_OUTPUT + os.sep + 'archive' + os.sep + 'big_runs'
-    if single_run:
-        outdir = bigruns + os.sep + 'rbm' + os.sep + 'C_beta2duringTraining_%dbatch_%depochs_%dcdk_%.2Eeta_%dais' % (BATCH_SIZE, EPOCHS, CD_K, LEARNING_RATE, AIS_STEPS)
-        custom_RBM_loop(outdir=outdir)
+    if hopfield_runs:
+        num_runs = 5
+        for idx in range(num_runs):
+            outdir = bigruns + os.sep + 'rbm' + os.sep + 'E_beta2duringTraining_%dbatch_%depochs_%dcdk_%.2Eeta_%dais' % (BATCH_SIZE, EPOCHS, CD_K, LEARNING_RATE, AIS_STEPS) \
+                     + os.sep + 'run%d' % idx
+            custom_RBM_loop(load_weights=True, outdir=outdir)
 
     if random_runs:
         num_runs = 5
         for idx in range(num_runs):
-            outdir = bigruns + os.sep + 'rbm' + os.sep + 'aug9_20cdk_100batch' + os.sep + 'run%d' % idx
+            outdir = bigruns + os.sep + 'rbm' + os.sep + 'F_beta2duringTraining_%dbatch_%depochs_%dcdk_%.2Eeta_%dais' % (BATCH_SIZE, EPOCHS, CD_K, LEARNING_RATE, AIS_STEPS) \
+                     + os.sep + 'run%d' % idx
             custom_RBM_loop(load_weights=False, outdir=outdir)
 
     if load_scores:
@@ -236,3 +253,20 @@ if __name__ == '__main__':
         title_mod = '10hidden_0fields_20cdk_200stepsAIS_2.00beta'
         plot_scores(timesteps, obj_logP_termA, obj_logP_termB, score_arr, outdir, title_mod,
                     'epochs', obj_reconstruction=None)
+
+    if load_weights:
+        local_beta = 20
+        hidden = 20
+        epoch_idx = 0
+
+        outdir = bigruns + os.sep + 'rbm' + os.sep + 'F_beta2duringTraining_100batch_100epochs_20cdk_1.00E-04eta_200ais' + os.sep + 'run0'
+        fname = 'weights_20hidden_0fields_20cdk_200stepsAIS_2.00beta.npz'
+        dataobj = np.load(outdir + os.sep + fname)
+        arr = dataobj['weights'][:, :, epoch_idx]
+        print(arr)
+        rbm = RBM(VISIBLE_UNITS, hidden, 0, load_init_weights=False, use_fields=False, learning_rate=0)
+        rbm.weights = torch.from_numpy(arr).float()
+
+        classify_with_rbm(rbm, outdir=outdir, beta=local_beta)
+
+        # TODO try RBM classification but with higher beta? the 78%, 87% etc are with beta=2 which was used for weight training
