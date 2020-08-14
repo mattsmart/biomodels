@@ -95,7 +95,7 @@ def plot_hopfield_generative_scores():
 def compare_generative_scores(plotting_dict, out_dir):
 
     epoch_name = 'epoch'
-    category_name = 'Initial weights'
+    category_name = 'Initial_weights'
     score_name = r'$\langle\ln \ p(x)\rangle$'
     termA_name = r'$- \beta \langle H(s) \rangle$'
     LogZ_name = r'$\ln \ Z$'
@@ -114,27 +114,51 @@ def compare_generative_scores(plotting_dict, out_dir):
             df1 = df1.append(datarow, ignore_index=True)
 
     plt.figure()
-    ax = sns.lineplot(x=epoch_name, y=score_name, hue=category_name, dashes=False, data=df1, legend='full')
+    ax = sns.lineplot(x=epoch_name, y=score_name, hue=category_name, dashes=False, legend='full', data=df1)
     #ax = sns.lineplot(x=epoch_name, y=score_name, hue=category_name, marker='o', markers=True, dashes=False, data=df1,
     #                  legend='full')
     plt.ylim(-500,0)
-    plt.savefig(out_dir + os.sep + 'alt_scores.pdf')
+    plt.savefig(out_dir + os.sep + 'scores.pdf')
     plt.show(); plt.close()
 
     plt.figure()
     ax = sns.lineplot(x=epoch_name, y=termA_name, hue=category_name, marker='o', markers=True, dashes=False, data=df1,
                       legend='full')
-    plt.savefig(out_dir + os.sep + 'alt_termA.pdf')
+    plt.savefig(out_dir + os.sep + 'termA.pdf')
     plt.show(); plt.close()
 
     plt.figure()
     ax = sns.lineplot(x=epoch_name, y=LogZ_name, hue=category_name, marker='o', markers=True, dashes=False, data=df1,
                       legend='full')
-    plt.savefig(out_dir + os.sep + 'alt_logZ.pdf')
+    plt.savefig(out_dir + os.sep + 'logZ.pdf')
     plt.show(); plt.close()
 
     return
 
+
+def compare_generative_scores_sep(plotting_dict, out_dir):
+    epoch_name = 'epoch'
+    category_name = 'Initial_weights'
+    score_name = r'$\langle\ln \ p(x)\rangle$'
+    termA_name = r'$- \beta \langle H(s) \rangle$'
+    LogZ_name = r'$\ln \ Z$'
+
+    kwdict = {'hopfield':
+                  {'c': '#1f77b4', 'z':3},
+              r'$N(0,0.01)$':
+                  {'c': '#ff7f0e', 'z':2}}
+
+    plt.figure()
+    for k, v in plotting_dict.items():
+        plt.plot(v['epochs'], v['score'], label=v['title'], alpha=0.8,
+                 color=kwdict[v['category']]['c'], zorder=kwdict[v['category']]['z'])
+    plt.xlabel(epoch_name); plt.ylabel(score_name)
+    plt.legend()
+    plt.ylim(-500,0)
+    plt.savefig(out_dir + os.sep + 'scores_sep.pdf')
+    plt.show(); plt.close()
+
+    return
 
 if __name__ == '__main__':
     plot_hopfield_k_generative = False
@@ -144,27 +168,26 @@ if __name__ == '__main__':
         plot_hopfield_generative_scores()
 
     if plot_compare_generative:
+        separate_flag = False
+
         scores_to_compare = DIR_OUTPUT + os.sep + 'archive' + os.sep + 'big_runs' + os.sep + 'scores_to_compare'
-        compare_dir = scores_to_compare + os.sep + 'aug10_hopfield_vs_uniform_100batch_1e-4eta'
+        compare_dir = scores_to_compare + os.sep + 'aug10_hopfield_vs_normal_20p_100batch_1e-4eta'
 
         def get_category(plot_key):
             if plot_key[0:3] == 'hop':
-                return 'hopfield'
+                val = 'hopfield'
             elif plot_key[0:3] == 'nor':
-                return r'$N(0,0.01)$'
+                val = r'$N(0,0.01)$'
             else:
                 assert 1==2
+            return val
 
         plotting_dict = {}
         onlynpz = [f for f in os.listdir(compare_dir) if
                    (os.path.isfile(os.path.join(compare_dir, f)) and f[-4:] == '.npz')]
         for f in onlynpz:
-            print(f)
             plot_key = f.split('_')[-1][:-4]
-            print(plot_key)
-
             dataobj = np.load(compare_dir + os.sep + f)
-
             plotting_dict[plot_key] = \
                 {'epochs': dataobj['epochs'],
                  'termA': dataobj['termA'],
@@ -173,4 +196,7 @@ if __name__ == '__main__':
                  'category': get_category(plot_key),
                  'title': plot_key}
 
-        compare_generative_scores(plotting_dict, compare_dir)
+        if separate_flag:
+            compare_generative_scores_sep(plotting_dict, compare_dir)
+        else:
+            compare_generative_scores(plotting_dict, compare_dir)

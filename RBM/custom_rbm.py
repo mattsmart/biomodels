@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import torch
+
+from plotting import image_fancy
 from settings import BETA, GAUSSIAN_STDEV, DIR_MODELS, DIR_OUTPUT
 
 
@@ -114,9 +116,9 @@ class RBM_gaussian_custom():
         hidden_sampled = torch.bernoulli(hidden_probabilities)  # **************************** NEW
         return hidden_sampled
 
-    def sample_visible(self, hidden_state):
+    def sample_visible(self, hidden_state, beta=BETA):
         visible_activations = torch.matmul(hidden_state, self.weights.t()) + self.visible_bias
-        visible_probabilities = self._sigmoid(2 * BETA * visible_activations)  # self._sigmoid(visible_activations)
+        visible_probabilities = self._sigmoid(2 * beta * visible_activations)  # self._sigmoid(visible_activations)
         visible_sampled = torch.bernoulli(visible_probabilities)  # ***************** NEW
         visible_sampled_phys = -1 + visible_sampled * 2
         return visible_sampled_phys
@@ -220,3 +222,104 @@ class RBM_gaussian_custom():
         plt.savefig(outdir + os.sep + plot_title + '.jpg')
         plt.close()
         return
+
+    def get_sample_images(self, num_images, k=20):
+        # do k steps of annealing on random initial state to arrive at final sampled images
+        # output shape: (k steps X num images X visible dimension)
+        switch_A = k/4
+        switch_B = 3 * k/4
+
+        def anneal_schedule(step):
+            """
+            if step > switch:
+                beta_step = 20
+            else:
+                beta_step = 0.5
+            return beta_step
+            """
+            if step > switch_B:
+                beta_step = 20
+            elif step > switch_A:
+                beta_step = 2
+            else:
+                beta_step = 0.1
+            return beta_step
+
+        # initial states are coin flips up/down
+        a = 0.5 * torch.ones(num_images, self.num_visible)
+        visible_block = torch.bernoulli(a) * 2 - 1
+
+        # track timeseries of the chain
+        visible_timeseries = torch.zeros(k, num_images, self.num_visible)
+        visible_timeseries[0, :, :] = visible_block
+
+        for step in range(k):
+            beta_step = anneal_schedule(step)
+            hidden_block = self.sample_hidden(visible_block, stdev=1/np.sqrt(beta_step))
+            visible_block = self.sample_visible(hidden_block, beta=beta_step)
+            visible_timeseries[step, :, :] = visible_block
+
+        return visible_timeseries
+
+    def plot_sample_images(self, visible_timeseries, outdir, only_last=True):
+        visible_timeseries_numpy = visible_timeseries.numpy()
+        num_steps = visible_timeseries_numpy.shape[0]
+        num_images = visible_timeseries_numpy.shape[1]
+
+        steps_to_plot = range(num_steps)
+        if only_last:
+            steps_to_plot = [-1]
+
+        for idx in range(num_images):
+            for k in steps_to_plot:
+                image = visible_timeseries_numpy[k, idx, :].reshape((28, 28))
+                plt.figure()
+                image_fancy(image, ax=plt.gca(), show_labels=False)
+                plt.title('Trajectory: %d | Step: %d' % (num_images, k))
+                plt.savefig(outdir + os.sep + 'traj%d_step%d.png' % (idx, k));
+                plt.close()
+
+        return
+
+
+if __name__ == '__main__':
+
+    sample_trained_rbm = True
+
+    if sample_trained_rbm:
+
+        # pick data to load
+        num_hidden = 20
+        total_epochs = 100
+        batch = 100
+        cdk = 20
+        use_fields = False
+        ais_steps = 200
+        beta = 2
+        assert beta == 2
+        run = 1
+        epoch_idx = [5, 99]  # [96, 97, 98]
+
+        # load data
+        bigruns = DIR_OUTPUT + os.sep + 'archive' + os.sep + 'big_runs' + os.sep + 'rbm'
+        subdir = 'F_beta2duringTraining_%dbatch_%depochs_%dcdk_1.00E-04eta_%dais' % (batch, total_epochs, cdk, ais_steps)
+        fname = 'weights_%dhidden_%dfields_%dcdk_%dstepsAIS_%.2fbeta.npz' % (num_hidden, use_fields, cdk, ais_steps, beta)
+        dataobj = np.load(bigruns + os.sep + subdir + os.sep + 'run%d' % run + os.sep + fname)
+        weights_timeseries = dataobj['weights']
+
+        for idx in epoch_idx:
+
+            outdir = DIR_OUTPUT + os.sep + 'samples' + os.sep + 'epoch%d' % idx
+            if not os.path.exists(outdir):
+                os.makedirs(outdir)
+
+            weights = weights_timeseries[:, :, idx]
+            rbm = weights_timeseries[:, :, idx]
+            rbm = RBM_gaussian_custom(28**2, num_hidden, 0, load_init_weights=False, use_fields=False, learning_rate=0)
+            rbm.weights = torch.from_numpy(weights).float()
+
+            timeseries = True
+            num_images = 10
+            k_steps = 40
+            visible_block = rbm.get_sample_images(num_images, k=k_steps)
+            rbm.plot_sample_images(visible_block, outdir, only_last=False)
