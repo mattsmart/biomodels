@@ -168,10 +168,8 @@ if __name__ == '__main__':
         plot_hopfield_generative_scores()
 
     if plot_compare_generative:
-        separate_flag = False
-
         scores_to_compare = DIR_OUTPUT + os.sep + 'archive' + os.sep + 'big_runs' + os.sep + 'scores_to_compare'
-        compare_dir = scores_to_compare + os.sep + 'aug10_hopfield_vs_normal_20p_100batch_1e-4eta'
+        compare_dir = scores_to_compare + os.sep + 'aug10_hopfield_vs_normal_10p_100batch_1e-4eta'
 
         def get_category(plot_key):
             if plot_key[0:3] == 'hop':
@@ -196,7 +194,5 @@ if __name__ == '__main__':
                  'category': get_category(plot_key),
                  'title': plot_key}
 
-        if separate_flag:
-            compare_generative_scores_sep(plotting_dict, compare_dir)
-        else:
-            compare_generative_scores(plotting_dict, compare_dir)
+        compare_generative_scores_sep(plotting_dict, compare_dir)
+        compare_generative_scores(plotting_dict, compare_dir)
