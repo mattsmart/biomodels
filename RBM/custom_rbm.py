@@ -170,7 +170,7 @@ class RBM_gaussian_custom():
         self.weights += (positive_gradient - negative_gradient) * learning_rate_scaled
         if self.use_fields:
             self.visible_bias += torch.sum(input_data - negative_visible_sampled, dim=0) * learning_rate_scaled
-            self.hidden_bias += torch.sum(positive_hidden_sampled - negative_hidden_sampled, dim=0) * learning_rate_scaled
+            self.hidden_bias += torch.sum(positive_hidden_sampled - negative_hidden_sampled, dim=0) * 2 * learning_rate_scaled
         #self.weights -= self.weights * self.weight_decay  # L2 weight decay
 
         # Compute reconstruction error

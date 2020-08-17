@@ -38,9 +38,10 @@ HIDDEN_UNITS = 10  # was 128 but try 10
 CD_K = 20
 LEARNING_RATE = 1e-4  # default 1e-3
 EPOCHS = 100  # was 10
-AIS_STEPS = 200
+AIS_STEPS = 200 #200
 LOAD_INIT_WEIGHTS = True
-USE_FIELDS = False
+USE_FIELDS = True
+PLOT_WEIGHTS = True
 
 GAUSSIAN_RBM = True
 if RBM_gaussian_custom:
@@ -81,6 +82,11 @@ def custom_RBM_loop(epochs=EPOCHS, cdk=CD_K, load_weights=LOAD_INIT_WEIGHTS, use
 
     weights_timeseries = np.zeros((rbm.num_visible, rbm.num_hidden, epochs + 1))
     weights_timeseries[:, :, 0] = rbm.weights
+    if use_fields:
+        visible_bias_timeseries = np.zeros((rbm.num_visible, epochs + 1))
+        visible_bias_timeseries[:, 0] = rbm.visible_bias.numpy()
+        hidden_bias_timeseries = np.zeros((rbm.num_hidden, epochs + 1))
+        hidden_bias_timeseries[:, 0] = rbm.hidden_bias.numpy()
 
     rbm.plot_model(title='epoch_0', outdir=trainingdir)
 
@@ -88,10 +94,12 @@ def custom_RBM_loop(epochs=EPOCHS, cdk=CD_K, load_weights=LOAD_INIT_WEIGHTS, use
     obj_logP_termA = np.zeros(epochs + 1)
     obj_logP_termB = np.zeros(epochs + 1)
 
-    obj_logP_termA[0] = get_obj_term_A(X, rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta)
-    print('Estimating log Z...', )
-    obj_logP_termB[0] = esimate_logZ_with_AIS(rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta,
-                                              num_steps=AIS_STEPS)
+    if AIS_STEPS > 0:
+        obj_logP_termA[0] = get_obj_term_A(X, rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta)
+        print('Estimating log Z...', )
+        obj_logP_termB[0], _ = esimate_logZ_with_AIS(rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta,
+                                                     num_steps=AIS_STEPS)
+
     print('INIT obj - A:', obj_logP_termA[0], '| Log Z:', obj_logP_termB[0], '| Score:',
           obj_logP_termA[0] - obj_logP_termB[0])
 
@@ -105,15 +113,21 @@ def custom_RBM_loop(epochs=EPOCHS, cdk=CD_K, load_weights=LOAD_INIT_WEIGHTS, use
             batch = -1 + batch * 2  # convert to -1,1 form
             batch_recon_error = rbm.contrastive_divergence(batch)
             epoch_recon_error += batch_recon_error
-        rbm.plot_model(title='epoch_%d' % (epoch + 1), outdir=trainingdir)
+        if PLOT_WEIGHTS:
+            rbm.plot_model(title='epoch_%d' % (epoch + 1), outdir=trainingdir)
         print('Epoch (Reconstruction) Error (epoch=%d): %.4f' % (epoch + 1, epoch_recon_error))
         obj_reconstruction[epoch] = epoch_recon_error
-        obj_logP_termA[epoch + 1] = get_obj_term_A(X, rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta)
-        print('Estimating log Z...', )
-        obj_logP_termB[epoch + 1] = esimate_logZ_with_AIS(rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta,
-                                                          num_steps=AIS_STEPS)
+        if AIS_STEPS > 0:
+            obj_logP_termA[epoch + 1] = get_obj_term_A(X, rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta)
+            print('Estimating log Z...', )
+            obj_logP_termB[epoch + 1], _ = esimate_logZ_with_AIS(rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta,
+                                                                 num_steps=AIS_STEPS)
 
-        weights_timeseries[:, :, epoch+1] = rbm.weights.numpy()
+        # save parameters each epoch
+        weights_timeseries[:, :, epoch + 1] = rbm.weights.numpy()
+        if use_fields:
+            visible_bias_timeseries[:, epoch + 1] = rbm.visible_bias.numpy()
+            hidden_bias_timeseries[:, epoch + 1] = rbm.hidden_bias.numpy()
 
         print('Term A:', obj_logP_termA[epoch + 1], '| Log Z:', obj_logP_termB[epoch + 1], '| Score:',
               obj_logP_termA[epoch + 1] - obj_logP_termB[epoch + 1])
@@ -125,6 +139,8 @@ def custom_RBM_loop(epochs=EPOCHS, cdk=CD_K, load_weights=LOAD_INIT_WEIGHTS, use
         scoredir = DIR_OUTPUT + os.sep + 'logZ' + os.sep + 'rbm'
     else:
         scoredir = outdir
+
+    # save parameters
     title_mod = '%dhidden_%dfields_%dcdk_%dstepsAIS_%.2fbeta' % (HIDDEN_UNITS, use_fields, cdk, AIS_STEPS, beta)
     fpath = scoredir + os.sep + 'objective_%s' % title_mod
     np.savez(fpath,
@@ -133,9 +149,12 @@ def custom_RBM_loop(epochs=EPOCHS, cdk=CD_K, load_weights=LOAD_INIT_WEIGHTS, use
              logZ=obj_logP_termB,
              score=score_arr)
     fpath = scoredir + os.sep + 'weights_%s' % title_mod
-    np.savez(fpath,
-             epochs=range(epochs + 1),
-             weights=weights_timeseries)
+    np.savez(fpath, epochs=range(epochs + 1), weights=weights_timeseries)
+    if use_fields:
+        np.savez(scoredir + os.sep + 'visiblefield_%s' % title_mod, epochs=range(epochs + 1),
+                 visiblefield=visible_bias_timeseries)
+        np.savez(scoredir + os.sep + 'hiddenfield_%s' % title_mod, epochs=range(epochs + 1),
+                 hiddenfield=hidden_bias_timeseries)
 
     plot_scores(epochs, obj_logP_termA, obj_logP_termB, score_arr, scoredir, title_mod, 'epochs',
                 obj_reconstruction=obj_reconstruction)
@@ -213,31 +232,28 @@ def classify_with_rbm(rbm, outdir=None, beta=BETA):
         fpath = outdir + os.sep + 'cm.jpg'
     cm = plot_confusion_matrix(confusion_matrix, title=title, save=fpath)
     print(title)
-
     return
 
 
 if __name__ == '__main__':
-    hopfield_runs = False
+    num_runs = 5
+    hopfield_runs = True
     random_runs = False
     load_scores = False
-    load_weights = True
+    load_weights = False
     # TODO print settings file for each run?
 
     bigruns = DIR_OUTPUT + os.sep + 'archive' + os.sep + 'big_runs'
     if hopfield_runs:
-        num_runs = 5
         for idx in range(num_runs):
-            outdir = bigruns + os.sep + 'rbm' + os.sep + 'E_beta2duringTraining_%dbatch_%depochs_%dcdk_%.2Eeta_%dais' % (BATCH_SIZE, EPOCHS, CD_K, LEARNING_RATE, AIS_STEPS) \
-                     + os.sep + 'run%d' % idx
-            custom_RBM_loop(load_weights=True, outdir=outdir)
-
+            outdir = bigruns + os.sep + 'rbm' + os.sep + 'hopfield_%dhidden_%dfields_%.2fbeta_%dbatch_%depochs_%dcdk_%.2Eeta_%dais' % (HIDDEN_UNITS, USE_FIELDS, BETA, BATCH_SIZE, EPOCHS, CD_K, LEARNING_RATE, AIS_STEPS)
+            rundir = outdir + os.sep + 'run%d' % idx
+            custom_RBM_loop(load_weights=True, outdir=rundir)
     if random_runs:
-        num_runs = 5
         for idx in range(num_runs):
-            outdir = bigruns + os.sep + 'rbm' + os.sep + 'F_beta2duringTraining_%dbatch_%depochs_%dcdk_%.2Eeta_%dais' % (BATCH_SIZE, EPOCHS, CD_K, LEARNING_RATE, AIS_STEPS) \
-                     + os.sep + 'run%d' % idx
-            custom_RBM_loop(load_weights=False, outdir=outdir)
+            outdir = bigruns + os.sep + 'rbm' + os.sep + 'normal_%dhidden_%dfields_%.2fbeta_%dbatch_%depochs_%dcdk_%.2Eeta_%dais' % (HIDDEN_UNITS, USE_FIELDS, BETA, BATCH_SIZE, EPOCHS, CD_K, LEARNING_RATE, AIS_STEPS)
+            rundir = outdir + os.sep + 'run%d' % idx
+            custom_RBM_loop(load_weights=False, outdir=rundir)
 
     if load_scores:
         outdir = bigruns + os.sep + 'rbm' + os.sep + 'C_beta2duringTraining_%dbatch_%depochs_%dcdk_%.2Eeta_%dais' % (BATCH_SIZE, EPOCHS, CD_K, LEARNING_RATE, AIS_STEPS)
@@ -255,18 +271,17 @@ if __name__ == '__main__':
                     'epochs', obj_reconstruction=None)
 
     if load_weights:
-        local_beta = 20
+        # Note: looks like generative training does not help with classification at first glance
+        local_beta = 200
         hidden = 20
-        epoch_idx = 0
+        epoch_idx = 20
 
-        outdir = bigruns + os.sep + 'rbm' + os.sep + 'F_beta2duringTraining_100batch_100epochs_20cdk_1.00E-04eta_200ais' + os.sep + 'run0'
-        fname = 'weights_20hidden_0fields_20cdk_200stepsAIS_2.00beta.npz'
+        outdir = bigruns + os.sep + 'rbm' + os.sep + 'E_extra_beta2duringTraining_100batch_20epochs_20cdk_1.00E-04eta_2ais'
+        fname = 'weights_20hidden_0fields_20cdk_2stepsAIS_2.00beta.npz'
         dataobj = np.load(outdir + os.sep + fname)
         arr = dataobj['weights'][:, :, epoch_idx]
-        print(arr)
+
         rbm = RBM(VISIBLE_UNITS, hidden, 0, load_init_weights=False, use_fields=False, learning_rate=0)
         rbm.weights = torch.from_numpy(arr).float()
 
         classify_with_rbm(rbm, outdir=outdir, beta=local_beta)
-
-        # TODO try RBM classification but with higher beta? the 78%, 87% etc are with beta=2 which was used for weight training
