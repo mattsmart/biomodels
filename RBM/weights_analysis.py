@@ -2,28 +2,53 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
+from plotting import image_fancy
 from settings import MNIST_BINARIZATION_CUTOFF, DIR_OUTPUT, CLASSIFIER, BETA
 
 
-def plot_weights_timeseries(weights_timeseries, mode='eval'):
+def plot_weights_timeseries(weights_timeseries, outdir, mode='eval', extra=False):
     assert mode in ['eval', 'minmax']
     N, p, num_steps = weights_timeseries.shape
 
     if mode == 'eval':
-        evals = 1 # TODO
+        evals_timeseries = np.zeros((p, num_steps)) # TODO square or not
+        lsv_timeseries = np.zeros((N, p, num_steps))
+        rsv_timeseries = np.zeros((p, p, num_steps))
         for idx in range(num_steps):
-            weights = weights_timeseries[:,:,idx]
-            evals = np.linalg.svd(weights)
+            weights = weights_timeseries[:, :, idx]
+            u, s, vh = np.linalg.svd(weights, full_matrices=False)
+            evals_timeseries[:, idx] = s
+            lsv_timeseries[:, :, idx] = u
+            rsv_timeseries[:, :, idx] = vh
+        ret = (evals_timeseries, lsv_timeseries, rsv_timeseries)
+
+        plt.plot(range(num_steps), evals_timeseries.T)
+        plt.ylabel('weights: singular values')
+        plt.xlim(0, 20)
+
+        #for idx in range(p):
     else:
         min_arr = np.amin(weights_timeseries, axis=(0, 1))
         max_arr = np.amax(weights_timeseries, axis=(0, 1))
         plt.plot(range(num_steps), min_arr, label=r'min $W(t)$')
         plt.plot(range(num_steps), max_arr, label=r'max $W(t)$')
         plt.ylabel('weights min, max')
+        ret = (min_arr, max_arr)
     plt.xlabel('epoch')
     plt.legend()
     plt.show()
-    return
+
+    if extra and mode == 'eval':
+        for col in range(p):
+            for epoch in range(20):
+                lsv = lsv_timeseries[:, col, epoch]
+                plt.imshow(lsv.reshape(28, 28), interpolation='none')
+                plt.colorbar()
+                plot_title = 'training_lsv_col%d_%d' % (col, epoch)
+                plt.title(plot_title)
+                plt.savefig(outdir + os.sep + plot_title + '.jpg')
+                plt.close()
+    return ret
 
 
 if __name__ == '__main__':
@@ -32,12 +57,13 @@ if __name__ == '__main__':
     bigruns = DIR_OUTPUT + os.sep + 'archive' + os.sep + 'big_runs'
 
     # specify dir
+    runtype = 'hopfield'  # hopfield or normal
     alt_names = True  # some weights had to be run separately with different naming convention
     hidden_units = 10
     use_fields = False
     maindir = bigruns + os.sep + 'rbm' + os.sep + \
-              'hopfield_%dhidden_%dfields_%.2fbeta_%dbatch_%depochs_%dcdk_%.2Eeta_%dais' % (
-                  hidden_units, use_fields, 2.00, 100, 100, 20, 1e-4, 200)
+              '%s_%dhidden_%dfields_%.2fbeta_%dbatch_%depochs_%dcdk_%.2Eeta_%dais' % (
+                  runtype, hidden_units, use_fields, 2.00, 100, 100, 20, 1e-4, 200)
     run = 0
     if alt_names:
         rundir = maindir
@@ -69,20 +95,17 @@ if __name__ == '__main__':
         except:
             print("Hidden bias file not found")
 
-    plot_weights_timeseries(weights_timeseries, mode='minmax')
-    #plot_weights_timeseries(weights_timeseries, mode='eval')
+    # analysis
+    outdir = DIR_OUTPUT + os.sep + 'evals' + os.sep + \
+             '%s_%dhidden_%dfields' % (runtype, hidden_units, use_fields)
+    if not os.path.exists(outdir):
+        os.makedirs(outdir)
 
-    """
-    if visible_loaded:
-        visiblefield = visiblefield_timeseries[:, idx]
-    if hidden_loaded:
-        hiddenfield = hiddenfield_timeseries[:, idx]
-    """
+    plot_weights_timeseries(weights_timeseries, outdir, mode='minmax')
+    plot_weights_timeseries(weights_timeseries, outdir, mode='eval', extra=True)
 
     """
     for idx in epoch_indices:
-        weights = weights_timeseries[:, :, idx]
-        print(idx, 'weights', np.min(weights), np.max(weights))
 
         if visible_loaded:
             visiblefield = visiblefield_timeseries[:, idx]
