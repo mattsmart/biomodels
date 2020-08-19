@@ -24,9 +24,7 @@ def plot_weights_timeseries(weights_timeseries, outdir, mode='eval', extra=False
 
         plt.plot(range(num_steps), evals_timeseries.T)
         plt.ylabel('weights: singular values')
-        plt.xlim(0, 20)
-
-        #for idx in range(p):
+        #plt.xlim(0, 20)
     else:
         min_arr = np.amin(weights_timeseries, axis=(0, 1))
         max_arr = np.amax(weights_timeseries, axis=(0, 1))
@@ -57,10 +55,10 @@ if __name__ == '__main__':
     bigruns = DIR_OUTPUT + os.sep + 'archive' + os.sep + 'big_runs'
 
     # specify dir
-    runtype = 'hopfield'  # hopfield or normal
-    alt_names = True  # some weights had to be run separately with different naming convention
+    runtype = 'normal'  # hopfield or normal
+    alt_names = False  # some weights had to be run separately with different naming convention
     hidden_units = 10
-    use_fields = False
+    use_fields = True
     maindir = bigruns + os.sep + 'rbm' + os.sep + \
               '%s_%dhidden_%dfields_%.2fbeta_%dbatch_%depochs_%dcdk_%.2Eeta_%dais' % (
                   runtype, hidden_units, use_fields, 2.00, 100, 100, 20, 1e-4, 200)
@@ -102,7 +100,7 @@ if __name__ == '__main__':
         os.makedirs(outdir)
 
     plot_weights_timeseries(weights_timeseries, outdir, mode='minmax')
-    plot_weights_timeseries(weights_timeseries, outdir, mode='eval', extra=True)
+    plot_weights_timeseries(weights_timeseries, outdir, mode='eval', extra=False)
 
     """
     for idx in epoch_indices:
