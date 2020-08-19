@@ -276,6 +276,50 @@ def data_synthetic_dual(num_samples=SYNTHETIC_SAMPLES, noise='symmetric', sampli
     return training, testing
 
 
+def label_to_init_vector(label, randomize=True, prespecified=True):
+    assert isinstance(label, int)
+    # TODO alt starting point based on xi pattern?
+    # given class label e.g. '7',
+    # identify sample image from training set of that class
+    # return binarized numpy array 784x1 of pixel values
+    mnist_training, _ = data_mnist(binarize=True)
+
+    if prespecified:
+        # for alt '1' style try 24 (fancy) or 23 (tilt right)
+        # for alt '2' style try 76
+        # for alt '3' style try 50, 44
+        # for alt '4' style try 150
+        # for alt '6' style try 147
+        # for alt '7' style try 38 (fancy), 158 (hook)
+        # for alt '8' style try 144 (thinner), 225 (angled)
+        # for alt '9' style try 162
+        spec = {0: 108, 1: 6,
+                2: 213, 3: 7,
+                4: 164, 5: 0,
+                6: 66,  7: 15,
+                8: 41,  9: 45}
+        pair = mnist_training[spec[label]]
+        assert pair[1] == label
+        ret = pair[0].reshape(28**2)
+
+    else:
+        if randomize:
+            # iterate over the list of pairs randomly until example with label is found
+            np.random.shuffle(mnist_training)
+
+        # iterate over the list of pairs in current order until example with label is found
+        idx = 0; search = True
+        while search:
+            pair = mnist_training[idx]
+            if pair[1] == label:
+                search = False
+                ret = pair[0].reshape(28 ** 2)
+            idx += 1
+
+    return ret
+
+
+
 if __name__ == '__main__':
     # get data
     mnist_training, mnist_testing = data_mnist()

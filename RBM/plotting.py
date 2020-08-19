@@ -34,6 +34,13 @@ def image_fancy(image, ax=None, show_labels=False):
     return ax
 
 
+def image_fancy_wrapper(image, title='Example digit'):
+    plt.figure()
+    image_fancy(image, ax=plt.gca(), show_labels=False)
+    plt.title(title)
+    plt.show(); plt.close()
+
+
 def plot_hopfield_generative_scores():
     k_list = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     data_folder = DIR_OUTPUT + os.sep + 'archive' + os.sep + 'big_runs' + os.sep + 'hopfield'
