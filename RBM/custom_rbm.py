@@ -263,7 +263,6 @@ class RBM_gaussian_custom():
 
         return visible_timeseries
 
-
     def get_sample_images_targetted(self, num_images, init_vector, k=20):
         # do k steps of annealing on random initial state to arrive at final sampled images
         # init_vector: init_vector of digit to generate similar examples of
@@ -304,7 +303,6 @@ class RBM_gaussian_custom():
 
         return visible_timeseries
 
-
     def plot_sample_images(self, visible_timeseries, outdir, only_last=True):
         visible_timeseries_numpy = visible_timeseries.numpy()
         num_steps = visible_timeseries_numpy.shape[0]
@@ -319,7 +317,9 @@ class RBM_gaussian_custom():
                 image = visible_timeseries_numpy[k, idx, :].reshape((28, 28))
                 plt.figure()
                 image_fancy(image, ax=plt.gca(), show_labels=False)
+                plt.gca().grid(False)
                 plt.title('Trajectory: %d | Step: %d' % (num_images, k))
+                plt.savefig(outdir + os.sep + 'traj%d_step%d.pdf' % (idx, k));
                 plt.savefig(outdir + os.sep + 'traj%d_step%d.png' % (idx, k));
                 plt.close()
 
@@ -329,22 +329,22 @@ class RBM_gaussian_custom():
 if __name__ == '__main__':
 
     sample_trained_rbm = True
-    mode = 'targeted'
-    assert mode in ['targeted', 'blanket']
+    mode = 'targetted'
+    assert mode in ['targetted', 'blanket']
 
     if sample_trained_rbm:
 
         # pick data to load
         runtype = 'hopfield'
-        num_hidden = 10
+        num_hidden = 50
         total_epochs = 100
         batch = 100
         cdk = 20
-        use_fields = True
+        use_fields = False
         ais_steps = 200
         beta = 2
         assert beta == 2
-        epoch_idx = [0, 5, 99]  # [96, 97, 98]
+        epoch_idx = [0, 5, 10, 99]  # [96, 97, 98]
 
         # load data
         custompath = False
@@ -399,8 +399,9 @@ if __name__ == '__main__':
                 init_vector = label_to_init_vector(digit, prespecified=True)
                 plt.figure()
                 image_fancy(init_vector.reshape((28, 28)), ax=plt.gca(), show_labels=False)
+                plt.gca().grid(False)
                 plt.title('Sample for class: %d' % (digit))
-                plt.savefig(basedir + os.sep + 'init_example_%d.png' % (digit));
+                plt.savefig(basedir + os.sep + 'init_example_%d.pdf' % (digit));
                 plt.close()
 
                 for idx in epoch_idx:
@@ -417,7 +418,7 @@ if __name__ == '__main__':
                         rbm.hidden_bias = torch.from_numpy(hiddenfield_timeseries[:, idx]).float()
 
                     # generate samples
-                    num_images = 20
+                    num_images = 40
                     k_steps = 20
                     visible_block = rbm.get_sample_images_targetted(num_images, init_vector, k=k_steps)
                     rbm.plot_sample_images(visible_block, outdir, only_last=True)
