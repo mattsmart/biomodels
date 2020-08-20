@@ -125,6 +125,7 @@ def compare_generative_scores(plotting_dict, out_dir):
     #ax = sns.lineplot(x=epoch_name, y=score_name, hue=category_name, marker='o', markers=True, dashes=False, data=df1,
     #                  legend='full')
     plt.ylim(-500,0)
+    #plt.ylim(-250,-50)
     plt.savefig(out_dir + os.sep + 'scores.pdf')
     plt.show(); plt.close()
 
@@ -153,19 +154,26 @@ def compare_generative_scores_sep(plotting_dict, out_dir):
     kwdict = {'hopfield':
                   {'c': '#1f77b4', 'z':3},
               r'$N(0,0.01)$':
-                  {'c': '#ff7f0e', 'z':2}}
+                  {'c': '#ff7f0e', 'z':2},
+              'hopfield + biases':
+                  {'c': '#1f77b4', 'z': 3, 'linestyle': '--'},
+              r'$N(0,0.01)$ + biases':
+                  {'c': '#ff7f0e', 'z': 2, 'linestyle': '--'}
+              }
 
     plt.figure()
     for k, v in plotting_dict.items():
+        print(k)
         plt.plot(v['epochs'], v['score'], label=v['title'], alpha=0.8,
                  color=kwdict[v['category']]['c'], zorder=kwdict[v['category']]['z'])
     plt.xlabel(epoch_name); plt.ylabel(score_name)
     plt.legend()
-    plt.ylim(-500,0)
+    plt.ylim(-500,0)  # plt.ylim(-250,-50)
     plt.savefig(out_dir + os.sep + 'scores_sep.pdf')
     plt.show(); plt.close()
 
     return
+
 
 if __name__ == '__main__':
     plot_hopfield_k_generative = False
@@ -176,13 +184,17 @@ if __name__ == '__main__':
 
     if plot_compare_generative:
         scores_to_compare = DIR_OUTPUT + os.sep + 'archive' + os.sep + 'big_runs' + os.sep + 'scores_to_compare'
-        compare_dir = scores_to_compare + os.sep + 'aug10_hopfield_vs_normal_10p_100batch_1e-4eta'
+        compare_dir = scores_to_compare + os.sep + 'aug20_hopfield_vs_normal_50p_100batch_1e-4eta'
 
-        def get_category(plot_key):
+        def get_category(plot_key, use_fields):
+            post = ''
+            if use_fields:
+                post = ' + biases'
+
             if plot_key[0:3] == 'hop':
-                val = 'hopfield'
+                val = 'hopfield' + post
             elif plot_key[0:3] == 'nor':
-                val = r'$N(0,0.01)$'
+                val = r'$N(0,0.01)$' + post
             else:
                 assert 1==2
             return val
@@ -191,14 +203,18 @@ if __name__ == '__main__':
         onlynpz = [f for f in os.listdir(compare_dir) if
                    (os.path.isfile(os.path.join(compare_dir, f)) and f[-4:] == '.npz')]
         for f in onlynpz:
-            plot_key = f.split('_')[-1][:-4]
+            f_info = f.split('_')
+            plot_key = f_info[-1][:-4]
+            use_fields = bool( int(f_info[2][0]) )
+            plot_key += f_info[2][0]
+
             dataobj = np.load(compare_dir + os.sep + f)
             plotting_dict[plot_key] = \
                 {'epochs': dataobj['epochs'],
                  'termA': dataobj['termA'],
                  'logZ': dataobj['logZ'],
                  'score': dataobj['score'],
-                 'category': get_category(plot_key),
+                 'category': get_category(plot_key, use_fields),
                  'title': plot_key}
 
         compare_generative_scores_sep(plotting_dict, compare_dir)
