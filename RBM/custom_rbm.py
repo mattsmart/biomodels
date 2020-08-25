@@ -75,27 +75,24 @@ class RBM_custom():
 
 class RBM_gaussian_custom():
 
-    def __init__(self, num_visible, num_hidden, k, learning_rate=1e-3, weight_decay=1e-4, load_init_weights=False, use_fields=True):
+    def __init__(self, num_visible, num_hidden, k, learning_rate=1e-3, weight_decay=1e-4, init_weights=None, use_fields=True):
         self.num_visible = num_visible
         self.num_hidden = num_hidden
         self.k = k
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
-        if load_init_weights:
-            npzpath = DIR_MODELS + os.sep + 'saved' + os.sep + 'hopfield_mnist_%d.npz' % num_hidden
-            print("Loading weights from %s" % npzpath)
-            self.load_rbm_trained(npzpath)
-            self.visible_bias = torch.zeros(num_visible).float()
+        if init_weights is not None:
+            self.weights = init_weights
         else:
             use_normal = True
-            print("Setting random weights: use_normal=%s" % use_normal)
+            #print("Setting random weights: use_normal=%s" % use_normal)
             if use_normal:
                 self.weights = 0.1 * torch.randn(num_visible, num_hidden).float()
             else:
                 scale = np.sqrt(6) / np.sqrt(num_visible + num_hidden)  # gaussian-binary ref cites bengio and glorot [40] on this choice
                 self.weights = 2 * scale * torch.rand(num_visible, num_hidden).float() - scale
                 print(scale, torch.min(self.weights), torch.max(self.weights))
-            self.visible_bias = torch.zeros(num_visible).float()
+        self.visible_bias = torch.zeros(num_visible).float()
         self.hidden_bias = torch.zeros(num_hidden).float()
         self.use_fields = use_fields
 
@@ -375,7 +372,7 @@ if __name__ == '__main__':
                     os.makedirs(outdir)
 
                 # re-build rbm
-                rbm = RBM_gaussian_custom(28**2, num_hidden, 0, load_init_weights=False, use_fields=False, learning_rate=0)
+                rbm = RBM_gaussian_custom(28**2, num_hidden, 0, init_weights=None, use_fields=False, learning_rate=0)
                 rbm.weights = torch.from_numpy(weights_timeseries[:, :, idx]).float()
                 if use_fields:
                     rbm.visible_bias = torch.from_numpy(visiblefield_timeseries[:, idx]).float()
@@ -410,7 +407,7 @@ if __name__ == '__main__':
                         os.makedirs(outdir)
 
                     # re-build rbm
-                    rbm = RBM_gaussian_custom(28 ** 2, num_hidden, 0, load_init_weights=False, use_fields=False,
+                    rbm = RBM_gaussian_custom(28 ** 2, num_hidden, 0, init_weights=None, use_fields=False,
                                               learning_rate=0)
                     rbm.weights = torch.from_numpy(weights_timeseries[:, :, idx]).float()
                     if use_fields:
