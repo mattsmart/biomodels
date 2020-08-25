@@ -3,49 +3,9 @@ import numpy as np
 import os
 
 from data_process import image_data_collapse, data_dict_mnist_detailed, binarize_image_data, data_dict_mnist
-from RBM_train import TRAINING, TESTING, build_rbm_hopfield
+from RBM_train import TRAINING, TESTING, build_models_poe
 from RBM_assess import confusion_matrix_from_pred, plot_confusion_matrix
 from settings import BETA, USE_BETA_SCHEDULER, HRBM_CLASSIFIER_STEPS, MNIST_BINARIZATION_CUTOFF, CLASSIFIER, K_PATTERN_DIV
-
-
-def build_models(dataset, k_pattern=K_PATTERN_DIV):
-    subpatterns = True   # identify sub-classes
-    expand_models = False  # treat each sub-class as its own class (more models/features, each is less complex though)
-    assert expand_models is False  # need to troubleshoot; not working with SVM (why?)
-
-    full_data_dict, full_category_counts = data_dict_mnist(dataset)
-    list_of_keys = list(full_data_dict.keys())
-    if subpatterns:
-        full_data_dict, full_category_counts = data_dict_mnist_detailed(full_data_dict, full_category_counts, k_pattern=k_pattern)
-        #if expand_models:
-        #    list_of_keys = list(full_data_dict.keys())
-        list_of_keys = list(full_data_dict.keys())
-
-    if expand_models:
-        dict_of_data_dicts = {key: {key: full_data_dict[key]} for key in list_of_keys}
-        dict_of_counts = {key: {key: full_category_counts[key]} for key in list_of_keys}
-    else:
-        dict_of_data_dicts = {idx: {} for idx in range(10)}
-        dict_of_counts = {idx: {} for idx in range(10)}
-        for idx in range(10):
-            for key in list_of_keys:
-                key_prefix = key              # form is int: 1
-                if isinstance(key, str):
-                    key_prefix = int(key[0])  # form is like '1_7' (1 of subtype 7)
-                if idx == key_prefix:
-                    dict_of_data_dicts[idx][key] = full_data_dict[key]
-                    dict_of_counts[idx][key] = full_category_counts[key]
-    #separated_dataset, full_category_counts = separate_training_data(dataset, expand_models=False)  # TODO remove?
-
-    models = {}
-    for key in dict_of_data_dicts.keys():
-        print("Building model:", key)
-        print("\tData counts:", dict_of_counts[key])
-        fast = (dict_of_data_dicts[key], dict_of_counts[key])
-        rbm = build_rbm_hopfield(data=None, visible_field=False, subpatterns=subpatterns, fast=fast, save=False,
-                                 name='figHinton_%a' % str(key))
-        models[key] = rbm
-    return models
 
 
 def score_1digit_model(model, img):
@@ -129,7 +89,6 @@ def classifier_on_rbm_scores(models, dataset_train, dataset_test, clfs=None):
         cms[idx] = confusion_matrix
         accs[idx] = acc
         print("Successful test cases: %d/%d (%.3f)" % (matches.count(True), len(matches), acc))
-        accs[idx] = idx
     return cms, accs
 
 
@@ -137,7 +96,7 @@ if __name__ == '__main__':
     #TRAINING = TRAINING[0:10000]  # take subset for faster evaluation  TODO care using subset
     USE_SVM = False
     
-    ks = [30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200]
+    ks = [10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200]
     accs = [0] * len(ks)
 
     if USE_SVM:
@@ -162,7 +121,7 @@ if __name__ == '__main__':
 
     for idx, k in enumerate(ks):
         print("SCORING k_pattern", k)
-        models = build_models(TRAINING, k_pattern=k)
+        models = build_models_poe(TRAINING, k_pattern=k)
         list_confusion_matrix, list_acc = classifier_on_rbm_scores(models, TRAINING, TESTING, clfs=clfs)
         for cm in list_confusion_matrix:
             plot_confusion_matrix(cm)  # only gets CM for the last clf

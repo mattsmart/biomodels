@@ -243,42 +243,82 @@ def load_rbm_hopfield(npzpath=DEFAULT_HOPFIELD):
     return rbm_hopfield
 
 
-if __name__ == '__main__':
-    # Step 1: pick data set (MNIST or synthetic)
+def build_models_poe(dataset, k_pattern=K_PATTERN_DIV):
+    subpatterns = True   # identify sub-classes
+    expand_models = False  # treat each sub-class as its own class (more models/features, each is less complex though)
+    assert expand_models is False  # need to troubleshoot; not working with SVM (why?)
 
-    # Step 2: build 4 RBM variants
-    #   A: hopfield RBM
-    #   B: hopfield RBM then some training
-    #   C: vanilla RBM binary-gaussian
-    #   D: vanilla RBM binary-binary
-    build_instead_of_load = False
+    full_data_dict, full_category_counts = data_dict_mnist(dataset)
+    list_of_keys = list(full_data_dict.keys())
+    if subpatterns:
+        full_data_dict, full_category_counts = data_dict_mnist_detailed(full_data_dict, full_category_counts, k_pattern=k_pattern)
+        #if expand_models:
+        #    list_of_keys = list(full_data_dict.keys())
+        list_of_keys = list(full_data_dict.keys())
 
-    # trial building
-    if build_instead_of_load:
-        k_patterns = K_PATTERN_DIV
-        rbm = build_rbm_hopfield(data=TRAINING, visible_field=False, subpatterns=True)
-
-    # trial loading
+    if expand_models:
+        dict_of_data_dicts = {key: {key: full_data_dict[key]} for key in list_of_keys}
+        dict_of_counts = {key: {key: full_category_counts[key]} for key in list_of_keys}
     else:
-        k_patterns = 1
-        fname = 'hopfield_mnist_%d0.npz' % k_patterns
-        rbm = load_rbm_hopfield(npzpath=DIR_MODELS + os.sep + 'saved' + os.sep + fname)
+        dict_of_data_dicts = {idx: {} for idx in range(10)}
+        dict_of_counts = {idx: {} for idx in range(10)}
+        for idx in range(10):
+            for key in list_of_keys:
+                key_prefix = key              # form is int: 1
+                if isinstance(key, str):
+                    key_prefix = int(key[0])  # form is like '1_7' (1 of subtype 7)
+                if idx == key_prefix:
+                    dict_of_data_dicts[idx][key] = full_data_dict[key]
+                    dict_of_counts[idx][key] = full_category_counts[key]
+    #separated_dataset, full_category_counts = separate_training_data(dataset, expand_models=False)  # TODO remove?
 
-    xi_images = rbm.xi_image
-    print(rbm.pattern_labels)
-    plt.figure(figsize=(2 + k_patterns, 10))
-    fig, ax_arr = plt.subplots(k_patterns, 10)
-    for k in range(k_patterns):
-        for i in range(10):
-            print(i, k, k_patterns*i + k, rbm.pattern_labels[k_patterns*i + k])
-            if k_patterns > 1:
-                axloc = ax_arr[k, i]
-            else:
-                axloc = ax_arr[i]
-            axloc.imshow(xi_images[:, :, k_patterns*i + k], interpolation='none')
-            axloc.set_xticklabels([])
-            axloc.set_yticklabels([])
-            # image_fancy(xi_images[:, :, k_patterns*i + k], ax=axloc)
-    plt.suptitle('Heirarchical patterns example (K=%d)' % k_patterns)
-    plt.tight_layout()
-    plt.savefig(DIR_OUTPUT + os.sep + 'subpatterns_%d.pdf' % k_patterns)
+    models = {}
+    for key in dict_of_data_dicts.keys():
+        print("Building model:", key)
+        print("\tData counts:", dict_of_counts[key])
+        fast = (dict_of_data_dicts[key], dict_of_counts[key])
+        rbm = build_rbm_hopfield(data=None, visible_field=False, subpatterns=subpatterns, fast=fast, save=True,
+                                 name='digit%d_p%d' % (key, k_pattern * 10))
+        models[key] = rbm
+    return models
+
+
+if __name__ == '__main__':
+    product_of_experts = True
+    build_regular_instead_of_load = True
+
+    if product_of_experts:
+        for k in range(1, 110):
+            print("Building poe k=%d" % k)
+            models = build_models_poe(TRAINING, k_pattern=k)
+
+    else:
+        # regular model building
+        if build_regular_instead_of_load:
+            k_patterns = K_PATTERN_DIV
+            rbm = build_rbm_hopfield(data=TRAINING, visible_field=False, subpatterns=True)
+
+        # regular model loading
+        else:
+            k_patterns = 1
+            fname = 'hopfield_mnist_%d0.npz' % k_patterns
+            rbm = load_rbm_hopfield(npzpath=DIR_MODELS + os.sep + 'saved' + os.sep + fname)
+
+        xi_images = rbm.xi_image
+        print(rbm.pattern_labels)
+        plt.figure(figsize=(2 + k_patterns, 10))
+        fig, ax_arr = plt.subplots(k_patterns, 10)
+        for k in range(k_patterns):
+            for i in range(10):
+                print(i, k, k_patterns*i + k, rbm.pattern_labels[k_patterns*i + k])
+                if k_patterns > 1:
+                    axloc = ax_arr[k, i]
+                else:
+                    axloc = ax_arr[i]
+                axloc.imshow(xi_images[:, :, k_patterns*i + k], interpolation='none')
+                axloc.set_xticklabels([])
+                axloc.set_yticklabels([])
+                # image_fancy(xi_images[:, :, k_patterns*i + k], ax=axloc)
+        plt.suptitle('Heirarchical patterns example (K=%d)' % k_patterns)
+        plt.tight_layout()
+        plt.savefig(DIR_OUTPUT + os.sep + 'subpatterns_%d.pdf' % k_patterns)
