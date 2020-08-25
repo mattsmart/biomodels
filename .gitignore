@@ -45,8 +45,9 @@ celltypes/venv/
 celltypes/gpu/\.ipynb_checkpoints/
 transcriptome_clustering/output/
 oncogenesis_dynamics/figures/
+
 RBM/data/MNIST/
 RBM/models/hopfield_weights.npy
 RBM/output/logZ/
 RBM/output/archive/big_runs/
-RBM/models/poe/hopfield_digit0_p1020.npz
+RBM/models/poe/
