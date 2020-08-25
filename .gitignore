@@ -51,3 +51,4 @@ RBM/models/hopfield_weights.npy
 RBM/output/logZ/
 RBM/output/archive/big_runs/
 RBM/models/poe/
+RBM/output/training/
