@@ -229,7 +229,7 @@ if __name__ == '__main__':
         for idx in epoch_idx:
             weights = weights_timeseries[:, :, idx]
             rbm = weights_timeseries[:, :, idx]
-            rbm = RBM_gaussian_custom(28**2, 50, 0, load_init_weights=False, use_fields=False, learning_rate=0)
+            rbm = RBM_gaussian_custom(28**2, 50, 0, init_weights=None, use_fields=False, learning_rate=0)
             rbm.weights = torch.from_numpy(weights).float()
 
             print('Estimating term A...', )
