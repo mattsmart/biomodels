@@ -1,12 +1,19 @@
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+from scipy.linalg import qr
 
-import matplotlib as mpl
-
+from data_process import image_data_collapse
 from plotting import image_fancy
-from settings import MNIST_BINARIZATION_CUTOFF, DIR_OUTPUT, CLASSIFIER, BETA
+from settings import MNIST_BINARIZATION_CUTOFF, DIR_OUTPUT, DIR_MODELS, BETA
 from weights_analysis import plot_weights_timeseries
+
+
+def rebuild_R_from_xi_image(xi_image):
+    xi_collapsed = image_data_collapse(xi_image)
+    Q, R = qr(xi_collapsed, mode='economic')
+    return Q, R
 
 
 def plot_basis_candidate(xcol, idx, outdir, label=''):
@@ -82,7 +89,7 @@ def plot_error_timeseries(error_timeseries, outdir, label='', ylim=None):
     plt.close()
 
 
-def binarize_search(weights, outdir, num=20, beta=100):
+def binarize_search(weights, outdir, num=20, beta=100, init=None):
     # search for x_mu st W x_mu is approximately binary
     # condition for binary: Wx = sgn(Wx)
     # soften the problem as Wx = tanh(beta Wx)
@@ -148,7 +155,11 @@ def binarize_search(weights, outdir, num=20, beta=100):
         return xcol, err_timeseries
 
     # initial guesses for candidate columns of R matrix
-    X = np.random.rand(p, num)*2 - 1  # draw from U(-1,1)
+    if init is None:
+        X = np.random.rand(p, num)*2 - 1  # draw from U(-1,1)
+    else:
+        assert init.shape == (p, num)
+        X = init
 
     # perform num random searches for basis vector candidates
     for idx in range(num):
@@ -169,6 +180,7 @@ if __name__ == '__main__':
     bigruns = DIR_OUTPUT + os.sep + 'archive' + os.sep + 'big_runs'
 
     # specify dir
+    epoch = 0
     runtype = 'hopfield'  # hopfield or normal
     alt_names = True  # some weights had to be run separately with different naming convention
     hidden_units = 10
@@ -193,8 +205,17 @@ if __name__ == '__main__':
     #  (try to) load visible and hidden biases
     assert not use_fields
 
+    # load misc data to get initial transformation guess (R array if hopfield from QR)
+    if runtype == 'hopfield':
+        from RBM_train import load_rbm_hopfield
+        fname = 'hopfield_mnist_%d.npz' % hidden_units
+        rbm = load_rbm_hopfield(npzpath=DIR_MODELS + os.sep + 'saved' + os.sep + fname)
+        Q, R = rebuild_R_from_xi_image(rbm.xi_image)
+        X0_guess = R
+    else:
+        X0_guess = None
+
     # choose weights to study
-    epoch = 2
     weights = weights_timeseries[:, :, epoch]
 
     # analysis
@@ -203,7 +224,7 @@ if __name__ == '__main__':
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
-    binarize_search(weights, outdir, num=5, beta=200)
+    binarize_search(weights, outdir, num=10, beta=200, init=X0_guess)
     #plot_weights_timeseries(weights_timeseries, outdir, mode='minmax')
     #plot_weights_timeseries(weights_timeseries, outdir, mode='eval', extra=False)
 
