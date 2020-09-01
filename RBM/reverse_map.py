@@ -9,9 +9,12 @@ from settings import MNIST_BINARIZATION_CUTOFF, DIR_OUTPUT, CLASSIFIER, BETA
 from weights_analysis import plot_weights_timeseries
 
 
-def plot_basis_candidate(xcol, idx, out, label=''):
+def plot_basis_candidate(xcol, idx, outdir, label=''):
+    cmap='seismic_r'
+    norm = mpl.colors.DivergingNorm(vcenter=0.)
+
     plt.figure()
-    plt.imshow(xcol.reshape((28, 28)))
+    plt.imshow(xcol.reshape((28, 28)), cmap=cmap, norm=norm)
 
     # turn off labels
     ax = plt.gca()
@@ -65,13 +68,17 @@ def plot_basis_candidate_fancy(xcol, idx, outdir, label=''):
     plt.close()
 
 
-def plot_error_timeseries(error_timeseries, outdir, label=''):
+def plot_error_timeseries(error_timeseries, outdir, label='', ylim=None):
     plt.plot(error_timeseries)
     plt.xlabel('iteration')
     plt.ylabel(r'$||Wx - tanh(\beta Wx)||^2$')
-
     plt.title('Error over gradient updates %s' % (label))
-    plt.savefig(outdir + os.sep + 'error_%s.jpg' % (label))
+
+    if ylim is None:
+        plt.savefig(outdir + os.sep + 'error_%s.jpg' % (label))
+    else:
+        plt.ylim(ylim)
+        plt.savefig(outdir + os.sep + 'error_%s_ylim.jpg' % (label))
     plt.close()
 
 
@@ -89,11 +96,17 @@ def binarize_search(weights, outdir, num=20, beta=100):
         err = np.dot(err_vec.T, err_vec)
         return err
 
-    def gradient_search(xcol, column, num_steps=100, eta=1e-2, plot_all=True):
+    def gradient_search(xcol, column, num_steps=100, eta=1e-1, plot_all=True):
         # note eta may need to be prop. to beta
         # performs gradient descent for single basis vector
+        # TODO idea for gradient feedback: add terms as basis formed corresponding to 'dot product with basis elements is small'
 
         err_timeseries = np.zeros(num_steps + 1)
+
+        # large local output dir for gradient traj
+        outdir_local = outdir + os.sep + 'num%d_details' % column
+        if not os.path.exists(outdir_local):
+            os.makedirs(outdir_local)
 
         def gradient_iterate(xcol):
 
@@ -123,8 +136,8 @@ def binarize_search(weights, outdir, num=20, beta=100):
             err_timeseries[idx] = get_err(err_vec)
 
             if plot_all:
-                plot_basis_candidate_fancy(Wx, column, outdir, '(iterate_%s_discrete)' % idx)
-                plot_basis_candidate(Wx, column, outdir, '(iterate_%s)' % idx)
+                plot_basis_candidate_fancy(Wx, column, outdir_local, '(iterate_%s_discrete)' % idx)
+                plot_basis_candidate(Wx, column, outdir_local, '(iterate_%s)' % idx)
 
         # compute last element of error (not done in loop)
         Wx = np.dot(weights, xcol)
@@ -142,6 +155,7 @@ def binarize_search(weights, outdir, num=20, beta=100):
         x0 = X[:, idx]
         xcol, err_timeseries = gradient_search(x0, idx)
         plot_error_timeseries(err_timeseries, outdir, 'traj%s' % idx)
+        plot_error_timeseries(err_timeseries, outdir, 'traj%s' % idx, ylim=(-10, 200))
         X[:, idx] = xcol
 
         Wx_final = np.dot(weights, xcol)
@@ -152,8 +166,6 @@ def binarize_search(weights, outdir, num=20, beta=100):
 
 
 if __name__ == '__main__':
-    epoch_indices = None
-
     bigruns = DIR_OUTPUT + os.sep + 'archive' + os.sep + 'big_runs'
 
     # specify dir
@@ -182,15 +194,16 @@ if __name__ == '__main__':
     assert not use_fields
 
     # choose weights to study
-    epoch = 0
+    epoch = 2
     weights = weights_timeseries[:, :, epoch]
 
     # analysis
-    outdir = DIR_OUTPUT + os.sep + 'reversemap' + os.sep + '%s_%dhidden_%dfields' % (runtype, hidden_units, use_fields)
+    outdir = DIR_OUTPUT + os.sep + 'reversemap' + os.sep + '%s_%dhidden_%dfields_%depoch' % \
+             (runtype, hidden_units, use_fields, epoch)
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
-    binarize_search(weights, outdir, num=5, beta=100)
+    binarize_search(weights, outdir, num=5, beta=200)
     #plot_weights_timeseries(weights_timeseries, outdir, mode='minmax')
     #plot_weights_timeseries(weights_timeseries, outdir, mode='eval', extra=False)
 
