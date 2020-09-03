@@ -103,8 +103,8 @@ def binarize_search(weights, outdir, num=20, beta=100, init=None):
         err = np.dot(err_vec.T, err_vec)
         return err
 
-    def gradient_search(xcol, column, num_steps=100, eta=1e-1, plot_all=True):
-        # note eta may need to be prop. to beta
+    def gradient_search(xcol, column, num_steps=200, eta=2*1e-2, plot_all=True):
+        # note eta may need to be prop. to beta; 0.1 worked with beta 200
         # performs gradient descent for single basis vector
         # TODO idea for gradient feedback: add terms as basis formed corresponding to 'dot product with basis elements is small'
 
@@ -180,8 +180,9 @@ if __name__ == '__main__':
     bigruns = DIR_OUTPUT + os.sep + 'archive' + os.sep + 'big_runs'
 
     # specify dir
-    epoch = 0
+    epoch = 3
     runtype = 'hopfield'  # hopfield or normal
+    lowdin_approx = True
     alt_names = True  # some weights had to be run separately with different naming convention
     hidden_units = 10
     use_fields = False
@@ -217,14 +218,19 @@ if __name__ == '__main__':
 
     # choose weights to study
     weights = weights_timeseries[:, :, epoch]
+    if lowdin_approx:
+        print('Taking Lowdin approx of the weights')
+        u, s, vh = np.linalg.svd(weights, full_matrices=False)
+        print('Original singular values:\n', s)
+        weights = u
 
     # analysis
-    outdir = DIR_OUTPUT + os.sep + 'reversemap' + os.sep + '%s_%dhidden_%dfields_%depoch' % \
-             (runtype, hidden_units, use_fields, epoch)
+    outdir = DIR_OUTPUT + os.sep + 'reversemap' + os.sep + '%s_%dhidden_%dfields_%depoch_%dlowdin' % \
+             (runtype, hidden_units, use_fields, epoch, lowdin_approx)
     if not os.path.exists(outdir):
         os.makedirs(outdir)
 
-    binarize_search(weights, outdir, num=10, beta=200, init=X0_guess)
+    binarize_search(weights, outdir, num=10, beta=2000, init=X0_guess)
     #plot_weights_timeseries(weights_timeseries, outdir, mode='minmax')
     #plot_weights_timeseries(weights_timeseries, outdir, mode='eval', extra=False)
 
