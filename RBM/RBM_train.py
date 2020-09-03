@@ -134,7 +134,9 @@ class RBM:
 
     def save_rbm_trained(self):
         fpath = DIR_MODELS + os.sep + self.name
-        np.savez(fpath, Q=self.internal_weights, proj_remainder=self.output_weights, pattern_labels=self.pattern_labels,
+        np.savez(fpath, Q=self.internal_weights,
+                 proj_remainder=self.output_weights,
+                 pattern_labels=self.pattern_labels,
                  xi_image=self.xi_image)
         return fpath
 
