@@ -18,10 +18,12 @@ else:
 
 class RBM:
 
-    def __init__(self, dim_visible, dim_hidden, type_hidden, name):
+    def __init__(self, dim_visible, dim_hidden, type_hidden, name, k_pattern=K_PATTERN_DIV, onehot_classify=False):
         assert type_hidden in ['boolean', 'gaussian']
         self.dim_visible = dim_visible
+        self.add_visible_onehot = onehot_classify
         self.dim_hidden = dim_hidden
+        self.k_pattern = k_pattern
         self.type_hidden = type_hidden
         self.name = name
         self.internal_weights = None
@@ -31,6 +33,20 @@ class RBM:
         self.pattern_labels = None
         self.pattern_idx_to_labels = None
         self.xi_image = None
+
+        # checks
+        assert self.dim_visible == 28 ** 2
+
+        # conditionals
+        if self.add_visible_onehot:
+            # TODO 10 * K or 10 added visible nodes?
+            self.dim_visible_img = 28 ** 2             # the 'image' portion of v
+            self.dim_visible_onehot = self.dim_hidden  # the 'class' portion of v
+            self.dim_visible += self.dim_visible_onehot
+            self.visible_field = np.zeros(self.dim_visible)
+        else:
+            self.dim_visible_img = 28 ** 2
+            self.dim_visible_onehot = 0
 
     def set_internal_weights(self, weights):
         assert weights.shape == (self.dim_visible, self.dim_hidden)
@@ -78,6 +94,45 @@ class RBM:
 
     def update_output(self, state_hidden):
         return np.dot(self.output_weights, state_hidden)
+
+    def onehot_class_label(self, state_visible, condense=True, pool=False):
+        # return class_label (str or None)
+        # labelling is as self.pattern_idx_to_labels
+        # if condense: '0_subtypeC' is just 0
+        # TODO case of several subtypes being on, but only them -- to handle, consider:
+        #  A: use sum pooling for 10k -> 10 long vector (then take e.g. vote of the 10)
+        # get onehot portion of vis arr
+        assert self.add_visible_onehot
+        onehot_arr = state_visible[-self.dim_visible_onehot:]
+        # perform pooling over subclasses
+        if pool:
+            assert condense
+            num_subpatterns = int(self.dim_hidden/10)
+            onehot_compressed = np.reshape(onehot_arr, (-1, num_subpatterns)).sum(axis=-1)
+            winners = np.argwhere(onehot_compressed == np.max(onehot_compressed))
+            num_winners = winners.shape[0]
+            if num_winners == 1:
+                winner = winners[0][0]
+                class_label = str(winner)
+            else:
+                #print('setting class_label to None as pooling num_winners =', num_winners)
+                ##print(onehot_arr)
+                #print(onehot_compressed, winners.T)
+                class_label = None
+        else:
+            where_1 = np.where(onehot_arr == 1)
+            where_1_contents = where_1[0]
+            if len(where_1_contents) == 1:
+                onehot_idx = where_1_contents[0]
+                if condense:
+                    class_label = self.pattern_idx_to_labels[onehot_idx][0]  # 'i.e. "0"'
+                else:
+                    class_label = self.pattern_idx_to_labels[onehot_idx]     # 'i.e. "0_subtypeC"'
+            else:
+                #print('setting class_label to None as len(where_1) =', len(where_1_contents))
+                #print(onehot_arr)
+                class_label = None
+        return class_label
 
     def RBM_step(self, visible_init, beta=BETA):
 
@@ -153,52 +208,57 @@ class RBM:
         plt.close()
         return
 
-def linalg_hopfield_patterns(data_dict, category_counts):
-    xi, xi_collapsed, pattern_idx_to_labels = hopfield_mnist_patterns(data_dict, category_counts, pattern_threshold=PATTERN_THRESHOLD)
-    Q, R = qr(xi_collapsed, mode='economic')
+
+def linalg_hopfield_patterns(data_dict, category_counts, onehot_classify=False):
+    xi, xi_collapsed_and_onehot, pattern_idx_to_labels = hopfield_mnist_patterns(data_dict, category_counts,
+                                                                                 pattern_threshold=PATTERN_THRESHOLD,
+                                                                                 onehot_classify=onehot_classify)
+    Q, R = qr(xi_collapsed_and_onehot, mode='economic')
     print("Q.shape", Q.shape)
     print("R.shape", R.shape)
-    return xi, xi_collapsed, pattern_idx_to_labels, Q, R
+    return xi, xi_collapsed_and_onehot, pattern_idx_to_labels, Q, R
 
 
-def build_rbm_hopfield(data=TRAINING, visible_field=False, subpatterns=False, name=DATA_CHOICE, fast=None, save=True):
+def build_rbm_hopfield(data=TRAINING, visible_field=False, subpatterns=False, name=DATA_CHOICE, fast=None, save=True,
+                       k_pattern=K_PATTERN_DIV, onehot_classify=False):
     """
     fast is None or a 2-tuple of (data_dict, category_counts)
     """
     # Step 1: convert data into patterns (using a prescribed rule)
     # Step 2: specify weights using the patterns
-    rbm_name = 'hopfield_%s' % name
+    rbm_name = 'hopfield_%s_%d' % (name, k_pattern * 10)
+    if onehot_classify:
+        rbm_name += '_onehotBlock'
+
     if fast is None:
         # build internal weights
         data_dict, category_counts = data_dict_mnist(data)
         if subpatterns:
-            rbm_name += '_subpatterns'
-            data_dict, category_counts = data_dict_mnist_detailed(data_dict, category_counts)
+            data_dict, category_counts = data_dict_mnist_detailed(data_dict, category_counts, k_pattern=k_pattern)
     else:
         data_dict = fast[0]
         category_counts = fast[1]
 
-    xi, xi_collapsed, pattern_idx_to_labels, Q, R = linalg_hopfield_patterns(data_dict, category_counts)
+    xi, xi_collapsed, pattern_idx_to_labels, Q, R = linalg_hopfield_patterns(data_dict, category_counts,
+                                                                             onehot_classify=onehot_classify)
     total_data = sum(category_counts.values())
     dim_img = list(data_dict.values())[0][:, :, 0].shape
     dim_visible = dim_img[0] * dim_img[1]
     dim_hidden = xi_collapsed.shape[-1]
     print("total_data", total_data)
+    print("dim_visible", dim_visible)
     print("dim_hidden", dim_hidden)
 
     # prep class
-    rbm_hopfield = RBM(dim_visible, dim_hidden, 'gaussian', rbm_name)
-    """
-    metas = np.zeros((28,28))
-    for idx in range(10):
-        metas += xi[:,:,idx]
-    plt.imshow(metas)
-    plt.colorbar()
-    plt.show()"""
+    rbm_hopfield = RBM(dim_visible, dim_hidden, 'gaussian', rbm_name, k_pattern=k_pattern, onehot_classify=onehot_classify)
+    print(rbm_hopfield.dim_hidden)
+    print(rbm_hopfield.dim_visible)
     rbm_hopfield.set_xi_image(xi)
     rbm_hopfield.set_internal_weights(Q)
     rbm_hopfield.set_pattern_labels(pattern_idx_to_labels)
+
     if visible_field:
+        assert not onehot_classify  # unsupported
         pixel_means = np.zeros(dim_visible)
         for idx, pair in enumerate(data):
             elem_arr, elem_label = pair
@@ -235,9 +295,16 @@ def load_rbm_hopfield(npzpath=DEFAULT_HOPFIELD):
     dim_visible = Q.shape[0]
     dim_hidden = Q.shape[1]
     pattern_idx_to_labels = {idx: str(pattern_labels[idx]) for idx in range(dim_hidden)}
+    # ONEHOT CASE HANDLING
+    dim_visible_img = 28**2
+    onehot = False
+    if dim_visible != dim_visible_img:
+        assert dim_visible == dim_visible_img + dim_hidden
+        print('dim_visible != dim_visible_img:dim_visible != dim_visible_img:dim_visible != dim_visible_img:')
+        onehot = True
     # BUILD
     rbm_name = 'hopfield_loaded_%s' % DATA_CHOICE
-    rbm_hopfield = RBM(dim_visible, dim_hidden, 'gaussian', rbm_name)
+    rbm_hopfield = RBM(dim_visible_img, dim_hidden, 'gaussian', rbm_name, onehot_classify=onehot)
     rbm_hopfield.set_internal_weights(Q)
     rbm_hopfield.set_pattern_labels(pattern_idx_to_labels)
     rbm_hopfield.set_output_weights(proj_remainder)
@@ -246,6 +313,7 @@ def load_rbm_hopfield(npzpath=DEFAULT_HOPFIELD):
 
 
 def build_models_poe(dataset, k_pattern=K_PATTERN_DIV):
+    # TODO onehot support
     subpatterns = True   # identify sub-classes
     expand_models = False  # treat each sub-class as its own class (more models/features, each is less complex though)
     assert expand_models is False  # need to troubleshoot; not working with SVM (why?)
@@ -286,8 +354,14 @@ def build_models_poe(dataset, k_pattern=K_PATTERN_DIV):
 
 
 if __name__ == '__main__':
-    product_of_experts = True
+
+    # TODO onehot support
+    # TODO build k=1 k=2 onehot
+    # TODO poe with onehot
+
+    product_of_experts = False
     build_regular_instead_of_load = True
+    build_onehot = False
 
     if product_of_experts:
         for k in range(1, 110):
@@ -296,31 +370,31 @@ if __name__ == '__main__':
 
     else:
         # regular model building
+        k_pattern = 50
         if build_regular_instead_of_load:
-            k_patterns = K_PATTERN_DIV
-            rbm = build_rbm_hopfield(data=TRAINING, visible_field=False, subpatterns=True)
+            rbm = build_rbm_hopfield(data=TRAINING, visible_field=False, subpatterns=True, k_pattern=k_pattern,
+                                     onehot_classify=build_onehot)
 
         # regular model loading
         else:
-            k_patterns = 1
-            fname = 'hopfield_mnist_%d0.npz' % k_patterns
+            fname = 'hopfield_mnist_%d0.npz' % k_pattern
             rbm = load_rbm_hopfield(npzpath=DIR_MODELS + os.sep + 'saved' + os.sep + fname)
 
         xi_images = rbm.xi_image
         print(rbm.pattern_labels)
-        plt.figure(figsize=(2 + k_patterns, 10))
-        fig, ax_arr = plt.subplots(k_patterns, 10)
-        for k in range(k_patterns):
+        plt.figure(figsize=(2 + k_pattern, 10))
+        fig, ax_arr = plt.subplots(k_pattern, 10)
+        for k in range(k_pattern):
             for i in range(10):
-                print(i, k, k_patterns*i + k, rbm.pattern_labels[k_patterns*i + k])
-                if k_patterns > 1:
+                print(i, k, k_pattern * i + k, rbm.pattern_labels[k_pattern * i + k])
+                if k_pattern > 1:
                     axloc = ax_arr[k, i]
                 else:
                     axloc = ax_arr[i]
-                axloc.imshow(xi_images[:, :, k_patterns*i + k], interpolation='none')
+                axloc.imshow(xi_images[:, :, k_pattern * i + k], interpolation='none')
                 axloc.set_xticklabels([])
                 axloc.set_yticklabels([])
                 # image_fancy(xi_images[:, :, k_patterns*i + k], ax=axloc)
-        plt.suptitle('Heirarchical patterns example (K=%d)' % k_patterns)
+        plt.suptitle('Heirarchical patterns example (K=%d)' % k_pattern)
         plt.tight_layout()
-        plt.savefig(DIR_OUTPUT + os.sep + 'subpatterns_%d.pdf' % k_patterns)
+        plt.savefig(DIR_OUTPUT + os.sep + 'subpatterns_%d.pdf' % k_pattern)
