@@ -28,45 +28,86 @@ def setup_MNIST_classification(rbm):
     return label_dict
 
 
-def classify_MNIST(rbm, visual_init, dataset_idx, MNIST_output_to_label, sum_mode=False):
+def extend_init_visible_state(visible_state, dim_hidden, init_mode='A'):
+    # mode A - initial class label is all -1
+    # mode B - initial class label is coin flips
+    assert init_mode in ['A', 'B']
+    if init_mode == 'A':
+        visible_state_appendage = np.ones(dim_hidden) * -1
+    else:
+        visible_state_appendage = np.random.binomial(size=dim_hidden, n=1, p=0.5) * 2 - 1  # convert to -1, 1 form
+    visible_state = np.concatenate((visible_state, visible_state_appendage))
+    return visible_state
+
+
+def classify_MNIST(rbm, visual_init, dataset_idx, MNIST_output_to_label, sum_mode=False, onehot=False):
     visual_step = visual_init
 
-    def conv_class_vector_to_label(output_as_ints):
-        if tuple(output_as_ints) in MNIST_output_to_label.keys():
-            return True, MNIST_output_to_label[tuple(output_as_ints)]
-        else:
-            return False, output_as_ints
+    if onehot:
+        visual_step = extend_init_visible_state(visual_init, rbm.dim_hidden, init_mode='A')
 
-    if sum_mode:
-        output_converter = rbm.truncate_output_subpatterns
+        def conv_class_vector_to_label_onehot(visual_step):
+            # TODO alternate condensing
+            pool = True
+            class_label = rbm.onehot_class_label(visual_step, condense=True, pool=pool)
+            if class_label is None:
+                return False, None
+            else:
+                return True, class_label
+
+        for idx in range(HRBM_MANUAL_MAXSTEPS):
+            visual_step, hidden_step, output_step = rbm.RBM_step(visual_step)
+            classified, classification = conv_class_vector_to_label_onehot(visual_step)
+            if classified:
+                break
+        if idx == HRBM_MANUAL_MAXSTEPS - 1:
+            print("******************** Edge case unclassified: (%d) step == MAX_STEPS_CLASSIFY - 1" % dataset_idx)
+        #else:
+        #    print('Step %d (data #%d) = %s' % (idx, dataset_idx, classification))
+
     else:
-        output_converter = rbm.truncate_output  # rbm.truncate_output_max
+        def conv_class_vector_to_label(output_as_ints):
+            if tuple(output_as_ints) in MNIST_output_to_label.keys():
+                return True, MNIST_output_to_label[tuple(output_as_ints)]
+            else:
+                return False, output_as_ints
 
-    for idx in range(HRBM_MANUAL_MAXSTEPS):
-        visual_step, hidden_step, output_step = rbm.RBM_step(visual_step)
-        output_truncated = output_converter(output_step)
-        classified, classification = conv_class_vector_to_label(output_truncated)
-        if classified:
-            break
-    if idx == HRBM_MANUAL_MAXSTEPS - 1:
-        print("******************** Edge case unclassified: (%d) step == MAX_STEPS_CLASSIFY - 1" % dataset_idx)
-        #print("\t output_step:", output_step)
-        #output_special = np.zeros(10, dtype=float)
-        #K = 10
-        #for idx in range(10):
-        #    output_special[idx] = np.sum(output_step[K*idx:K*(idx + 1)])
-        #print("\t output_special:", output_special)
-        #print("\t output_truncated:", output_truncated)
-        #print("\t classification:", classification)
+        if sum_mode:
+            output_converter = rbm.truncate_output_subpatterns
+        else:
+            output_converter = rbm.truncate_output  # rbm.truncate_output_max
+
+        for idx in range(HRBM_MANUAL_MAXSTEPS):
+            visual_step, hidden_step, output_step = rbm.RBM_step(visual_step)
+            output_truncated = output_converter(output_step)
+            classified, classification = conv_class_vector_to_label(output_truncated)
+            if classified:
+                break
+        if idx == HRBM_MANUAL_MAXSTEPS - 1:
+            print("******************** Edge case unclassified: (%d) step == MAX_STEPS_CLASSIFY - 1" % dataset_idx)
+            #print("\t output_step:", output_step)
+            #output_special = np.zeros(10, dtype=float)
+            #K = 10
+            #for idx in range(10):
+            #    output_special[idx] = np.sum(output_step[K*idx:K*(idx + 1)])
+            #print("\t output_special:", output_special)
+            #print("\t output_truncated:", output_truncated)
+            #print("\t classification:", classification)
+
     return classification
 
 
 def rbm_features_MNIST(rbm, visual_init, steps=HRBM_CLASSIFIER_STEPS, use_hidden=True, plot_visible=False, titlemod='',
-                       scheduler=USE_BETA_SCHEDULER):
+                       scheduler=USE_BETA_SCHEDULER, onehot=False):
     visual_step = visual_init
+    P = rbm.dim_hidden
 
     if use_hidden:
-        features = np.zeros(rbm.dim_hidden)
+        if onehot:
+            visual_step = extend_init_visible_state(visual_init, rbm.dim_hidden, init_mode='A')
+            features = np.zeros(P * 2)
+        else:
+            features = np.zeros(P)
     else:
         features = np.zeros(rbm.dim_visible)
 
@@ -89,10 +130,12 @@ def rbm_features_MNIST(rbm, visual_init, steps=HRBM_CLASSIFIER_STEPS, use_hidden
             title = '%s_%d' % (titlemod, idx+1)
             rbm.plot_visible(visual_step, title=title)
     if use_hidden:
-        out = hidden_step
+        features[0:P] = hidden_step
+        if onehot:
+            onehot_segment = visual_step[-P:]
+            features[P:] = onehot_segment
     else:
-        out = visual_step
-    features[:] = out
+        features[:] = visual_step
     return features
 
 
@@ -107,12 +150,16 @@ def confusion_matrix_from_pred(predictions, true_labels):
     return confusion_matrix_10, matches
 
 
-def classifier_on_rbm_features(rbm, dataset_train, dataset_test, use_hidden=True, binarize=False, classifier=CLASSIFIER, fast=None):
+def classifier_on_rbm_features(rbm, dataset_train, dataset_test, use_hidden=True, binarize=False, classifier=CLASSIFIER,
+                               fast=None, onehot=False):
     """
     fast: None or a 4-tuple of X_train, y_train, X_test, y_test
     """
     if use_hidden:
-        feature_dim = rbm.dim_hidden
+        if onehot:
+            feature_dim = rbm.dim_hidden * 2
+        else:
+            feature_dim = rbm.dim_hidden
     else:
         feature_dim = rbm.dim_visible
 
@@ -124,7 +171,7 @@ def classifier_on_rbm_features(rbm, dataset_train, dataset_test, use_hidden=True
             if use_hidden:
                 preprocessed_input = binarize_image_data(image_data_collapse(elem_arr), threshold=MNIST_BINARIZATION_CUTOFF)
                 features = rbm_features_MNIST(rbm, preprocessed_input, titlemod='%d_true%d' % (idx,elem_label),
-                                              steps=steps, scheduler=scheduler)
+                                              steps=steps, scheduler=scheduler, onehot=onehot)
             else:
                 preprocessed_input = image_data_collapse(elem_arr)
                 if binarize:
@@ -138,7 +185,8 @@ def classifier_on_rbm_features(rbm, dataset_train, dataset_test, use_hidden=True
         X_features = np.zeros((X.shape[0], feature_dim))
         for idx in range(X.shape[0]):
             visible_input = X[idx, :]
-            features = rbm_features_MNIST(rbm, visible_input, use_hidden=use_hidden, titlemod='', plot_visible=False)
+            features = rbm_features_MNIST(rbm, visible_input, use_hidden=use_hidden, titlemod='', plot_visible=False,
+                                          onehot=onehot)
             X_features[idx, :] = features
         return X_features
 
@@ -251,16 +299,20 @@ def multiscore_save():
 
 
 if __name__ == '__main__':
-    plot_wrong = False
-    dont_use_rbm = False
-    use_random_proj = False
+    DIM_VISIBLE = 28 ** 2
+
     multiscore_save_rbm = False
     multiscore_save_pca = False
     multiscore_save_random = False
 
-    DIM_VISIBLE = 28 ** 2
+    # flags for single model classification block
+    dont_use_rbm = False
+    use_random_proj = False
 
-    # ROUGH WORK for hopfield RBM only
+    plot_wrong = False
+    append_classifier_layer = True
+    manual_onehot = True
+    manual_hidden = 100
 
     if multiscore_save_rbm:
         label = 'Kvary_betaFix%.2f_steps%d' % (BETA, HRBM_CLASSIFIER_STEPS)
@@ -324,12 +376,20 @@ if __name__ == '__main__':
     else:
         DATASET = TESTING  # TESTING or TRAINING
         npzpath_default = DEFAULT_HOPFIELD  # DEFAULT_HOPFIELD
-        npzpath = DIR_MODELS + os.sep + 'saved' + os.sep + 'hopfield_mnist_10.npz'  # npzpath_default or None
+        # set npzpath to None to build rbm
+        if manual_onehot:
+            npzpath_mod = '_onehot'  # _onehot' or '_onehotBlock'
+        else:
+            npzpath_mod = ''
+        npzpath = DIR_MODELS + os.sep + 'saved' + os.sep + 'hopfield_mnist_%d%s.npz' % (manual_hidden, npzpath_mod)
+
         if npzpath is None:
-            rbm_hopfield = build_rbm_hopfield(visible_field=VISIBLE_FIELD)
+            rbm_hopfield = build_rbm_hopfield(subpatterns=True, visible_field=False, save=False,
+                                              k_pattern=int(manual_hidden/10), onehot_classify=manual_onehot)
         else:
             rbm_hopfield = load_rbm_hopfield(npzpath=npzpath)
 
+        # decision here: classify on the raw data ELSE use features from the rbm
         if dont_use_rbm:
             N = rbm_hopfield.dim_visible
             P = rbm_hopfield.dim_hidden
@@ -344,9 +404,8 @@ if __name__ == '__main__':
             plot_confusion_matrix(confusion_matrix)
 
         else:
-            append_classifier_layer = True
             if append_classifier_layer:
-                confusion_matrix, acc = classifier_on_rbm_features(rbm_hopfield, TRAINING, TESTING, use_hidden=True, binarize=True)
+                confusion_matrix, acc = classifier_on_rbm_features(rbm_hopfield, TRAINING, TESTING, use_hidden=True, binarize=True, onehot=manual_onehot)
                 plot_confusion_matrix(confusion_matrix)
                 """
                 confusion_matrix_vis_raw, acc = classifier_on_rbm_features(rbm_hopfield, TRAINING, TESTING, use_hidden=False, binarize=False)
@@ -365,17 +424,22 @@ if __name__ == '__main__':
                 for idx, pair in enumerate(DATASET):
                     elem_arr, elem_label = pair
                     preprocessed_input = binarize_image_data(image_data_collapse(elem_arr), threshold=MNIST_BINARIZATION_CUTOFF)
-                    predictions[idx] = classify_MNIST(rbm_hopfield, preprocessed_input, idx, MNIST_output_to_label)
+                    predictions[idx] = classify_MNIST(rbm_hopfield, preprocessed_input, idx, MNIST_output_to_label, onehot=manual_onehot)
                     if true_labels[idx] == predictions[idx]:
                         matches[idx] = True
                         if len(predictions[idx]) == 1:
                             confusion_matrix[elem_label, int(predictions[idx])] += 1
+                    else:
+                        if predictions[idx] is None:
+                            prediction_label = -1
                         else:
-                            confusion_matrix[elem_label, -1] += 1
-                            if plot_wrong:
-                                plt.imshow(preprocessed_input.reshape((28, 28)))
-                                plt.savefig(DIR_OUTPUT + os.sep + 'wrong_idx%s_true%s_%s.png'
-                                            % (idx, true_labels[idx], predictions[idx]))
+                            prediction_label = int(predictions[idx])
+
+                        confusion_matrix[elem_label, prediction_label] += 1
+                        if plot_wrong:
+                            plt.imshow(preprocessed_input.reshape((28, 28)))
+                            plt.savefig(DIR_OUTPUT + os.sep + 'wrong_idx%s_true%s_%s.png'
+                                        % (idx, true_labels[idx], predictions[idx]))
 
                 acc = float(matches.count(True) / len(matches))
                 cm_title = "Successful test cases: %d/%d (%.3f)" % (matches.count(True), len(matches), acc)
