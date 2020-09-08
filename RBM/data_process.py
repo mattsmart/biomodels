@@ -208,10 +208,11 @@ def data_dict_mnist_detailed(data_dict, category_counts, k_pattern=K_PATTERN_DIV
     return data_dict_detailed_flat, category_counts_detailed_flat
 
 
-def hopfield_mnist_patterns(data_dict, category_counts, pattern_threshold=PATTERN_THRESHOLD):
+def hopfield_mnist_patterns(data_dict, category_counts, pattern_threshold=PATTERN_THRESHOLD, onehot_classify=False):
     """
     data: list of tuples (numpy array, labe;)
     pattern_threshold: threshold for setting value to 1 in the category-specific voting for pixel values
+    onehot_classify: extend visible state space by vector of size num_classes (default: 10 * num_subpatterns)
     Returns:
         xi: N x P binary pattern matrix
     """
@@ -226,6 +227,7 @@ def hopfield_mnist_patterns(data_dict, category_counts, pattern_threshold=PATTER
 
     print("Forming %d MNIST patterns" % len(keys))
     xi_images = np.zeros((*data_dimension, len(keys)), dtype=int)
+
     for idx, key in enumerate(keys):
         samples = data_dict[key]
         samples_avg = np.sum(samples, axis=2) / category_counts[key]
@@ -233,6 +235,31 @@ def hopfield_mnist_patterns(data_dict, category_counts, pattern_threshold=PATTER
         samples_avg[samples_avg > pattern_threshold] = 1
         xi_images[:, :, idx] = samples_avg
     xi_collapsed = image_data_collapse(xi_images)
+
+    if onehot_classify:
+        blockmode = True
+        if blockmode:
+            print('warning: building onehot patterns with expt flag blockmode')
+        # need to build the onehot class label vectors
+        # concatenate onehot labels onto the NxP arr xi_collapsed (now (N+P) x P)
+        # if the keys are ordered as expected, this is just appending the PxP identity matrix (-1, 1 form) to xi
+        # if blockmode: instead of identity do blocks of 1s for each subclass (i.e. subclass agnostic)
+
+        N, P = xi_collapsed.shape
+        xi_collapsed_extended = np.zeros((N+P, P), dtype=int)
+        xi_collapsed_extended[0:N, :] = xi_collapsed[:, :]
+
+        # note this relies on proper sorting of keys above
+        if blockmode:
+            K = int(P / 10)
+            diag_blocks = np.ones((K, K))
+            xi_append_01 = np.kron(np.eye(10), diag_blocks)
+            xi_append = xi_append_01 * 2 - 1
+        else:
+            xi_append = np.eye(P)
+        xi_collapsed_extended[N:, :] = xi_append
+        xi_collapsed = xi_collapsed_extended
+
     print("xi_collapsed.shape", xi_collapsed.shape)
     return xi_images, xi_collapsed, pattern_idx_to_labels
 
