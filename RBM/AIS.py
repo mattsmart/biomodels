@@ -1,13 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-import torch
 import tensorflow as tf
 import tensorflow_probability as tfp
-#print(tf.config.threading.get_inter_op_parallelism_threads())
-#print(tf.config.threading.get_intra_op_parallelism_threads())
-#tf.config.threading.set_inter_op_parallelism_threads(12)
-#tf.config.threading.set_intra_op_parallelism_threads(12)
 
 import pandas as pd
 import seaborn as sns; sns.set()
@@ -60,7 +55,7 @@ def esimate_logZ_with_AIS(weights, field_visible, field_hidden, beta=1.0, num_ch
             term2 = tf.math.reduce_sum(log_cosh_vec)
 
             fvals[idx] = - (beta / 2.0) * term1 + term2
-        fvals = tf.convert_to_tensor(fvals, dtype=dtype) + target_log_prob_const
+        fvals = tf.convert_to_tensor(fvals, dtype=dtype) + target_log_prob_const   # TODO this const can be removed and added at the end (speedup)
         return fvals
 
     # draw 100 samples from the proposal distribution
@@ -81,6 +76,295 @@ def esimate_logZ_with_AIS(weights, field_visible, field_hidden, beta=1.0, num_ch
     return log_Z.numpy(), chains_state
 
 
+def esimate_logZ_with_reverse_AIS_algo2(rbm, weights, field_visible, field_hidden, beta=1.0, num_chains=100, num_steps=1000, CDK=100):
+    # Follows https://www.cs.cmu.edu/~rsalakhu/papers/RAISE.pdf Algorithm 2
+    # TODO compare vs algorithm 3, need to implement
+    N = field_visible.shape[0]
+    p = field_hidden.shape[0]
+    assert weights.shape[0] == N
+    assert weights.shape[1] == p
+
+    dims = p
+    dtype = tf.float32
+
+    # fix target model  # TODO minor speedup if we move out
+    weights = tf.convert_to_tensor(weights, dtype=dtype)
+    field_visible = tf.convert_to_tensor(field_visible, dtype=dtype)
+    field_hidden = tf.convert_to_tensor(field_hidden, dtype=dtype)
+
+    # define proposal distribution
+    tfd = tfp.distributions
+    target = tfd.MultivariateNormalDiag(loc=tf.zeros([dims], dtype=dtype))
+    target_log_prob_fn = target.log_prob
+
+    # define target distribution
+    proposal_log_prob_const = N * np.log(2.0) - (dims / 2.0) * np.log(2.0 * np.pi / beta)
+
+    def proposal_log_prob_fn(hidden_states):
+        # given vector size N ints, return scalar for each chain
+        fvals = [0.0] * len(hidden_states)
+        # TODO tensor speedup test with p > 1
+        for idx, hidden in enumerate(hidden_states):
+
+            hidden_to_sqr = hidden - field_hidden
+            term1 = tf.tensordot(hidden_to_sqr, hidden_to_sqr, 1)
+
+            cosh_arg = beta * (tf.tensordot(weights, hidden, 1) + field_visible)
+            log_cosh_vec = tf.math.log(tf.math.cosh(cosh_arg))
+            term2 = tf.math.reduce_sum(log_cosh_vec)
+
+            fvals[idx] = - (beta / 2.0) * term1 + term2
+        fvals = tf.convert_to_tensor(fvals, dtype=dtype) + proposal_log_prob_const
+        return fvals
+
+    # draw 100 samples from the proposal distribution
+    stdev = np.sqrt(1.0 / beta)
+    hightemp_zone = CDK / 2  # first CDK/2 steps will be high temp
+    high_beta = 0.5
+    high_stdev = np.sqrt(1.0 / high_beta)
+    def proposal_sampler(num_chains, CDK=CDK):
+        # TODO if we believe the batch CD-K samples, they can be passed as initial proposal sample
+        # 0) generate num_chains visible states at random, uniform p=0.5 spin flip (TODO we may not want 50% on/off)
+        vis_chains_bool = np.random.uniform(size=(num_chains, N))
+        vis_chains = vis_chains_bool * 2 - 1
+        # 1) do CD-K to get approximate sample from RBM
+        #    NOTE need torch tensor k x 784 to use existing CD module
+        visible_sampled_TORCH = torch.from_numpy(vis_chains).float()
+
+        for step in range(CDK):
+            if step < hightemp_zone:
+                hidden_sampled_TORCH = rbm.sample_hidden(visible_sampled_TORCH, stdev=high_stdev)
+                visible_sampled_TORCH = rbm.sample_visible(hidden_sampled_TORCH, beta=high_beta)
+            else:
+                hidden_sampled_TORCH = rbm.sample_hidden(visible_sampled_TORCH, stdev=stdev)
+                visible_sampled_TORCH = rbm.sample_visible(hidden_sampled_TORCH, beta=beta)
+        # 2) take final hidden states as the sample
+        hidden_sampled_TF = tf.convert_to_tensor( hidden_sampled_TORCH.numpy() )
+        return hidden_sampled_TF
+    init_state = proposal_sampler(num_chains)
+
+    chains_state, ais_weights, kernels_results = (
+        tfp.mcmc.sample_annealed_importance_chain(
+            num_steps=num_steps,
+            proposal_log_prob_fn=proposal_log_prob_fn,
+            target_log_prob_fn=target_log_prob_fn,
+            current_state=init_state,
+            make_kernel_fn=lambda tlp_fn: tfp.mcmc.HamiltonianMonteCarlo(
+                target_log_prob_fn=tlp_fn,
+                step_size=0.2,
+                num_leapfrog_steps=2)))
+
+    log_Z = -1 * (tf.reduce_logsumexp(ais_weights) - np.log(num_chains))  # mult -1 because estimator for Z^(-1)
+
+    return log_Z.numpy(), chains_state
+
+
+def AIS_update_visible_numpy(hidden_state, weights, beta, N, alpha):
+    # vectorized to operate on chain
+    visible_activations = beta * alpha * np.dot(hidden_state, weights.T)
+    sigmoid_arg = -2 * visible_activations
+    visible_probabilities = 1 / (1 + np.exp(sigmoid_arg))
+    visible_sampled = np.random.binomial(1, visible_probabilities, size=(nchains, N))
+    visible_sampled_phys = -1 + visible_sampled * 2
+    return visible_sampled_phys
+
+
+def AIS_update_hidden_numpy(visible_state, weights, stdev, alpha):
+    # vectorized to operate on chain
+    hidden_activations = alpha * np.dot(visible_state, weights)
+    hidden_sampled = np.random.normal(hidden_activations, stdev)
+    return hidden_sampled
+
+
+def manual_AIS(rbm, beta, nchains=100, nsteps=10, CDK=1):
+    np.random.seed()
+    stepper = 'gibbs'  # MCMC_MH or gibbs
+
+    # Note 1: MCMC will be gibbs chain as suggest in RAISE paper
+    # Note 2: initial distribution unit normal is like RBM with W_i\mu = 0 (W=0 weights)
+
+    N = rbm.num_visible
+    p = rbm.num_hidden
+    stdev = np.sqrt(1/beta)
+
+    log_z_prefactor = N * np.log(2) - p/2.0 * np.log(2 * np.pi / beta)
+
+    weights_numpy = rbm.weights.numpy()
+    assert torch.allclose(rbm.visible_bias, torch.zeros(N))
+    assert torch.allclose(rbm.hidden_bias, torch.zeros(p))
+
+    # STEP 1: initial samples
+    init_chain_hidden = np.random.normal(loc=0.0, scale=stdev, size=(nchains, p))
+
+    # STEP 2: initial AIS weights
+    Z_init = (2 * np.pi / beta) ** (p/2)
+    log_ais_weights = np.zeros(nchains) + np.log(Z_init)
+
+    def compute_log_f_k(chain_state, alpha):
+        assert len(chain_state.shape) == 1  # TODO vectorize so log_f_k is size N_chains ?
+        # un-normalized prob for the intermediate distribution with param alpha_k
+        lambda_sqr = np.dot(chain_state, chain_state)                              # TODO vectorize
+        ln_cosh_vec = np.log( np.cosh(
+            alpha * beta * np.dot(weights_numpy, chain_state)
+            ) )  # TODO vectorize
+        log_f_k = -beta * lambda_sqr / 2 + np.sum(ln_cosh_vec)                     # TODO vectorize
+        return log_f_k
+
+    # STEP 3: perform iteration over intermediate distributions f_k( )
+    chain_state_hidden = init_chain_hidden
+    chain_state_visible = np.zeros((nchains, N))
+    log_f_k_numerator = np.zeros(nchains)
+    log_f_k_denominator = np.zeros(nchains)
+    alpha_k = np.linspace(0, 1, nsteps + 1)
+
+    for k in range(1, nsteps + 1):
+
+        if k % 100 == 0:
+            print('step', k)
+
+        alpha_current = alpha_k[k]
+        alpha_prev = alpha_k[k - 1]
+
+        # update ais_weights
+        for c in range(nchains):
+            # TODO vectorize
+            log_f_k_numerator[c] = compute_log_f_k(chain_state_hidden[c, :], alpha_current)
+            log_f_k_denominator[c] = compute_log_f_k(chain_state_hidden[c, :], alpha_prev)
+            log_ais_weights[c] = log_ais_weights[c] + log_f_k_numerator[c] - log_f_k_denominator[c]
+            #if k % 100 == 0:
+            #   print('step', k, 'chain', c, '|||', log_f_k_numerator[c], log_f_k_denominator[c], np.exp(log_f_k_numerator[c] - log_f_k_denominator[c]), log_ais_weights[c], np.exp(log_ais_weights[c]))
+
+        # update chain
+        if stepper == 'MCMC_MH':
+            # refer to: https://en.wikipedia.org/wiki/Metropolis%E2%80%93Hastings_algorithm
+            # have x_t;
+            # sample x' from proposal distribution N(0, beta_inv I) (better if symmetric)
+            X_candidate = np.random.normal(loc=0.0, scale=stdev, size=(nchains, p))
+            # get f(x')
+            log_f_candidates = np.zeros(nchains)
+            for c in range(nchains):  # TODO loop above if it works better? else H-AIS
+                log_f_candidates[c] = compute_log_f_k(X_candidate[c, :], alpha_current)
+                # get U[0,1] r.v. to compare vs acceptance ratio
+                uu = np.random.rand()
+                ratio = log_f_candidates[c] / compute_log_f_k(chain_state_hidden[c, :], alpha_current)
+                if uu <= ratio:
+                    chain_state_hidden[c, :] = X_candidate[c, :]
+        else:
+            for samplestep in range(CDK):
+                chain_state_visible = AIS_update_visible_numpy(chain_state_hidden, weights_numpy, beta, N, alpha_current)
+                chain_state_hidden = AIS_update_hidden_numpy(chain_state_visible, weights_numpy, stdev, alpha_current)
+
+    # STEP 4: return estimate
+    Z_est = np.sum(np.exp(log_ais_weights)) / nchains  # Note TF has log-sum-exp fn they claim more stable (how?)
+    log_Z_est = np.log(Z_est)
+    log_Z_total = log_Z_est + log_z_prefactor
+
+    return log_Z_total, chain_state_hidden
+
+
+def manual_AIS_reverse(rbm, beta, test_cases, nchains=100, nsteps=10, CDK=1):
+    N = rbm.num_visible
+    p = rbm.num_hidden
+    stdev = np.sqrt(1/beta)
+
+    ntest = test_cases.shape[0]
+    assert N == test_cases.shape[1]
+
+    weights_numpy = rbm.weights.numpy()
+    assert torch.allclose(rbm.visible_bias, torch.zeros(N))
+    assert torch.allclose(rbm.hidden_bias, torch.zeros(p))
+
+    def compute_log_f_k(chain_state, alpha):
+        assert len(chain_state.shape) == 1  # TODO vectorize so log_f_k is size N_chains ?
+        # un-normalized prob for the intermediate distribution with param alpha_k
+        lambda_sqr = np.dot(chain_state, chain_state)                              # TODO vectorize
+        ln_cosh_vec = np.log( np.cosh(
+            alpha * beta * np.dot(weights_numpy, chain_state)
+            ) )  # TODO vectorize
+        log_f_k = -beta * lambda_sqr / 2 + np.sum(ln_cosh_vec)                     # TODO vectorize
+        return log_f_k
+
+    def compute_log_f_k_spinsOnly(chain_state_visible):
+        assert len(chain_state_visible.shape) == 1  # TODO vectorize so log_f_k is size N_chains ?
+        # just need scaled Ising energy which is + beta/2 * ||s.T W||^2
+        dot_s_W = np.dot(chain_state_visible, weights_numpy)
+        energy_unscaled = np.dot(dot_s_W, dot_s_W)
+        energy_scaled = 0.5 * beta * energy_unscaled
+        return energy_scaled
+
+    # definitions
+    log_p_annealed_estimates = np.zeros(ntest)
+    log_Z_est_integral = np.zeros(ntest)
+
+    alpha_k = np.linspace(0, 1, nsteps + 1)
+    log_z_prefactor = N * np.log(2) - p / 2.0 * np.log(2 * np.pi / beta)
+    Z_init = (2 * np.pi / beta) ** (p / 2)
+
+    for test_idx, visible_test in enumerate(test_cases):  # TODO ensure visible_test is standard vector shaped np array 1D
+        print("RAISE: test sample #%d" % test_idx)
+
+        # 1) sample M h_test samples from RBM distribution
+        chain_visible = np.array([visible_test] * nchains)
+        chain_hidden = AIS_update_hidden_numpy(chain_visible, weights_numpy, stdev, 1.0)
+
+        # 2) initialize reverse AIS weights
+        log_w_init_numerator = compute_log_f_k_spinsOnly(visible_test)
+        log_w_init = log_w_init_numerator - np.log(Z_init)
+        log_ais_weights = np.zeros(nchains) + log_w_init
+
+        # 3) loop
+        log_f_k_numerator = np.zeros(nchains)
+        log_f_k_denominator = np.zeros(nchains)
+        for step, k in enumerate(range(nsteps - 1, -1, -1)):
+
+            #if step % 100 == 0:
+            #    print('step', step, 'kval', k)
+            alpha_current = alpha_k[k]
+            alpha_prev = alpha_k[k + 1]  # note sign flip here, "previous" means higher k value
+
+            # update chain
+            for samplestep in range(CDK):
+                chain_visible = AIS_update_visible_numpy(chain_hidden, weights_numpy, beta, N, alpha_current)
+                chain_hidden = AIS_update_hidden_numpy(chain_visible, weights_numpy, stdev, alpha_current)
+
+            # update ais_weights
+            for c in range(nchains):
+                # TODO vectorize
+                log_f_k_numerator[c] = compute_log_f_k(chain_hidden[c, :], alpha_current)  # TODO compare with replace with f(s,h) form
+                log_f_k_denominator[c] = compute_log_f_k(chain_hidden[c, :], alpha_prev)   # TODO compare with f(s,h) form
+                log_ais_weights[c] = log_ais_weights[c] + log_f_k_numerator[c] - log_f_k_denominator[c]
+                #if step % 100 == 0:
+                #   print('test', test_idx, 'step', step, 'kval', k, 'chain', c, '|||', log_f_k_numerator[c], log_f_k_denominator[c], np.exp(log_f_k_numerator[c] - log_f_k_denominator[c]), log_ais_weights[c], np.exp(log_ais_weights[c]))
+
+        # 4) return estimate for the test case
+        log_p_annealed_estimates[test_idx] = np.log(np.sum(np.exp(log_ais_weights))) - np.log(nchains)  # TODO more stable version of Log-Sum-Exp ?
+        log_Z_est_integral[test_idx] = log_w_init_numerator - log_p_annealed_estimates[test_idx]
+
+    # Average the estimates (over test cases) to get est for log_Z
+    log_Z_est = np.sum(log_Z_est_integral) / ntest
+    log_Z_total = log_Z_est + log_z_prefactor
+
+    # plot hists for debugging
+    plt.hist(log_Z_est_integral)
+    plt.title('log Z_integral')
+    plt.show(); plt.close()
+    plt.hist(log_p_annealed_estimates)
+    plt.title('log p_ann')
+    plt.show(); plt.close()
+
+    return log_Z_total, chain_hidden
+
+
+def subsample_test_cases(data_samples, ntest):
+    tot_samples = data_samples.shape[0]
+    N = data_samples.shape[1]
+
+    indices = np.random.choice(tot_samples, ntest)  # select indices randomly
+    test_cases = data_samples[indices, :]
+
+    return test_cases
+
+
 def get_obj_term_A(dataset_prepped, weights, field_visible, field_hidden, beta=1.0):
     data_indep_term = - (beta / 2.0) * np.dot(field_hidden, field_hidden)
 
@@ -94,14 +378,12 @@ def get_obj_term_A(dataset_prepped, weights, field_visible, field_hidden, beta=1
     return val_avg
 
 
-def chain_state_to_images(chain_state, rbm, num_images, beta=200.0):
-    chains_numpy = chain_state.numpy()
+def chain_state_to_images(chains_numpy, rbm, num_images, beta=200.0):
     num_chains = chains_numpy.shape[0]
     print(chains_numpy.shape)
 
     for idx in range(num_images):
-        hidden_state_numpy = chains_numpy[idx, :]
-        hidden_state_torch = torch.from_numpy(hidden_state_numpy)
+        hidden_state_torch = torch.from_numpy(chains_numpy[idx, :]).float()
         visible_state_torch = rbm.sample_visible(hidden_state_torch, beta=beta)  # i.e. sample with zero noise
         visible_state_numpy = visible_state_torch.numpy()
         image = visible_state_numpy.reshape((28,28))
@@ -190,13 +472,16 @@ if __name__ == '__main__':
             plt.figure(); ax = sns.lineplot(x=var_name, y=LogZ_name, data=df_LogZ)
             plt.savefig(out_dir + os.sep + 'LogZ_%dpatterns_%dsteps.pdf' % (k_patterns, steps)); plt.close()
 
+
     if specific_check:
+        import time
         import torch
         from custom_rbm import RBM_gaussian_custom
 
         beta = 2
-        epoch_idx = [0, 1, 99]#[96, 97, 98]
+        epoch_idx = [20]  #[0, 1, 99] #[96, 97, 98]
         AIS_STEPS = 200
+        nchains = 10
         # 96: Term A: 1417.3126916185463 | Log Z: 1419.820068359375 | Score: -2.507376740828704
         # 97: Term A: 1419.55814776832 | Log Z: 1443.4364013671875 | Score: -23.87825359886756
         # 98: Term A: 1419.647444170504 | Log Z: 1423.908203125 | Score: -4.260758954495941
@@ -218,9 +503,14 @@ if __name__ == '__main__':
         # (idx: 97) Term A: 1419.55814776832 | Log Z: 1493.8434 | Score: -74.28523602074256
         # (idx: 98) Term A: 1419.647444170504 | Log Z: 1484.3536 | Score: -64.70619352480844
 
+        # load segment
+        init_name = 'hopfield'  # hopfield or normal
+        num_hid = 10
+        run = 0
         bigruns = DIR_OUTPUT + os.sep + 'archive' + os.sep + 'big_runs' + os.sep + 'rbm'
-        subdir = 'E_extra_beta2duringTraining_100batch_100epochs_20cdk_1.00E-04eta_200ais' + os.sep + 'run1'
-        fname = 'weights_50hidden_0fields_20cdk_200stepsAIS_2.00beta.npz'
+        subdir = '%s_%dhidden_0fields_2.00beta_100batch_100epochs_20cdk_1.00E-04eta_200ais' \
+                 % (init_name, num_hid) + os.sep + 'run%d' % (run)
+        fname = 'weights_%dhidden_0fields_20cdk_0stepsAIS_2.00beta.npz' % num_hid
         dataobj = np.load(bigruns + os.sep + subdir + os.sep + fname)
         weights_timeseries = dataobj['weights']
 
@@ -229,12 +519,41 @@ if __name__ == '__main__':
         for idx in epoch_idx:
             weights = weights_timeseries[:, :, idx]
             rbm = weights_timeseries[:, :, idx]
-            rbm = RBM_gaussian_custom(28**2, 50, 0, init_weights=None, use_fields=False, learning_rate=0)
+            rbm = RBM_gaussian_custom(28**2, num_hid, 0, init_weights=None, use_fields=False, learning_rate=0)
             rbm.weights = torch.from_numpy(weights).float()
 
             print('Estimating term A...', )
             logP_termA = get_obj_term_A(X, rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta)
-            print('Estimating log Z...', )
-            logP_termB, chains_state = esimate_logZ_with_AIS(rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta, num_steps=AIS_STEPS)
-            print('(idx: %d) Term A:' % idx, logP_termA, '| Log Z:', logP_termB, '| Score:', logP_termA - logP_termB)
-            chain_state_to_images(chains_state, rbm, 2, beta=beta)
+
+            """
+            print('Estimating log Z (AIS)...', )
+            logP_termB_forward, chains_state = esimate_logZ_with_AIS(rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta, num_steps=AIS_STEPS, num_chains=nchains)
+            print('\tlogP_termB_forward:', logP_termB_forward)
+
+            print('Estimating log Z (reverse AIS)...', )
+            logP_termB_reverse, _ = esimate_logZ_with_reverse_AIS_algo2(rbm, rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta, num_steps=AIS_STEPS, num_chains=nchains)
+            print('\tlogP_termB_reverse:', logP_termB_reverse)
+            """
+
+            print('Estimating log Z (homemade AIS)...', )
+            logP_termB_manual, chains_state = manual_AIS(rbm, beta, nchains=nchains, nsteps=AIS_STEPS)
+            print('\tlogP_termB_manual:', logP_termB_manual)
+
+            print('Estimating log Z (homemade AIS reverse)...', )
+            # Note settings from RAISE: 50 chains, 100,000 steps, 100 test cases. Think use control-variates thing as well (not implemented).
+            # TODO implement control variates possibly
+            rev_ntest = 10
+            rev_nchain = 10
+            rev_nsteps = AIS_STEPS
+            test_cases = subsample_test_cases(X, rev_ntest)
+            logP_termB_manual_reverse, _ = manual_AIS_reverse(rbm, beta, test_cases, nchains=rev_nchain, nsteps=rev_nsteps)
+            print('\tlogP_termB_manual:', logP_termB_manual_reverse)
+
+            #print('(idx: %d) AIS - Term A:' % idx, logP_termA, '| Log Z:', logP_termB_forward, '| Score:', logP_termA - logP_termB_forward)
+            #print('(idx: %d) AIS (Reverse) - Term A:' % idx, logP_termA, '| Log Z:', logP_termB_reverse, '| Score:', logP_termA - logP_termB_reverse)
+            print('(idx: %d) Manual AIS - Term A:' % idx, logP_termA, '| Log Z:', logP_termB_manual, '| Score:', logP_termA - logP_termB_manual)
+            print('(idx: %d) Manual AIS (Reverse) - Term A:' % idx, logP_termA, '| Log Z:', logP_termB_manual_reverse, '| Score:', logP_termA - logP_termB_manual_reverse)
+
+
+            chains_numpy = chains_state
+            chain_state_to_images(chains_numpy, rbm, 5, beta=beta)
