@@ -4,6 +4,7 @@ import scipy as sp
 import os
 import tensorflow as tf
 import tensorflow_probability as tfp
+import torch
 
 import pandas as pd
 import seaborn as sns; sns.set()
@@ -57,7 +58,10 @@ def esimate_logZ_with_AIS(weights, field_visible, field_hidden, beta=1.0, num_ch
             term2 = tf.math.reduce_sum(log_cosh_vec)
 
             fvals[idx] = - (beta / 2.0) * term1 + term2
-        fvals = tf.convert_to_tensor(fvals, dtype=dtype) + target_log_prob_const   # TODO this const can be removed and added at the end (speedup)
+
+        #fvals = tf.convert_to_tensor(fvals, dtype=dtype) + target_log_prob_const   # TODO this const can be removed and added at the end (speedup)
+        fvals = tf.convert_to_tensor(fvals, dtype=dtype)
+
         return fvals
 
     # draw 100 samples from the proposal distribution
@@ -74,8 +78,9 @@ def esimate_logZ_with_AIS(weights, field_visible, field_hidden, beta=1.0, num_ch
                 step_size=0.2,
                 num_leapfrog_steps=2)))
 
-    log_Z = (tf.reduce_logsumexp(ais_weights) - np.log(num_chains))
-    return log_Z.numpy(), chains_state
+    log_Z_integral = tf.reduce_logsumexp(ais_weights) - np.log(num_chains)
+    log_Z_total = log_Z_integral + target_log_prob_const
+    return log_Z_total.numpy(), chains_state
 
 
 def esimate_logZ_with_reverse_AIS_algo2(rbm, weights, field_visible, field_hidden, beta=1.0, num_chains=100, num_steps=1000, CDK=100):
@@ -210,7 +215,7 @@ def manual_AIS(rbm, beta, nchains=100, nsteps=10, CDK=1, joint_mode=True):
     # Note 3: joint true or false give similar estimates; False is faster
     N = rbm.num_visible
     p = rbm.num_hidden
-    stdev = np.sqrt(1/beta)
+    stdev = np.sqrt(1.0/beta)
 
     if joint_mode:
         log_z_prefactor = - p / 2.0 * np.log(2 * np.pi / beta)
@@ -279,7 +284,7 @@ def manual_AIS_reverse(rbm, beta, test_cases, nchains=100, nsteps=10, CDK=1, joi
     assert joint_mode
     N = rbm.num_visible
     p = rbm.num_hidden
-    stdev = np.sqrt(1/beta)
+    stdev = np.sqrt(1.0/beta)
 
     ntest = test_cases.shape[0]
     assert N == test_cases.shape[1]
@@ -343,14 +348,13 @@ def manual_AIS_reverse(rbm, beta, test_cases, nchains=100, nsteps=10, CDK=1, joi
             # update ais_weights
             for c in range(nchains):
                 # TODO vectorize
-                if joint_mode:
-                    # Get f_k from hidden, visible (joint)
-                    log_f_k_numerator[c] = compute_log_f_k_joint(chain_visible[c, :], chain_hidden[c, :], weights_numpy, alpha_current)
-                    log_f_k_denominator[c] = compute_log_f_k_joint(chain_visible[c, :], chain_hidden[c, :], weights_numpy, alpha_prev)
-                else:
-                    # Get f_k from hidden alone
-                    log_f_k_numerator[c] = compute_log_f_k_hidden(chain_hidden[c, :], weights_numpy, alpha_current)
-                    log_f_k_denominator[c] = compute_log_f_k_hidden(chain_hidden[c, :], weights_numpy, alpha_prev)
+                # Get f_k from hidden, visible (joint)
+                log_f_k_numerator[c] = compute_log_f_k_joint(chain_visible[c, :], chain_hidden[c, :], weights_numpy, alpha_current)
+                log_f_k_denominator[c] = compute_log_f_k_joint(chain_visible[c, :], chain_hidden[c, :], weights_numpy, alpha_prev)
+
+                # Get f_k from hidden alone
+                #log_f_k_numerator[c] = compute_log_f_k_hidden(chain_hidden[c, :], weights_numpy, alpha_current)
+                #log_f_k_denominator[c] = compute_log_f_k_hidden(chain_hidden[c, :], weights_numpy, alpha_prev)
 
                 log_ais_weights[c] = log_ais_weights[c] + log_f_k_numerator[c] - log_f_k_denominator[c]
 
@@ -372,12 +376,13 @@ def manual_AIS_reverse(rbm, beta, test_cases, nchains=100, nsteps=10, CDK=1, joi
     log_Z_total = log_Z_est + log_z_prefactor
 
     # plot hists for debugging
+    """
     plt.hist(log_Z_est_integral)
     plt.title('log Z_integral')
     plt.show(); plt.close()
     plt.hist(log_p_annealed_estimates)
     plt.title('log p_ann')
-    plt.show(); plt.close()
+    plt.show(); plt.close()"""
 
     return log_Z_total, chain_hidden
 
@@ -561,28 +566,39 @@ def chain_state_to_images(chains_numpy, rbm, num_images, beta=200.0):
 
 if __name__ == '__main__':
 
-    generate_data = False
-    specific_check = True
+    generate_data = True
+    specific_check = False
     compare_methods = False
 
     if generate_data:
 
         # AIS settings
-        steps = 200  #500  # 1000 and 5000 similar, very slow
+        nsteps = 1000     #500  # 1000 and 5000 similar, very slow
+        nchains = 500
+        ntest = 100
+        nsteps_rev = 100
+        nchains_rev = 50
 
         # prep dataset
         training_subsample = TRAINING[:]
         X, _ = get_X_y_dataset(training_subsample, dim_visible=28**2, binarize=True)
+        RAISE_test_cases = subsample_test_cases(X, ntest)
 
         k_list = [1,2,3,4,5,6,7,8,9,10]
 
         for k_patterns in k_list:
             # load model
             fname = 'hopfield_mnist_%d0.npz' % k_patterns
-            rbm = load_rbm_hopfield(npzpath=DIR_MODELS + os.sep + 'saved' + os.sep + fname)
-            weights = rbm.internal_weights
-            visible_field = rbm.visible_field
-            hidden_field = rbm.hidden_field
+            rbm_oldclass = load_rbm_hopfield(npzpath=DIR_MODELS + os.sep + 'saved' + os.sep + fname)
+            weights_loaded = rbm_oldclass.internal_weights
+            visible_field = rbm_oldclass.visible_field
+            hidden_field = rbm_oldclass.hidden_field
+
+            N = rbm_oldclass.dim_visible
+            p = rbm_oldclass.dim_hidden
+            # install model into new class (compatible with AIS)
+            rbm = RBM_gaussian_custom(N, p, 0, init_weights=None, use_fields=False, learning_rate=0)
+            rbm.weights = torch.from_numpy(weights_loaded).float()
 
             # get loss terms (simple term and logZ)
             runs = 3
@@ -590,61 +606,88 @@ if __name__ == '__main__':
             #beta_list = np.linspace(2, 4, 3).astype(np.float32)
             #beta_list = np.linspace(60, 200, 30).astype(np.float32)
             termA_arr = np.zeros((runs, len(beta_list)))
-            logZ_arr = np.zeros((runs, len(beta_list)))
-            score_arr = np.zeros((runs, len(beta_list)))
+            logZ_fwd_arr = np.zeros((runs, len(beta_list)))
+            logZ_rev_arr = np.zeros((runs, len(beta_list)))
+            score_fwd_arr = np.zeros((runs, len(beta_list)))
+            score_rev_arr = np.zeros((runs, len(beta_list)))
 
             for idx in range(len(beta_list)):
                 beta = beta_list[idx]
-                obj_term_A = get_obj_term_A(X, weights, visible_field, hidden_field, beta=beta)
+                obj_term_A = get_obj_term_A(X, weights_loaded, visible_field, hidden_field, beta=beta)
                 for k in range(runs):
                     termA_arr[k, idx] = obj_term_A  # still keep duplicate values for the plot emphasis
                     #print('computing loss term B (ln Z)')
-                    logZ, _ = esimate_logZ_with_AIS(weights, visible_field, hidden_field, beta=beta, num_steps=steps)
-                    score = obj_term_A - logZ
-                    print('mean log p(data):', score, '(run %d, beta=%.2f, A=%.2f, B=%.2f)' % (k, beta, obj_term_A, logZ))
-                    logZ_arr[k, idx] = logZ
-                    score_arr[k, idx] = score
+
+                    # Forward AIS
+                    logZ_fwd, _ = manual_AIS(rbm, beta, nchains=nchains, nsteps=nsteps)
+                    score_fwd = obj_term_A - logZ_fwd
+                    print('mean log p(data):', score_fwd, '(run %d, beta=%.2f, A=%.2f, B=%.2f)' % (k, beta, obj_term_A, logZ_fwd))
+                    logZ_fwd_arr[k, idx] = logZ_fwd
+                    score_fwd_arr[k, idx] = score_fwd
+
+                    # Reverse AIS
+                    logZ_rev, _ = manual_AIS_reverse(rbm, beta, RAISE_test_cases, nchains=nchains_rev, nsteps=nsteps_rev)
+                    score_rev = obj_term_A - logZ_rev
+                    print('mean log p(data) (rev):', score_rev, '(run %d, beta=%.2f, A=%.2f, B=%.2f)' % (k, beta, obj_term_A, logZ_rev))
+                    logZ_rev_arr[k, idx] = logZ_rev
+                    score_rev_arr[k, idx] = score_rev
 
             # save the data
             out_dir = DIR_OUTPUT + os.sep + 'logZ' + os.sep + 'hopfield'
-            fpath = out_dir + os.sep + 'objective_%dpatterns_%dsteps' % (k_patterns, steps)
+            fpath = out_dir + os.sep + 'objective_%dpatterns_%dsteps_%dstepsRev' % (k_patterns, nsteps, nsteps_rev)
             np.savez(fpath,
                      beta=beta_list,
                      termA=termA_arr,
-                     logZ=logZ_arr,
-                     score=score_arr)
+                     logZ_fwd=logZ_fwd_arr,
+                     logZ_rev=logZ_rev_arr,
+                     score_fwd=score_fwd_arr,
+                     score_rev=score_rev_arr)
 
             var_name = r'$\beta$'
             columns = [beta for beta in beta_list]
-
-            score_name = r'$\langle\ln \ p(x)\rangle$'
-            df_score = pd.DataFrame(score_arr, columns=columns).\
-                melt(var_name=var_name, value_name=score_name)
 
             termA_name = r'$- \beta \langle H(s) \rangle$'
             df_termA = pd.DataFrame(termA_arr, columns=columns).\
                 melt(var_name=var_name, value_name=termA_name)
 
-            LogZ_name = r'$\ln \ Z$'
-            df_LogZ = pd.DataFrame(logZ_arr, columns=columns).\
-                melt(var_name=var_name, value_name=LogZ_name)
+            score_fwd_name = r'$\langle\ln \ p(x)\rangle$ (fwd)'
+            df_score_fwd = pd.DataFrame(score_fwd_arr, columns=columns).\
+                melt(var_name=var_name, value_name=score_fwd_name)
 
-            plt.figure(); ax = sns.lineplot(x=var_name, y=score_name, data=df_score)
-            plt.savefig(out_dir + os.sep + 'score_%dpatterns_%dsteps.pdf' % (k_patterns, steps)); plt.close()
+            LogZ_fwd_name = r'$\ln \ Z$ (fwd)'
+            df_LogZ_fwd = pd.DataFrame(logZ_fwd_arr, columns=columns).\
+                melt(var_name=var_name, value_name=LogZ_fwd_name)
+
+            score_rev_name = r'$\langle\ln \ p(x)\rangle$ (rev)'
+            df_score_rev = pd.DataFrame(score_rev_arr, columns=columns).\
+                melt(var_name=var_name, value_name=score_rev_name)
+
+            LogZ_rev_name = r'$\ln \ Z$ (rev)'
+            df_LogZ_rev = pd.DataFrame(logZ_rev_arr, columns=columns).\
+                melt(var_name=var_name, value_name=LogZ_rev_name)
 
             plt.figure(); ax = sns.lineplot(x=var_name, y=termA_name, data=df_termA)
-            plt.savefig(out_dir + os.sep + 'termA_%dpatterns_%dsteps.pdf' % (k_patterns, steps)); plt.close()
+            plt.savefig(out_dir + os.sep + 'termA_%dpatterns_%dsteps_%dstepsRev.pdf' % (k_patterns, nsteps, nsteps_rev)); plt.close()
 
-            plt.figure(); ax = sns.lineplot(x=var_name, y=LogZ_name, data=df_LogZ)
-            plt.savefig(out_dir + os.sep + 'LogZ_%dpatterns_%dsteps.pdf' % (k_patterns, steps)); plt.close()
+            plt.figure(); ax = sns.lineplot(x=var_name, y=score_fwd_name, data=df_score_fwd)
+            plt.savefig(out_dir + os.sep + 'score_fwd_%dpatterns_%dsteps_%dstepsRev.pdf' % (k_patterns, nsteps, nsteps_rev)); plt.close()
+
+            plt.figure(); ax = sns.lineplot(x=var_name, y=score_rev_name, data=df_score_rev)
+            plt.savefig(out_dir + os.sep + 'score_rev_%dpatterns_%dsteps_%dstepsRev.pdf' % (k_patterns, nsteps, nsteps_rev)); plt.close()
+
+            plt.figure(); ax = sns.lineplot(x=var_name, y=LogZ_fwd_name, data=df_LogZ_fwd)
+            plt.savefig(out_dir + os.sep + 'LogZ_fwd_%dpatterns_%dsteps_%dstepsRev.pdf' % (k_patterns, nsteps, nsteps_rev)); plt.close()
+
+            plt.figure(); ax = sns.lineplot(x=var_name, y=LogZ_rev_name, data=df_LogZ_rev)
+            plt.savefig(out_dir + os.sep + 'LogZ_rev_%dpatterns_%dsteps_%dstepsRev.pdf' % (k_patterns, nsteps, nsteps_rev)); plt.close()
 
     if specific_check:
         import torch
 
         beta = 2
         epoch_idx = [20]  #[0, 1, 99] #[96, 97, 98]
-        AIS_STEPS = 5000
-        nchains = 50
+        AIS_STEPS = 1000
+        nchains = 100
         rev_ntest = 50
         rev_nchain = 50
         rev_nsteps = 1000
@@ -692,14 +735,15 @@ if __name__ == '__main__':
             print('Estimating term A...', )
             logP_termA = get_obj_term_A(X, rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta)
 
-            """
             print('Estimating log Z (AIS)...', )
             logP_termB_forward, chains_state = esimate_logZ_with_AIS(rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta, num_steps=AIS_STEPS, num_chains=nchains)
             print('\tlogP_termB_forward:', logP_termB_forward)
-
+            """
             print('Estimating log Z (reverse AIS)...', )
             logP_termB_reverse, _ = esimate_logZ_with_reverse_AIS_algo2(rbm, rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta, num_steps=AIS_STEPS, num_chains=nchains)
             print('\tlogP_termB_reverse:', logP_termB_reverse)
+            
+                
             print('Estimating log Z (homemade AIS)...', )
             logP_termB_manual, chains_state = manual_AIS(rbm, beta, nchains=nchains, nsteps=AIS_STEPS)
             print('\tlogP_termB_manual:', logP_termB_manual)
@@ -713,16 +757,17 @@ if __name__ == '__main__':
             print('\tlogP_termB_manual_reverse:', logP_termB_manual_reverse)
             """
             print('Estimating log Z (homemade AIS reverse Algo 3)...', )
+            """
             # Note settings from RAISE: 50 chains, 100,000 steps, 100 test cases. Think use control-variates thing as well (not implemented).
             test_cases = subsample_test_cases(X, rev_ntest)
             logP_termB_manual_reverse3, _ = manual_AIS_reverse(rbm, beta, test_cases, nchains=rev_nchain, nsteps=rev_nsteps)
             print('\tlogP_termB_manual_reverse3:', logP_termB_manual_reverse3)
-
-            #print('(idx: %d) AIS - Term A:' % idx, logP_termA, '| Log Z:', logP_termB_forward, '| Score:', logP_termA - logP_termB_forward)
+            """
+            print('(idx: %d) AIS - Term A:' % idx, logP_termA, '| Log Z:', logP_termB_forward, '| Score:', logP_termA - logP_termB_forward)
             #print('(idx: %d) AIS (Reverse) - Term A:' % idx, logP_termA, '| Log Z:', logP_termB_reverse, '| Score:', logP_termA - logP_termB_reverse)
             #print('(idx: %d) Manual AIS - Term A:' % idx, logP_termA, '| Log Z:', logP_termB_manual, '| Score:', logP_termA - logP_termB_manual)
             #print('(idx: %d) Manual AIS (Reverse) - Term A:' % idx, logP_termA, '| Log Z:', logP_termB_manual_reverse, '| Score:', logP_termA - logP_termB_manual_reverse)
-            print('(idx: %d) Manual AIS (Reverse 3) - Term A:' % idx, logP_termA, '| Log Z:', logP_termB_manual_reverse3, '| Score:', logP_termA - logP_termB_manual_reverse3)
+            #print('(idx: %d) Manual AIS (Reverse 3) - Term A:' % idx, logP_termA, '| Log Z:', logP_termB_manual_reverse3, '| Score:', logP_termA - logP_termB_manual_reverse3)
 
             #chains_numpy = chains_state
             #chain_state_to_images(chains_numpy, rbm, 5, beta=beta)
