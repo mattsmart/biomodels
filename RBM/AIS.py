@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy as sp
 import os
 import tensorflow as tf
 import tensorflow_probability as tfp
@@ -161,6 +162,7 @@ def esimate_logZ_with_reverse_AIS_algo2(rbm, weights, field_visible, field_hidde
 
 
 def AIS_update_visible_numpy(hidden_state, weights, beta, N, alpha):
+    nchains, _ = hidden_state.shape
     # vectorized to operate on chain
     visible_activations = beta * alpha * np.dot(hidden_state, weights.T)
     sigmoid_arg = -2 * visible_activations
@@ -192,27 +194,30 @@ def compute_log_f_k_joint(chain_visible, chain_hidden, weights, alpha):
     assert len(chain_visible.shape) == 1  # TODO vectorize so log_f_k is size N_chains ?
     assert len(chain_hidden.shape) == 1  # TODO vectorize so log_f_k is size N_chains ?
     # un-normalized prob for the intermediate distribution with param alpha_k
-    lambda_sqr = np.dot(chain_hidden, chain_hidden)                              # TODO vectorize
+    lambda_sqr = np.dot(chain_hidden, chain_hidden)                               # TODO vectorize
 
     dot_W_h = np.dot(weights, chain_hidden)
     term2 = np.dot(chain_visible, dot_W_h)
 
-    log_f_k_joint = -beta * lambda_sqr / 2 + beta * alpha * term2                     # TODO vectorize
+    log_f_k_joint = -beta * lambda_sqr / 2 + beta * alpha * term2                 # TODO vectorize
     return log_f_k_joint
 
 
-def manual_AIS(rbm, beta, nchains=100, nsteps=10, CDK=1):
+def manual_AIS(rbm, beta, nchains=100, nsteps=10, CDK=1, joint_mode=True):
     np.random.seed()
-    stepper = 'gibbs'  # MCMC_MH or gibbs
-
     # Note 1: MCMC will be gibbs chain as suggest in RAISE paper
     # Note 2: initial distribution unit normal is like RBM with W_i\mu = 0 (W=0 weights)
-
+    # Note 3: joint true or false give similar estimates; False is faster
     N = rbm.num_visible
     p = rbm.num_hidden
     stdev = np.sqrt(1/beta)
 
-    log_z_prefactor = N * np.log(2) - p/2.0 * np.log(2 * np.pi / beta)
+    if joint_mode:
+        log_z_prefactor = - p / 2.0 * np.log(2 * np.pi / beta)
+        log_Z_init = N * np.log(2) + p / 2.0 * np.log(2 * np.pi / beta)
+    else:
+        log_z_prefactor = N * np.log(2) - p/2.0 * np.log(2 * np.pi / beta)
+        log_Z_init = p / 2.0 * np.log(2 * np.pi / beta)
 
     weights_numpy = rbm.weights.numpy()
     assert torch.allclose(rbm.visible_bias, torch.zeros(N))
@@ -222,8 +227,7 @@ def manual_AIS(rbm, beta, nchains=100, nsteps=10, CDK=1):
     init_chain_hidden = np.random.normal(loc=0.0, scale=stdev, size=(nchains, p))
 
     # STEP 2: initial AIS weights
-    Z_init = (2 * np.pi / beta) ** (p/2)
-    log_ais_weights = np.zeros(nchains) + np.log(Z_init)
+    log_ais_weights = np.zeros(nchains) + log_Z_init
 
     # STEP 3: perform iteration over intermediate distributions f_k( )
     chain_state_hidden = init_chain_hidden
@@ -242,43 +246,37 @@ def manual_AIS(rbm, beta, nchains=100, nsteps=10, CDK=1):
 
         # update ais_weights
         for c in range(nchains):
-            # TODO vectorize
-            log_f_k_numerator[c] = compute_log_f_k_hidden(chain_state_hidden[c, :], weights_numpy, alpha_current)
-            log_f_k_denominator[c] = compute_log_f_k_hidden(chain_state_hidden[c, :], weights_numpy, alpha_prev)
+            # TODO vectorize & move joint mode OUT (or remove) after testing both modes agree (pick faster)
+            if joint_mode:
+                # Get f_k from hidden, visible (joint)
+                log_f_k_numerator[c] = compute_log_f_k_joint(chain_state_visible[c, :], chain_state_hidden[c, :], weights_numpy, alpha_current)
+                log_f_k_denominator[c] = compute_log_f_k_joint(chain_state_visible[c, :], chain_state_hidden[c, :], weights_numpy, alpha_prev)
+            else:
+                log_f_k_numerator[c] = compute_log_f_k_hidden(chain_state_hidden[c, :], weights_numpy, alpha_current)
+                log_f_k_denominator[c] = compute_log_f_k_hidden(chain_state_hidden[c, :], weights_numpy, alpha_prev)
+
             log_ais_weights[c] = log_ais_weights[c] + log_f_k_numerator[c] - log_f_k_denominator[c]
             #if k % 100 == 0:
             #   print('step', k, 'chain', c, '|||', log_f_k_numerator[c], log_f_k_denominator[c], np.exp(log_f_k_numerator[c] - log_f_k_denominator[c]), log_ais_weights[c], np.exp(log_ais_weights[c]))
 
         # update chain
-        if stepper == 'MCMC_MH':
-            # refer to: https://en.wikipedia.org/wiki/Metropolis%E2%80%93Hastings_algorithm
-            # have x_t;
-            # sample x' from proposal distribution N(0, beta_inv I) (better if symmetric)
-            X_candidate = np.random.normal(loc=0.0, scale=stdev, size=(nchains, p))
-            # get f(x')
-            log_f_candidates = np.zeros(nchains)
-            for c in range(nchains):  # TODO loop above if it works better? else H-AIS
-                log_f_candidates[c] = compute_log_f_k_hidden(X_candidate[c, :], alpha_current)
-                # get U[0,1] r.v. to compare vs acceptance ratio
-                uu = np.random.rand()
-                ratio = log_f_candidates[c] / compute_log_f_k_hidden(chain_state_hidden[c, :], alpha_current)
-                if uu <= ratio:
-                    chain_state_hidden[c, :] = X_candidate[c, :]
-        else:
-            for samplestep in range(CDK):
-                chain_state_visible = AIS_update_visible_numpy(chain_state_hidden, weights_numpy, beta, N, alpha_current)
-                chain_state_hidden = AIS_update_hidden_numpy(chain_state_visible, weights_numpy, stdev, alpha_current)
+        for samplestep in range(CDK):
+            chain_state_visible = AIS_update_visible_numpy(chain_state_hidden, weights_numpy, beta, N, alpha_current)
+            chain_state_hidden = AIS_update_hidden_numpy(chain_state_visible, weights_numpy, stdev, alpha_current)
 
     # STEP 4: return estimate
-    Z_est = np.sum(np.exp(log_ais_weights)) / nchains  # Note TF has log-sum-exp fn they claim more stable (how?)
-    log_Z_est = np.log(Z_est)
+    #Z_est = sp.special.logsumexp(log_ais_weights) / nchains    #np.sum(np.exp(log_ais_weights)) / nchains  # Note TF has log-sum-exp fn they claim more stable (how?)
+    #log_Z_est = np.log(Z_est)
+
+    log_Z_est = sp.special.logsumexp(log_ais_weights) - np.log(nchains)
     log_Z_total = log_Z_est + log_z_prefactor
 
     return log_Z_total, chain_state_hidden
 
 
-def manual_AIS_reverse(rbm, beta, test_cases, nchains=100, nsteps=10, CDK=1):
-    # TODO why is p_ann (output of their algorithm) > 1?
+def manual_AIS_reverse(rbm, beta, test_cases, nchains=100, nsteps=10, CDK=1, joint_mode=True):
+    # TODO why is p_ann (output of their algorithm) > 1? use joint_mode true to avoid for now
+    assert joint_mode
     N = rbm.num_visible
     p = rbm.num_hidden
     stdev = np.sqrt(1/beta)
@@ -295,7 +293,7 @@ def manual_AIS_reverse(rbm, beta, test_cases, nchains=100, nsteps=10, CDK=1):
         # just need scaled Ising energy which is + beta/2 * ||s.T W||^2
         dot_s_W = np.dot(chain_state_visible, weights_numpy)
 
-        plt.plot(dot_s_W); plt.show(); plt.close()
+        #plt.plot(dot_s_W); plt.show(); plt.close()
 
         energy_unscaled = np.dot(dot_s_W, dot_s_W)
         energy_scaled = 0.5 * beta * energy_unscaled
@@ -305,9 +303,14 @@ def manual_AIS_reverse(rbm, beta, test_cases, nchains=100, nsteps=10, CDK=1):
     log_p_annealed_estimates = np.zeros(ntest)
     log_Z_est_integral = np.zeros(ntest)
 
+    if joint_mode:
+        log_z_prefactor = - p / 2.0 * np.log(2 * np.pi / beta)
+        log_Z_init = N * np.log(2) + p / 2.0 * np.log(2 * np.pi / beta)  # TODO make sure adding N log 2 and sign correct
+    else:
+        log_z_prefactor = N * np.log(2) - p/2.0 * np.log(2 * np.pi / beta)
+        log_Z_init = p / 2.0 * np.log(2 * np.pi / beta)                  # TODO check
+
     alpha_k = np.linspace(0, 1, nsteps + 1)
-    log_z_prefactor = - p / 2.0 * np.log(2 * np.pi / beta) # + N * np.log(2)  # TODO care we use f_k_joint so no need to add that part of pre-factor to Z at the end
-    log_Z_init = N * np.log(2) - (p / 2) * np.log(2 * np.pi / beta)  # TODO make sure adding N log 2 and sign correct
 
     for test_idx, visible_test in enumerate(test_cases):  # TODO ensure visible_test is standard vector shaped np array 1D
         print("RAISE: test sample #%d" % test_idx)
@@ -319,7 +322,7 @@ def manual_AIS_reverse(rbm, beta, test_cases, nchains=100, nsteps=10, CDK=1):
         # 2) initialize reverse AIS weights
         log_w_init_numerator = compute_log_f_k_spinsOnly(visible_test)
         log_w_init = log_w_init_numerator - log_Z_init
-        print("log_w_init", log_w_init, log_w_init_numerator, log_Z_init)
+        #print("log_w_init", log_w_init, log_w_init_numerator, log_Z_init)
         log_ais_weights = np.zeros(nchains) + log_w_init
 
         # 3) loop over AIS steps
@@ -340,28 +343,29 @@ def manual_AIS_reverse(rbm, beta, test_cases, nchains=100, nsteps=10, CDK=1):
             # update ais_weights
             for c in range(nchains):
                 # TODO vectorize
-                # Get f_k from hidden alone
-                #log_f_k_numerator[c] = compute_log_f_k_hidden(chain_hidden[c, :], weights_numpy, alpha_current)  # TODO compare with f(s,h) form
-                #log_f_k_denominator[c] = compute_log_f_k_hidden(chain_hidden[c, :], weights_numpy, alpha_prev)   # TODO compare with f(s,h) form
-
-                # Get f_k from hidden, visible (joint)
-                log_f_k_numerator[c] = compute_log_f_k_joint(chain_visible[c, :], chain_hidden[c, :], weights_numpy, alpha_current)
-                log_f_k_denominator[c] = compute_log_f_k_joint(chain_visible[c, :], chain_hidden[c, :], weights_numpy, alpha_prev)
+                if joint_mode:
+                    # Get f_k from hidden, visible (joint)
+                    log_f_k_numerator[c] = compute_log_f_k_joint(chain_visible[c, :], chain_hidden[c, :], weights_numpy, alpha_current)
+                    log_f_k_denominator[c] = compute_log_f_k_joint(chain_visible[c, :], chain_hidden[c, :], weights_numpy, alpha_prev)
+                else:
+                    # Get f_k from hidden alone
+                    log_f_k_numerator[c] = compute_log_f_k_hidden(chain_hidden[c, :], weights_numpy, alpha_current)
+                    log_f_k_denominator[c] = compute_log_f_k_hidden(chain_hidden[c, :], weights_numpy, alpha_prev)
 
                 log_ais_weights[c] = log_ais_weights[c] + log_f_k_numerator[c] - log_f_k_denominator[c]
 
                 # prints
                 #if step % 100 == 0:
                 #   print('test', test_idx, 'step', step, 'kval', k, 'chain', c, '|||', log_f_k_numerator[c], log_f_k_denominator[c], np.exp(log_f_k_numerator[c] - log_f_k_denominator[c]), log_ais_weights[c], np.exp(log_ais_weights[c]))
-                if c == 4:
-                    print('test', test_idx, 'step', step, 'kval', k, 'chain', c, '|||', log_f_k_numerator[c],
-                          log_f_k_denominator[c], np.exp(log_f_k_numerator[c] - log_f_k_denominator[c]), log_ais_weights[c],
-                          np.exp(log_ais_weights[c]))
+                #if c == 4:
+                #    print('test', test_idx, 'step', step, 'kval', k, 'chain', c, '|||', log_f_k_numerator[c],
+                #          log_f_k_denominator[c], np.exp(log_f_k_numerator[c] - log_f_k_denominator[c]), log_ais_weights[c],
+                #          np.exp(log_ais_weights[c]))
 
         # 4) return estimate for the test case
-        log_p_annealed_estimates[test_idx] = np.log(np.sum(np.exp(log_ais_weights))) - np.log(nchains)  # TODO more stable version of Log-Sum-Exp ?
+        log_p_annealed_estimates[test_idx] = sp.special.logsumexp(log_ais_weights) - np.log(nchains)
         log_Z_est_integral[test_idx] = log_w_init_numerator - log_p_annealed_estimates[test_idx]
-        print("RAISE: test sample #%d" % test_idx, '|||', log_ais_weights, np.log(np.sum(np.exp(log_ais_weights))), np.log(nchains), log_w_init_numerator)
+        #print("RAISE: test sample #%d" % test_idx, '|||', log_ais_weights, np.log(np.sum(np.exp(log_ais_weights))), np.log(nchains), log_w_init_numerator)
 
     # Average the estimates (over test cases) to get est for log_Z
     log_Z_est = np.sum(log_Z_est_integral) / ntest
@@ -406,10 +410,7 @@ def manual_AIS_reverse_algo3(rbm, beta, test_cases, nchains=100, nsteps=10, CDK=
     log_Z_est_integral = np.zeros(ntest)
 
     alpha_k = np.linspace(0, 1, nsteps + 1)
-    log_z_prefactor = N * np.log(2) - p / 2.0 * np.log(2 * np.pi / beta)
-    #Z_init = (2 * np.pi / beta) ** (p / 2)
-    log_Z_init = N * np.log(2) - (p / 2) * np.log(2 * np.pi / beta)  # TODO make sure adding N log 2 and sign correct
-
+    log_z_prefactor = - p / 2.0 * np.log(2 * np.pi / beta)
 
     for test_idx, visible_test in enumerate(test_cases):  # TODO ensure visible_test is standard vector shaped np array 1D
         print("RAISE: test sample #%d" % test_idx)
@@ -421,7 +422,7 @@ def manual_AIS_reverse_algo3(rbm, beta, test_cases, nchains=100, nsteps=10, CDK=
         # 2) initialize reverse AIS weights (uniform distribution on N spins)
         #log_w_init_numerator = compute_log_f_k_spinsOnly(visible_test)
         log_w_init = - N * np.log(2)
-        print("log_w_init", log_w_init)
+        #print("log_w_init", log_w_init)
         log_ais_weights = np.zeros(nchains) + log_w_init
 
         # 3) loop over AIS steps
@@ -457,10 +458,10 @@ def manual_AIS_reverse_algo3(rbm, beta, test_cases, nchains=100, nsteps=10, CDK=
                 log_ais_weights[c] = log_ais_weights[c] + log_f_k_numerator[c] - log_f_k_denominator[c]
                 #if step % 100 == 0:
                 #   print('test', test_idx, 'step', step, 'kval', k, 'chain', c, '|||', log_f_k_numerator[c], log_f_k_denominator[c], np.exp(log_f_k_numerator[c] - log_f_k_denominator[c]), log_ais_weights[c], np.exp(log_ais_weights[c]))
-                if c == 4:
-                    print('test', test_idx, 'step', step, 'kval', k, 'chain', c, '|||', log_f_k_numerator[c],
-                          log_f_k_denominator[c], np.exp(log_f_k_numerator[c] - log_f_k_denominator[c]), log_ais_weights[c],
-                          np.exp(log_ais_weights[c]))
+                #if c == 4:
+                #    print('test', test_idx, 'step', step, 'kval', k, 'chain', c, '|||', log_f_k_numerator[c],
+                #          log_f_k_denominator[c], np.exp(log_f_k_numerator[c] - log_f_k_denominator[c]), log_ais_weights[c],
+                #          np.exp(log_ais_weights[c]))
 
         # =================================
         # LOOP B
@@ -491,17 +492,18 @@ def manual_AIS_reverse_algo3(rbm, beta, test_cases, nchains=100, nsteps=10, CDK=
                 log_ais_weights[c] = log_ais_weights[c] + log_f_k_numerator[c] - log_f_k_denominator[c]
                 # if step % 100 == 0:
                 #   print('test', test_idx, 'step', step, 'kval', k, 'chain', c, '|||', log_f_k_numerator[c], log_f_k_denominator[c], np.exp(log_f_k_numerator[c] - log_f_k_denominator[c]), log_ais_weights[c], np.exp(log_ais_weights[c]))
-                if c == 4:
-                    print('test', test_idx, 'step', step, 'kval', k, 'chain', c, '|||', log_f_k_numerator[c],
-                          log_f_k_denominator[c], np.exp(log_f_k_numerator[c] - log_f_k_denominator[c]),
-                          log_ais_weights[c],
-                          np.exp(log_ais_weights[c]))
+                #if c == 4:
+                #    print('test', test_idx, 'step', step, 'kval', k, 'chain', c, '|||', log_f_k_numerator[c],
+                #          log_f_k_denominator[c], np.exp(log_f_k_numerator[c] - log_f_k_denominator[c]),
+                #          log_ais_weights[c],
+                #          np.exp(log_ais_weights[c]))
 
         # 4) return estimate for the test case
         energy_vtest = compute_log_f_k_spinsOnly(visible_test)
-        log_p_annealed_estimates[test_idx] = np.log(np.sum(np.exp(log_ais_weights))) - np.log(nchains)  # TODO more stable version of Log-Sum-Exp ?
+
+        log_p_annealed_estimates[test_idx] = sp.special.logsumexp(log_ais_weights) - np.log(nchains)
         log_Z_est_integral[test_idx] = energy_vtest - log_p_annealed_estimates[test_idx]
-        print("RAISE: test sample #%d" % test_idx, '|||', log_ais_weights, np.log(np.sum(np.exp(log_ais_weights))), np.log(nchains), energy_vtest)
+        #print("RAISE: test sample #%d" % test_idx, '|||', log_ais_weights, np.log(np.sum(np.exp(log_ais_weights))), np.log(nchains), energy_vtest)
 
     # Average the estimates (over test cases) to get est for log_Z
     log_Z_est = np.sum(log_Z_est_integral) / ntest
@@ -523,7 +525,6 @@ def subsample_test_cases(data_samples, ntest):
     N = data_samples.shape[1]
 
     indices = np.random.choice(tot_samples, ntest)  # select indices randomly
-    print("indices", indices)
     test_cases = data_samples[indices, :]
 
     return test_cases
@@ -584,7 +585,7 @@ if __name__ == '__main__':
             hidden_field = rbm.hidden_field
 
             # get loss terms (simple term and logZ)
-            runs = 2
+            runs = 3
             beta_list = np.linspace(0.5, 10, 20).astype(np.float32)
             #beta_list = np.linspace(2, 4, 3).astype(np.float32)
             #beta_list = np.linspace(60, 200, 30).astype(np.float32)
@@ -637,15 +638,17 @@ if __name__ == '__main__':
             plt.figure(); ax = sns.lineplot(x=var_name, y=LogZ_name, data=df_LogZ)
             plt.savefig(out_dir + os.sep + 'LogZ_%dpatterns_%dsteps.pdf' % (k_patterns, steps)); plt.close()
 
-
     if specific_check:
-        import time
         import torch
 
         beta = 2
         epoch_idx = [20]  #[0, 1, 99] #[96, 97, 98]
-        AIS_STEPS = 2000
-        nchains = 10
+        AIS_STEPS = 5000
+        nchains = 50
+        rev_ntest = 50
+        rev_nchain = 50
+        rev_nsteps = 1000
+
         # 96: Term A: 1417.3126916185463 | Log Z: 1419.820068359375 | Score: -2.507376740828704
         # 97: Term A: 1419.55814776832 | Log Z: 1443.4364013671875 | Score: -23.87825359886756
         # 98: Term A: 1419.647444170504 | Log Z: 1423.908203125 | Score: -4.260758954495941
@@ -697,39 +700,29 @@ if __name__ == '__main__':
             print('Estimating log Z (reverse AIS)...', )
             logP_termB_reverse, _ = esimate_logZ_with_reverse_AIS_algo2(rbm, rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta, num_steps=AIS_STEPS, num_chains=nchains)
             print('\tlogP_termB_reverse:', logP_termB_reverse)
-            
             print('Estimating log Z (homemade AIS)...', )
             logP_termB_manual, chains_state = manual_AIS(rbm, beta, nchains=nchains, nsteps=AIS_STEPS)
             print('\tlogP_termB_manual:', logP_termB_manual)
             """
-
+            """
             print('Estimating log Z (homemade AIS reverse)...', )
             # Note settings from RAISE: 50 chains, 100,000 steps, 100 test cases. Think use control-variates thing as well (not implemented).
             # TODO implement control variates possibly
-            rev_ntest = 10
-            rev_nchain = 10
-            rev_nsteps = AIS_STEPS
             test_cases = subsample_test_cases(X, rev_ntest)
             logP_termB_manual_reverse, _ = manual_AIS_reverse(rbm, beta, test_cases, nchains=rev_nchain, nsteps=rev_nsteps)
             print('\tlogP_termB_manual_reverse:', logP_termB_manual_reverse)
             """
             print('Estimating log Z (homemade AIS reverse Algo 3)...', )
             # Note settings from RAISE: 50 chains, 100,000 steps, 100 test cases. Think use control-variates thing as well (not implemented).
-            # TODO implement control variates possibly
-            rev_ntest = 10
-            rev_nchain = 10
-            rev_nsteps = AIS_STEPS
             test_cases = subsample_test_cases(X, rev_ntest)
             logP_termB_manual_reverse3, _ = manual_AIS_reverse(rbm, beta, test_cases, nchains=rev_nchain, nsteps=rev_nsteps)
             print('\tlogP_termB_manual_reverse3:', logP_termB_manual_reverse3)
-            """
 
             #print('(idx: %d) AIS - Term A:' % idx, logP_termA, '| Log Z:', logP_termB_forward, '| Score:', logP_termA - logP_termB_forward)
             #print('(idx: %d) AIS (Reverse) - Term A:' % idx, logP_termA, '| Log Z:', logP_termB_reverse, '| Score:', logP_termA - logP_termB_reverse)
             #print('(idx: %d) Manual AIS - Term A:' % idx, logP_termA, '| Log Z:', logP_termB_manual, '| Score:', logP_termA - logP_termB_manual)
             #print('(idx: %d) Manual AIS (Reverse) - Term A:' % idx, logP_termA, '| Log Z:', logP_termB_manual_reverse, '| Score:', logP_termA - logP_termB_manual_reverse)
             print('(idx: %d) Manual AIS (Reverse 3) - Term A:' % idx, logP_termA, '| Log Z:', logP_termB_manual_reverse3, '| Score:', logP_termA - logP_termB_manual_reverse3)
-
 
             #chains_numpy = chains_state
             #chain_state_to_images(chains_numpy, rbm, 5, beta=beta)
@@ -738,15 +731,18 @@ if __name__ == '__main__':
         import torch
 
         # 0) run parameters
-        step_list = [10,50,100,500,1000]
-        nchains = 100
+        step_list = [10, 50, 100, 500, 1000] #,1000]
+        nchains = 50
+        rev_ntest = 50
+        rev_nchains = 50
         beta = 2.0
 
         logz_estimate_tf = np.zeros(len(step_list))
         logz_estimate_manual = np.zeros(len(step_list))
         logz_estimate_manual_rev = np.zeros(len(step_list))
+        logz_estimate_manual_rev3 = np.zeros(len(step_list))
 
-        # 1) load an RBM
+        # 1) load an RBM & get test cases
         init_name = 'hopfield'  # hopfield or normal
         epoch = 20
         num_hid = 10
@@ -758,12 +754,13 @@ if __name__ == '__main__':
         dataobj = np.load(bigruns + os.sep + subdir + os.sep + fname)
         weights_timeseries = dataobj['weights']
 
-        X, _ = get_X_y_dataset(TRAINING, dim_visible=28**2, binarize=True)
-
         weights = weights_timeseries[:, :, epoch]
         rbm = weights_timeseries[:, :, epoch]
         rbm = RBM_gaussian_custom(28 ** 2, num_hid, 0, init_weights=None, use_fields=False, learning_rate=0)
         rbm.weights = torch.from_numpy(weights).float()
+
+        X, _ = get_X_y_dataset(TRAINING, dim_visible=28**2, binarize=True)
+        test_cases = subsample_test_cases(X, rev_ntest)
 
         # 2) estimate "term A"
         print('Estimating term A...', )
@@ -782,28 +779,36 @@ if __name__ == '__main__':
             logz_estimate_manual[idx] = logP_termB_manual
 
             # 4) perform custom AIS estimation
-            #print('Estimating log Z (homemade AIS - reverse algo 2)...', )
-            #logP_termB_manual_rev, _ = manual_AIS_reverse(rbm, beta, nchains=nchains, nsteps=steps)
-            #logz_estimate_manual_rev[idx] = logP_termB_manual_rev
+            print('Estimating log Z (homemade AIS - reverse algo 2)...', )
+            logP_termB_manual_rev, _ = manual_AIS_reverse(rbm, beta, test_cases, nchains=rev_nchains, nsteps=steps)
+            logz_estimate_manual_rev[idx] = logP_termB_manual_rev
+
+            # 5) perform custom AIS estimation
+            print('Estimating log Z (homemade AIS - reverse algo 3)...', )
+            logP_termB_manual_rev3, _ = manual_AIS_reverse_algo3(rbm, beta, test_cases, nchains=rev_nchains, nsteps=steps)
+            logz_estimate_manual_rev3[idx] = logP_termB_manual_rev3
 
         # plots
         plt.plot(step_list, logz_estimate_tf, label='TF')
         plt.plot(step_list, logz_estimate_manual, label='manual')
-        #plt.plot(step_list, logz_estimate_manual_rev, label='manual Reverse')
+        plt.plot(step_list, logz_estimate_manual_rev, label='manual Reverse')
+        plt.plot(step_list, logz_estimate_manual_rev3, label='manual Reverse (3)')
         plt.title('log Z')
         plt.legend()
         plt.show(); plt.close()
 
         plt.plot(step_list, logP_termA - logz_estimate_tf, label='TF')
         plt.plot(step_list, logP_termA - logz_estimate_manual, label='manual')
-        #plt.plot(step_list, logP_termA - logz_estimate_manual_rev, label='manual Reverse')
+        plt.plot(step_list, logP_termA - logz_estimate_manual_rev, label='manual Reverse')
+        plt.plot(step_list, logP_termA - logz_estimate_manual_rev3, label='manual Reverse (3)')
         plt.title('score')
         plt.legend()
         plt.show(); plt.close()
 
         plt.plot(step_list, logz_estimate_tf, label='TF')
         plt.plot(step_list, logz_estimate_manual, label='manual')
-        #plt.plot(step_list, logz_estimate_manual_rev, label='manual Reverse')
+        plt.plot(step_list, logz_estimate_manual_rev, label='manual Reverse')
+        plt.plot(step_list, logz_estimate_manual_rev3, label='manual Reverse (3)')
         plt.title('log Z')
         plt.xscale('log')
         plt.legend()
@@ -811,16 +816,22 @@ if __name__ == '__main__':
 
         plt.plot(step_list, logP_termA - logz_estimate_tf, label='TF')
         plt.plot(step_list, logP_termA - logz_estimate_manual, label='manual')
-        #plt.plot(step_list, logP_termA - logz_estimate_manual_rev, label='manual Reverse')
+        plt.plot(step_list, logP_termA - logz_estimate_manual_rev, label='manual Reverse')
+        plt.plot(step_list, logP_termA - logz_estimate_manual_rev3, label='manual Reverse (3)')
         plt.title('score')
         plt.xscale('log')
         plt.legend()
         plt.show(); plt.close()
-
 
         # save
         outdir = DIR_OUTPUT + os.sep + 'AIS'
         np.savetxt(outdir + os.sep + 'logz_estimate_tf.txt', logz_estimate_tf)
         np.savetxt(outdir + os.sep + 'logz_estimate_manual.txt', logz_estimate_manual)
-        #np.savetxt(outdir + os.sep + 'logz_estimate_manual_rev.txt', logz_estimate_manual_rev)
+        np.savetxt(outdir + os.sep + 'logz_estimate_manual_rev.txt', logz_estimate_manual_rev)    # TODO note rev give diff answer from rest
+        np.savetxt(outdir + os.sep + 'logz_estimate_manual_rev3.txt', logz_estimate_manual_rev3)
         np.savetxt(outdir + os.sep + 'step_list.txt', step_list)
+
+        print(logz_estimate_tf)
+        print(logz_estimate_manual)
+        print(logz_estimate_manual_rev)
+        print(logz_estimate_manual_rev3)
