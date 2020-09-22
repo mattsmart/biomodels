@@ -184,7 +184,7 @@ def AIS_update_hidden_numpy(visible_state, weights, stdev, alpha):
     return hidden_sampled
 
 
-def compute_log_f_k_hidden(chain_state, weights, alpha):
+def compute_log_f_k_hidden(chain_state, weights, beta, alpha):
     assert len(chain_state.shape) == 1  # TODO vectorize so log_f_k is size N_chains ?
     # un-normalized prob for the intermediate distribution with param alpha_k
     lambda_sqr = np.dot(chain_state, chain_state)                              # TODO vectorize
@@ -195,7 +195,7 @@ def compute_log_f_k_hidden(chain_state, weights, alpha):
     return log_f_k
 
 
-def compute_log_f_k_joint(chain_visible, chain_hidden, weights, alpha):
+def compute_log_f_k_joint(chain_visible, chain_hidden, weights, beta, alpha):
     assert len(chain_visible.shape) == 1  # TODO vectorize so log_f_k is size N_chains ?
     assert len(chain_hidden.shape) == 1  # TODO vectorize so log_f_k is size N_chains ?
     # un-normalized prob for the intermediate distribution with param alpha_k
@@ -254,11 +254,11 @@ def manual_AIS(rbm, beta, nchains=100, nsteps=10, CDK=1, joint_mode=True):
             # TODO vectorize & move joint mode OUT (or remove) after testing both modes agree (pick faster)
             if joint_mode:
                 # Get f_k from hidden, visible (joint)
-                log_f_k_numerator[c] = compute_log_f_k_joint(chain_state_visible[c, :], chain_state_hidden[c, :], weights_numpy, alpha_current)
-                log_f_k_denominator[c] = compute_log_f_k_joint(chain_state_visible[c, :], chain_state_hidden[c, :], weights_numpy, alpha_prev)
+                log_f_k_numerator[c] = compute_log_f_k_joint(chain_state_visible[c, :], chain_state_hidden[c, :], weights_numpy, beta, alpha_current)
+                log_f_k_denominator[c] = compute_log_f_k_joint(chain_state_visible[c, :], chain_state_hidden[c, :], weights_numpy, beta, alpha_prev)
             else:
-                log_f_k_numerator[c] = compute_log_f_k_hidden(chain_state_hidden[c, :], weights_numpy, alpha_current)
-                log_f_k_denominator[c] = compute_log_f_k_hidden(chain_state_hidden[c, :], weights_numpy, alpha_prev)
+                log_f_k_numerator[c] = compute_log_f_k_hidden(chain_state_hidden[c, :], weights_numpy, beta, alpha_current)
+                log_f_k_denominator[c] = compute_log_f_k_hidden(chain_state_hidden[c, :], weights_numpy, beta, alpha_prev)
 
             log_ais_weights[c] = log_ais_weights[c] + log_f_k_numerator[c] - log_f_k_denominator[c]
             #if k % 100 == 0:
@@ -349,12 +349,12 @@ def manual_AIS_reverse(rbm, beta, test_cases, nchains=100, nsteps=10, CDK=1, joi
             for c in range(nchains):
                 # TODO vectorize
                 # Get f_k from hidden, visible (joint)
-                log_f_k_numerator[c] = compute_log_f_k_joint(chain_visible[c, :], chain_hidden[c, :], weights_numpy, alpha_current)
-                log_f_k_denominator[c] = compute_log_f_k_joint(chain_visible[c, :], chain_hidden[c, :], weights_numpy, alpha_prev)
+                log_f_k_numerator[c] = compute_log_f_k_joint(chain_visible[c, :], chain_hidden[c, :], weights_numpy, beta, alpha_current)
+                log_f_k_denominator[c] = compute_log_f_k_joint(chain_visible[c, :], chain_hidden[c, :], weights_numpy, beta, alpha_prev)
 
                 # Get f_k from hidden alone
-                #log_f_k_numerator[c] = compute_log_f_k_hidden(chain_hidden[c, :], weights_numpy, alpha_current)
-                #log_f_k_denominator[c] = compute_log_f_k_hidden(chain_hidden[c, :], weights_numpy, alpha_prev)
+                #log_f_k_numerator[c] = compute_log_f_k_hidden(chain_hidden[c, :], weights_numpy, beta, alpha_current)
+                #log_f_k_denominator[c] = compute_log_f_k_hidden(chain_hidden[c, :], weights_numpy, beta, alpha_prev)
 
                 log_ais_weights[c] = log_ais_weights[c] + log_f_k_numerator[c] - log_f_k_denominator[c]
 
@@ -453,12 +453,12 @@ def manual_AIS_reverse_algo3(rbm, beta, test_cases, nchains=100, nsteps=10, CDK=
             for c in range(nchains):
                 # TODO vectorize
                 # Get f_k from hidden alone
-                #log_f_k_numerator[c] = compute_log_f_k_hidden(chain_hidden[c, :], weights_numpy, alpha_current)  # TODO compare with f(s,h) form
-                #log_f_k_denominator[c] = compute_log_f_k_hidden(chain_hidden[c, :], weights_numpy, alpha_prev)   # TODO compare with f(s,h) form
+                #log_f_k_numerator[c] = compute_log_f_k_hidden(chain_hidden[c, :], weights_numpy, beta, alpha_current)  # TODO compare with f(s,h) form
+                #log_f_k_denominator[c] = compute_log_f_k_hidden(chain_hidden[c, :], weights_numpy, beta, alpha_prev)   # TODO compare with f(s,h) form
 
                 # Get f_k from hidden, visible (joint)
-                log_f_k_numerator[c] = compute_log_f_k_joint(chain_visible[c, :], chain_hidden[c, :], weights_numpy, alpha_current)
-                log_f_k_denominator[c] = compute_log_f_k_joint(chain_visible[c, :], chain_hidden[c, :], weights_numpy, alpha_prev)
+                log_f_k_numerator[c] = compute_log_f_k_joint(chain_visible[c, :], chain_hidden[c, :], weights_numpy, beta, alpha_current)
+                log_f_k_denominator[c] = compute_log_f_k_joint(chain_visible[c, :], chain_hidden[c, :], weights_numpy, beta, alpha_prev)
 
                 log_ais_weights[c] = log_ais_weights[c] + log_f_k_numerator[c] - log_f_k_denominator[c]
                 #if step % 100 == 0:
@@ -487,12 +487,12 @@ def manual_AIS_reverse_algo3(rbm, beta, test_cases, nchains=100, nsteps=10, CDK=
             for c in range(nchains):
                 # TODO vectorize
                 # Get f_k from hidden alone
-                #log_f_k_numerator[c] = compute_log_f_k_hidden(chain_hidden[c, :], alpha_current)  # TODO compare with f(s,h) form
-                #log_f_k_denominator[c] = compute_log_f_k_hidden(chain_hidden[c, :], alpha_prev)  # TODO compare with f(s,h) form
+                #log_f_k_numerator[c] = compute_log_f_k_hidden(chain_hidden[c, :], beta, alpha_current)  # TODO compare with f(s,h) form
+                #log_f_k_denominator[c] = compute_log_f_k_hidden(chain_hidden[c, :], beta, alpha_prev)  # TODO compare with f(s,h) form
 
                 # Get f_k from hidden, visible (joint)
-                log_f_k_numerator[c] = compute_log_f_k_joint(chain_visible[c, :], chain_hidden[c, :], weights_numpy, alpha_current)
-                log_f_k_denominator[c] = compute_log_f_k_joint(chain_visible[c, :], chain_hidden[c, :], weights_numpy, alpha_prev)
+                log_f_k_numerator[c] = compute_log_f_k_joint(chain_visible[c, :], chain_hidden[c, :], weights_numpy, beta, alpha_current)
+                log_f_k_denominator[c] = compute_log_f_k_joint(chain_visible[c, :], chain_hidden[c, :], weights_numpy, beta, alpha_prev)
 
                 log_ais_weights[c] = log_ais_weights[c] + log_f_k_numerator[c] - log_f_k_denominator[c]
                 # if step % 100 == 0:
