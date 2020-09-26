@@ -8,7 +8,7 @@ import torchvision.datasets
 import torchvision.models
 import torchvision.transforms
 
-from AIS import esimate_logZ_with_AIS, get_obj_term_A
+from AIS import esimate_logZ_with_AIS, get_obj_term_A, manual_AIS
 from custom_rbm import RBM_custom, RBM_gaussian_custom
 from data_process import image_data_collapse, binarize_image_data, data_mnist
 from RBM_train import build_rbm_hopfield
@@ -34,11 +34,16 @@ WHAT'S CHANGED:
 ########## CONFIGURATION ##########
 BATCH_SIZE = 100  # default 64
 VISIBLE_UNITS = 784  # 28 x 28 images
-HIDDEN_UNITS = 10  # was 128 but try 10
-CD_K = 1 # TODO revert
-LEARNING_RATE = 1e-4  # default 1e-3
-EPOCHS = 200  # was 10
-AIS_STEPS = 0  #200
+HIDDEN_UNITS = 50  # was 128 but try 10
+CD_K = 20  # TODO revert
+
+LEARNING_RATE = 5*1e-4               # default was 1e-3, new base is 1e-4
+learningrate_schedule = True         # swap from LEARNING_RATE to diff value at specified epoch
+learningrate_schedule_value = 1e-4
+learningrate_schedule_epoch = 25
+
+EPOCHS = 51  # was 10
+AIS_STEPS = 0  #200  up to 1000 now with 100 chains min
 USE_FIELDS = False
 PLOT_WEIGHTS = False
 
@@ -80,13 +85,18 @@ def get_classloader(global_dataset, class_name):
 
 def custom_RBM_loop(train_loader, train_data_as_arr, hidden_units=HIDDEN_UNITS, init_weights=None,
                     use_fields=USE_FIELDS, beta=BETA, epochs=EPOCHS, cdk=CD_K,
-                    outdir=None, classify=True):
+                    outdir=None, classify=False, restart=False):
     assert beta == BETA  # TODO uncouple global STDEV in rbm class to make beta passable
+
+    if restart:
+        fmod = ''  # was '_restart'; now use rundir name alone to store restart label
+    else:
+        fmod = ''
 
     if outdir is not None:
         if not os.path.exists(outdir):
             os.makedirs(outdir)
-        trainingdir = outdir + os.sep + 'training'
+        trainingdir = outdir + os.sep + 'training' + fmod
         if not os.path.exists(trainingdir):
             os.makedirs(trainingdir)
     else:
@@ -112,7 +122,7 @@ def custom_RBM_loop(train_loader, train_data_as_arr, hidden_units=HIDDEN_UNITS, 
 
     if AIS_STEPS > 0:
         obj_logP_termA[0] = get_obj_term_A(train_data_as_arr, rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta)
-        print('Estimating log Z...', )
+        print('Estimating log Z... TODO REPLACE WITH MANUAL AIS', )
         obj_logP_termB[0], _ = esimate_logZ_with_AIS(rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta,
                                                      num_steps=AIS_STEPS)
 
@@ -122,6 +132,9 @@ def custom_RBM_loop(train_loader, train_data_as_arr, hidden_units=HIDDEN_UNITS, 
     ########## TRAINING RBM ##########
     print('Training RBM...')
     for epoch in range(epochs):
+        if epoch == learningrate_schedule_epoch and learningrate_schedule:
+            rbm.learning_rate = learningrate_schedule_value
+        print('LEARNING RATE: %.2E' % rbm.learning_rate)
         epoch_recon_error = 0.0
         for batch, _ in train_loader:
             batch = batch.view(len(batch), VISIBLE_UNITS)  # flatten input data
@@ -157,7 +170,7 @@ def custom_RBM_loop(train_loader, train_data_as_arr, hidden_units=HIDDEN_UNITS, 
         scoredir = outdir
 
     # save parameters
-    title_mod = '%dhidden_%dfields_%dcdk_%dstepsAIS_%.2fbeta' % (hidden_units, use_fields, cdk, AIS_STEPS, beta)
+    title_mod = '%dhidden_%dfields_%dcdk_%dstepsAIS_%.2fbeta%s' % (hidden_units, use_fields, cdk, AIS_STEPS, beta, fmod)
     fpath = scoredir + os.sep + 'objective_%s' % title_mod
     np.savez(fpath,
              epochs=range(epochs + 1),
@@ -176,6 +189,7 @@ def custom_RBM_loop(train_loader, train_data_as_arr, hidden_units=HIDDEN_UNITS, 
                 obj_reconstruction=obj_reconstruction)
 
     if classify:
+        assert classify is False  # TODO pass test and train data to classify prob leave out of this loop entirely
         classify_with_rbm_hidden(rbm, outdir=outdir)
 
     return rbm
@@ -327,12 +341,16 @@ if __name__ == '__main__':
     num_runs = 5
     hopfield_runs = False
     random_runs = False
+    restart_random_runs = True
+
     load_scores = False
     load_weights = False
 
     poe_mode_train = False
-    poe_mode_classify = True
+    poe_mode_classify = False
     # TODO print settings file for each run?
+
+    rescore_ais_trained_rbms = False
 
     if test_data_loader:
         seven_loader = get_classloader(train_dataset, 7)
@@ -348,13 +366,35 @@ if __name__ == '__main__':
             print("Loading weights from %s" % npzpath)
             arr = np.load(npzpath)['Q']
             init_weights = torch.from_numpy(arr).float()
-            custom_RBM_loop(train_loader, X, init_weights=init_weights, outdir=rundir)
+            custom_RBM_loop(train_loader, X, init_weights=init_weights, outdir=rundir, classify=False)
+
     if random_runs:
         for idx in range(num_runs):
             outdir = bigruns + os.sep + 'rbm' + os.sep + 'normal_%dhidden_%dfields_%.2fbeta_%dbatch_%depochs_%dcdk_%.2Eeta_%dais' % \
                      (HIDDEN_UNITS, USE_FIELDS, BETA, BATCH_SIZE, EPOCHS, CD_K, LEARNING_RATE, AIS_STEPS)
             rundir = outdir + os.sep + 'run%d' % idx
-            custom_RBM_loop(train_loader, X, init_weights=None, outdir=rundir)
+            custom_RBM_loop(train_loader, X, init_weights=None, outdir=rundir, classify=False)
+
+    if restart_random_runs:
+        EPOCHS_RESTART = 100
+        HIDDEN_RESTART = 50
+        ETA_RESTART = 1e-4
+        AIS_STEPS_RESTART = 200
+        EPOCHS_TO_EXTEND = 100
+
+        for idx in range(num_runs):
+            # load pre-trained weights
+            indir = bigruns + os.sep + 'rbm' + os.sep + 'normal_%dhidden_%dfields_%.2fbeta_%dbatch_%depochs_%dcdk_%.2Eeta_%dais' % \
+                     (HIDDEN_RESTART, USE_FIELDS, BETA, BATCH_SIZE, EPOCHS_RESTART, CD_K, ETA_RESTART, AIS_STEPS_RESTART)
+            rundir = indir + os.sep + 'run%d' % idx
+            print("Loading PRE_TRAINED weights from %s" % rundir)
+            npzpath = rundir + os.sep + 'weights_%dhidden_%dfields_%dcdk_%dstepsAIS_%.2fbeta.npz' % (HIDDEN_RESTART, USE_FIELDS, CD_K, AIS_STEPS_RESTART, BETA)
+            loaded_weights_timeseries_np = np.load(npzpath)['weights']
+            init_weights_np = loaded_weights_timeseries_np[:, :, -1]
+            init_weights = torch.from_numpy(init_weights_np).float()
+            # specify new filename modifier
+            outdir = rundir + '_restart'
+            custom_RBM_loop(train_loader, X, init_weights=init_weights, outdir=outdir, classify=False, restart=True, epochs=EPOCHS_TO_EXTEND)
 
     if load_scores:
         outdir = bigruns + os.sep + 'rbm' + os.sep + 'C_beta2duringTraining_%dbatch_%depochs_%dcdk_%.2Eeta_%dais' % (BATCH_SIZE, EPOCHS, CD_K, LEARNING_RATE, AIS_STEPS)
@@ -374,11 +414,12 @@ if __name__ == '__main__':
     if load_weights:
         # Note: looks like generative training does not help with classification at first glance
         local_beta = 200
-        hidden = 20
-        epoch_idx = 20
+        hidden = 1000
+        epoch_idx = 199
 
-        outdir = bigruns + os.sep + 'rbm' + os.sep + 'E_extra_beta2duringTraining_100batch_20epochs_20cdk_1.00E-04eta_2ais'
-        fname = 'weights_20hidden_0fields_20cdk_2stepsAIS_2.00beta.npz'
+        outdir = bigruns + os.sep + 'rbm' + os.sep + 'normal_%dhidden_0fields_2.00beta_100batch_200epochs_1cdk_1.00E-04eta_0ais' % hidden \
+                 + os.sep + 'run0'
+        fname = 'weights_%dhidden_0fields_1cdk_0stepsAIS_2.00beta.npz' % hidden
         dataobj = np.load(outdir + os.sep + fname)
         arr = dataobj['weights'][:, :, epoch_idx]
 
@@ -458,3 +499,82 @@ if __name__ == '__main__':
         #   "the coef_ did not converge", ConvergenceWarning)
         # TODO more epochs on whichever k worked best? depends on how the error scales with epoch at large k
         # TODO compare vs normal dist (note this run of 20epochs x 110 k values was ~11GB)
+
+    if rescore_ais_trained_rbms:
+
+        # AIS settings
+        beta = 2.0
+        nsteps = 1000
+        nchains = 100
+        ntest = 1
+        nsteps_rev = 0
+        nchains_rev = 0
+        runs = 1
+        assert runs == 1
+        # hebbian = False
+        """
+        if hebbian:
+            strmod = '_hebbian'
+        else:
+            strmod = '' """
+
+        # prep dataset
+        training_subsample = TRAINING[:]
+        X, _ = get_X_y_dataset(training_subsample, dim_visible=28 ** 2, binarize=True)
+
+        # prep models to load
+        epoch_list = list(range(0, 202))
+        VISIBLE_UNITS = 28 ** 2
+        hidden_units = 50
+        CD_K = 20
+        bigruns = DIR_OUTPUT + os.sep + 'archive' + os.sep + 'big_runs' + os.sep + 'rbm'
+        model_dir = 'normal_%dhidden_0fields_2.00beta_100batch_201epochs_20cdk_5.00E-04eta_0ais' % hidden_units
+        model_runs = [0, 1, 2, 3, 4]
+        model_paths = [
+            bigruns + os.sep + model_dir + os.sep + 'run%d' % model_runs[a] + os.sep +
+            'weights_%dhidden_0fields_20cdk_0stepsAIS_2.00beta.npz' % hidden_units
+            for a in model_runs
+        ]
+
+        for training_run_idx, weights_path in enumerate(model_paths):
+
+            # load weights for given epoch
+            weights_timeseries_np = np.load(weights_path)['weights']
+
+            rbm = RBM(VISIBLE_UNITS, hidden_units, 0, init_weights=None, use_fields=False, learning_rate=0)
+            N = rbm.num_visible
+            p = rbm.num_hidden
+            zero_field_visible = np.zeros(N)
+            zero_field_hidden = np.zeros(p)
+
+            termA_arr = np.zeros(len(epoch_list))
+            logZ_arr = np.zeros(len(epoch_list))
+            score_arr = np.zeros(len(epoch_list))
+
+            for idx in range(len(epoch_list)):
+                epoch = epoch_list[idx]
+                # specify new local rbm class for this epoch only
+                weights_epoch_np = weights_timeseries_np[:, :, epoch]
+                rbm.weights = torch.from_numpy(weights_epoch_np).float()
+
+                obj_term_A = get_obj_term_A(X, weights_epoch_np, zero_field_visible, zero_field_hidden, beta=beta)
+                termA_arr[idx] = obj_term_A
+
+                # Forward AIS
+                logZ_fwd, _ = manual_AIS(rbm, beta, nchains=nchains, nsteps=nsteps)
+                score_fwd = obj_term_A - logZ_fwd
+                print('training_run_idx, epoch:', training_run_idx, epoch)
+                print('mean log p(data):', score_fwd,
+                      '(run 1 only, beta=%.2f, A=%.2f, B=%.2f)' % (beta, obj_term_A, logZ_fwd))
+                logZ_arr[idx] = logZ_fwd
+                score_arr[idx] = score_fwd
+
+            # save updated AIS data
+            out_dir = os.path.dirname(weights_path)
+            title_mod = '%dhidden_%dfields_%dcdk_%dstepsAIS_%.2fbeta' % (hidden_units, False, CD_K, nsteps, beta)
+            fpath = out_dir + os.sep + 'objective_%s' % title_mod
+            np.savez(fpath,
+                     epochs=epoch_list,
+                     termA=termA_arr,
+                     logZ=logZ_arr,
+                     score=score_arr)

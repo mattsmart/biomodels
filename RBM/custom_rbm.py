@@ -9,6 +9,12 @@ from data_process import label_to_init_vector
 from plotting import image_fancy, image_fancy_wrapper
 from settings import BETA, GAUSSIAN_STDEV, DIR_MODELS, DIR_OUTPUT
 
+import matplotlib as mpl
+mpl.rcParams["mathtext.default"]
+mpl.rcParams["text.usetex"] = False
+mpl.rcParams["text.latex.preamble"] = [r'\usepackage{bm}', r'\usepackage{amsmath}']
+print(mpl.rcParams["text.usetex"])
+
 
 class RBM_custom():
 
@@ -202,7 +208,7 @@ class RBM_gaussian_custom():
             plt.colorbar()
             plot_title = 'trained_weights_col%d_%s' % (col, title)
             plt.title(plot_title)
-            plt.savefig(outdir + os.sep + plot_title + '.jpg')
+            plt.savefig(outdir + os.sep + plot_title + '.pdf')
             plt.close()
 
         plt.title(title)
@@ -210,14 +216,14 @@ class RBM_gaussian_custom():
         plt.colorbar()
         plot_title = 'trained_visibleField_col%d_%s' % (col, title)
         plt.title(plot_title)
-        plt.savefig(outdir + os.sep + plot_title + '.jpg')
+        plt.savefig(outdir + os.sep + plot_title + '.pdf')
         plt.close()
 
         plt.plot(self.hidden_bias)
         plt.hlines(0.0, 0.0, self.num_hidden, linestyles='--', colors='k')
         plot_title = 'trained_hiddenField_col%d_%s' % (col, title)
-        plt.title(title)
-        plt.savefig(outdir + os.sep + plot_title + '.jpg')
+        plt.title(plot_title)
+        plt.savefig(outdir + os.sep + plot_title + '.pdf')
         plt.close()
         return
 
@@ -332,7 +338,7 @@ if __name__ == '__main__':
     if sample_trained_rbm:
 
         # pick data to load
-        runtype = 'hopfield'
+        runtype = 'normal'
         num_hidden = 50
         total_epochs = 100
         batch = 100
@@ -341,7 +347,7 @@ if __name__ == '__main__':
         ais_steps = 200
         beta = 2
         assert beta == 2
-        epoch_idx = [0, 5, 10, 99]  # [96, 97, 98]
+        epoch_idx = [0, 5, 10, 20, 25, 99]  # [96, 97, 98]
 
         # load data
         custompath = False
