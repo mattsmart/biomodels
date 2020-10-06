@@ -136,7 +136,7 @@ class RBM:
 
     def RBM_step(self, visible_init, beta=BETA):
 
-        # TODO confirm/test distribution choices
+        # TODO test distribution choices
         # hidden -> visible:  probabilistic  (from Barra 2012 -- Eq. 3)
         #     input = np.dot(weights[i, :], hidden[:])
         #     p(v_i=1) = 1/(1 + exp(-2 * beta * input)
@@ -349,7 +349,6 @@ def build_models_poe(dataset, k_pattern=K_PATTERN_DIV):
                 if idx == key_prefix:
                     dict_of_data_dicts[idx][key] = full_data_dict[key]
                     dict_of_counts[idx][key] = full_category_counts[key]
-    #separated_dataset, full_category_counts = separate_training_data(dataset, expand_models=False)  # TODO remove?
 
     models = {}
     for key in dict_of_data_dicts.keys():

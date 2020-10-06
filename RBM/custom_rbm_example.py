@@ -1,17 +1,14 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-from sklearn.linear_model import LogisticRegression
-from sklearn import svm
 import torch
 import torchvision.datasets
 import torchvision.models
 import torchvision.transforms
 
-from AIS import esimate_logZ_with_AIS, get_obj_term_A, manual_AIS
+from AIS import get_obj_term_A, manual_AIS
 from custom_rbm import RBM_custom, RBM_gaussian_custom
 from data_process import image_data_collapse, binarize_image_data, data_mnist
-from RBM_train import build_rbm_hopfield
 from RBM_assess import plot_confusion_matrix, confusion_matrix_from_pred, get_X_y_dataset
 from settings import MNIST_BINARIZATION_CUTOFF, DIR_OUTPUT, CLASSIFIER, BETA, DIR_MODELS
 
@@ -29,7 +26,7 @@ learningrate_schedule_value = 1*1e-4
 learningrate_schedule_epoch = 25
 
 AIS_STEPS = 1000      # 0 or 1000 typically
-AIS_CHAINS = 100   # 100 or 500
+AIS_CHAINS = 100      # 100 or 500
 USE_FIELDS = False
 PLOT_WEIGHTS = False
 
@@ -70,7 +67,8 @@ def get_classloader(global_dataset, class_name):
 def custom_RBM_loop(train_loader, train_data_as_arr, hidden_units=HIDDEN_UNITS, init_weights=None,
                     use_fields=USE_FIELDS, beta=BETA, epochs=EPOCHS, cdk=CD_K,
                     outdir=None, classify=False, restart=False):
-    assert beta == BETA  # TODO uncouple global STDEV in rbm class to make beta passable
+    assert beta == BETA         # TODO uncouple global STDEV in rbm class to make beta passable
+    assert classify is False    # TODO need to add support for classify_with_rbm_hidden(...) at end
 
     if restart:
         fmod = ''  # was '_restart'; now use rundir name alone to store restart label
@@ -86,7 +84,7 @@ def custom_RBM_loop(train_loader, train_data_as_arr, hidden_units=HIDDEN_UNITS, 
     else:
         trainingdir = DIR_OUTPUT + os.sep + 'training'
 
-    ########## RBM INIT ##########
+
     rbm = RBM(VISIBLE_UNITS, hidden_units, cdk, init_weights=init_weights, use_fields=use_fields,
               learning_rate=LEARNING_RATE)
 
@@ -113,7 +111,7 @@ def custom_RBM_loop(train_loader, train_data_as_arr, hidden_units=HIDDEN_UNITS, 
     print('INIT obj - A:', obj_logP_termA[0], '| Log Z:', obj_logP_termB[0], '| Score:',
           obj_logP_termA[0] - obj_logP_termB[0])
 
-    ########## TRAINING RBM ##########
+
     print('Training RBM...')
     for epoch in range(epochs):
         if epoch == learningrate_schedule_epoch and learningrate_schedule:
@@ -144,7 +142,7 @@ def custom_RBM_loop(train_loader, train_data_as_arr, hidden_units=HIDDEN_UNITS, 
         print('Term A:', obj_logP_termA[epoch + 1], '| Log Z:', obj_logP_termB[epoch + 1], '| Score:',
               obj_logP_termA[epoch + 1] - obj_logP_termB[epoch + 1])
 
-    ########## PLOT AND SAVE TRAINING INFO ##########
+
     score_arr = obj_logP_termA - obj_logP_termB
 
     if outdir is None:
@@ -172,7 +170,6 @@ def custom_RBM_loop(train_loader, train_data_as_arr, hidden_units=HIDDEN_UNITS, 
                 obj_reconstruction=obj_reconstruction)
 
     if classify:
-        assert classify is False  # TODO pass test and train data to classify prob leave out of this loop entirely
         classify_with_rbm_hidden(rbm, outdir=outdir)
 
     return rbm
@@ -207,7 +204,6 @@ def classify_with_rbm_hidden(rbm, train_dataset, train_loader, test_dataset, tes
     stdev = 1.0/np.sqrt(beta)
 
     print('Extracting features...')
-    # TODO: check classification error after each epoch
     train_features = np.zeros((len(train_dataset), rbm.num_hidden))
     train_labels = np.zeros(len(train_dataset))
     test_features = np.zeros((len(test_dataset), rbm.num_hidden))
@@ -259,7 +255,7 @@ def classifier_on_poe_scores(models, dataset_train, dataset_test, outpath, clfs=
         see hinton2002 ... .py for details
         """
         # should just be 0.5 * beta * Jij si sj
-        beta = 1.0  # TODO 2?
+        beta = 1.0
         W = model.weights
         dotp = np.dot(W.T, img)
         # score = np.dot(dotp, dotp)  #
@@ -317,7 +313,7 @@ if __name__ == '__main__':
 
     train_dataset, train_loader, test_dataset, test_loader = torch_data_loading()
     TRAINING, TESTING = data_mnist(binarize=True)
-    X, _ = get_X_y_dataset(TRAINING, dim_visible=VISIBLE_UNITS, binarize=True)  # TODO digit specification
+    X, _ = get_X_y_dataset(TRAINING, dim_visible=VISIBLE_UNITS, binarize=True)
 
     test_data_loader = False
 
@@ -331,7 +327,7 @@ if __name__ == '__main__':
 
     poe_mode_train = False
     poe_mode_classify = False
-    # TODO print settings file for each run?
+    # TODO print settings file for each run
 
     rescore_ais_trained_rbms = False
 

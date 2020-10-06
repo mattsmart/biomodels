@@ -59,7 +59,6 @@ def esimate_logZ_with_AIS(weights, field_visible, field_hidden, beta=1.0, num_ch
 
             fvals[idx] = - (beta / 2.0) * term1 + term2
 
-        #fvals = tf.convert_to_tensor(fvals, dtype=dtype) + target_log_prob_const   # TODO this const can be removed and added at the end (speedup)
         fvals = tf.convert_to_tensor(fvals, dtype=dtype)
 
         return fvals
@@ -107,7 +106,7 @@ def compute_log_f_k_hidden(chain_state, weights, beta, alpha):
     lambda_sqr = np.dot(chain_state, chain_state)                              # TODO vectorize
     ln_cosh_vec = np.log( np.cosh(
         alpha * beta * np.dot(weights, chain_state)
-        ) )  # TODO vectorize
+        ) )                                                                    # TODO vectorize
     log_f_k = -beta * lambda_sqr / 2 + np.sum(ln_cosh_vec)                     # TODO vectorize
     return log_f_k
 
@@ -490,20 +489,12 @@ if __name__ == '__main__':
     if generate_hopfield_aisdata:
 
         # AIS settings
-        """
         nsteps = 1000
-        nchains = 500
-        ntest = 100
-        nsteps_rev = 100
-        nchains_rev = 50
-        hebbian = True
-        """
-        nsteps = 1000
-        nchains = 100
+        nchains = 100  # 500 in orig Fig. 2
         ntest = 1
         nsteps_rev = 1
         nchains_rev = 1
-        hebbian = True
+        hebbian = False
 
         if hebbian:
             strmod = '_hebbian'
@@ -535,9 +526,6 @@ if __name__ == '__main__':
             runs = 3
             #beta_list = np.linspace(0.5, 10, 20).astype(np.float32)
             beta_list = np.logspace(-4, -0.5, 10).astype(np.float32)  # need to extend beta to get to linear regime of Z
-
-            #beta_list = np.linspace(2, 4, 3).astype(np.float32)
-            #beta_list = np.linspace(60, 200, 30).astype(np.float32)
             termA_arr = np.zeros((runs, len(beta_list)))
             logZ_fwd_arr = np.zeros((runs, len(beta_list)))
             logZ_rev_arr = np.zeros((runs, len(beta_list)))
@@ -624,27 +612,6 @@ if __name__ == '__main__':
         rev_ntest = 50
         rev_nchain = 50
         rev_nsteps = 1000
-
-        # 96: Term A: 1417.3126916185463 | Log Z: 1419.820068359375 | Score: -2.507376740828704
-        # 97: Term A: 1419.55814776832 | Log Z: 1443.4364013671875 | Score: -23.87825359886756
-        # 98: Term A: 1419.647444170504 | Log Z: 1423.908203125 | Score: -4.260758954495941
-
-        # (idx: 96) Term A: 1417.3126916185463 | Log Z: 1433.2881 | Score: -15.975394318953704
-        # (idx: 97) Term A: 1419.55814776832 | Log Z: 1423.771 | Score: -4.212848325430059
-        # (idx: 98) Term A: 1419.647444170504 | Log Z: 1432.9882 | Score: -13.340715009183441
-
-        # (idx: 96) Term A: 1417.3126916185463 | Log Z: 1436.6534 | Score: -19.340750764266204
-        # (idx: 97) Term A: 1419.55814776832 | Log Z: 1425.2229 | Score: -5.664752622305059
-        # (idx: 98) Term A: 1419.647444170504 | Log Z: 1427.4364 | Score: -7.788957196683441
-
-        # cv 1000 AIS: (don;t want to pass upper bound of -11 score (p = 1/60,000 for all sample points, implies 0 else)
-        # (idx: 96) Term A: 1417.3126916185463 | Log Z: 1491.6993 | Score: -74.3866492017662
-        # (idx: 97) Term A: 1419.55814776832 | Log Z: 1486.9297 | Score: -67.37153973168006
-        # (idx: 98) Term A: 1419.647444170504 | Log Z: 1486.3145 | Score: -66.66700895449594
-
-        # (idx: 96) Term A: 1417.3126916185463 | Log Z: 1493.4022 | Score: -76.0895300611412
-        # (idx: 97) Term A: 1419.55814776832 | Log Z: 1493.8434 | Score: -74.28523602074256
-        # (idx: 98) Term A: 1419.647444170504 | Log Z: 1484.3536 | Score: -64.70619352480844
 
         # load segment
         init_name = 'hopfield'  # hopfield or normal

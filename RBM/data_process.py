@@ -2,10 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import torchvision
-from joblib import dump, load
+from joblib import load
 
-from settings import DIR_DATA, DIR_MODELS, DIR_OUTPUT, SYNTHETIC_DIM, SYNTHETIC_SAMPLES, SYNTHETIC_NOISE_VALID, \
-    SYNTHETIC_SAMPLING_VALID, SYNTHETIC_DATASPLIT, MNIST_BINARIZATION_CUTOFF, PATTERN_THRESHOLD, K_PATTERN_DIV
+from settings import DIR_DATA, DIR_OUTPUT, SYNTHETIC_DIM, SYNTHETIC_SAMPLES, SYNTHETIC_NOISE_VALID, \
+    SYNTHETIC_DATASPLIT, MNIST_BINARIZATION_CUTOFF, PATTERN_THRESHOLD, K_PATTERN_DIV
 
 """
 noise 'symmetric': the noise for each pattern basin is symmetric
@@ -33,7 +33,6 @@ def data_mnist(binarize=False):
     # data structure: list of ~60,000 2-tuples: "image" and integer label
     training = torchvision.datasets.MNIST(root=DIR_DATA, train=True, transform=torchvision.transforms.ToTensor(), download=True)
     testing = torchvision.datasets.MNIST(root=DIR_DATA, train=False, transform=torchvision.transforms.ToTensor(), download=True)
-    #data_loader = torch.utils.data.DataLoader(training, batch_size=BATCH_SIZE, shuffle=True, num_workers=CPU_THREADS)  # TODO read
 
     print("Processing MNIST data: numpy_binarize =", binarize)
     training = [(torch_image_to_numpy(elem[0], binarize=binarize), elem[1]) for elem in training]
@@ -126,7 +125,7 @@ def data_dict_mnist_inspect(data_dict, category_counts):
         data_idx_collapsed[data_idx_collapsed < MNIST_BINARIZATION_CUTOFF] = 0
 
         print("DISTANCES")
-        category_amount_redux = int(category_amount)  # TODO enlarge
+        category_amount_redux = int(category_amount)
         distance_arr = np.zeros((category_amount_redux, category_amount_redux))
         for i in range(category_amount_redux):
             a = data_idx_collapsed[:, i]

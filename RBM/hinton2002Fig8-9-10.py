@@ -1,11 +1,9 @@
-import matplotlib.pyplot as plt
 import numpy as np
-import os
 
-from data_process import image_data_collapse, data_dict_mnist_detailed, binarize_image_data, data_dict_mnist
+from data_process import image_data_collapse, binarize_image_data
 from RBM_train import TRAINING, TESTING, build_models_poe
 from RBM_assess import confusion_matrix_from_pred, plot_confusion_matrix
-from settings import BETA, USE_BETA_SCHEDULER, HRBM_CLASSIFIER_STEPS, MNIST_BINARIZATION_CUTOFF, CLASSIFIER, K_PATTERN_DIV
+from settings import MNIST_BINARIZATION_CUTOFF, CLASSIFIER
 
 
 def score_1digit_model(model, img):

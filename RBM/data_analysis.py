@@ -1,10 +1,5 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import os
-from scipy.linalg import qr
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
-import torch
 
 from data_process import data_mnist, binarize_image_data, image_data_collapse
 from settings import MNIST_BINARIZATION_CUTOFF

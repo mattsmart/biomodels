@@ -3,6 +3,7 @@ import os
 from sklearn import svm
 from sklearn.linear_model import LogisticRegression
 
+
 DIR_DATA = 'data'
 DIR_MODELS = 'models'
 DIR_OUTPUT = 'output'

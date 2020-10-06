@@ -10,10 +10,6 @@ from settings import BETA, USE_BETA_SCHEDULER, DIR_OUTPUT, VISIBLE_FIELD, HRBM_C
     MNIST_BINARIZATION_CUTOFF, DEFAULT_HOPFIELD, DIR_MODELS, DIR_CLASSIFY, CLASSIFIER
 
 
-# TODO
-#   Question: how to perform classification with binary-binary or binary-gaussian RBM? append module to end?
-
-
 def setup_MNIST_classification(rbm):
     label_dict = {}
     for idx in range(rbm.dim_hidden):

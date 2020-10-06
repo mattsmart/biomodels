@@ -5,9 +5,7 @@ import os
 from scipy.linalg import qr
 
 from data_process import image_data_collapse
-from plotting import image_fancy
-from settings import MNIST_BINARIZATION_CUTOFF, DIR_OUTPUT, DIR_MODELS, BETA
-from weights_analysis import plot_weights_timeseries
+from settings import DIR_OUTPUT, DIR_MODELS
 
 
 def rebuild_R_from_xi_image(xi_image):
@@ -354,12 +352,3 @@ if __name__ == '__main__':
     binarize_search_as_matrix(weights, outdir, beta=2000, init=X0_guess)  # NEW WAY - do gradient descent to search for p x p matrix at once
     #plot_weights_timeseries(weights_timeseries, outdir, mode='minmax')
     #plot_weights_timeseries(weights_timeseries, outdir, mode='eval', extra=False)
-
-    """
-    for idx in epoch_indices:
-
-        if visible_loaded:
-            visiblefield = visiblefield_timeseries[:, idx]
-        if hidden_loaded:
-            hiddenfield = hiddenfield_timeseries[:, idx]
-    """

@@ -2,8 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from plotting import image_fancy
-from settings import MNIST_BINARIZATION_CUTOFF, DIR_OUTPUT, CLASSIFIER, BETA
+from settings import DIR_OUTPUT
 
 
 def plot_weights_timeseries(weights_timeseries, outdir, mode='eval', extra=False):
