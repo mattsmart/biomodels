@@ -16,34 +16,20 @@ from RBM_assess import plot_confusion_matrix, confusion_matrix_from_pred, get_X_
 from settings import MNIST_BINARIZATION_CUTOFF, DIR_OUTPUT, CLASSIFIER, BETA, DIR_MODELS
 
 
-"""
-WHAT'S CHANGED:
-- removed cuda lines
-- removed momentum
-- updates actually sample hidden and visible values (instead of passing bernoulli probabilities) 
-- flip state to +1, -1
-- TODO: remove or change regularization: none, L1 (and scale), L2 (and scale)
-- (?) remove weight decay
-- (?) remove momentum
-- (?) remove applied fields?
-- (?) augment learning rate
-- (?) augment logistic regression
-- (?) option for binary or gaussian hidden nodes
-"""
-
 ########## CONFIGURATION ##########
 BATCH_SIZE = 100  # default 64
 VISIBLE_UNITS = 784  # 28 x 28 images
-HIDDEN_UNITS = 50  # was 128 but try 10
-CD_K = 20  # TODO revert
+HIDDEN_UNITS = 10  # was 128 but try 10
+CD_K = 20
+EPOCHS = 54  # was 10, or 51
 
-LEARNING_RATE = 5*1e-4               # default was 1e-3, new base is 1e-4
-learningrate_schedule = True         # swap from LEARNING_RATE to diff value at specified epoch
-learningrate_schedule_value = 1e-4
+LEARNING_RATE = 1*1e-4               # default was 1e-3, new base is 1e-4
+learningrate_schedule = False         # swap from LEARNING_RATE to diff value at specified epoch
+learningrate_schedule_value = 1*1e-4
 learningrate_schedule_epoch = 25
 
-EPOCHS = 51  # was 10
-AIS_STEPS = 0  #200  up to 1000 now with 100 chains min
+AIS_STEPS = 1000      # 0 or 1000 typically
+AIS_CHAINS = 100   # 100 or 500
 USE_FIELDS = False
 PLOT_WEIGHTS = False
 
@@ -78,8 +64,6 @@ def get_classloader(global_dataset, class_name):
     idx = get_indices(global_dataset)
     loader = torch.utils.data.DataLoader(global_dataset, batch_size=BATCH_SIZE, sampler=torch.utils.data.sampler.SubsetRandomSampler(idx))
 
-    #for idx, (data, target) in enumerate(loader):
-    #    print(idx, target)
     return loader
 
 
@@ -114,7 +98,8 @@ def custom_RBM_loop(train_loader, train_data_as_arr, hidden_units=HIDDEN_UNITS, 
         hidden_bias_timeseries = np.zeros((rbm.num_hidden, epochs + 1))
         hidden_bias_timeseries[:, 0] = rbm.hidden_bias.numpy()
 
-    rbm.plot_model(title='epoch_0', outdir=trainingdir)
+    if PLOT_WEIGHTS:
+        rbm.plot_model(title='epoch_0', outdir=trainingdir)
 
     obj_reconstruction = np.zeros(epochs)
     obj_logP_termA = np.zeros(epochs + 1)
@@ -122,9 +107,8 @@ def custom_RBM_loop(train_loader, train_data_as_arr, hidden_units=HIDDEN_UNITS, 
 
     if AIS_STEPS > 0:
         obj_logP_termA[0] = get_obj_term_A(train_data_as_arr, rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta)
-        print('Estimating log Z... TODO REPLACE WITH MANUAL AIS', )
-        obj_logP_termB[0], _ = esimate_logZ_with_AIS(rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta,
-                                                     num_steps=AIS_STEPS)
+        print('Estimating log Z...')
+        obj_logP_termB[0], _ = manual_AIS(rbm, beta, nchains=AIS_CHAINS, nsteps=AIS_STEPS, CDK=1, joint_mode=True)
 
     print('INIT obj - A:', obj_logP_termA[0], '| Log Z:', obj_logP_termB[0], '| Score:',
           obj_logP_termA[0] - obj_logP_termB[0])
@@ -149,8 +133,7 @@ def custom_RBM_loop(train_loader, train_data_as_arr, hidden_units=HIDDEN_UNITS, 
         if AIS_STEPS > 0:
             obj_logP_termA[epoch + 1] = get_obj_term_A(train_data_as_arr, rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta)
             print('Estimating log Z...', )
-            obj_logP_termB[epoch + 1], _ = esimate_logZ_with_AIS(rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta,
-                                                                 num_steps=AIS_STEPS)
+            obj_logP_termB[epoch + 1], _ = manual_AIS(rbm, beta, nchains=AIS_CHAINS, nsteps=AIS_STEPS, CDK=1, joint_mode=True)
 
         # save parameters each epoch
         weights_timeseries[:, :, epoch + 1] = rbm.weights.numpy()
@@ -340,8 +323,8 @@ if __name__ == '__main__':
 
     num_runs = 5
     hopfield_runs = False
-    random_runs = False
-    restart_random_runs = True
+    random_runs = True
+    restart_random_runs = False
 
     load_scores = False
     load_weights = False
@@ -357,15 +340,46 @@ if __name__ == '__main__':
 
     bigruns = DIR_OUTPUT + os.sep + 'archive' + os.sep + 'big_runs'
     if hopfield_runs:
-        for idx in range(num_runs):
-            outdir = bigruns + os.sep + 'rbm' + os.sep + 'hopfield_%dhidden_%dfields_%.2fbeta_%dbatch_%depochs_%dcdk_%.2Eeta_%dais' % \
-                     (HIDDEN_UNITS, USE_FIELDS, BETA, BATCH_SIZE, EPOCHS, CD_K, LEARNING_RATE, AIS_STEPS)
-            rundir = outdir + os.sep + 'run%d' % idx
-            # load hopfield weights
-            npzpath = DIR_MODELS + os.sep + 'saved' + os.sep + 'hopfield_mnist_%d.npz' % HIDDEN_UNITS
-            print("Loading weights from %s" % npzpath)
-            arr = np.load(npzpath)['Q']
+
+        HEBBIAN = False
+        MOD_SVD = False
+        MOD_SQRT = False
+        if HEBBIAN:
+            hmod = '_hebbian'
+        else:
+            hmod = ''
+
+        # load hopfield weights
+        npzpath = DIR_MODELS + os.sep + 'saved' + os.sep + 'hopfield_mnist_%d%s.npz' % (HIDDEN_UNITS, hmod)
+        print("Loading weights from %s" % npzpath)
+        arr = np.load(npzpath)['Q']
+
+        # modify initial weight matrix
+        if MOD_SVD or MOD_SQRT:
+            assert HEBBIAN
+            import scipy as sp
+            A = np.dot(arr.T, arr)
+            A_inv = np.linalg.inv(A)
+            A_sqrt = sp.linalg.sqrtm(A)  # A_sqrt = mtrx_sqrt(A)
+            A_sqrt_inv = np.linalg.inv(A_sqrt)
+
+            if MOD_SVD:
+                # svd of XI
+                U, Sigma, V = np.linalg.svd(arr, full_matrices=False)
+
+                init_weights = torch.from_numpy(U).float()
+            else:
+                assert MOD_SQRT
+                K = np.dot(arr, A_sqrt_inv)
+                init_weights = torch.from_numpy(K).float()
+        else:
             init_weights = torch.from_numpy(arr).float()
+
+        outdir = bigruns + os.sep + 'rbm' + os.sep + 'hopfield%s_%dhidden_%dfields_%.2fbeta_%dbatch_%depochs_%dcdk_%.2Eeta_%dais' % \
+                 (hmod, HIDDEN_UNITS, USE_FIELDS, BETA, BATCH_SIZE, EPOCHS, CD_K, LEARNING_RATE, AIS_STEPS)
+
+        for idx in range(num_runs):
+            rundir = outdir + os.sep + 'run%d' % idx
             custom_RBM_loop(train_loader, X, init_weights=init_weights, outdir=rundir, classify=False)
 
     if random_runs:
@@ -432,7 +446,7 @@ if __name__ == '__main__':
         # TODO X_for_digit make (will be called if AIS steps > 0 ) -- second arg to custom_RBM_loop()
         # TODO beta in scoring
         use_hopfield = True
-        k_range = [100]  # range(1, 110)
+        k_range = [10, 20, 100, 200, 500, 250, 300]
         loader_dict = {idx: get_classloader(train_dataset, idx) for idx in range(10)}
 
         for k in k_range:
@@ -458,19 +472,22 @@ if __name__ == '__main__':
 
     if poe_mode_classify:
         init_weights_type = 'hopfield'  # hopfield or normal
-        k_range = [100] # range(1, 110)  # 110
-        epochs = [0] + list(range(19, 200, 20)) #[0, 5, 10, 15, 19]
+        k_range = [10, 20, 100, 200, 250, 300, 500]  # range(1, 110)  # 110
+        epochs = [0, 1, 2, 3, 4] + list(range(5, 51, 5))
+        run = 2  # TODO care
         accs = np.zeros((len(epochs), len(k_range)))
 
         for epoch_idx, epoch in enumerate(epochs):
             for k_idx, k in enumerate(k_range):
+                print('epoch, k:', epoch, k)
                 hidden_units = k
-                dir_modifier = '0fields_2.00beta_100batch_200epochs_%dcdk_%.2Eeta_0ais' % (CD_K, LEARNING_RATE)
+                dir_modifier = '0fields_2.00beta_100batch_50epochs_%dcdk_1.00E-04eta_0ais' % (CD_K)
                 models10 = {}
                 for digit in range(10):
                     rbm_digit = RBM(VISIBLE_UNITS, hidden_units, 0, init_weights=None, use_fields=False, learning_rate=0)
                     # load weights for given epoch
-                    npzpdir = bigruns + os.sep + 'poe' + os.sep + '%s' % (init_weights_type) + os.sep + \
+                    run_dir = bigruns + os.sep + 'poe' + os.sep + '%s' % init_weights_type + os.sep + 'run%d' % run
+                    npzpdir = run_dir + os.sep + \
                               'poe_%s_%ddigit_%dhidden_%s' % (init_weights_type, digit, hidden_units, dir_modifier)
                     weights_path = npzpdir + os.sep + 'weights_%dhidden_0fields_%dcdk_0stepsAIS_2.00beta.npz' % (hidden_units, CD_K)
                     arr = np.load(weights_path)['weights'][:, :, epoch]
@@ -523,15 +540,15 @@ if __name__ == '__main__':
         X, _ = get_X_y_dataset(training_subsample, dim_visible=28 ** 2, binarize=True)
 
         # prep models to load
-        epoch_list = list(range(0, 202))
+        epoch_list = list(range(0, 52))
         VISIBLE_UNITS = 28 ** 2
         hidden_units = 50
         CD_K = 20
         bigruns = DIR_OUTPUT + os.sep + 'archive' + os.sep + 'big_runs' + os.sep + 'rbm'
-        model_dir = 'normal_%dhidden_0fields_2.00beta_100batch_201epochs_20cdk_5.00E-04eta_0ais' % hidden_units
-        model_runs = [0, 1, 2, 3, 4]
+        model_dir = 'normal_%dhidden_0fields_2.00beta_100batch_51epochs_20cdk_2.00E-04eta_0ais' % hidden_units
+        model_runs = [0,1] #[0, 1, 2, 3, 4]
         model_paths = [
-            bigruns + os.sep + model_dir + os.sep + 'run%d' % model_runs[a] + os.sep +
+            bigruns + os.sep + model_dir + os.sep + 'run%d' % a + os.sep +
             'weights_%dhidden_0fields_20cdk_0stepsAIS_2.00beta.npz' % hidden_units
             for a in model_runs
         ]
