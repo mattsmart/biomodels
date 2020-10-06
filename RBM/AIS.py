@@ -83,89 +83,6 @@ def esimate_logZ_with_AIS(weights, field_visible, field_hidden, beta=1.0, num_ch
     return log_Z_total.numpy(), chains_state
 
 
-def esimate_logZ_with_reverse_AIS_algo2(rbm, weights, field_visible, field_hidden, beta=1.0, num_chains=100, num_steps=1000, CDK=100):
-    # Follows https://www.cs.cmu.edu/~rsalakhu/papers/RAISE.pdf Algorithm 2
-    # TODO compare vs algorithm 3, need to implement
-    N = field_visible.shape[0]
-    p = field_hidden.shape[0]
-    assert weights.shape[0] == N
-    assert weights.shape[1] == p
-
-    dims = p
-    dtype = tf.float32
-
-    # fix target model  # TODO minor speedup if we move out
-    weights = tf.convert_to_tensor(weights, dtype=dtype)
-    field_visible = tf.convert_to_tensor(field_visible, dtype=dtype)
-    field_hidden = tf.convert_to_tensor(field_hidden, dtype=dtype)
-
-    # define proposal distribution
-    tfd = tfp.distributions
-    target = tfd.MultivariateNormalDiag(loc=tf.zeros([dims], dtype=dtype))
-    target_log_prob_fn = target.log_prob
-
-    # define target distribution
-    proposal_log_prob_const = N * np.log(2.0) - (dims / 2.0) * np.log(2.0 * np.pi / beta)
-
-    def proposal_log_prob_fn(hidden_states):
-        # given vector size N ints, return scalar for each chain
-        fvals = [0.0] * len(hidden_states)
-        # TODO tensor speedup test with p > 1
-        for idx, hidden in enumerate(hidden_states):
-
-            hidden_to_sqr = hidden - field_hidden
-            term1 = tf.tensordot(hidden_to_sqr, hidden_to_sqr, 1)
-
-            cosh_arg = beta * (tf.tensordot(weights, hidden, 1) + field_visible)
-            log_cosh_vec = tf.math.log(tf.math.cosh(cosh_arg))
-            term2 = tf.math.reduce_sum(log_cosh_vec)
-
-            fvals[idx] = - (beta / 2.0) * term1 + term2
-        fvals = tf.convert_to_tensor(fvals, dtype=dtype) + proposal_log_prob_const
-        return fvals
-
-    # draw 100 samples from the proposal distribution
-    stdev = np.sqrt(1.0 / beta)
-    hightemp_zone = CDK / 2  # first CDK/2 steps will be high temp
-    high_beta = 0.5
-    high_stdev = np.sqrt(1.0 / high_beta)
-    def proposal_sampler(num_chains, CDK=CDK):
-        # TODO if we believe the batch CD-K samples, they can be passed as initial proposal sample
-        # 0) generate num_chains visible states at random, uniform p=0.5 spin flip (TODO we may not want 50% on/off)
-        vis_chains_bool = np.random.uniform(size=(num_chains, N))
-        vis_chains = vis_chains_bool * 2 - 1
-        # 1) do CD-K to get approximate sample from RBM
-        #    NOTE need torch tensor k x 784 to use existing CD module
-        visible_sampled_TORCH = torch.from_numpy(vis_chains).float()
-
-        for step in range(CDK):
-            if step < hightemp_zone:
-                hidden_sampled_TORCH = rbm.sample_hidden(visible_sampled_TORCH, stdev=high_stdev)
-                visible_sampled_TORCH = rbm.sample_visible(hidden_sampled_TORCH, beta=high_beta)
-            else:
-                hidden_sampled_TORCH = rbm.sample_hidden(visible_sampled_TORCH, stdev=stdev)
-                visible_sampled_TORCH = rbm.sample_visible(hidden_sampled_TORCH, beta=beta)
-        # 2) take final hidden states as the sample
-        hidden_sampled_TF = tf.convert_to_tensor( hidden_sampled_TORCH.numpy() )
-        return hidden_sampled_TF
-    init_state = proposal_sampler(num_chains)
-
-    chains_state, ais_weights, kernels_results = (
-        tfp.mcmc.sample_annealed_importance_chain(
-            num_steps=num_steps,
-            proposal_log_prob_fn=proposal_log_prob_fn,
-            target_log_prob_fn=target_log_prob_fn,
-            current_state=init_state,
-            make_kernel_fn=lambda tlp_fn: tfp.mcmc.HamiltonianMonteCarlo(
-                target_log_prob_fn=tlp_fn,
-                step_size=0.2,
-                num_leapfrog_steps=2)))
-
-    log_Z = -1 * (tf.reduce_logsumexp(ais_weights) - np.log(num_chains))  # mult -1 because estimator for Z^(-1)
-
-    return log_Z.numpy(), chains_state
-
-
 def AIS_update_visible_numpy(hidden_state, weights, beta, N, alpha):
     nchains, _ = hidden_state.shape
     # vectorized to operate on chain
@@ -280,7 +197,7 @@ def manual_AIS(rbm, beta, nchains=100, nsteps=10, CDK=1, joint_mode=True):
 
 
 def manual_AIS_reverse(rbm, beta, test_cases, nchains=100, nsteps=10, CDK=1, joint_mode=True):
-    # TODO why is p_ann (output of their algorithm) > 1? use joint_mode true to avoid for now
+    # TODO why is p_ann (output of their algorithm) > 1? do not use until resolved
     assert joint_mode
     N = rbm.num_visible
     p = rbm.num_hidden
@@ -515,12 +432,12 @@ def manual_AIS_reverse_algo3(rbm, beta, test_cases, nchains=100, nsteps=10, CDK=
     log_Z_total = log_Z_est + log_z_prefactor
 
     # plot hists for debugging
-    plt.hist(log_Z_est_integral)
+    """plt.hist(log_Z_est_integral)
     plt.title('log Z_integral')
     plt.show(); plt.close()
     plt.hist(log_p_annealed_estimates)
     plt.title('log p_ann')
-    plt.show(); plt.close()
+    plt.show(); plt.close()"""
 
     return log_Z_total, chain_hidden
 
@@ -566,18 +483,32 @@ def chain_state_to_images(chains_numpy, rbm, num_images, beta=200.0):
 
 if __name__ == '__main__':
 
-    generate_data = True
+    generate_hopfield_aisdata = False
     specific_check = False
     compare_methods = False
 
-    if generate_data:
+    if generate_hopfield_aisdata:
 
         # AIS settings
-        nsteps = 1000     #500  # 1000 and 5000 similar, very slow
+        """
+        nsteps = 1000
         nchains = 500
         ntest = 100
         nsteps_rev = 100
         nchains_rev = 50
+        hebbian = True
+        """
+        nsteps = 1000
+        nchains = 100
+        ntest = 1
+        nsteps_rev = 1
+        nchains_rev = 1
+        hebbian = True
+
+        if hebbian:
+            strmod = '_hebbian'
+        else:
+            strmod = ''
 
         # prep dataset
         training_subsample = TRAINING[:]
@@ -588,7 +519,7 @@ if __name__ == '__main__':
 
         for k_patterns in k_list:
             # load model
-            fname = 'hopfield_mnist_%d0.npz' % k_patterns
+            fname = 'hopfield_mnist_%d0%s.npz' % (k_patterns, strmod)
             rbm_oldclass = load_rbm_hopfield(npzpath=DIR_MODELS + os.sep + 'saved' + os.sep + fname)
             weights_loaded = rbm_oldclass.internal_weights
             visible_field = rbm_oldclass.visible_field
@@ -602,7 +533,9 @@ if __name__ == '__main__':
 
             # get loss terms (simple term and logZ)
             runs = 3
-            beta_list = np.linspace(0.5, 10, 20).astype(np.float32)
+            #beta_list = np.linspace(0.5, 10, 20).astype(np.float32)
+            beta_list = np.logspace(-4, -0.5, 10).astype(np.float32)  # need to extend beta to get to linear regime of Z
+
             #beta_list = np.linspace(2, 4, 3).astype(np.float32)
             #beta_list = np.linspace(60, 200, 30).astype(np.float32)
             termA_arr = np.zeros((runs, len(beta_list)))
@@ -634,7 +567,7 @@ if __name__ == '__main__':
 
             # save the data
             out_dir = DIR_OUTPUT + os.sep + 'logZ' + os.sep + 'hopfield'
-            fpath = out_dir + os.sep + 'objective_%dpatterns_%dsteps_%dstepsRev' % (k_patterns, nsteps, nsteps_rev)
+            fpath = out_dir + os.sep + 'objective_%dpatterns_%dsteps_%dstepsRev%s_lowbeta' % (k_patterns, nsteps, nsteps_rev, strmod)
             np.savez(fpath,
                      beta=beta_list,
                      termA=termA_arr,
@@ -667,19 +600,19 @@ if __name__ == '__main__':
                 melt(var_name=var_name, value_name=LogZ_rev_name)
 
             plt.figure(); ax = sns.lineplot(x=var_name, y=termA_name, data=df_termA)
-            plt.savefig(out_dir + os.sep + 'termA_%dpatterns_%dsteps_%dstepsRev.pdf' % (k_patterns, nsteps, nsteps_rev)); plt.close()
+            plt.savefig(out_dir + os.sep + 'termA_%dpatterns_%dsteps_%dstepsRev%s_lowbeta.pdf' % (k_patterns, nsteps, nsteps_rev, strmod)); plt.close()
 
             plt.figure(); ax = sns.lineplot(x=var_name, y=score_fwd_name, data=df_score_fwd)
-            plt.savefig(out_dir + os.sep + 'score_fwd_%dpatterns_%dsteps_%dstepsRev.pdf' % (k_patterns, nsteps, nsteps_rev)); plt.close()
+            plt.savefig(out_dir + os.sep + 'score_fwd_%dpatterns_%dsteps_%dstepsRev%s_lowbeta.pdf' % (k_patterns, nsteps, nsteps_rev, strmod)); plt.close()
 
             plt.figure(); ax = sns.lineplot(x=var_name, y=score_rev_name, data=df_score_rev)
-            plt.savefig(out_dir + os.sep + 'score_rev_%dpatterns_%dsteps_%dstepsRev.pdf' % (k_patterns, nsteps, nsteps_rev)); plt.close()
+            plt.savefig(out_dir + os.sep + 'score_rev_%dpatterns_%dsteps_%dstepsRev%s_lowbeta.pdf' % (k_patterns, nsteps, nsteps_rev, strmod)); plt.close()
 
             plt.figure(); ax = sns.lineplot(x=var_name, y=LogZ_fwd_name, data=df_LogZ_fwd)
-            plt.savefig(out_dir + os.sep + 'LogZ_fwd_%dpatterns_%dsteps_%dstepsRev.pdf' % (k_patterns, nsteps, nsteps_rev)); plt.close()
+            plt.savefig(out_dir + os.sep + 'LogZ_fwd_%dpatterns_%dsteps_%dstepsRev%s_lowbeta.pdf' % (k_patterns, nsteps, nsteps_rev, strmod)); plt.close()
 
             plt.figure(); ax = sns.lineplot(x=var_name, y=LogZ_rev_name, data=df_LogZ_rev)
-            plt.savefig(out_dir + os.sep + 'LogZ_rev_%dpatterns_%dsteps_%dstepsRev.pdf' % (k_patterns, nsteps, nsteps_rev)); plt.close()
+            plt.savefig(out_dir + os.sep + 'LogZ_rev_%dpatterns_%dsteps_%dstepsRev%s_lowbeta.pdf' % (k_patterns, nsteps, nsteps_rev, strmod)); plt.close()
 
     if specific_check:
         import torch
@@ -739,11 +672,6 @@ if __name__ == '__main__':
             logP_termB_forward, chains_state = esimate_logZ_with_AIS(rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta, num_steps=AIS_STEPS, num_chains=nchains)
             print('\tlogP_termB_forward:', logP_termB_forward)
             """
-            print('Estimating log Z (reverse AIS)...', )
-            logP_termB_reverse, _ = esimate_logZ_with_reverse_AIS_algo2(rbm, rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta, num_steps=AIS_STEPS, num_chains=nchains)
-            print('\tlogP_termB_reverse:', logP_termB_reverse)
-            
-                
             print('Estimating log Z (homemade AIS)...', )
             logP_termB_manual, chains_state = manual_AIS(rbm, beta, nchains=nchains, nsteps=AIS_STEPS)
             print('\tlogP_termB_manual:', logP_termB_manual)
