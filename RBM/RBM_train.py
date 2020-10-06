@@ -220,7 +220,7 @@ def linalg_hopfield_patterns(data_dict, category_counts, onehot_classify=False):
 
 
 def build_rbm_hopfield(data=TRAINING, visible_field=False, subpatterns=False, name=DATA_CHOICE, fast=None, save=True,
-                       k_pattern=K_PATTERN_DIV, onehot_classify=False):
+                       k_pattern=K_PATTERN_DIV, onehot_classify=False, hebbian=False):
     """
     fast is None or a 2-tuple of (data_dict, category_counts)
     """
@@ -229,6 +229,8 @@ def build_rbm_hopfield(data=TRAINING, visible_field=False, subpatterns=False, na
     rbm_name = 'hopfield_%s_%d' % (name, k_pattern * 10)
     if onehot_classify:
         rbm_name += '_onehotBlock'
+    if hebbian:
+        rbm_name += '_hebbian'
 
     if fast is None:
         # build internal weights
@@ -254,8 +256,11 @@ def build_rbm_hopfield(data=TRAINING, visible_field=False, subpatterns=False, na
     print(rbm_hopfield.dim_hidden)
     print(rbm_hopfield.dim_visible)
     rbm_hopfield.set_xi_image(xi)
-    rbm_hopfield.set_internal_weights(Q)
     rbm_hopfield.set_pattern_labels(pattern_idx_to_labels)
+    if hebbian:
+        rbm_hopfield.set_internal_weights(1/np.sqrt(dim_visible) * xi_collapsed)
+    else:
+        rbm_hopfield.set_internal_weights(Q)
 
     if visible_field:
         assert not onehot_classify  # unsupported
@@ -269,14 +274,18 @@ def build_rbm_hopfield(data=TRAINING, visible_field=False, subpatterns=False, na
         # convert anything greater than 0 to a 1
         pixel_means[pixel_means > 0] = 0
         pixel_means[pixel_means < 0] = -1
-        plt.imshow(pixel_means.reshape((28,28)))
+        plt.imshow(pixel_means.reshape((28, 28)))
         plt.colorbar()
         plt.show()
         rbm_hopfield.set_visible_field(pixel_means)
 
     # build output/projection weights
-    proj_remainder = np.dot( np.linalg.inv(np.dot(R.T, R)) , R.T)
+    if hebbian:
+        proj_remainder = np.linalg.inv(np.dot(xi_collapsed.T, xi_collapsed))
+    else:
+        proj_remainder = np.dot( np.linalg.inv(np.dot(R.T, R)) , R.T)
     rbm_hopfield.set_output_weights(proj_remainder)
+
     # save weights
     if save:
         rbm_hopfield.save_rbm_trained()
@@ -348,38 +357,39 @@ def build_models_poe(dataset, k_pattern=K_PATTERN_DIV):
         print("\tData counts:", dict_of_counts[key])
         fast = (dict_of_data_dicts[key], dict_of_counts[key])
         rbm = build_rbm_hopfield(data=None, visible_field=False, subpatterns=subpatterns, fast=fast, save=True,
-                                 name='digit%d_p%d' % (key, k_pattern * 10))
+                                 name='digit%d_p%d' % (key, k_pattern * 10), k_pattern=k_pattern)
         models[key] = rbm
     return models
 
 
 if __name__ == '__main__':
 
-    # TODO onehot support
-    # TODO build k=1 k=2 onehot
-    # TODO poe with onehot
-
-    product_of_experts = False
-    build_regular_instead_of_load = True
+    product_of_experts = True
+    build_regular_instead_of_load = False
     build_onehot = False
+    build_hebbian = False
 
     if product_of_experts:
-        for k in range(1, 110):
+        #for k in range(1, 110):
+        for k in [200, 250, 300, 500]:
             print("Building poe k=%d" % k)
             models = build_models_poe(TRAINING, k_pattern=k)
 
     else:
         # regular model building
-        k_pattern = 50
+        k_pattern = 1
         if build_regular_instead_of_load:
-            rbm = build_rbm_hopfield(data=TRAINING, visible_field=False, subpatterns=True, k_pattern=k_pattern,
-                                     onehot_classify=build_onehot)
+            for kp in range(1, 11):
+                k_pattern = kp
+                rbm = build_rbm_hopfield(data=TRAINING, visible_field=False, subpatterns=True, k_pattern=k_pattern,
+                                         onehot_classify=build_onehot, hebbian=build_hebbian)
 
         # regular model loading
         else:
             fname = 'hopfield_mnist_%d0.npz' % k_pattern
             rbm = load_rbm_hopfield(npzpath=DIR_MODELS + os.sep + 'saved' + os.sep + fname)
 
+        """
         xi_images = rbm.xi_image
         print(rbm.pattern_labels)
         plt.figure(figsize=(2 + k_pattern, 10))
@@ -397,4 +407,4 @@ if __name__ == '__main__':
                 # image_fancy(xi_images[:, :, k_patterns*i + k], ax=axloc)
         plt.suptitle('Heirarchical patterns example (K=%d)' % k_pattern)
         plt.tight_layout()
-        plt.savefig(DIR_OUTPUT + os.sep + 'subpatterns_%d.pdf' % k_pattern)
+        plt.savefig(DIR_OUTPUT + os.sep + 'subpatterns_%d.pdf' % k_pattern)"""
