@@ -271,7 +271,7 @@ class RBM_gaussian_custom():
         # init_vector: init_vector of digit to generate similar examples of
         # output shape: (k steps X num images X visible dimension)
         switch_A = k/4
-        switch_B = 3 * k/4
+        switch_B = k - 2  # i.e. 18 if k = 20, gives one step of cleaning
 
         def anneal_schedule(step):
             # TODO note such beta schedules have unclear interpretations at later epochs
@@ -283,7 +283,7 @@ class RBM_gaussian_custom():
             return beta_step
             """
             if step > switch_B:
-                beta_step = 20
+                beta_step = 20  # was 20, can set instead to 2 to keep static
             elif step > switch_A:
                 beta_step = 2
             else:
@@ -311,7 +311,7 @@ class RBM_gaussian_custom():
         num_steps = visible_timeseries_numpy.shape[0]
         num_images = visible_timeseries_numpy.shape[1]
 
-        steps_to_plot = range(num_steps)
+        steps_to_plot = list(range(0, num_steps, 5)) + [num_steps - 1]
         if only_last:
             steps_to_plot = [-1]
 
@@ -338,7 +338,8 @@ if __name__ == '__main__':
     if sample_trained_rbm:
 
         # pick data to load
-        runtype = 'normal'
+        runtype = 'hopfield'
+        run = 0
         num_hidden = 50
         total_epochs = 100
         batch = 100
@@ -347,14 +348,13 @@ if __name__ == '__main__':
         ais_steps = 200
         beta = 2
         assert beta == 2
-        epoch_idx = [0, 5, 10, 20, 25, 99]  # [96, 97, 98]
+        epoch_idx = [5, 15] #[5, 10, 15, 20, 49]
 
         # load data
         custompath = False
-        run = 0
         bigruns = DIR_OUTPUT + os.sep + 'archive' + os.sep + 'big_runs' + os.sep + 'rbm'
         if custompath:
-            subdir = '%s_%dhidden_0fields_2.00beta_100batch_100epochs_20cdk_1.00E-04eta_200ais' % (runtype, num_hidden)
+            subdir = '%s_%dhidden_0fields_2.00beta_100batch_%depochs_20cdk_1.00E-04eta_200ais' % (runtype, num_hidden, total_epochs)
             fname = 'weights_%dhidden_0fields_20cdk_0stepsAIS_2.00beta.npz' % num_hidden
             weightsobj = np.load(bigruns + os.sep + subdir + os.sep + '%d_' % run + fname)
             assert not use_fields
@@ -371,7 +371,12 @@ if __name__ == '__main__':
             hiddenfield_timeseries = hiddenobj['hiddenfield']
 
         if mode == 'blanket':
+
             for idx in epoch_idx:
+
+                if idx in [0] and runtype == 'normal':
+                    continue
+
                 outdir = DIR_OUTPUT + os.sep + 'samples' + os.sep + 'blanket' + os.sep + \
                          '%s_%dhidden_%dfields' % (runtype, num_hidden, use_fields) + os.sep + 'epoch%d' % idx
                 if not os.path.exists(outdir):
@@ -385,7 +390,7 @@ if __name__ == '__main__':
                     rbm.hidden_bias = torch.from_numpy(hiddenfield_timeseries[:, idx]).float()
 
                 # generate samples
-                num_images = 100
+                num_images = 10
                 k_steps = 40
                 visible_block = rbm.get_sample_images(num_images, k=k_steps)
                 rbm.plot_sample_images(visible_block, outdir, only_last=False)
@@ -408,6 +413,10 @@ if __name__ == '__main__':
                 plt.close()
 
                 for idx in epoch_idx:
+
+                    if idx in [0] and runtype == 'normal':
+                        continue
+
                     outdir = basedir + os.sep + 'epoch%d_digit%d' % (idx, digit)
                     if not os.path.exists(outdir):
                         os.makedirs(outdir)
@@ -421,7 +430,7 @@ if __name__ == '__main__':
                         rbm.hidden_bias = torch.from_numpy(hiddenfield_timeseries[:, idx]).float()
 
                     # generate samples
-                    num_images = 40
+                    num_images = 80
                     k_steps = 20
                     visible_block = rbm.get_sample_images_targetted(num_images, init_vector, k=k_steps)
                     rbm.plot_sample_images(visible_block, outdir, only_last=True)
