@@ -4,9 +4,11 @@
 # Various plot images
 *.pdf
 *.jpg
+*.png
 
-# Python compiled scripts
+# Python extra files
 *.pyc
+*.ipynb_checkpoints
 
 # Specific PDE output subdirectory
 differential_equations/pde/plots/
@@ -36,13 +38,10 @@ celltypes/multicell/stored/
 celltypes/dataprocess/runs/
 celltypes/cytokine/runs/
 celltypes/input/2018_scMCA/
-
-oncogenesis_dynamics/output/
-*.png
-
 celltypes/venv/
 
-celltypes/gpu/\.ipynb_checkpoints/
+oncogenesis_dynamics/output/
+
 transcriptome_clustering/output/
 oncogenesis_dynamics/figures/
 
@@ -54,3 +53,4 @@ RBM/models/poe/
 RBM/output/training/
 RBM/models/saved/hopfield_mnist_*_*
 RBM/output/AIS_testing/
+RBM/output/samples/
