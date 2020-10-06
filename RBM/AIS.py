@@ -797,7 +797,7 @@ if __name__ == '__main__':
         plt.show(); plt.close()
 
         # save
-        outdir = DIR_OUTPUT + os.sep + 'AIS'
+        outdir = DIR_OUTPUT + os.sep + 'AIS_testing'
         np.savetxt(outdir + os.sep + 'logz_estimate_tf.txt', logz_estimate_tf)
         np.savetxt(outdir + os.sep + 'logz_estimate_manual.txt', logz_estimate_manual)
         np.savetxt(outdir + os.sep + 'logz_estimate_manual_rev.txt', logz_estimate_manual_rev)    # TODO note rev give diff answer from rest
