@@ -41,14 +41,14 @@ def run_tf_example_A():
     print("Estimated", log_estimated_normalizer)
 
 
-def run_test_ising_3spin(beta=2.0):
+def run_test_ising_3spin(beta=2.0, nsteps=10, nchains=100):
     # EXAMPLE CODE
     # N = 3 spins
     # Jij = [[0, 1, 1], [1, 0, 1], [1, 1, 0]]  # should behave like ferromagnet
     # Z for this case is computable exactly
 
     # Run 100 AIS chains in parallel
-    num_chains = 100
+    num_chains = nchains
     dims = 1  # use p-form continuous rep. for integral
     dims_N = 3
     dtype = tf.float32
@@ -119,21 +119,10 @@ def run_test_ising_3spin(beta=2.0):
     #print(type(init_state))
     #print(init_state)
     #print('.........')
-    """
-    chains_state, ais_weights, kernels_results = (
-        tfp.mcmc.sample_annealed_importance_chain(
-            num_steps=1000,
-            proposal_log_prob_fn=proposal_log_prob_fn,
-            target_log_prob_fn=target_log_prob_fn,
-            current_state=init_state,
-            make_kernel_fn=lambda tlp_fn: tfp.mcmc.RandomWalkMetropolis(tlp_fn)
-        )
-    )
-    """
 
     chains_state, ais_weights, kernels_results = (
         tfp.mcmc.sample_annealed_importance_chain(
-            num_steps=10,
+            num_steps=nsteps,
             proposal_log_prob_fn=proposal_log_prob_fn,
             target_log_prob_fn=target_log_prob_fn,
             current_state=init_state,
@@ -162,6 +151,7 @@ def run_test_ising_3spin(beta=2.0):
     print("True", log_true_normalizer)
     print("Estimated", log_estimated_normalizer)
     return log_estimated_normalizer
+
 
 if __name__ == '__main__':
 
