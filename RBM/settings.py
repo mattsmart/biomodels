@@ -57,9 +57,10 @@ if USE_SVM:
     # ok/maybe better: gamma=1.04*1e-4, C=6.0   -> p=50:              0.965 (60k) (best)
     # ok/maybe better: gamma=1e-5, C=10.0       -> p=50: 0.953 (10k), 0.960 (60k)
     # try 'auto' or 'scale'
-    CLASSIFIER = svm.SVC(gamma=1.04*1e-4, C=6)
+    #CLASSIFIER = svm.SVC(gamma=1.04*1e-4, C=6)
+    CLASSIFIER = svm.SVC(gamma=0.001, C=1.0)
     # TODO try revert to 0.21.? from 0.23 to see if baseline improves
 else:
     # FIRST USED:      C=1e5, multi_class='multinomial', penalty='l1', solver='saga', tol=0.1
     # New:             C=1e5, multi_class='multinomial', penalty='l1', solver='saga', tol=0.001  decreasing C is OK
-    CLASSIFIER = LogisticRegression(C=1e5, multi_class='multinomial', penalty='l1', solver='saga', tol=0.001)
+    CLASSIFIER = LogisticRegression(C=1e5, multi_class='multinomial', penalty='l1', solver='saga', tol=0.001, max_iter=100)  # Def: 100 max iter
