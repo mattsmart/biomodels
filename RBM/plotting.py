@@ -14,7 +14,7 @@ mpl.rcParams["text.latex.preamble"] = [r'\usepackage{bm}', r'\usepackage{amsmath
 print(mpl.rcParams["text.usetex"])
 
 sns.set()
-sns.set(font_scale=1)
+sns.set(font_scale=1.2)  # use 1.2 for fig4 gen performance plots; see ipynb for other plots
 sns.set_style("whitegrid")
 
 
@@ -22,19 +22,19 @@ def image_fancy(image, ax=None, show_labels=False):
     if ax is None:
         plt.figure()
         ax = plt.gca();
-    im = ax.imshow(image, interpolation='none', vmin=0, vmax=1, aspect='equal', cmap='gray');
+    im = ax.imshow(image, interpolation='none', vmin=0, vmax=1, aspect='equal', cmap='gray')
 
     # Minor ticks
-    ax.set_xticks(np.arange(-.5, 28, 1), minor=True);
-    ax.set_yticks(np.arange(-.5, 28, 1), minor=True);
+    ax.set_xticks(np.arange(-.5, 28, 1), minor=True)
+    ax.set_yticks(np.arange(-.5, 28, 1), minor=True)
 
     if show_labels:
         # Major ticks
-        ax.set_xticks(np.arange(0, 28, 1));
-        ax.set_yticks(np.arange(0, 28, 1));
+        ax.set_xticks(np.arange(0, 28, 1))
+        ax.set_yticks(np.arange(0, 28, 1))
         # Labels for major ticks
-        ax.set_xticklabels(np.arange(1, 29, 1));
-        ax.set_yticklabels(np.arange(1, 29, 1));
+        ax.set_xticklabels(np.arange(1, 29, 1))
+        ax.set_yticklabels(np.arange(1, 29, 1))
     else:
         ax.set_xticklabels([])
         ax.set_yticklabels([])
@@ -96,6 +96,10 @@ def plot_hopfield_generative_scores():
     # plt.setp(ax.get_legend().get_title(), fontsize='32') # for legend title
     plt.legend(fontsize='x-small', loc='lower left', ncol=2)
     ax.tick_params(axis='both', which='major', pad=-1)
+
+    # For gridlines soften
+    ax.tick_params(grid_alpha=0.5)
+
     plt.savefig(out_dir + os.sep + 'kvary_scores.pdf', bbox_inches='tight')
     plt.show()
     plt.close()
@@ -148,11 +152,15 @@ def compare_generative_scores(plotting_dict, out_dir):
     ax = sns.lineplot(x=epoch_name, y=score_name, hue=category_name, dashes=False, legend='full', data=df1)
     #ax = sns.lineplot(x=epoch_name, y=score_name, hue=category_name, marker='o', markers=True, dashes=False, data=df1,
     #                  legend='full')
-    plt.ylim(-500,0)
+    plt.ylim(-500,-50)
     #plt.ylim(-250,-50)
     plt.xlim(0, 50)
     ax.legend().texts[0].set_text(r'$\textrm{Initial RBM weights } \mathbf{W}_\textrm{init}$')
-    plt.setp(ax.get_legend().get_texts(), fontsize='small')
+    #plt.setp(ax.get_legend().get_texts(), fontsize='small')
+
+    # soften grid
+    ax.tick_params(grid_alpha=0.5)
+
     plt.savefig(out_dir + os.sep + 'scores.pdf', bbox_inches='tight')
     plt.show(); plt.close()
 
@@ -179,7 +187,7 @@ def compare_generative_scores_sep(plotting_dict, out_dir):
     termA_name = r'$- \beta \langle H(s) \rangle$'
     LogZ_name = r'$\ln \ Z$'
 
-    kwdict = {r'$\textrm{From Hopfield mapping}$':
+    kwdict = {r'$\textrm{Hopfield mapping}$':
                   {'c': '#1f77b4', 'z':10},
               r'$W_{i\mu}\sim\mathcal{N}(0,0.01)$':
                   {'c': 'mediumpurple', 'z':3},
@@ -198,7 +206,7 @@ def compare_generative_scores_sep(plotting_dict, out_dir):
         plt.plot(v['epochs'], v['score'], label=v['title'], alpha=0.8,
                  color=kwdict[v['category']]['c'], zorder=kwdict[v['category']]['z'])
     plt.xlabel(epoch_name); plt.ylabel(score_name)
-    plt.ylim(-500,0)  # plt.ylim(-250,-50)
+    plt.ylim(-500,-50)  # plt.ylim(-250,-50)
     plt.xlim(0, 50)
     plt.savefig(out_dir + os.sep + 'scores_sep.pdf', bbox_inches='tight')
     plt.show(); plt.close()
@@ -217,6 +225,7 @@ def plot_classify_dict(plotting_dict, k_to_plot, out_dir, figsize=(3.4, 3)):
     for a in ['norm', 'hopf']:
 
         for k in k_to_plot:
+
             klabel = r'$k=%d$' % k
             vc = plotting_dict[a][klabel]
             plt.errorbar(vc['x'], vc['y_mean'], yerr=vc['y_err'],
@@ -234,11 +243,9 @@ def plot_classify_dict(plotting_dict, k_to_plot, out_dir, figsize=(3.4, 3)):
                          capsize=2,
                          zorder=plotting_dict[a]['z'])
 
-            """plt.fill_between(
-                vc['x'],                 
-                vc['y_mean'] - vc['y_err'][0,:],
-                vc['y_err'][1,:] - vc['y_mean'],
-                color='gray', alpha=0.2)"""
+            if k == 10:
+                print(k, a, vc['y_mean'])
+                print()
 
             plt.fill_between(
                 vc['x'],
@@ -247,7 +254,7 @@ def plot_classify_dict(plotting_dict, k_to_plot, out_dir, figsize=(3.4, 3)):
                 color=plotting_dict[a]['c'],  # color='gray',
                 alpha=0.2)
 
-            print(vc['y_err'][1, :] - vc['y_mean'], )
+            #print(vc['y_err'][1, :] - vc['y_mean'], )
 
     plt.xlabel(epoch_name); plt.ylabel(error_name)
     plt.ylim(1.7, 11.9)  # plt.ylim(1.5, 9.9)
@@ -275,9 +282,9 @@ def plot_classify_dict(plotting_dict, k_to_plot, out_dir, figsize=(3.4, 3)):
 
 
 if __name__ == '__main__':
-    plot_hopfield_k_generative = False
+    plot_hopfield_k_generative = True
     plot_compare_generative = False
-    plot_compare_classify = True
+    plot_compare_classify = False
 
     if plot_hopfield_k_generative:
         plot_hopfield_generative_scores()
@@ -285,7 +292,7 @@ if __name__ == '__main__':
     if plot_compare_generative:
         scores_to_compare = DIR_OUTPUT + os.sep + 'archive' + os.sep + 'big_runs' + os.sep + 'scores_to_compare'
         #compare_dir = scores_to_compare + os.sep + 'aug10_hopfield_vs_normal_10p_100batch_1e-4eta'
-        compare_dir = scores_to_compare + os.sep + 'sept24_hopfield_vs_normal_10p_100batch_1e-4eta'
+        compare_dir = scores_to_compare + os.sep + 'sept26_hopfield_vs_normal_50p_100batch_etaVary5to1normalOnly_50'
 
         def get_category_info(plot_key, use_fields):
             post = ''
@@ -293,7 +300,7 @@ if __name__ == '__main__':
                 post = ' + biases'
 
             if plot_key[0:3] == 'hop':
-                val = r'$\textrm{From Hopfield mapping}$' + post
+                val = r'$\textrm{Hopfield mapping}$' + post
             elif plot_key[0:3] == 'nor':
                 #val = r'$(\mathbf{W}_\mathrm{init})_{\it{i}\mu}\sim\mathcal{N}(0,0.01)$' + post
                 val = r'$W_{i\mu}\sim\mathcal{N}(0,0.01)$' + post
