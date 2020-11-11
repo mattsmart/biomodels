@@ -220,31 +220,50 @@ def linalg_hopfield_patterns(data_dict, category_counts, onehot_classify=False):
 
 
 def build_rbm_hopfield(data=TRAINING, visible_field=False, subpatterns=False, name=DATA_CHOICE, fast=None, save=True,
-                       k_pattern=K_PATTERN_DIV, onehot_classify=False, hebbian=False):
+                       k_pattern=K_PATTERN_DIV, onehot_classify=False, hebbian=False, pca=False):
     """
     fast is None or a 2-tuple of (data_dict, category_counts)
+    If pca flag is True, skip all hopfield-like pattern building and replace with PCA (N dimension to p dimension)
     """
     # Step 1: convert data into patterns (using a prescribed rule)
     # Step 2: specify weights using the patterns
     rbm_name = 'hopfield_%s_%d' % (name, k_pattern * 10)
+    if pca:
+        rbm_name += '_PCA'
+        assert not onehot_classify
+        assert not hebbian
     if onehot_classify:
         rbm_name += '_onehotBlock'
     if hebbian:
         rbm_name += '_hebbian'
 
-    if fast is None:
-        # build internal weights
-        data_dict, category_counts = data_dict_mnist(data)
-        if subpatterns:
-            data_dict, category_counts = data_dict_mnist_detailed(data_dict, category_counts, k_pattern=k_pattern)
-    else:
-        data_dict = fast[0]
-        category_counts = fast[1]
+    if pca:
+        fpath = DIR_MODELS + os.sep + 'pca_binarized_raw.npz'
+        with open(fpath, 'rb') as f:
+            pca_weights = np.load(fpath)['pca_weights']
+        num_components = 10 * k_pattern
 
-    xi, xi_collapsed, pattern_idx_to_labels, Q, R = linalg_hopfield_patterns(data_dict, category_counts,
-                                                                             onehot_classify=onehot_classify)
-    total_data = sum(category_counts.values())
-    dim_img = list(data_dict.values())[0][:, :, 0].shape
+        xi_collapsed = pca_weights[:, 0:num_components]
+        xi = xi_collapsed.reshape(28, 28, -1)
+        pattern_idx_to_labels = {idx: 'component_%d' % idx for idx in range(num_components)}
+        Q = xi_collapsed
+
+    else:
+        if fast is None:
+            # build internal weights
+            data_dict, category_counts = data_dict_mnist(data)
+            if subpatterns:
+                data_dict, category_counts = data_dict_mnist_detailed(data_dict, category_counts, k_pattern=k_pattern)
+        else:
+            data_dict = fast[0]
+            category_counts = fast[1]
+
+        xi, xi_collapsed, pattern_idx_to_labels, Q, R = linalg_hopfield_patterns(data_dict, category_counts,
+                                                                                 onehot_classify=onehot_classify)
+    #total_data = sum(category_counts.values())
+    #dim_img = list(data_dict.values())[0][:, :, 0].shape
+    total_data = len(data)
+    dim_img = (28, 28)
     dim_visible = dim_img[0] * dim_img[1]
     dim_hidden = xi_collapsed.shape[-1]
     print("total_data", total_data)
@@ -280,7 +299,9 @@ def build_rbm_hopfield(data=TRAINING, visible_field=False, subpatterns=False, na
         rbm_hopfield.set_visible_field(pixel_means)
 
     # build output/projection weights
-    if hebbian:
+    if pca:
+        proj_remainder = np.zeros((dim_hidden, dim_hidden))
+    elif hebbian:
         proj_remainder = np.linalg.inv(np.dot(xi_collapsed.T, xi_collapsed))
     else:
         proj_remainder = np.dot( np.linalg.inv(np.dot(R.T, R)) , R.T)
@@ -363,10 +384,11 @@ def build_models_poe(dataset, k_pattern=K_PATTERN_DIV):
 
 if __name__ == '__main__':
 
-    product_of_experts = True
-    build_regular_instead_of_load = False
+    product_of_experts = False
+    build_regular_instead_of_load = True
     build_onehot = False
     build_hebbian = False
+    build_pca = True
 
     if product_of_experts:
         #for k in range(1, 110):
@@ -378,10 +400,10 @@ if __name__ == '__main__':
         # regular model building
         k_pattern = 1
         if build_regular_instead_of_load:
-            for kp in range(1, 11):
+            for kp in range(1, 21):
                 k_pattern = kp
                 rbm = build_rbm_hopfield(data=TRAINING, visible_field=False, subpatterns=True, k_pattern=k_pattern,
-                                         onehot_classify=build_onehot, hebbian=build_hebbian)
+                                         onehot_classify=build_onehot, hebbian=build_hebbian, pca=build_pca)
 
         # regular model loading
         else:
