@@ -60,7 +60,7 @@ def plot_confusion_matrix_recall(confusion_matrix, classlabels=list(range(10)), 
     plt.figure(figsize=(11, 7))
     sn.set(font_scale=1.2)  # for label size
     sn.heatmap(df_cm, annot=True, annot_kws={"size": 10}, cmap='Blues', fmt='d')  # font size
-    plt.gca().set(xlabel='Predicted', ylabel='True label')
+    plt.gca().set(xlabel=r'$Fixed point$', ylabel=r'$True label$')
     plt.title(title)
     if save is None:
         plt.show()

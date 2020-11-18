@@ -8,7 +8,6 @@ from recall_functions import update_state_deterministic, update_state_noise, upd
 from data_process import data_mnist, binarize_image_data, image_data_collapse
 from settings import MNIST_BINARIZATION_CUTOFF
 
-
 """
 Recall percent v1
 
@@ -25,19 +24,22 @@ OUTDIR = 'output' + os.sep + 'recall'
 N = 28 ** 2
 P = 10
 
+# Which model to load
+BASIC_MODEL = True
+FORCE_BINARIZE_RMAP = False
+
 # Local hyperparameters
 BETA = None  # None means deterministic
-REMOVE_DIAG = False  # TODO care remove self interactions or not? customary... improves radius of attraction
-BASIC_MODEL = True
-FORCE_BINARIZE_RMAP = True
+REMOVE_DIAG = True  # TODO care remove self interactions or not? customary... improves radius of attraction
 SUBSAMPLE = None
-MAX_STEPS = 10
+MAX_STEPS = 20
+CONV_CHECK = 0.9
 
 
 def basin_convergence_check_exact(sample, patterns_scaled):
     overlaps = np.dot(patterns_scaled.T, sample)
     #print(overlaps)
-    if any(overlaps > 0.8):
+    if any(overlaps > CONV_CHECK):
         out = (True, np.argmax(overlaps))
     else:
         out = (False, None)
@@ -47,7 +49,6 @@ def basin_convergence_check_exact(sample, patterns_scaled):
 def converge_datapoint_deterministic(sample, patterns_scaled, intxn_matrix, nsteps):
     converge_basin = -1  # this is e.g. mixed or not converged
 
-    nsteps = 10
     for step in range(nsteps):
         has_converged, basin = basin_convergence_check_exact(sample, patterns_scaled)
         if has_converged:
@@ -58,11 +59,12 @@ def converge_datapoint_deterministic(sample, patterns_scaled, intxn_matrix, nste
     return converge_basin, step
 
 
-def score_dataset_deterministic(dataset, patterns_scaled, intxn_matrix, nsteps=MAX_STEPS):
+def score_dataset_deterministic(dataset, patterns, intxn_matrix, nsteps=MAX_STEPS):
     # statistics to gether
     required_steps = [0] * nsteps
     confusion = np.zeros((P, P + 1), dtype=int)  #confusion_matrix_10 = np.zeros((10, 10), dtype=int)
 
+    patterns_scaled = patterns / float(N)
     for sample, label in dataset:
         sample = sample.reshape(N)
         converge_basin, steps = converge_datapoint_deterministic(sample, patterns_scaled, intxn_matrix, nsteps)
@@ -83,14 +85,12 @@ if __name__ == '__main__':
     if BASIC_MODEL:
         fname = 'hopfield_mnist_10.npz'
         rbm = load_rbm_hopfield(npzpath='models' + os.sep + 'saved' + os.sep + fname)
-
+        epoch = 0
         patterns_images = rbm.xi_image
         patterns = patterns_images.reshape(N, -1)
-        patterns_scaled = patterns / float(N)
         rbm_weights = rbm.internal_weights
         #intxn_matrix = np.dot(rbm_weights, rbm_weights.T)
         intxn_matrix = build_J_from_xi(patterns, remove_diag=REMOVE_DIAG)
-
     else:
         reversemap_dir = 'models' + os.sep + 'reversemap'
         epoch = 30
@@ -116,20 +116,29 @@ if __name__ == '__main__':
     # SCORE DATASET
     ##############################################################
     if BETA == None:
-        cm, required_steps = score_dataset_deterministic(dataset, patterns_scaled, intxn_matrix, nsteps=MAX_STEPS)
+        betastr = 'None'
+        cm, required_steps = score_dataset_deterministic(dataset, patterns, intxn_matrix, nsteps=MAX_STEPS)
     else:
+        betastr = '%.2f' % BETA
         print('TODO')
 
     ##############################################################
     # ASSESS
     ##############################################################
+    out_local = OUTDIR + os.sep + 'recall_basemodel%d_epoch%d_forceBinarize%d_beta%s_removeDiag%d_nsteps%d_convChk%.2f' % \
+                (BASIC_MODEL, epoch, FORCE_BINARIZE_RMAP, betastr, REMOVE_DIAG, MAX_STEPS, CONV_CHECK)
+    if not os.path.exists(out_local): os.makedirs(out_local)
+
+    # stats
     matches = sum(cm[i,i] for i in range(P))
     unlabelled = sum(cm[i,-1] for i in range(P))
     score = matches / float(num_samples)
-    print('score = %.3f (%d/%d)' % (score, matches, num_samples))
+    title = 'score = %.3f (%d/%d)' % (score, matches, num_samples)
+    print(title)
     print('unlabelled = %.3f (%d/%d)' % (unlabelled / float(num_samples), unlabelled, num_samples))
-
+    # plots
     plt.bar(range(MAX_STEPS), required_steps, width=0.8)
     plt.title('required steps hist'); plt.xlabel('steps to converge'); plt.ylabel('freq')
-    plt.show(); plt.close()
-    plot_confusion_matrix_recall(cm, classlabels=list(range(10)), title='', save=None)
+    plt.savefig(out_local + os.sep + 'step_hist.pdf'); plt.close()
+    # cm plot
+    plot_confusion_matrix_recall(cm, classlabels=list(range(10)), title=title, save=out_local + os.sep + 'cm.pdf')
