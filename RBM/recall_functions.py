@@ -12,7 +12,7 @@ def hamming(s1, s2):
 
 
 def update_site_glauber(state, site, intxn_matrix, urand, beta):
-    total_field = np.dot(intxn_matrix, state)
+    total_field = np.dot(intxn_matrix[site, :], state)
     prob_on_after_timestep = 1 / (
             1 + np.exp(-2 * beta * total_field))  # probability that site i will be "up" after the timestep
     if prob_on_after_timestep > urand:
@@ -22,10 +22,9 @@ def update_site_glauber(state, site, intxn_matrix, urand, beta):
     return state
 
 
-def update_state_noise(state, intxn_matrix, beta, async_batch=True):
-    sites = range(N)
-    rsamples = np.random.rand(
-        N)  # optimized: pass one to each of the N single spin update calls  TODO: benchmark vs intels
+def update_state_noise(state, intxn_matrix, beta, sites, async_batch=True):
+    # sites is list(range(N)), pre-done for speed
+    rsamples = np.random.rand(N)  # optimized: pass one to each of the N single spin update calls
     if async_batch:
         shuffle(sites)  # randomize site ordering each timestep updates
     else:
@@ -48,7 +47,7 @@ def update_state_deterministic(state, intxn_matrix):
     return state
 
 
-def plot_confusion_matrix_recall(confusion_matrix, classlabels=list(range(10)), title='', save=None):
+def plot_confusion_matrix_recall(confusion_matrix, classlabels=list(range(10)), title='', save=None, annot=False):
     # Ref: https://stackoverflow.com/questions/35572000/how-can-i-plot-a-confusion-matrix
     import seaborn as sn
     import pandas as pd
@@ -62,7 +61,7 @@ def plot_confusion_matrix_recall(confusion_matrix, classlabels=list(range(10)), 
 
     plt.figure(figsize=(11, 7))
     sn.set(font_scale=1.2)  # for label size
-    sn.heatmap(df_cm, annot=True, annot_kws={"size": 10}, cmap='Blues', fmt='d')  # font size
+    sn.heatmap(df_cm, annot=annot, annot_kws={"size": 10}, cmap='Blues', fmt='d')  # font size
     plt.gca().set(xlabel=r'$\textrm{Fixed point}$', ylabel=r'$\textrm{True label}$')
     plt.title(title)
     if save is None:
