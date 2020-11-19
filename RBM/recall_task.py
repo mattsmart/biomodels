@@ -17,7 +17,8 @@ For each data point
     - this will give either scalar (convergence to correct basin) or p+1 dim vector (p patterns + 'other' category)
     
 """
-
+# TODO questions:
+#  - how to define overlap when patterns are non-binary? specifically, meaning of param "CONV_CHECK"
 
 # Globals
 OUTDIR = 'output' + os.sep + 'recall'
@@ -25,22 +26,23 @@ N = 28 ** 2
 P = 10
 
 # Which model to load
-BASIC_MODEL = True
-FORCE_BINARIZE_RMAP = False
+BASIC_MODEL = False
+FORCE_BINARIZE_RMAP = True
 
 # Local hyperparameters
-BETA = None  # None means deterministic
+BETA = None         # None means deterministic
 REMOVE_DIAG = True  # TODO care remove self interactions or not? customary... improves radius of attraction
 SUBSAMPLE = None
-MAX_STEPS = 20
+USE_PROJ = False
+MAX_STEPS = 30
 CONV_CHECK = 0.9
 
 
-def basin_convergence_check_exact(sample, patterns_scaled):
-    overlaps = np.dot(patterns_scaled.T, sample)
-    #print(overlaps)
-    if any(overlaps > CONV_CHECK):
-        out = (True, np.argmax(overlaps))
+def basin_convergence_check_exact(sample, patterns_measurement):
+    measure = np.dot(patterns_measurement, sample)  # either the 'overlaps' or 'projection'
+    #print(measure)
+    if any(measure > CONV_CHECK):
+        out = (True, np.argmax(measure))
     else:
         out = (False, None)
     return out
@@ -59,12 +61,11 @@ def converge_datapoint_deterministic(sample, patterns_scaled, intxn_matrix, nste
     return converge_basin, step
 
 
-def score_dataset_deterministic(dataset, patterns, intxn_matrix, nsteps=MAX_STEPS):
+def score_dataset_deterministic(dataset, patterns_scaled, intxn_matrix, nsteps=MAX_STEPS):
     # statistics to gether
     required_steps = [0] * nsteps
     confusion = np.zeros((P, P + 1), dtype=int)  #confusion_matrix_10 = np.zeros((10, 10), dtype=int)
 
-    patterns_scaled = patterns / float(N)
     for sample, label in dataset:
         sample = sample.reshape(N)
         converge_basin, steps = converge_datapoint_deterministic(sample, patterns_scaled, intxn_matrix, nsteps)
@@ -77,7 +78,6 @@ def score_dataset_deterministic(dataset, patterns, intxn_matrix, nsteps=MAX_STEP
     return confusion, required_steps
 
 
-
 if __name__ == '__main__':
     ##############################################################
     # LOAD HOPFIELD INITIAL PATTERNS
@@ -85,22 +85,31 @@ if __name__ == '__main__':
     if BASIC_MODEL:
         fname = 'hopfield_mnist_10.npz'
         rbm = load_rbm_hopfield(npzpath='models' + os.sep + 'saved' + os.sep + fname)
-        epoch = 0
+        epoch = 70
         patterns_images = rbm.xi_image
         patterns = patterns_images.reshape(N, -1)
         rbm_weights = rbm.internal_weights
         #intxn_matrix = np.dot(rbm_weights, rbm_weights.T)
         intxn_matrix = build_J_from_xi(patterns, remove_diag=REMOVE_DIAG)
+
     else:
         reversemap_dir = 'models' + os.sep + 'reversemap'
-        epoch = 30
+        epoch = 5
         fname = 'binarized_rbm_hopfield_iter%d_star1_lowdin0_num50_beta200.0_eta5.0E-02_noise0.0E+00.npz' % epoch
         reverse_obj = np.load(reversemap_dir + os.sep + fname)
         WX_final = reverse_obj['WX_final']
-        patterns = WX_final
+        unsigned_patterns = WX_final
+        patterns = np.sign(unsigned_patterns)
         if FORCE_BINARIZE_RMAP:
-            patterns = np.sign(patterns)
-        intxn_matrix = build_J_from_xi(patterns, remove_diag=REMOVE_DIAG)
+            intxn_matrix = build_J_from_xi(patterns, remove_diag=REMOVE_DIAG)
+        else:
+            intxn_matrix = build_J_from_xi(unsigned_patterns, remove_diag=REMOVE_DIAG)
+    A = np.dot(patterns.T, patterns)
+    A_inv = np.linalg.inv(A)
+    if USE_PROJ:
+        patterns_measure = np.dot(A_inv, patterns.T)
+    else:
+        patterns_measure = patterns.T / float(N)
 
     ##############################################################
     # LOAD DATASET
@@ -117,7 +126,7 @@ if __name__ == '__main__':
     ##############################################################
     if BETA == None:
         betastr = 'None'
-        cm, required_steps = score_dataset_deterministic(dataset, patterns, intxn_matrix, nsteps=MAX_STEPS)
+        cm, required_steps = score_dataset_deterministic(dataset, patterns_measure, intxn_matrix, nsteps=MAX_STEPS)
     else:
         betastr = '%.2f' % BETA
         print('TODO')
@@ -125,8 +134,8 @@ if __name__ == '__main__':
     ##############################################################
     # ASSESS
     ##############################################################
-    out_local = OUTDIR + os.sep + 'recall_basemodel%d_epoch%d_forceBinarize%d_beta%s_removeDiag%d_nsteps%d_convChk%.2f' % \
-                (BASIC_MODEL, epoch, FORCE_BINARIZE_RMAP, betastr, REMOVE_DIAG, MAX_STEPS, CONV_CHECK)
+    out_local = OUTDIR + os.sep + 'recall_basemodel%d_epoch%d_forceBinarize%d_beta%s_removeDiag%d_nsteps%d_convChk%.2f_projMode%d' % \
+                (BASIC_MODEL, epoch, FORCE_BINARIZE_RMAP, betastr, REMOVE_DIAG, MAX_STEPS, CONV_CHECK, USE_PROJ)
     if not os.path.exists(out_local): os.makedirs(out_local)
 
     # stats
@@ -134,11 +143,13 @@ if __name__ == '__main__':
     unlabelled = sum(cm[i,-1] for i in range(P))
     score = matches / float(num_samples)
     title = 'score = %.3f (%d/%d)' % (score, matches, num_samples)
+    subtitle = 'unlabelled = %.3f (%d/%d)' % (unlabelled / float(num_samples), unlabelled, num_samples)
     print(title)
-    print('unlabelled = %.3f (%d/%d)' % (unlabelled / float(num_samples), unlabelled, num_samples))
+    print(subtitle)
     # plots
     plt.bar(range(MAX_STEPS), required_steps, width=0.8)
     plt.title('required steps hist'); plt.xlabel('steps to converge'); plt.ylabel('freq')
     plt.savefig(out_local + os.sep + 'step_hist.pdf'); plt.close()
     # cm plot
-    plot_confusion_matrix_recall(cm, classlabels=list(range(10)), title=title, save=out_local + os.sep + 'cm.pdf')
+    plot_confusion_matrix_recall(cm, classlabels=list(range(10)), title='%s; %s' % (title, subtitle),
+                                 save=out_local + os.sep + 'cm.pdf')
