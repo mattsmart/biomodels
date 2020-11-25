@@ -483,7 +483,7 @@ def chain_state_to_images(chains_numpy, rbm, num_images, beta=200.0):
 if __name__ == '__main__':
 
     generate_hopfield_aisdata = False
-    specific_check = False
+    specific_check = True
     compare_methods = False
 
     if generate_hopfield_aisdata:
@@ -606,7 +606,7 @@ if __name__ == '__main__':
         import torch
 
         beta = 2
-        epoch_idx = [20]  #[0, 1, 99] #[96, 97, 98]
+        epoch_idx = [10]  #[0, 1, 99] #[96, 97, 98]
         AIS_STEPS = 1000
         nchains = 100
         rev_ntest = 50
@@ -618,7 +618,7 @@ if __name__ == '__main__':
         num_hid = 10
         run = 0
         bigruns = DIR_OUTPUT + os.sep + 'archive' + os.sep + 'big_runs' + os.sep + 'rbm'
-        subdir = '%s_%dhidden_0fields_2.00beta_100batch_100epochs_20cdk_1.00E-04eta_200ais' \
+        subdir = '%s_hebbian_%dhidden_0fields_2.00beta_1000batch_70epochs_20cdk_1.00E-04eta_0ais_1ppEpoch' \
                  % (init_name, num_hid) + os.sep + 'run%d' % (run)
         fname = 'weights_%dhidden_0fields_20cdk_0stepsAIS_2.00beta.npz' % num_hid
         dataobj = np.load(bigruns + os.sep + subdir + os.sep + fname)
@@ -635,14 +635,14 @@ if __name__ == '__main__':
             print('Estimating term A...', )
             logP_termA = get_obj_term_A(X, rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta)
 
-            print('Estimating log Z (AIS)...', )
-            logP_termB_forward, chains_state = esimate_logZ_with_AIS(rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta, num_steps=AIS_STEPS, num_chains=nchains)
-            print('\tlogP_termB_forward:', logP_termB_forward)
-            """
+            #print('Estimating log Z (AIS)...', )
+            #logP_termB_forward, chains_state = esimate_logZ_with_AIS(rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta, num_steps=AIS_STEPS, num_chains=nchains)
+            #print('\tlogP_termB_forward:', logP_termB_forward)
+
             print('Estimating log Z (homemade AIS)...', )
             logP_termB_manual, chains_state = manual_AIS(rbm, beta, nchains=nchains, nsteps=AIS_STEPS)
             print('\tlogP_termB_manual:', logP_termB_manual)
-            """
+
             """
             print('Estimating log Z (homemade AIS reverse)...', )
             # Note settings from RAISE: 50 chains, 100,000 steps, 100 test cases. Think use control-variates thing as well (not implemented).
@@ -651,16 +651,16 @@ if __name__ == '__main__':
             logP_termB_manual_reverse, _ = manual_AIS_reverse(rbm, beta, test_cases, nchains=rev_nchain, nsteps=rev_nsteps)
             print('\tlogP_termB_manual_reverse:', logP_termB_manual_reverse)
             """
-            print('Estimating log Z (homemade AIS reverse Algo 3)...', )
+            #print('Estimating log Z (homemade AIS reverse Algo 3)...', )
             """
             # Note settings from RAISE: 50 chains, 100,000 steps, 100 test cases. Think use control-variates thing as well (not implemented).
             test_cases = subsample_test_cases(X, rev_ntest)
             logP_termB_manual_reverse3, _ = manual_AIS_reverse(rbm, beta, test_cases, nchains=rev_nchain, nsteps=rev_nsteps)
             print('\tlogP_termB_manual_reverse3:', logP_termB_manual_reverse3)
             """
-            print('(idx: %d) AIS - Term A:' % idx, logP_termA, '| Log Z:', logP_termB_forward, '| Score:', logP_termA - logP_termB_forward)
+            #print('(idx: %d) AIS - Term A:' % idx, logP_termA, '| Log Z:', logP_termB_forward, '| Score:', logP_termA - logP_termB_forward)
             #print('(idx: %d) AIS (Reverse) - Term A:' % idx, logP_termA, '| Log Z:', logP_termB_reverse, '| Score:', logP_termA - logP_termB_reverse)
-            #print('(idx: %d) Manual AIS - Term A:' % idx, logP_termA, '| Log Z:', logP_termB_manual, '| Score:', logP_termA - logP_termB_manual)
+            print('(idx: %d) Manual AIS - Term A:' % idx, logP_termA, '| Log Z:', logP_termB_manual, '| Score:', logP_termA - logP_termB_manual)
             #print('(idx: %d) Manual AIS (Reverse) - Term A:' % idx, logP_termA, '| Log Z:', logP_termB_manual_reverse, '| Score:', logP_termA - logP_termB_manual_reverse)
             #print('(idx: %d) Manual AIS (Reverse 3) - Term A:' % idx, logP_termA, '| Log Z:', logP_termB_manual_reverse3, '| Score:', logP_termA - logP_termB_manual_reverse3)
 
