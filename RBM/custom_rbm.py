@@ -81,7 +81,7 @@ class RBM_custom():
 
 class RBM_gaussian_custom():
 
-    def __init__(self, num_visible, num_hidden, k, learning_rate=1e-3, weight_decay=1e-4, init_weights=None, use_fields=True):
+    def __init__(self, num_visible, num_hidden, k, learning_rate=1e-3, weight_decay=1e-4, init_weights=None, use_fields=False):
         self.num_visible = num_visible
         self.num_hidden = num_hidden
         self.k = k
