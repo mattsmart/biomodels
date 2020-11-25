@@ -238,15 +238,29 @@ def build_rbm_hopfield(data=TRAINING, visible_field=False, subpatterns=False, na
         rbm_name += '_hebbian'
 
     if pca:
-        fpath = DIR_MODELS + os.sep + 'pca_binarized_raw.npz'
-        with open(fpath, 'rb') as f:
-            pca_weights = np.load(fpath)['pca_weights']
-        num_components = 10 * k_pattern
 
-        xi_collapsed = pca_weights[:, 0:num_components]
-        xi = xi_collapsed.reshape(28, 28, -1)
-        pattern_idx_to_labels = {idx: 'component_%d' % idx for idx in range(num_components)}
-        Q = xi_collapsed
+        if fast is None:
+
+            fpath = DIR_MODELS + os.sep + 'pca' + os.sep + 'pca_binarized_raw.npz'
+            with open(fpath, 'rb') as f:
+                pca_weights = np.load(fpath)['pca_weights']
+            num_components = 10 * k_pattern  # This assumes NOT poe mode
+
+            xi_collapsed = pca_weights[:, 0:num_components]
+            xi = xi_collapsed.reshape(28, 28, -1)
+            pattern_idx_to_labels = {idx: 'component_%d' % idx for idx in range(num_components)}
+            Q = xi_collapsed
+
+        else:
+            print('Assume build_models_poe() call with flags: fast, pca')
+            data_dict = fast[0]
+            category_counts = fast[1]
+            pca_weights = fast[2]
+
+            xi_collapsed = pca_weights
+            xi = xi_collapsed.reshape(28, 28, -1)
+            pattern_idx_to_labels = {idx: 'component_%d' % idx for idx in range(pca_weights.shape[1])}
+            Q = xi_collapsed
 
     else:
         if fast is None:
@@ -260,9 +274,11 @@ def build_rbm_hopfield(data=TRAINING, visible_field=False, subpatterns=False, na
 
         xi, xi_collapsed, pattern_idx_to_labels, Q, R = linalg_hopfield_patterns(data_dict, category_counts,
                                                                                  onehot_classify=onehot_classify)
-    #total_data = sum(category_counts.values())
+    if data is None:
+        total_data = sum(category_counts.values())
+    else:
+        total_data = len(data)
     #dim_img = list(data_dict.values())[0][:, :, 0].shape
-    total_data = len(data)
     dim_img = (28, 28)
     dim_visible = dim_img[0] * dim_img[1]
     dim_hidden = xi_collapsed.shape[-1]
@@ -342,7 +358,7 @@ def load_rbm_hopfield(npzpath=DEFAULT_HOPFIELD):
     return rbm_hopfield
 
 
-def build_models_poe(dataset, k_pattern=K_PATTERN_DIV):
+def build_models_poe(dataset, k_pattern=K_PATTERN_DIV, hebbian=False, pca=False):
     # TODO onehot support
     subpatterns = True   # identify sub-classes
     expand_models = False  # treat each sub-class as its own class (more models/features, each is less complex though)
@@ -350,7 +366,11 @@ def build_models_poe(dataset, k_pattern=K_PATTERN_DIV):
 
     full_data_dict, full_category_counts = data_dict_mnist(dataset)
     list_of_keys = list(full_data_dict.keys())
-    if subpatterns:
+
+    if pca:
+        list_of_keys = list(range(10))
+
+    if subpatterns and not pca:
         full_data_dict, full_category_counts = data_dict_mnist_detailed(full_data_dict, full_category_counts, k_pattern=k_pattern)
         #if expand_models:
         #    list_of_keys = list(full_data_dict.keys())
@@ -375,26 +395,36 @@ def build_models_poe(dataset, k_pattern=K_PATTERN_DIV):
     for key in dict_of_data_dicts.keys():
         print("Building model:", key)
         print("\tData counts:", dict_of_counts[key])
-        fast = (dict_of_data_dicts[key], dict_of_counts[key])
+
+        if pca:
+            fpath = DIR_MODELS + os.sep + 'pca' + os.sep + 'pca_binarized_raw_digit%d.npz' % key
+            with open(fpath, 'rb') as f:
+                pca_weights = np.load(fpath)['pca_weights']
+            num_components = k_pattern
+            pca_weights_reduced = pca_weights[:, 0:num_components]
+            fast = (dict_of_data_dicts[key], dict_of_counts[key], pca_weights_reduced)
+        else:
+            fast = (dict_of_data_dicts[key], dict_of_counts[key])
+
         rbm = build_rbm_hopfield(data=None, visible_field=False, subpatterns=subpatterns, fast=fast, save=True,
-                                 name='digit%d_p%d' % (key, k_pattern * 10), k_pattern=k_pattern)
+                                 name='digit%d_p%d' % (key, k_pattern * 10), k_pattern=k_pattern, hebbian=hebbian, pca=pca)
         models[key] = rbm
     return models
 
 
 if __name__ == '__main__':
 
-    product_of_experts = False
-    build_regular_instead_of_load = True
+    product_of_experts = True
+    build_regular_instead_of_load = False
     build_onehot = False
-    build_hebbian = False
-    build_pca = True
+    build_hebbian = True
+    build_pca = False
 
     if product_of_experts:
         #for k in range(1, 110):
-        for k in [200, 250, 300, 500]:
+        for k in [10, 20, 100]:
             print("Building poe k=%d" % k)
-            models = build_models_poe(TRAINING, k_pattern=k)
+            models = build_models_poe(TRAINING, k_pattern=k, hebbian=build_hebbian, pca=build_pca)
 
     else:
         # regular model building
