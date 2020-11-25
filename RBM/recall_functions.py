@@ -15,7 +15,7 @@ def update_site_glauber(state, site, intxn_matrix, urand, beta):
     total_field = np.dot(intxn_matrix[site, :], state)
     prob_on_after_timestep = 1 / (
             1 + np.exp(-2 * beta * total_field))  # probability that site i will be "up" after the timestep
-    if prob_on_after_timestep > urand:
+    if prob_on_after_timestep > urand:            # can rewrite as 1/beta * np.log(1/urand - 1) > - 2 * total_field
         state[site] = 1.0
     else:
         state[site] = -1.0
@@ -36,6 +36,19 @@ def update_state_noise(state, intxn_matrix, beta, sites, async_batch=True):
         state_end = update_site_glauber(state_end, site, intxn_matrix, rsamples[idx], beta)
 
     return state_end
+
+
+def update_state_noise_parallel(state, intxn_matrix, beta):
+    total_field = np.dot(intxn_matrix, state)
+    # probability that site i will be "up" after the timestep
+    prob_on_after_timestep = 1 / (1 + np.exp(-2 * beta * total_field))
+    rsamples = np.random.rand(N)
+    for idx in range(N):
+        if prob_on_after_timestep[idx] > rsamples[idx]:
+            state[idx] = 1.0
+        else:
+            state[idx] = -1.0
+    return state
 
 
 def update_state_deterministic(state, intxn_matrix):

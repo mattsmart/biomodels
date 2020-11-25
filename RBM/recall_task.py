@@ -5,7 +5,8 @@ from random import shuffle, random, sample
 from scipy.linalg import qr
 
 from RBM_train import load_rbm_hopfield
-from recall_functions import update_state_deterministic, update_state_noise, update_site_glauber, hamming, plot_confusion_matrix_recall, build_J_from_xi
+from recall_functions import update_state_deterministic, update_state_noise, update_site_glauber, hamming, \
+    plot_confusion_matrix_recall, build_J_from_xi, update_state_noise_parallel
 from data_process import data_mnist, binarize_image_data, image_data_collapse
 from settings import MNIST_BINARIZATION_CUTOFF
 
@@ -27,27 +28,32 @@ Findings (AIS):
 
 # TODO questions:
 #  - how to define overlap when patterns are non-binary? specifically, meaning of param "CONV_CHECK"
+#  - parallelize updates to run faster?
+#  - run given HN as RBM to sample faster (assumes REMOVE_DIAG = False though)?
+#  - cleaner if we set MAX_STEPS to (effectively) inf sao that the confusion matrix is 10 x 10 (easier to show)
 
 # Globals
 OUTDIR = 'output' + os.sep + 'recall'
 N = 28 ** 2
 P = 10
 NUM_HIDDEN = P
+USE_TEST = True
 
 # Which model to load (and whether to force binarize)
 BASIC_MODEL = False
-EPOCH = 20
-FORCE_BINARIZE_RMAP = True
+EPOCH = 10
+FORCE_BINARIZE_RMAP = False
 
 # Local hyperparameters
+HIJACK_MEASURE = False
 HIJACK_AIS = False
-BETA = None          # None means deterministic
-ENSEMBLE = 10
+BETA = 2.0          # None means deterministic TODO hybridmode flag?
+ENSEMBLE = 20
 REMOVE_DIAG = True  # TODO care remove self interactions or not? customary... improves radius of attraction
-SUBSAMPLE = None
+SUBSAMPLE = 1000
 USE_PROJ = False
-MAX_STEPS = 30
-CONV_CHECK = 0.9
+MAX_STEPS = 102    #100 or 100000
+CONV_CHECK = 0.7
 
 # Sanity checks
 if HIJACK_AIS:
@@ -117,7 +123,10 @@ def converge_datapoint_stochastic(sample_init, patterns_measurement, intxn_matri
             if has_converged:
                 converge_basins[traj] = basin
                 break
-            sample = update_state_noise(sample, intxn_matrix, beta, sites, async_batch=True)
+            ####################################
+            #sample = update_state_noise(sample, intxn_matrix, beta, sites, async_batch=True)
+            sample = update_state_noise_parallel(sample, intxn_matrix, beta)
+            ####################################
         steps_req[traj] = step
 
     return converge_basins, steps_req
@@ -149,12 +158,59 @@ def score_dataset_stochastic(dataset, patterns_measurement, intxn_matrix, beta, 
             #if label != converge_basins[traj]:
             #    print('a %d sample went to' % (label), converge_basins[traj])
 
+        if data_idx % 10 == 0:
+            print('data_idx', data_idx, 'true:', label, 'pred:\n', converge_basins)
+
         # TROUBLESHOOTING OPTIONS
         # >>>>>>>> simple:
         #print(data_idx, label, converge_basins)
         # >>>>>>>> heavy:
-        converge_basin_determ, step = converge_datapoint_deterministic(sample, patterns_measurement, intxn_matrix, nsteps)
-        print(data_idx, 'true:', label, 'determ:', converge_basin_determ, converge_basins)
+        #converge_basin_determ, step = converge_datapoint_deterministic(sample, patterns_measurement, intxn_matrix, nsteps)
+        #print(data_idx, 'true:', label, 'determ:', converge_basin_determ, converge_basins)
+
+    return confusion, required_steps
+
+
+
+def score_dataset_hybrid(dataset, patterns_measurement, intxn_matrix, beta, nsteps=MAX_STEPS, ensemble=10):
+    """
+    Difference vs deterministic/stochastic:
+    - tried deterministic
+    - if -1 (classified as other), then do stochastic
+
+    """
+    token = 1 / float(ensemble)
+    # statistics to gether
+    required_steps = [0] * nsteps
+    confusion = np.zeros((P, P + 1), dtype=float)  #confusion_matrix_10 = np.zeros((10, 10), dtype=int)
+
+    for data_idx, pair in enumerate(dataset):
+        sample = pair[0]
+        label = pair[1]
+
+        sample = sample.reshape(N)
+
+        converge_basin, steps = converge_datapoint_deterministic(sample, patterns_measurement, intxn_matrix, nsteps)
+
+        if converge_basin == -1:
+            for traj in range(ensemble):
+                converge_basins, steps_req = converge_datapoint_stochastic(sample, patterns_measurement, intxn_matrix,
+                                                                           nsteps, beta, ensemble)
+                required_steps[steps_req[traj]] += token
+                confusion[label, converge_basins[traj]] += token
+        else:
+            required_steps[steps] += 1
+            confusion[label, converge_basin] += 1
+
+        if data_idx % 100 == 0:
+            print('data_idx', data_idx, 'true:', label)
+
+        # TROUBLESHOOTING OPTIONS
+        # >>>>>>>> simple:
+        #print(data_idx, label, converge_basins)
+        # >>>>>>>> heavy:
+        #converge_basin_determ, step = converge_datapoint_deterministic(sample, patterns_measurement, intxn_matrix, nsteps)
+        #print(data_idx, 'true:', label, 'determ:', converge_basin_determ, converge_basins)
 
     return confusion, required_steps
 
@@ -197,20 +253,85 @@ if __name__ == '__main__':
     else:
         patterns_measure = patterns.T / float(N)
 
+    if HIJACK_MEASURE:
+        # attempts to rescale the non-binary patterns to obtain a useful thresholding measure for convergence
+        print('Note setting: HIJACK_MEASURE HIJACK_MEASURE HIJACK_MEASURE')
+        assert not BASIC_MODEL
+        assert not FORCE_BINARIZE_RMAP
+
+        if USE_PROJ:
+            # variant of projection measure
+            A = np.dot(unsigned_patterns.T, unsigned_patterns)
+            A_inv = np.linalg.inv(A)
+            patterns_measure_unscaled = np.dot(A_inv, unsigned_patterns.T)
+
+            # scaling so diags are 1 for sigfned patterns
+            scales = np.array([
+                np.dot(patterns_measure_unscaled[mu, :],
+                       patterns[:, mu])
+                for mu in range(NUM_HIDDEN)])
+
+            #patterns_measure = patterns_measure_unscaled                 # pick scaled version
+            patterns_measure = (patterns_measure_unscaled.T / scales).T  # pick UNscaled version
+
+            # projection measure plots
+            plt.imshow(A); plt.colorbar(); plt.show(); plt.close()
+            I_p = np.dot(patterns_measure, patterns)
+            plt.imshow(I_p); plt.colorbar(); plt.show(); plt.close()
+
+        else:
+            # variant of overlap measure
+            scales = np.array([
+                np.dot(unsigned_patterns[:, mu],
+                       patterns[:, mu])
+                for mu in range(NUM_HIDDEN)])
+            patterns_measure = (patterns / scales).T
+            print('scales', scales)
+
+            # overlap plots
+            I_p = np.dot(patterns_measure, unsigned_patterns)
+            plt.imshow(I_p, vmin=0.0, vmax=1.2); plt.colorbar(); plt.show(); plt.close()
+
+            I_p_alt = np.dot(patterns_measure, patterns)
+            plt.imshow(I_p_alt, vmin=0.0, vmax=1.2); plt.colorbar(); plt.show(); plt.close()
+
+            I_p_orig = np.dot(patterns.T / float(N), patterns)
+            plt.imshow(I_p_orig, vmin=0.0, vmax=1.2); plt.colorbar(); plt.show(); plt.close()
+
+        for mu in range(NUM_HIDDEN):
+
+            print('Raw magnitude overlaps (unsigned):', mu)
+            print(np.dot(unsigned_patterns.T, unsigned_patterns[:, mu]))
+
+            print('Raw magnitude overlaps (signed):', mu)
+            print(np.dot(unsigned_patterns.T, patterns[:, mu]))
+
+            print('Measure on signed version:', mu)
+            print(np.dot(patterns_measure, patterns[:, mu]))
+
     ##############################################################
     # LOAD DATASET
     ##############################################################
-    dataset, _ = data_mnist(binarize=True)
+    dataset_train, dataset_test = data_mnist(binarize=True)
+    if USE_TEST:
+        dataset = dataset_test
+    else:
+        dataset = dataset_train
+
     if SUBSAMPLE is not None:
+        subsamplestr = '%d' % SUBSAMPLE
         dataset = dataset[:SUBSAMPLE]  # or randomly, e.g. sample(dataset, SUBSAMPLE)
         num_samples = len(dataset)
     else:
+        subsamplestr = 'Full'
         num_samples = len(dataset)
 
     ##############################################################
     # SCORE DATASET
     ##############################################################
     if HIJACK_AIS:
+        assert (not USE_TEST) and (SUBSAMPLE is None)
+
         from custom_rbm import RBM_gaussian_custom
         from RBM_assess import get_X_y_dataset
         from AIS import get_obj_term_A, manual_AIS
@@ -238,23 +359,27 @@ if __name__ == '__main__':
             cm, required_steps = score_dataset_deterministic(dataset, patterns_measure, intxn_matrix, nsteps=MAX_STEPS)
         else:
             noisestr = '%.2fens%d' % (BETA, ENSEMBLE)
-            cm, required_steps = score_dataset_stochastic(dataset, patterns_measure, intxn_matrix, BETA,
-                                                          nsteps=MAX_STEPS, ensemble=ENSEMBLE)
+            cm, required_steps = score_dataset_hybrid(dataset, patterns_measure, intxn_matrix, BETA,
+                                                      nsteps=MAX_STEPS, ensemble=ENSEMBLE)
 
-        out_local = OUTDIR + os.sep + 'recall_basemodel%d_epoch%d_forceBinarize%d_subsample%d_noise%s_removeDiag%d_nsteps%d_convChk%.2f_projMode%d' % \
-                    (BASIC_MODEL, EPOCH, FORCE_BINARIZE_RMAP, SUBSAMPLE is not None, noisestr, REMOVE_DIAG, MAX_STEPS, CONV_CHECK, USE_PROJ)
+        out_local = OUTDIR + os.sep + 'recall_basemodel%d_epoch%d_forceBinarize%d_sample%s_noise%s_removeDiag%d_nsteps%d_convChk%.2f_projMode%d_test%d' % \
+                    (BASIC_MODEL, EPOCH, FORCE_BINARIZE_RMAP, subsamplestr, noisestr, REMOVE_DIAG, MAX_STEPS, CONV_CHECK, USE_PROJ, USE_TEST)
         if not os.path.exists(out_local): os.makedirs(out_local)
 
         ##############################################################
         # ASSESS
         ##############################################################
+        # save cm
+        fname = out_local + os.sep + 'recall_data.npz'
+        np.savez(fname, cm=cm, reqsteps=required_steps)
         # stats
         matches = sum(cm[i,i] for i in range(P))
         unlabelled = sum(cm[i,-1] for i in range(P))
         score = matches / float(num_samples)
-        title = 'score = %.3f (%d/%d)' % (score, matches, num_samples)
-        subtitle = 'unlabelled = %.3f (%d/%d)' % (unlabelled / float(num_samples), unlabelled, num_samples)
-        title_3 = 'max possible = %.3f' % ((matches + unlabelled) / float(num_samples))
+        title = 'score = %.5f (%d/%d)' % (score, matches, num_samples)
+        subtitle = 'unlabelled = %.5f (%d/%d)' % (unlabelled / float(num_samples), unlabelled, num_samples)
+        title_3 = 'max possible = %.5f (est %.5f)' % ((matches + unlabelled) / float(num_samples),
+                                                      (matches) / float(num_samples - unlabelled))
         print(title); print(subtitle); print(title_3)
         # plots
         plt.bar(range(MAX_STEPS), required_steps, width=0.8)
