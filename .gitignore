@@ -46,11 +46,13 @@ transcriptome_clustering/output/
 oncogenesis_dynamics/figures/
 
 RBM/data/MNIST/
-RBM/models/hopfield_weights.npy
 RBM/output/logZ/
 RBM/output/archive/big_runs/
-RBM/models/poe/
 RBM/output/training/
-RBM/models/saved/hopfield_mnist_*_*
 RBM/output/AIS_testing/
 RBM/output/samples/
+RBM/models/hopfield_weights.npy
+RBM/models/poe/
+RBM/models/saved/hopfield_mnist_*_*
+RBM/output/recall/
+RBM/output/reversemap/
