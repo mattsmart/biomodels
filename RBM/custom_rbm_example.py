@@ -18,18 +18,18 @@ BATCH_SIZE = 100  # default 64
 VISIBLE_UNITS = 784  # 28 x 28 images
 HIDDEN_UNITS = 10  # was 128 but try 10
 CD_K = 20
-EPOCHS = 3  # was 10, or 51
+EPOCHS = 100  # was 10, or 51
 
 LEARNING_RATE = 1*1e-4               # default was 1e-3, new base is 1e-4
 learningrate_schedule = False         # swap from LEARNING_RATE to diff value at specified epoch
 learningrate_schedule_value = 1*1e-4
 learningrate_schedule_epoch = 25
 
-AIS_STEPS = 1000      # 0 or 1000 typically
-AIS_CHAINS = 100      # 100 or 500
+AIS_STEPS = 0 #1000      # 0 or 1000 typically
+AIS_CHAINS = 0 #100      # 100 or 500
 USE_FIELDS = False
-PLOT_WEIGHTS = True
-POINTS_PER_EPOCH = 10
+PLOT_WEIGHTS = False
+POINTS_PER_EPOCH = 1
 
 GAUSSIAN_RBM = True
 if RBM_gaussian_custom:
@@ -60,9 +60,10 @@ def get_classloader(global_dataset, class_name):
         return indices
 
     idx = get_indices(global_dataset)
+    num_class_samples = len(idx)
     loader = torch.utils.data.DataLoader(global_dataset, batch_size=BATCH_SIZE, sampler=torch.utils.data.sampler.SubsetRandomSampler(idx))
 
-    return loader
+    return loader, num_class_samples
 
 
 def custom_RBM_loop(train_loader, train_data_as_arr, hidden_units=HIDDEN_UNITS, init_weights=None,
@@ -94,8 +95,9 @@ def custom_RBM_loop(train_loader, train_data_as_arr, hidden_units=HIDDEN_UNITS, 
     batches_per_epoch = num_samples / BATCH_SIZE
     total_timepoints = points_per_epoch * epochs + 1
     iterations_per_pt = batches_per_epoch / points_per_epoch
-    assert num_samples % BATCH_SIZE == 0
-    assert batches_per_epoch % points_per_epoch == 0
+    if POINTS_PER_EPOCH != 1:
+        assert num_samples % BATCH_SIZE == 0
+        assert batches_per_epoch % points_per_epoch == 0
     print("epochs:", epochs)
     print("num_samples:", num_samples)
     print("batches_per_epoch:", batches_per_epoch)
@@ -119,16 +121,35 @@ def custom_RBM_loop(train_loader, train_data_as_arr, hidden_units=HIDDEN_UNITS, 
     obj_logP_termA = np.zeros(total_timepoints)
     obj_logP_termB = np.zeros(total_timepoints)
 
-    if AIS_STEPS > 0:
-        obj_logP_termA[0] = get_obj_term_A(train_data_as_arr, rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta)
-        print('Estimating log Z...')
-        obj_logP_termB[0], _ = manual_AIS(rbm, beta, nchains=AIS_CHAINS, nsteps=AIS_STEPS, CDK=1, joint_mode=True)
 
-    print('INIT obj - A:', obj_logP_termA[0], '| Log Z:', obj_logP_termB[0], '| Score:',
-          obj_logP_termA[0] - obj_logP_termB[0])
+    def loop_updates(iteration_idx, iteration_counter, epoch_recon_error=None):
+        if PLOT_WEIGHTS:
+            rbm.plot_model(title='iteration_%d' % (iteration_counter), outdir=trainingdir)
+
+        if epoch_recon_error is not None:
+            print('Epoch (Reconstruction) Error (epoch=%d) (iteration_idx:%d): %.4f' % (
+                epoch + 1, iteration_idx, epoch_recon_error))
+            obj_reconstruction[iteration_idx - 1] = epoch_recon_error
+
+        if AIS_STEPS > 0:
+            obj_logP_termA[iteration_idx] = get_obj_term_A(train_data_as_arr, rbm.weights, rbm.visible_bias,
+                                                           rbm.hidden_bias, beta=beta)
+            print('Estimating log Z...', )
+            obj_logP_termB[iteration_idx], _ = manual_AIS(rbm, beta, nchains=AIS_CHAINS, nsteps=AIS_STEPS, CDK=1,
+                                                          joint_mode=True)
+        # save parameters each epoch
+        weights_timeseries[:, :, iteration_idx] = rbm.weights.numpy()
+        if use_fields:
+            visible_bias_timeseries[:, iteration_idx] = rbm.visible_bias.numpy()
+            hidden_bias_timeseries[:, iteration_idx] = rbm.hidden_bias.numpy()
+
+        print('Term A:', obj_logP_termA[iteration_idx],
+              '| Log Z:', obj_logP_termB[iteration_idx],
+              '| Score:', obj_logP_termA[iteration_idx] - obj_logP_termB[iteration_idx])
+
+    loop_updates(0, 0)
 
     print('Training RBM...')
-
     iteration_counter = 0
     for epoch in range(epochs):
         if epoch == learningrate_schedule_epoch and learningrate_schedule:
@@ -144,29 +165,14 @@ def custom_RBM_loop(train_loader, train_data_as_arr, hidden_units=HIDDEN_UNITS, 
             batch_recon_error = rbm.contrastive_divergence(batch)
             epoch_recon_error += batch_recon_error
 
-            if iteration_counter % iterations_per_pt == 0:
-                iteration_idx = int(iteration_counter / iterations_per_pt)
+            if POINTS_PER_EPOCH != 1:
+                if iteration_counter % iterations_per_pt == 0:
+                    iteration_idx = int(iteration_counter / iterations_per_pt)
+                    loop_updates(iteration_idx, iteration_counter, epoch_recon_error=epoch_recon_error)
 
-                if PLOT_WEIGHTS:
-                    rbm.plot_model(title='iteration_%d' % (iteration_counter), outdir=trainingdir)
-
-                print('Epoch (Reconstruction) Error (epoch=%d) (iteration_idx:%d): %.4f' % (epoch + 1, iteration_idx, epoch_recon_error))
-                obj_reconstruction[iteration_idx - 1] = epoch_recon_error
-                if AIS_STEPS > 0:
-                    obj_logP_termA[iteration_idx] = get_obj_term_A(train_data_as_arr, rbm.weights, rbm.visible_bias, rbm.hidden_bias, beta=beta)
-                    print('Estimating log Z...', )
-                    obj_logP_termB[iteration_idx], _ = manual_AIS(rbm, beta, nchains=AIS_CHAINS, nsteps=AIS_STEPS, CDK=1, joint_mode=True)
-
-                # save parameters each epoch
-                weights_timeseries[:, :, iteration_idx] = rbm.weights.numpy()
-                if use_fields:
-                    visible_bias_timeseries[:, iteration_idx] = rbm.visible_bias.numpy()
-                    hidden_bias_timeseries[:, iteration_idx] = rbm.hidden_bias.numpy()
-
-                print('Term A:', obj_logP_termA[iteration_idx],
-                      '| Log Z:', obj_logP_termB[iteration_idx],
-                      '| Score:', obj_logP_termA[iteration_idx] - obj_logP_termB[iteration_idx])
-
+        if POINTS_PER_EPOCH == 1:
+            iteration_idx = epoch + 1
+            loop_updates(iteration_idx, iteration_counter, epoch_recon_error=epoch_recon_error)
 
     score_arr = obj_logP_termA - obj_logP_termB
 
@@ -184,8 +190,11 @@ def custom_RBM_loop(train_loader, train_data_as_arr, hidden_units=HIDDEN_UNITS, 
              termA=obj_logP_termA,
              logZ=obj_logP_termB,
              score=score_arr)
+
     fpath = scoredir + os.sep + 'weights_%s' % title_mod
-    np.savez(fpath, epochs=range(epochs + 1), weights=weights_timeseries)
+    np.savez(fpath,
+             epochs=range(epochs + 1),
+             weights=weights_timeseries)  #TODO add iterations arr
     if use_fields:
         np.savez(scoredir + os.sep + 'visiblefield_%s' % title_mod,
                  epochs=range(epochs + 1),
@@ -274,7 +283,7 @@ def classify_with_rbm_hidden(rbm, train_dataset, train_loader, test_dataset, tes
     return
 
 
-def classifier_on_poe_scores(models, dataset_train, dataset_test, outpath, clfs=None, beta=2.0):
+def classifier_on_poe_scores(models, dataset_train, dataset_test, outpath, clfs=None, beta=2.0, plot=False):
     """
     models: dict of idx: rbm for idx in {0, ..., 9} i.e. the experts on each digit class
     clfs: list of classifiers
@@ -333,8 +342,9 @@ def classifier_on_poe_scores(models, dataset_train, dataset_test, outpath, clfs=
         cms[idx] = confusion_matrix
         accs[idx] = acc
         title = "Successful test cases: %d/%d (%.3f)" % (matches.count(True), len(matches), acc)
-        cm = plot_confusion_matrix(confusion_matrix, title=title, save=outpath)
-        plt.close()
+        if plot:
+            cm = plot_confusion_matrix(confusion_matrix, title=title, save=outpath)
+            plt.close()
         print(title)
     return cms, accs
 
@@ -348,7 +358,7 @@ if __name__ == '__main__':
     test_data_loader = False
 
     num_runs = 5
-    hopfield_runs = True
+    hopfield_runs = False
     random_runs = False
     restart_random_runs = False
 
@@ -356,7 +366,7 @@ if __name__ == '__main__':
     load_weights = False
 
     poe_mode_train = False
-    poe_mode_classify = False
+    poe_mode_classify = True
     # TODO print settings file for each run
 
     rescore_ais_trained_rbms = False
@@ -476,76 +486,114 @@ if __name__ == '__main__':
         # TODO X_for_digit make (will be called if AIS steps > 0 ) -- second arg to custom_RBM_loop()
         # TODO beta in scoring
         use_hopfield = True
-        k_range = [10, 20, 100, 200, 500, 250, 300]
-        loader_dict = {idx: get_classloader(train_dataset, idx) for idx in range(10)}
+        k_range = [10, 20, 100] #, 200, 500, 250, 300]
+        runs = 3
 
-        for k in k_range:
-            print("Training POE for k=%d" % k)
-            for digit in range(10):
-                print("Training POE for k=%d (digit: %d)" % (k, digit))
-                dir_modifier = '%ddigit_%dhidden_%dfields_%.2fbeta_%dbatch_%depochs_%dcdk_%.2Eeta_%dais' % \
-                               (digit, k, USE_FIELDS, BETA, BATCH_SIZE, EPOCHS, CD_K, LEARNING_RATE, AIS_STEPS)
-                if use_hopfield:
-                    outdir = bigruns + os.sep + 'poe' + os.sep + 'poe_hopfield_%s' % dir_modifier
-                    rundir = outdir
-                    # load hopfield weights
-                    npzpath = DIR_MODELS + os.sep + 'poe' + os.sep + 'hopfield_digit%d_p%d.npz' % (digit, 10*k)
-                    print("Loading weights from %s" % npzpath)
-                    arr = np.load(npzpath)['Q']
-                    init_weights = torch.from_numpy(arr).float()
+        HEBBIAN = False
+        PCA = True
+        MOD_SVD = False
+        MOD_SQRT = False
+        if HEBBIAN:
+            hmod = '_hebbian'
+            assert not PCA
+        elif PCA:
+            hmod = '_PCA'
+        else:
+            hmod = ''
 
-                    custom_RBM_loop(loader_dict[digit], None, hidden_units=k, init_weights=init_weights, outdir=rundir, classify=False)
-                else:
-                    outdir = bigruns + os.sep + 'poe' + os.sep + 'poe_normal_%s' % dir_modifier
-                    rundir = outdir
-                    custom_RBM_loop(loader_dict[digit], None, hidden_units=k, init_weights=None, outdir=rundir, classify=False)
+        loader_dict = {idx: get_classloader(train_dataset, idx)[0] for idx in range(10)}
+        loader_num_samples_dict = {idx: get_classloader(train_dataset, idx)[1] for idx in range(10)}
+
+        for idx in range(runs):
+            for k in k_range:
+                print("Training POE for k=%d" % k)
+                for digit in range(10):
+                    print("Training POE for k=%d (digit: %d)" % (k, digit))
+                    dir_modifier = '%ddigit_%dhidden_%dfields_%.2fbeta_%dbatch_%depochs_%dcdk_%.2Eeta_%dais' % \
+                                   (digit, k, USE_FIELDS, BETA, BATCH_SIZE, EPOCHS, CD_K, LEARNING_RATE, AIS_STEPS)
+
+                    fake_empty_data = np.zeros((loader_num_samples_dict[digit], 28**2))
+
+                    if use_hopfield:
+                        outdir = bigruns + os.sep + 'poe' + os.sep + 'run%d' % idx + os.sep + \
+                                 'poe_hopfield%s_%s' % (hmod, dir_modifier)
+                        rundir = outdir
+                        # load hopfield weights
+                        npzpath = DIR_MODELS + os.sep + 'poe' + os.sep + 'hopfield_digit%d_p%d%s.npz' % (digit, 10*k, hmod)
+                        print("Loading weights from %s" % npzpath)
+                        arr = np.load(npzpath)['Q']
+                        init_weights = torch.from_numpy(arr).float()
+
+                        custom_RBM_loop(loader_dict[digit], fake_empty_data, hidden_units=k, init_weights=init_weights.clone(), outdir=rundir, classify=False)
+                    else:
+                        outdir = bigruns + os.sep + 'poe' + os.sep + 'run%d' % idx + os.sep + \
+                                 'poe_normal_%s' % dir_modifier
+                        rundir = outdir
+                        custom_RBM_loop(loader_dict[digit], fake_empty_data, hidden_units=k, init_weights=None, outdir=rundir, classify=False)
 
     if poe_mode_classify:
         init_weights_type = 'hopfield'  # hopfield or normal
-        k_range = [10, 20, 100, 200, 250, 300, 500]  # range(1, 110)  # 110
-        epochs = [0, 1, 2, 3, 4] + list(range(5, 51, 5))
-        run = 2  # TODO care
+
+        HEBBIAN = False
+        PCA = False
+        if HEBBIAN:
+            assert init_weights_type == 'hopfield'
+            assert not PCA
+            init_weights_type += '_hebbian'
+        elif PCA:
+            assert init_weights_type == 'hopfield'
+            init_weights_type += '_PCA'
+        else:
+            hmod = ''
+
+        k_range = [10, 20, 100]    #, 200, 250, 300, 500]  # range(1, 110)  # 110
+        epochs = [0, 1, 2, 3, 4] + list(range(5, 101, 5))
+        runs = [2] # [0,1,2]          # TODO care
         accs = np.zeros((len(epochs), len(k_range)))
 
-        for epoch_idx, epoch in enumerate(epochs):
-            for k_idx, k in enumerate(k_range):
-                print('epoch, k:', epoch, k)
-                hidden_units = k
-                dir_modifier = '0fields_2.00beta_100batch_50epochs_%dcdk_1.00E-04eta_0ais' % (CD_K)
-                models10 = {}
-                for digit in range(10):
-                    rbm_digit = RBM(VISIBLE_UNITS, hidden_units, 0, init_weights=None, use_fields=False, learning_rate=0)
-                    # load weights for given epoch
-                    run_dir = bigruns + os.sep + 'poe' + os.sep + '%s' % init_weights_type + os.sep + 'run%d' % run
-                    npzpdir = run_dir + os.sep + \
-                              'poe_%s_%ddigit_%dhidden_%s' % (init_weights_type, digit, hidden_units, dir_modifier)
-                    weights_path = npzpdir + os.sep + 'weights_%dhidden_0fields_%dcdk_0stepsAIS_2.00beta.npz' % (hidden_units, CD_K)
-                    arr = np.load(weights_path)['weights'][:, :, epoch]
-                    rbm_digit.weights = torch.from_numpy(arr).float()
-                    # set as model for that digit
-                    models10[digit] = rbm_digit
-                fpath = DIR_OUTPUT + os.sep + 'training' + os.sep + 'cm_%s_k%d_epoch%d.jpg' % (init_weights_type, k, epoch)
-                cm_list, acc_list = classifier_on_poe_scores(models10, TRAINING, TESTING, fpath, clfs=None, beta=2.0)
-                accs[epoch_idx, k_idx] = acc_list[0]
-        # save data
-        fpath = DIR_OUTPUT + os.sep + 'training' + os.sep + 'poe_%s_scores_kNum%d_epochsNum%d.npz' % (init_weights_type, len(k_range), len(epochs))
-        np.savez(fpath, accs_epoch_by_k=accs, epochs=epochs, k_range=k_range)
-        print(accs)
-        # plot data
-        plt.figure()
-        error_pct = 100 * (1 - accs)
-        for idx, epoch in enumerate(epochs):
-            plt.plot(k_range, error_pct[idx, :], label='Epoch: %d' % epoch)
-        plt.xlabel(r'$k$')
-        plt.ylabel('Error')
-        plt.legend()
-        plt.savefig(DIR_OUTPUT + os.sep + 'training' + os.sep + 'score_vs_k%d_vs_epoch%d.jpg' % (len(k_range), len(epochs)))
-        plt.show()
-        # TODO check if hinton use logreg or SVM
-        # TODO increase max iter to remove warning: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
-        #   "the coef_ did not converge", ConvergenceWarning)
-        # TODO more epochs on whichever k worked best? depends on how the error scales with epoch at large k
-        # TODO compare vs normal dist (note this run of 20epochs x 110 k values was ~11GB)
+        for run in runs:
+            for epoch_idx, epoch in enumerate(epochs):
+                for k_idx, k in enumerate(k_range):
+                    print('epoch, k:', epoch, k)
+                    hidden_units = k
+                    dir_modifier = '0fields_2.00beta_100batch_100epochs_%dcdk_1.00E-04eta_0ais' % (CD_K)
+                    models10 = {}
+                    for digit in range(10):
+                        rbm_digit = RBM(VISIBLE_UNITS, hidden_units, 0, init_weights=None, use_fields=False, learning_rate=0)
+                        # load weights for given epoch
+                        run_dir = bigruns + os.sep + 'poe' + os.sep + '%s' % init_weights_type + os.sep + 'run%d' % run
+                        npzpdir = run_dir + os.sep + \
+                                  'poe_%s_%ddigit_%dhidden_%s' % (init_weights_type, digit, hidden_units, dir_modifier)
+                        weights_path = npzpdir + os.sep + 'weights_%dhidden_0fields_%dcdk_0stepsAIS_2.00beta.npz' % (hidden_units, CD_K)
+                        arr = np.load(weights_path)['weights'][:, :, epoch]
+                        rbm_digit.weights = torch.from_numpy(arr).float()
+                        # set as model for that digit
+                        models10[digit] = rbm_digit
+                    fpath = DIR_OUTPUT + os.sep + 'training' + os.sep + 'cm_%s_k%d_epoch%d.jpg' % (init_weights_type, k, epoch)
+                    cm_list, acc_list = classifier_on_poe_scores(models10, TRAINING, TESTING, fpath, clfs=None, beta=2.0, plot=False)
+                    accs[epoch_idx, k_idx] = acc_list[0]
+
+            # save data
+            fpath = DIR_OUTPUT + os.sep + 'training' + os.sep + 'poe_scores_kNum%d_epochsNum%d_%s%d.npz' % \
+                    (len(k_range), len(epochs), init_weights_type, run)
+            np.savez(fpath, accs_epoch_by_k=accs, epochs=epochs, k_range=k_range)
+            print(accs)
+            # plot data
+            plt.figure()
+            error_pct = 100 * (1 - accs)
+            for idx, epoch in enumerate(epochs):
+                plt.plot(k_range, error_pct[idx, :], label='Epoch: %d' % epoch)
+            plt.xlabel(r'$k$')
+            plt.ylabel('Error')
+            plt.legend()
+            plt.savefig(DIR_OUTPUT + os.sep + 'training' + os.sep + 'score_vs_k%d_vs_epoch%d_%s%d.jpg' %
+                        (len(k_range), len(epochs), init_weights_type, run))
+            plt.show()
+            # TODO check if hinton use logreg or SVM
+            # TODO increase max iter to remove warning: ConvergenceWarning: The max_iter was reached which means the coef_ did not converge
+            #   "the coef_ did not converge", ConvergenceWarning)
+            # TODO more epochs on whichever k worked best? depends on how the error scales with epoch at large k
+            # TODO compare vs normal dist (note this run of 20epochs x 110 k values was ~11GB)
 
     if rescore_ais_trained_rbms:
 
@@ -570,13 +618,13 @@ if __name__ == '__main__':
         X, _ = get_X_y_dataset(training_subsample, dim_visible=28 ** 2, binarize=True)
 
         # prep models to load
-        epoch_list = list(range(0, 52))
+        epoch_list = list(range(0, 51))  #71
         VISIBLE_UNITS = 28 ** 2
         hidden_units = 50
         CD_K = 20
         bigruns = DIR_OUTPUT + os.sep + 'archive' + os.sep + 'big_runs' + os.sep + 'rbm'
-        model_dir = 'normal_%dhidden_0fields_2.00beta_100batch_51epochs_20cdk_2.00E-04eta_0ais' % hidden_units
-        model_runs = [0,1] #[0, 1, 2, 3, 4]
+        model_dir = 'hopfield_PCA_%dhidden_0fields_2.00beta_100batch_50epochs_20cdk_1.00E-04eta_0ais_1ppEpoch' % hidden_units
+        model_runs = [2,3,4] #[0,1,2,3,4]  #[0, 1, 2, 3, 4]
         model_paths = [
             bigruns + os.sep + model_dir + os.sep + 'run%d' % a + os.sep +
             'weights_%dhidden_0fields_20cdk_0stepsAIS_2.00beta.npz' % hidden_units
