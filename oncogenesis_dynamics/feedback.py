@@ -2,10 +2,19 @@
 # shapes of feedback assigned in params.py used for the dynamics
 # TODO implement relu/pwLinear (fewer params than slope, start, end)
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 from constants import HILLORIG_Z0_RATIO, HILL_EXP, MULT_INC, MULT_DEC, SWITCHING_RATIO
+
+
+latex = False
+if latex:
+    mpl.rcParams["text.usetex"] = True
+    mpl.rcParams["text.latex.preamble"] = [r'\usepackage{bm}', r'\usepackage{amsmath}']
+    print(mpl.rcParams["text.usetex"])
 
 
 def hill_orig_increase(param_to_modify, coord, N, hill_exp=HILL_EXP, hill_ratio=HILLORIG_Z0_RATIO):
@@ -174,5 +183,52 @@ def plot_all_feedbacks():
     return
 
 
+def plot_specific_feedbacks():
+
+    N = 1
+    xarr = np.linspace(0, N, 100)
+
+    def h(u, n, r):
+        return u ** n / (r ** n + u ** n)
+
+    def g(u, beta, r):
+        val = tanh_unit(u, rate=beta, switchpoint=r)
+        return val
+
+    order_to_plot = ['g0', 'h4', 'h2', 'h1']
+    curves_to_plot = {'h1':
+                          {'label': r'$h(z), n=1$', 'x': xarr, 'c': '#78C5EF', 'ls': '-',
+                           'y': h(xarr, 1, 0.5)},
+                      'h2':
+                          {'label': r'$h(z), n=2$', 'x': xarr, 'c': '#51A0D5', 'ls': '-',
+                           'y': h(xarr, 2, 0.5)},
+                      'h4':
+                          {'label': r'$h(z), n=4$', 'x': xarr, 'c': '#2C528C', 'ls': '-',
+                           'y': h(xarr, 4, 0.5)},
+                      'g0':
+                          {'label': r'$g(z)$', 'x': xarr, 'c': 'k', 'ls': '--',
+                           'y': g(xarr, 5, 0.5)}
+                      }
+
+    # plot settings
+    plt.figure(figsize=(0.95*3.6, 0.95*3))  # 4,3
+    #x_label = 'z-fraction of microenvironment (z/N)'
+    x_label = '$\it{z}$-fraction of microenvironment $\it{(z/N)}$'
+    y_label = '$\it{h(z)}$'
+    for k in order_to_plot[::-1]:
+        v = curves_to_plot[k]
+        plt.plot(v['x'], v['y'], label=v['label'], c=v['c'], ls=v['ls'])
+        #plt.title('Feedback: %s' % feedback_labels[idx])
+    plt.xlabel(x_label)
+    plt.ylabel(y_label)
+    plt.legend()
+    #plt.show()
+    plt.tight_layout()
+    plt.savefig('output' + os.sep + 'feedbacks_specific.pdf')
+
+    return
+
+
 if __name__ == '__main__':
-    plot_all_feedbacks()
+    #plot_all_feedbacks()
+    plot_specific_feedbacks()
