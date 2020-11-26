@@ -7,7 +7,8 @@ from params import Params
 VALID_PRESET_LABELS = ["preset_xyz_constant", "preset_xyz_constant_fast", "preset_xyz_hillorig",
                        "preset_xyz_hill", "preset_xyz_hill_onlyinc", "preset_xyz_hill_onlydec",
                        "preset_xyz_tanh", "preset_xyz_tanh_onlyinc", "preset_xyz_tanh_onlydec",
-                       "valley_2hit", "BL1g", "BL100g", "TR1g", "TR100g"]
+                       "valley_2hit", "BL1g", "BL100g", "TR1g", "TR100g",
+                       "preset_xyz_step"]
 
 
 def presets(preset_label):
@@ -105,6 +106,10 @@ def presets(preset_label):
     elif preset_label == "preset_xyz_tanh_onlydec":
         params = presets("preset_xyz_tanh")
         params = params.mod_copy({'mult_inc': 1.0})  # setting mult params to 1.0 means no feedback
+
+    elif preset_label == "preset_xyz_step":
+        params = presets("preset_xyz_hill")
+        params = params.mod_copy({}, feedback='step')
 
     elif preset_label == "valley_2hit":
         # param comparison: Fig 5a fisher 2009 theor pop bio

@@ -279,18 +279,13 @@ if __name__ == "__main__":
     run_generate = True
     run_load = False
 
-    # SCRIPT PARAMETERS
-    num_steps = 100000  # default 100000
-    ensemble = 5  # default 100
-
     # DYNAMICS PARAMETERS
     system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
     feedback = "hill"              # "constant", "hill", "step", "pwlinear"
-    mu = 1e-3
     params_dict = {
         'alpha_plus': 0.2,
         'alpha_minus': 0.5,  # 0.5
-        'mu': 0.001,  # 0.01
+        'mu': 0.0001,  # 0.01
         'a': 1.0,
         'b': 0.8,
         'c': 0.6,  # 1.2
@@ -304,14 +299,14 @@ if __name__ == "__main__":
     }
     params = Params(params_dict, system, feedback=feedback)
 
-    param_1_name = "mu"
-    param_1_start = 0.0
-    param_1_stop = 0.01
-    param_1_steps = 40
+    param_1_name = "b"
+    param_1_start = 0.3
+    param_1_stop = 2.0
+    param_1_steps = 50
     param_1_range = np.linspace(param_1_start, param_1_stop, param_1_steps)
     param_2_name = "c"
-    param_2_start = 0.8  # 1.1 #0.7
-    param_2_stop = 0.9  # 1.3 #0.95
+    param_2_start = 0.3  # 1.1 #0.7
+    param_2_stop = 2.0  # 1.3 #0.95
     param_2_steps = 50
     param_2_range = np.linspace(param_2_start, param_2_stop, param_2_steps)
 

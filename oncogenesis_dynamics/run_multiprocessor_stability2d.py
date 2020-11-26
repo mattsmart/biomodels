@@ -30,11 +30,11 @@ param_2_steps = 1*30
 param_2_range = np.linspace(param_2_start, param_2_stop, param_2_steps)
 #param_2_range = np.logspace(np.log10(param_2_start), np.log10(param_2_stop), param_2_steps)
 """
-param_2_name = "mu"
-param_2_start = -5 #0.7
-param_2_stop = 1  #0.95
-param_2_steps = 1*30
-param_2_range = np.logspace(param_2_start, param_2_stop, param_2_steps)
+param_2_name = "c"
+param_2_start = 0.2  #0.7
+param_2_stop = 2.0  #0.95
+param_2_steps = 4*36
+param_2_range = np.linspace(param_2_start, param_2_stop, param_2_steps)
 
 data_id = "gapdist"  # gapdist or fpcount
 flag_physicalfp = True
@@ -59,6 +59,7 @@ else:
 pool_fn = data_fn
 def pool_fn_wrapper(fn_args_dict):
     return pool_fn(*fn_args_dict['args'], **fn_args_dict['kwargs'])
+
 
 if __name__ == "__main__":
     fn_args_dict = [0]*NUM_PROCESSES

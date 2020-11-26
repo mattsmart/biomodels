@@ -57,7 +57,7 @@ def figure_2d_gapdist(gap_data_2d, params_general, param_1_name, param_1_range, 
     N = params_general.N
     gap_data_2d = gap_data_2d / float(N)
     # plot image
-    plt.figure(figsize=(4,4))
+    plt.figure(figsize=(5,4))
     if custom_axis:
         plt.imshow(gap_data_2d, cmap=xyz_cmap_gradient, interpolation="none", origin='lower', aspect=1.1)#, extent=[param_2_range[0], param_2_range[-1], param_1_range[0], param_1_range[-1]])
     else:
@@ -156,17 +156,19 @@ if __name__ == "__main__":
 
     # loaf data
     if gapdist:
-        figdir = basedir + os.sep + "figS2" + os.sep + "alphaminus_vs_gamma_BL_10ap_lowMu"
-        row_name = 'alpha_minus'     # aka param 2 is row
-        col_name = 'gamma'  # aka param 1 is col
+        figdir = basedir + os.sep + "figS3" + os.sep + "b_vs_c_HILLorig_gamma4_n1_hd"
+        row_name = 'c'     # aka param 2 is row
+        col_name = 'b'     # aka param 1 is col
         datapath = figdir + os.sep + "gapdist2d_full.txt"
         rowpath = figdir + os.sep + "gapdist2d_full_%s.txt" % row_name
         colpath = figdir + os.sep + "gapdist2d_full_%s.txt" % col_name
         paramsname = "gapdist2d_full_params.csv"
 
         gap_data_2d, param_2_range, param_1_range = read_matrix_data_and_idx_vals(datapath, rowpath, colpath)
-        param_1_name = r'$\gamma$'
-        param_2_name = r'$\alpha_-^0$'
+        param_1_name = r'$b$'
+        param_2_name = r'$c$'
+        #param_1_name = r'$\gamma$'
+        #param_2_name = r'$\alpha_-^0$'
         params_general = read_params(figdir, paramsname)
         print params_general
         # truncate block

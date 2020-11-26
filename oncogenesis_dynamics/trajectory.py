@@ -249,7 +249,7 @@ def get_centermanifold_traj(params, norm=False, force_region_1=False, force_regi
 
 if __name__ == "__main__":
     # MAIN RUN OPTIONS
-    run_singletraj = False
+    run_singletraj = True
     run_conserved = False
     plot_options_traj = plot_options_build(flag_table=True, flag_show=True, flag_save=True, plt_save="trajectory")
     run_multitraj = False
@@ -259,27 +259,28 @@ if __name__ == "__main__":
     run_multiphaseportrait = False
     plot_options_mulyitrajportrait = plot_options_build(flag_table=True, flag_show=True, flag_save=True,
                                                    plt_save="trajportrait")
-    get_slowmanifold_curves = True
+    get_slowmanifold_curves = False
     N_vary_stochplots = False
 
     # PLOTTING OPTIONS
-    sim_method = "libcall"
+    sim_method = "libcall"  # libcall, rk4, euler, gillespie
     num_steps = NUM_STEPS
+    T_END = 200
     basins_flag = False
 
     # DYNAMICS PARAMETERS
-    preset = None#'BL1g'
+    preset = None  #'BL1g'
 
     if preset is None:
         system = "feedback_z"  # "default", "feedback_z", "feedback_yz", "feedback_mu_XZ_model", "feedback_XYZZprime"
-        feedback = "tanh"      # "constant", "hill", "step", "pwlinear"
+        feedback = "step"      # "constant", "hill", "step", "pwlinear", "tanh"
         params_dict = {
             'alpha_plus': 0.2,
             'alpha_minus': 1.0,  # 0.5
             'mu': 0.0001,  # 0.01
             'a': 1.0,
-            'b': 0.8,
-            'c': 0.9,
+            'b': 1.2,
+            'c': 1.1,
             'N': 100.0,  # 100.0
             'v_x': 0.0,
             'v_y': 0.0,
@@ -304,7 +305,7 @@ if __name__ == "__main__":
 
     if run_singletraj:
 
-        r, times = trajectory_simulate(params, init_cond=init_cond, t1=200, num_steps=num_steps,
+        r, times = trajectory_simulate(params, init_cond=init_cond, t1=T_END, num_steps=num_steps,
                                        sim_method=sim_method)
         ax_traj = plot_trajectory(r, times, params, fig_traj=None, **plot_options_traj)
         ax_mono_x = plot_trajectory_mono(r, times, params, mono="x", **plot_options_traj)
@@ -324,7 +325,7 @@ if __name__ == "__main__":
             trajectory_simulate(params_step, init_cond=init_cond, t1=2000, **plot_options_multitraj)
 
     if run_phaseportrait:
-        phase_portrait(params, num_traj=70, show_flag=True, basins_flag=False, **plot_options_trajportrait)
+        phase_portrait(params, num_traj=70, show_flag=True, basins_flag=True, **plot_options_trajportrait)
 
     if run_multiphaseportrait:
         param_vary_name = 'c'
@@ -381,7 +382,8 @@ if __name__ == "__main__":
         assert 1==2
 
         # check vector field values along the SM (confirm that xdot = 0 along it)
-        xdot_arr = np.array([params.ode_system_vector( (1.0 - y_arr[idx] - z_arr[idx], y_arr[idx], z_arr[idx]), None) for idx in xrange(len(z_arr))])
+        xdot_arr = np.array([params.ode_system_vector( (1.0 - y_arr[idx] - z_arr[idx], y_arr[idx], z_arr[idx]), None)
+                             for idx in xrange(len(z_arr))])
         plt.plot(z_arr, xdot_arr[:,0], '--b', label=r'$\dot x(z)$')
         plt.plot(z_arr, xdot_arr[:,1], '--g', label=r'$\dot y(z)$')
         plt.plot(z_arr, xdot_arr[:,2], '--k', label=r'$\dot z(z)$')
