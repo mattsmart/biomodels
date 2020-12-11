@@ -66,7 +66,7 @@ LABEL = 'ferro'
 assert LABEL in curated.keys()
 
 refine_W = True
-random_W = False
+random_W = True
 if refine_W:
     # manually refine the W matrix of the chosen scheme
     Ntot = curated[LABEL]['XI'].shape[0]
