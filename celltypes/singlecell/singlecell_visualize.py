@@ -14,7 +14,7 @@ from singlecell_functions import label_to_state, state_to_label, hamiltonian, ch
 def plot_as_bar(projection_vec, memory_labels, alpha=1.0):
     fig = plt.figure(1)
     fig.set_size_inches(18.5, 10.5)
-    h = plt.bar(xrange(len(memory_labels)), projection_vec, label=memory_labels, alpha=alpha)
+    h = plt.bar(range(len(memory_labels)), projection_vec, label=memory_labels, alpha=alpha)
     plt.subplots_adjust(bottom=0.3)
     xticks_pos = [0.65 * patch.get_width() + patch.get_xy()[0] for patch in h]
     plt.xticks(xticks_pos, memory_labels, ha='right', rotation=45, size=7)

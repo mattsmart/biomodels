@@ -10,6 +10,7 @@ from singlecell.singlecell_class import Cell
 from singlecell.singlecell_data_io import run_subdir_setup, runinfo_append
 from singlecell.singlecell_simsetup import singlecell_simsetup # N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS, GENE_ID
 from utils.make_video import make_video_ffmpeg
+from functools import reduce
 
 
 def build_lattice_memories(simsetup, M):

@@ -5,7 +5,7 @@ import init_multiprocessing
 # LIBRARY GLOBAL MODS
 CELLTYPES = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(CELLTYPES)
-print "Appended to sys path", CELLTYPES  # TODO can maybe move this too simetup fn call and call once somewhere else...
+print("Appended to sys path", CELLTYPES)  # TODO can maybe move this too simetup fn call and call once somewhere else...
 
 # IO
 SINGLECELL = CELLTYPES + os.sep + "singlecell"

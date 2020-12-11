@@ -1,17 +1,18 @@
 import numpy as np
 
 from singlecell_constants import J_RANDOM_DELETE_RATIO, HOLLOW_INTXN_MATRIX
+from functools import reduce
 
 
 def memory_corr_matrix_and_inv(xi, check_invertible=False):
     if check_invertible:
-        print xi.shape, np.linalg.matrix_rank(xi)  # expect rank = p (num memories) for invertibility
+        print(xi.shape, np.linalg.matrix_rank(xi))  # expect rank = p (num memories) for invertibility
     corr_matrix = np.dot(xi.T, xi) / float(xi.shape[0])
     return corr_matrix, np.linalg.inv(corr_matrix)
 
 
 def interaction_matrix(xi, corr_inv, method, flag_prune_intxn_matrix=False, hollow=HOLLOW_INTXN_MATRIX):
-    print "Note network method for interaction_matrix() is %s" % method
+    print("Note network method for interaction_matrix() is %s" % method)
     if method == "hopfield":
         intxn_matrix = np.dot(xi, xi.T) / float(xi.shape[0])
     elif method == "projection":

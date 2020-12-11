@@ -1,7 +1,7 @@
 import numpy as np
 
 
-N_FERRO = 5
+N_FERRO = 6
 
 curated = {
     'mutual_inhibition':

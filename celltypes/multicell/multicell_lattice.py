@@ -144,7 +144,7 @@ def printer_labels(lattice):
         for j in range(n):
             state = lattice[i][j].get_current_state()
             label = state_to_label(tuple(state))
-            print(label, " | ", end=' ')
+            print(label, " | ",)
         print()
 
 

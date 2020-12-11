@@ -10,7 +10,7 @@ def set_deep_threads():
                          64: "1",   # for workstation
                          80: "1"}   # for cluster
     threads_int = threads_optimized[system_threads]
-    print "init_multiprocessing.py - Setting os.environ['OPENBLAS_NUM_THREADS'] (and others) to", threads_int
+    print("init_multiprocessing.py - Setting os.environ['OPENBLAS_NUM_THREADS'] (and others) to", threads_int)
     os.environ['MKL_NUM_THREADS'] = threads_int
     os.environ["OMP_NUM_THREADS"] = threads_int
     os.environ["NUMEXPR_NUM_THREADS"] = threads_int

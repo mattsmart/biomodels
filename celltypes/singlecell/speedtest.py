@@ -18,7 +18,7 @@ from multiprocessing import Pool
 
 
 def foo_inner(A, b, n):
-    for i in xrange(n):
+    for i in range(n):
         prod = np.dot(A, b)
     return prod
 
@@ -31,20 +31,20 @@ def foo_multiproc(A, b, num_processes, ensemble):
     # prepare fn args and kwargs for wrapper
     kwargs_dict = {}
     fn_args_dict = [0] * num_processes
-    print len(fn_args_dict), num_processes
+    print(len(fn_args_dict), num_processes)
     assert ensemble % num_processes == 0
-    for i in xrange(num_processes):
+    for i in range(num_processes):
         subensemble = ensemble / num_processes
         fn_args_dict[i] = (A, b, subensemble)
-    print len(fn_args_dict)
+    print(len(fn_args_dict))
 
     # generate results list over workers
-    print "pooling"
+    print("pooling")
     pool = Pool(num_processes)
     results = pool.map(worker_wrapper, fn_args_dict)
     pool.close()
     pool.join()
-    print "done"
+    print("done")
 
     # collect pooled results
     summed_results = np.zeros(1000)
@@ -70,4 +70,4 @@ if __name__ == '__main__':
     t1 = time.time()
 
     # conclude
-    print "TIME:", t1-t0
+    print("TIME:", t1-t0)

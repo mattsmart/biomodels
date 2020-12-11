@@ -3,7 +3,7 @@
 
 # Roughly based on: http://stackoverflow.com/questions/11443302/compiling-numpy-with-openblas-integration
 
-from __future__ import print_function
+
 
 import numpy as np
 from time import time

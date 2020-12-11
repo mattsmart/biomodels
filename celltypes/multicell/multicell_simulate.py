@@ -271,7 +271,7 @@ if __name__ == '__main__':
 
     n = 20  # global GRIDSIZE
     steps = 10  # global NUM_LATTICE_STEPS
-    buildstring = "dual"  # mono/dual/memory_sequence/random
+    buildstring = "mono"  # mono/dual/memory_sequence/random
     fieldstring = "no_exo_field"  # on/off/all/no_exo_field, note e.g. 'off' means send info about 'off' genes only
     meanfield = False  # set to true to use infinite signal distance (no neighbour searching; track mean field)
     fieldprune = 0.0  # amount of external field idx to randomly prune from each cell

@@ -4,6 +4,7 @@ from random import random, shuffle
 from singlecell_constants import BETA, EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, MEMS_UNFOLD
 from singlecell_linalg import sorted_eig
 from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
+from functools import reduce
 
 """
 Conventions follow from Lang & Mehta 2014, PLOS Comp. Bio
