@@ -7,7 +7,9 @@ from multiprocessing import Pool
 from multiprocessing import cpu_count
 from scipy.optimize import fsolve
 
+from singlecell_functions import label_to_state
 from singlecell_simsetup import singlecell_simsetup
+from twocell.twocell_analysis import build_twocell_J_h, refine_applied_field_twocell
 
 
 def params_unpack(params):
@@ -277,7 +279,8 @@ def minima_from_fixed_points(fixed_points, simsetup, beta=10**3, verbose=False):
 if __name__ == '__main__':
     simple_test = False
     phase_diagram = False
-    pdim = True
+    pdim = False
+    run_twocell = True
 
     if simple_test:
         params = {
@@ -314,6 +317,33 @@ if __name__ == '__main__':
         # simsetup = singlecell_simsetup(unfolding=False, random_mem=random_mem, random_W=random_W, npzpath=MEMS_MEHTA, housekeeping=HOUSEKEEPING)
         simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, housekeeping=0, curated=True)
         print 'note: N =', simsetup['N'], 'P =', simsetup['P']
+        #fixed_points = pdim_fixedpoints_gridsearch(simsetup)
+        fixed_points = pdim_fixedpoints_randomsearch(simsetup, num_pts=500)
+        minima = minima_from_fixed_points(fixed_points, simsetup)
+        for idx, minimum in enumerate(minima):
+            print idx, minimum
+
+    if run_twocell:
+        GAMMA = 1.0
+        HOUSEKEEPING = 0.0
+        KAPPA = 0
+        manual_field = None
+        FLAG_01 = False
+
+        random_mem = False
+        random_W = False
+        # simsetup = singlecell_simsetup(unfolding=False, random_mem=random_mem, random_W=random_W, npzpath=MEMS_MEHTA, housekeeping=HOUSEKEEPING)
+        simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, housekeeping=0, curated=True)
+        print 'note: single cell N =', simsetup['N'], 'P =', simsetup['P']
+        N_multicell = simsetup['N'] * 2
+        print 'note: multi cell N =', N_multicell
+
+        statespace_multicell = np.array([label_to_state(label, N_multicell) for label in xrange(2 ** N_multicell)])
+        J_multicell, h_multicell = build_twocell_J_h(simsetup, GAMMA, flag_01=FLAG_01)
+        h_multicell = refine_applied_field_twocell(N_multicell, h_multicell, housekeeping=HOUSEKEEPING, kappa=KAPPA,
+                                                   manual_field=manual_field)
+
+        # TODO 2N spin MF minimization / root finding
         #fixed_points = pdim_fixedpoints_gridsearch(simsetup)
         fixed_points = pdim_fixedpoints_randomsearch(simsetup, num_pts=500)
         minima = minima_from_fixed_points(fixed_points, simsetup)
