@@ -28,13 +28,13 @@ curated = {
         {'XI': np.ones((N_FERRO, 1)),
           'W': np.zeros((N_FERRO, N_FERRO)),
           'celltype_labels': [r'$\xi$'],
-          'gene_labels': ['gene_%d' % idx for idx in xrange(N_FERRO)],
+          'gene_labels': ['gene_%d' % idx for idx in range(N_FERRO)],
          },
     'ferroPerturb':
         {'XI': np.array([[1], [1], [1], [1], [2.5]]),
          'W': np.zeros((5, 5)),
          'celltype_labels': [r'$\xi$'],
-         'gene_labels': ['gene_%d' % idx for idx in xrange(5)],
+         'gene_labels': ['gene_%d' % idx for idx in range(5)],
          },
     '3MemOrthog':
         {'XI': np.array([[ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -42,7 +42,7 @@ curated = {
                          [ 1, 1, 1,-1,-1,-1, 1, 1, 1,-1,-1,-1]]).T,
          'W': np.zeros((12, 12)),
          'celltype_labels': [r'$\xi_A$', r'$\xi_B$', r'$\xi_C$'],
-         'gene_labels': ['gene_%d' % idx for idx in xrange(12)],
+         'gene_labels': ['gene_%d' % idx for idx in range(12)],
          },
     '3MemCorr':
         {'XI': np.array([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -50,7 +50,7 @@ curated = {
                          [1, 1, 1, 1,-1,-1,-1,-1, 1, 1, 1, 1]]).T,
          'W': np.zeros((12, 12)),
          'celltype_labels': [r'$\xi_A$', r'$\xi_B$', r'$\xi_C$'],
-         'gene_labels': ['gene_%d' % idx for idx in xrange(12)],
+         'gene_labels': ['gene_%d' % idx for idx in range(12)],
          },
     '3MemCorrPerturb':
         {'XI': np.array([[2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -58,12 +58,12 @@ curated = {
                          [1, 2, 1, 1, -1, -1, -1, -1, 1, 1, 1, 1]]).T,
          'W': np.zeros((12, 12)),
          'celltype_labels': [r'$\xi_A$', r'$\xi_B$', r'$\xi_C$'],
-         'gene_labels': ['gene_%d' % idx for idx in xrange(12)],
+         'gene_labels': ['gene_%d' % idx for idx in range(12)],
          }
 }
 
 LABEL = 'ferro'
-assert LABEL in curated.keys()
+assert LABEL in list(curated.keys())
 
 refine_W = True
 random_W = True

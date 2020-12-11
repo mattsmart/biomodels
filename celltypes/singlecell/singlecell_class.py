@@ -101,7 +101,7 @@ class Cell(object):
         app_field_strength - scaling factor for appt_field
         """
         if async:
-            sites = range(self.N)
+            sites = list(range(self.N))
             rsamples = np.random.rand(self.N)  # optimized: pass one to each of the N single spin update calls  TODO: benchmark vs intels
             if async_batch:
                 shuffle(sites)  # randomize site ordering each timestep updates
@@ -137,7 +137,7 @@ class Cell(object):
             # probability that site i will be "up" after the timestep
             prob_on_after_timestep = 1 / (1 + np.exp(-2 * beta * total_field))
             rsamples = np.random.rand(self.N)  # optimized: pass one to each of the N single spin update calls  TODO: benchmark vs intels
-            for idx in xrange(self.N):
+            for idx in range(self.N):
                 if prob_on_after_timestep[idx] > rsamples[idx]:
                     state_array_ext[idx, self.steps + 1] = 1.0
                 else:
@@ -150,4 +150,4 @@ class Cell(object):
         return self.state
 
     def write_state(self, datadir):
-        state_write(self.state_array, range(self.steps), self.gene_list, "sc_state_%s" % self.label, "times", "gene_labels", datadir)
+        state_write(self.state_array, list(range(self.steps)), self.gene_list, "sc_state_%s" % self.label, "times", "gene_labels", datadir)

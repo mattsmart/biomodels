@@ -67,7 +67,7 @@ def glauber_dynamics_update(state, gene_idx, t, intxn_matrix, unirand, beta=BETA
 def state_subsample(state_vec, ratio_to_remove=0.5):
     state_subsample = np.zeros(len(state_vec))
     state_subsample[:] = state_vec[:]
-    idx_to_remove = np.random.choice(range(len(state_vec)), int(np.round(ratio_to_remove*len(state_vec))), replace=False)
+    idx_to_remove = np.random.choice(list(range(len(state_vec))), int(np.round(ratio_to_remove*len(state_vec))), replace=False)
     for idx in idx_to_remove:
         state_subsample[idx] = 0.0
     return state_subsample
@@ -76,7 +76,7 @@ def state_subsample(state_vec, ratio_to_remove=0.5):
 def state_burst_errors(state_vec, ratio_to_flip=0.02):
     state_burst_errors = np.zeros(len(state_vec))
     state_burst_errors[:] = state_vec[:]
-    idx_to_flip = np.random.choice(range(len(state_vec)), int(np.round(ratio_to_flip*len(state_vec))), replace=False)
+    idx_to_flip = np.random.choice(list(range(len(state_vec))), int(np.round(ratio_to_flip*len(state_vec))), replace=False)
     for idx in idx_to_flip:
         state_burst_errors[idx] = -state_vec[idx]
     return state_burst_errors
@@ -125,7 +125,7 @@ def single_memory_projection_timeseries(state_array, memory_idx, eta):
     """
     num_steps = np.shape(state_array)[1]
     timeseries = np.zeros(num_steps)
-    for time_idx in xrange(num_steps):
+    for time_idx in range(num_steps):
         timeseries[time_idx] = single_memory_projection(state_array, time_idx, memory_idx, eta)
     return timeseries
 
@@ -136,7 +136,7 @@ def check_memory_energies(xi, celltype_labels, intxn_matrix):
     for idx, label in enumerate(celltype_labels):
         mem = xi[:,idx]
         h = hamiltonian(mem, intxn_matrix)
-        print idx, label, h
+        print(idx, label, h)
     return
 
 
@@ -170,7 +170,7 @@ def sorted_energies(intxn_matrix, field=None, fs=0.0, flag_sort=True):
     N = intxn_matrix.shape[0]
     num_states = 2 ** N
     energies = np.zeros(num_states)
-    for label in xrange(num_states):
+    for label in range(num_states):
         state = label_to_state(label, N, use_neg=True)
         energies[label] = hamiltonian(state, intxn_matrix, field=field, fs=fs)
 
@@ -198,16 +198,16 @@ def get_all_fp(intxn_matrix, field=None, fs=0.0, statespace=None, energies=None,
     num_states = 2 ** N
 
     if statespace is None:
-        statespace = np.array([label_to_state(label, N) for label in xrange(num_states)])
+        statespace = np.array([label_to_state(label, N) for label in range(num_states)])
     if energies is None:
         energies = np.zeros(num_states)
-        for label in xrange(num_states):
+        for label in range(num_states):
             energies[label] = hamiltonian(statespace[label,:], intxn_matrix, field=field, fs=fs)
 
     minima = []
     maxima = []
     fp_annotation = {}
-    for label in xrange(num_states):
+    for label in range(num_states):
         is_fp, is_min = check_min_or_max(intxn_matrix, statespace[label,:], energy=energies[label], field=field, fs=fs,
                                          inspection=inspection)
         if is_fp:
@@ -215,8 +215,8 @@ def get_all_fp(intxn_matrix, field=None, fs=0.0, statespace=None, energies=None,
                 minima.append(label)
             else:
                 maxima.append(label)
-            fp_info = [0 for _ in xrange(N)]
-            for idx in xrange(N):
+            fp_info = [0 for _ in range(N)]
+            for idx in range(N):
                 nbr_state = np.copy(statespace[label, :])
                 nbr_state[idx] = -1 * nbr_state[idx]
                 nbr_label = state_to_label(nbr_state)
@@ -229,7 +229,7 @@ def calc_state_dist_to_local_min(simsetup, minima, X=None, norm=True):
     N = simsetup['N']
     num_states = 2 ** N
     if X is None:
-        X = np.array([label_to_state(label, N) for label in xrange(num_states)])
+        X = np.array([label_to_state(label, N) for label in range(num_states)])
     minima_states = np.array([label_to_state(a, N) for a in minima])
     overlaps = np.dot(X, minima_states.T)
     hamming_dist = 0.5 * (N - overlaps)
@@ -252,14 +252,14 @@ def check_min_or_max(intxn_matrix, state, energy=None, field=None, fs=0.0, inspe
     if np.array_equal(np.sign(total_field), np.sign(state)):
         is_fp = True
         if inspection:
-            print "\nis_fp verify", state
-            print np.sign(total_field), total_field
-            print np.sign(state), state
+            print("\nis_fp verify", state)
+            print(np.sign(total_field), total_field)
+            print(np.sign(state), state)
 
     # 2) is it a min or a max?
     is_min = None
     if is_fp:
-        print 'Warning: min max check only looks at first spin (use inspection flag)'
+        print('Warning: min max check only looks at first spin (use inspection flag)')
         state_perturb = np.zeros(state.shape)
         state_perturb[:] = state[:]
         state_perturb[0] = -1 * state[0]
@@ -272,10 +272,10 @@ def check_min_or_max(intxn_matrix, state, energy=None, field=None, fs=0.0, inspe
             is_min = True
 
         if inspection:
-            print "check_min_or_max(): state", state
-            print 'checking... (TODO remove this testing block)'
+            print("check_min_or_max(): state", state)
+            print('checking... (TODO remove this testing block)')
             utilvec = np.zeros(N)
-            for idx in xrange(N):
+            for idx in range(N):
                 state_perturb = np.zeros(state.shape)
                 state_perturb[:] = state[:]
                 state_perturb[idx] = -1 * state[idx]  # TODO this is very local perturbation -- just first spin... is it OK?
@@ -289,8 +289,8 @@ def check_min_or_max(intxn_matrix, state, energy=None, field=None, fs=0.0, inspe
                 else:
                     utilvec[idx] = -1
                     ll = 'flip lower'
-                print idx, energy, energy_perturb, ll
-            print 'state summary: (ismin, ismax)', (utilvec>0).all(), (utilvec<0).all(), utilvec
+                print(idx, energy, energy_perturb, ll)
+            print('state summary: (ismin, ismax)', (utilvec>0).all(), (utilvec<0).all(), utilvec)
 
     return is_fp, is_min
 
@@ -312,11 +312,11 @@ def fp_of_state(intxn_matrix, state_start, app_field=0, dynamics='sync', zero_ov
         return state_next
 
     i = 0
-    sites = range(intxn_matrix.shape[0])
+    sites = list(range(intxn_matrix.shape[0]))
     state_next = np.copy(state_start)
     state_current = np.zeros(state_start.shape)
     if zero_override:
-        print 'Warning fp_of_state() flag "zero override" can lead to bugs'
+        print('Warning fp_of_state() flag "zero override" can lead to bugs')
         # TODO characterize this choice; affects basin characterization confirmed w memories in block form +--, -+-, ---
         # TODO alternative override is to always flip the site if total field is zero
         # When the internal field on a site is zero, it is naturally a coin flip whether to put that spin up or down.
@@ -346,11 +346,11 @@ def fp_of_state(intxn_matrix, state_start, app_field=0, dynamics='sync', zero_ov
                 # This is a flicker, so pick the one with lower energy
                 energy_next = hamiltonian(state_next, intxn_matrix, field=app_field, fs=1.0)
                 energy_current = hamiltonian(state_current, intxn_matrix, field=app_field, fs=1.0)
-                print '\nWARNING - sync dynamics fp_of_state() has 2-state flicker, for', state_start
+                print('\nWARNING - sync dynamics fp_of_state() has 2-state flicker, for', state_start)
                 if state_to_label(state_start) == 3:
-                    print 'state_to_label(state_start) == 3:'
-                    print energy_next, energy_current
-                    print state_to_label(state_next), state_to_label(state_current)
+                    print('state_to_label(state_start) == 3:')
+                    print(energy_next, energy_current)
+                    print(state_to_label(state_next), state_to_label(state_current))
 
                 if energy_next > energy_current:
                     state_next = state_current
@@ -396,18 +396,18 @@ def partition_basins(intxn_matrix, X=None, minima=None, field=None, fs=0.0, dyna
     basins_dict = {label: [] for label in minima}
     label_to_fp_label = {}
     if X is None:
-        X = np.array([label_to_state(label, N) for label in xrange(num_states)])
+        X = np.array([label_to_state(label, N) for label in range(num_states)])
 
-    for label in xrange(num_states):
+    for label in range(num_states):
         state = X[label, :]
         fp = fp_of_state(intxn_matrix, state, app_field=app_field, dynamics=dynamics)
         fp_label = state_to_label(fp)
         if fp_label in minima:
             basins_dict[fp_label].append(label)
         else:
-            print "WARNING -- fp_label not in minima;", label, 'went to', fp_label
-            print '\t', state, 'went to', fp
-            if fp_label in basins_dict.keys():
+            print("WARNING -- fp_label not in minima;", label, 'went to', fp_label)
+            print('\t', state, 'went to', fp)
+            if fp_label in list(basins_dict.keys()):
                 basins_dict[fp_label].append(label)
             else:
                 basins_dict[fp_label] = [label]
@@ -430,14 +430,14 @@ def glauber_transition_matrix(intxn_matrix, field=None, fs=0.0, beta=BETA, overr
     num_states = 2 ** N
     choice_factor = 1.0 / N
     M = np.zeros((num_states, num_states))
-    states = np.array([label_to_state(label, N) for label in xrange(2 ** N)])
+    states = np.array([label_to_state(label, N) for label in range(2 ** N)])
     if field is None:
         app_field = np.ones(N) * override
     else:
         app_field = field * fs + override
-    for i in xrange(num_states):
+    for i in range(num_states):
         state_end = states[i, :]
-        for idx in xrange(N):
+        for idx in range(N):
             # flip the ith spin
             state_start = np.copy(state_end)
             state_start[idx] = state_start[idx] * -1
@@ -466,11 +466,11 @@ def glauber_transition_matrix(intxn_matrix, field=None, fs=0.0, beta=BETA, overr
             M[i, j] = choice_factor * glauber_factor
     # normalize column sum to 1 if not DTMC i.e. if it is a stoch rate matrix, CTMC
     if DTMC:
-        for j in xrange(num_states):
+        for j in range(num_states):
             M[j, j] = 1-np.sum(M[:, j])  # TODO think this normalization is sketchy
             #print j, M[j, j]
     else:
-        for j in xrange(num_states):
+        for j in range(num_states):
             M[j, j] = -np.sum(M[:, j])
             #print j, M[j, j]
     return M
@@ -483,12 +483,12 @@ def spectral_custom(L, dim, norm_each=False, plot_evec=False, skip_small_eval=Fa
     if plot_evec:
         statevol = evecs.shape[0]
         import matplotlib.pyplot as plt
-        for i in xrange(dim):
-            plt.plot(range(statevol), evecs[:, i], label='evec %d' % i)
+        for i in range(dim):
+            plt.plot(list(range(statevol)), evecs[:, i], label='evec %d' % i)
         plt.legend()
         plt.show()
-    print evals[0:6]
-    print evals[-6:]
+    print(evals[0:6])
+    print(evals[-6:])
     # get first dim evecs, sorted
     if skip_small_eval:
         start_idx = 0
@@ -499,13 +499,13 @@ def spectral_custom(L, dim, norm_each=False, plot_evec=False, skip_small_eval=Fa
         dim_reduced = evecs[:, 0:dim]
 
     # normalize column sum to 1
-    for j in xrange(dim):
-        print 'TTT', np.sum(dim_reduced[:, j]), np.sum(np.abs(dim_reduced[:, j]))
+    for j in range(dim):
+        print('TTT', np.sum(dim_reduced[:, j]), np.sum(np.abs(dim_reduced[:, j])))
         #dim_reduced[:, j] = dim_reduced[:, j] / np.sum(dim_reduced[:, j])
     # normalize the reduced vectors
     # TODO alternative normalize to lie on hypersphere...? Ng 2002
     if norm_each:
-        for j in xrange(dim_reduced.shape[0]):
+        for j in range(dim_reduced.shape[0]):
             norm = np.linalg.norm(dim_reduced[j,:])
             if norm > 0:
                 dim_reduced[j,:] = dim_reduced[j,:] / norm
@@ -514,8 +514,8 @@ def spectral_custom(L, dim, norm_each=False, plot_evec=False, skip_small_eval=Fa
 
 def distances_from_master_eqn(X):
     dists = np.zeros(X.shape)
-    for i in xrange(X.shape[0]):
-        for j in xrange(X.shape[1]):
+    for i in range(X.shape[0]):
+        for j in range(X.shape[1]):
             x = X[i, j]
             if i == j:
                 dists[i, j] = 0
@@ -534,7 +534,7 @@ def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, use_proj=False,
     # TODO try umap on its own and in spectral_custom
 
     N = simsetup['N']
-    states = np.array([label_to_state(label, simsetup['N']) for label in xrange(2 ** N)])
+    states = np.array([label_to_state(label, simsetup['N']) for label in range(2 ** N)])
     X = states
     if use_hd:
         # Option 1
@@ -543,7 +543,7 @@ def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, use_proj=False,
         hd = calc_state_dist_to_local_min(simsetup, minima, X=X)
         """
         # Option 2
-        encoded_minima = [state_to_label(simsetup['XI'][:,a]) for a in xrange(simsetup['P'])]
+        encoded_minima = [state_to_label(simsetup['XI'][:,a]) for a in range(simsetup['P'])]
         hd = calc_state_dist_to_local_min(simsetup, encoded_minima, X=states, norm=True)
         X = hd
     if use_proj:
@@ -560,7 +560,7 @@ def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, use_proj=False,
         plt.colorbar(im)
         plt.show()
 
-    print 'Performing dimension reduction (%s): (%d x %d) to (%d x %d)' % (method, X.shape[0], X.shape[1], X.shape[0], dim)
+    print('Performing dimension reduction (%s): (%d x %d) to (%d x %d)' % (method, X.shape[0], X.shape[1], X.shape[0], dim))
     if method == 'pca':
         from sklearn.decomposition import PCA
         pca = PCA(n_components=dim)
@@ -570,8 +570,8 @@ def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, use_proj=False,
         # simple call
         statespace = 2 ** N
         dists = np.copy((statespace, statespace), dtype=int)
-        for i in xrange(statespace):
-            for j in xrange(i):
+        for i in range(statespace):
+            for j in range(i):
                 d = hamming(X[i, :], X[j, :])
                 dists[i, j] = d
         dists = dists + dists.T - np.diag(dists.diagonal())
@@ -614,38 +614,38 @@ def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, use_proj=False,
         X_new = embedding.fit_transform(X.T)
         """
     else:
-        print 'method must be in [pca, mds, tsne, spectral_auto, spectral_custom, diffusion, diffusion_custom]'
+        print('method must be in [pca, mds, tsne, spectral_auto, spectral_custom, diffusion, diffusion_custom]')
     if add_noise:
         # jostles the point in case they are overlapping
         X_new += np.random.normal(0, 0.5, X_new.shape)
     if print_XI:
-        for i in xrange(simsetup['P']):
+        for i in range(simsetup['P']):
             label = state_to_label(simsetup['XI'][:, i])
             antilabel = state_to_label(simsetup['XI'][:, i] * -1)
-            print 'XI %d label %d is %s' % (i, label, X_new[label,:])
-            print 'anti-XI %d label %d is %s' % (i, antilabel, X_new[antilabel,:])
+            print('XI %d label %d is %s' % (i, label, X_new[label,:]))
+            print('anti-XI %d label %d is %s' % (i, antilabel, X_new[antilabel,:]))
     return X_new
 
 
 if __name__ == '__main__':
     simsetup = singlecell_simsetup(unfolding=True, npzpath=MEMS_UNFOLD)
     M = glauber_transition_matrix(simsetup['J'], field=None, fs=0.0, beta=None, override=0.0)
-    print M
+    print(M)
     E, V = np.linalg.eig(M)
     eig_ranked = np.argsort(E)[::-1]
-    print E[eig_ranked[0:10]]
+    print(E[eig_ranked[0:10]])
     top_evec = V[:,eig_ranked[0:8]]
-    print top_evec.shape
+    print(top_evec.shape)
     import matplotlib.pyplot as plt
     plt.imshow(np.real(top_evec))
     plt.show()
-    for i in xrange(8):
+    for i in range(8):
         cols = top_evec[:, i]
         cc = np.sort(cols)
         am = np.argmax(cols)
-        print cc[0:3], cc[-3:]
-        print am
-    print
-    for i in xrange(3):
-        print state_to_label(simsetup['XI'][:, i])
-        print state_to_label(simsetup['XI'][:, i]*-1)
+        print(cc[0:3], cc[-3:])
+        print(am)
+    print()
+    for i in range(3):
+        print(state_to_label(simsetup['XI'][:, i]))
+        print(state_to_label(simsetup['XI'][:, i]*-1))

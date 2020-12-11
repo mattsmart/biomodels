@@ -30,7 +30,7 @@ def plot_as_radar(projection_vec, memory_labels, color='b', rotate_labels=True, 
     p = len(memory_labels)
 
     # Angle of each axis in the plot
-    angles = [n / float(p) * 2 * pi for n in xrange(p)]
+    angles = [n / float(p) * 2 * pi for n in range(p)]
 
     # Add extra element to angles and data array to close off filled area
     angles += angles[:1]
@@ -92,9 +92,9 @@ def plot_state_prob_map(intxn_matrix, beta=None, field=None, fs=0.0, ax=None, de
     N = intxn_matrix.shape[0]
     num_states = 2 ** N
     energies = np.zeros(num_states)
-    colours = ['blue' for i in xrange(num_states)]
+    colours = ['blue' for i in range(num_states)]
     fpcolor = {True: 'green', False: 'red'}
-    for label in xrange(num_states):
+    for label in range(num_states):
         state = label_to_state(label, N, use_neg=True)
         energies[label] = hamiltonian(state, intxn_matrix, field=field, fs=fs)
         if decorate_FP:
@@ -102,11 +102,11 @@ def plot_state_prob_map(intxn_matrix, beta=None, field=None, fs=0.0, ax=None, de
             if is_fp:
                 colours[label] = fpcolor[is_min]
     if beta is None:
-        ax.scatter(range(2 ** N), energies, c=colours)
+        ax.scatter(list(range(2 ** N)), energies, c=colours)
         ax.set_title(r'$H(s), \beta=\infty$, field=%s' % (fstring))
         #ax.set_ylim((-10,10))
     else:
-        ax.scatter(range(2 ** N), np.exp(-beta * energies), c=colours)
+        ax.scatter(list(range(2 ** N)), np.exp(-beta * energies), c=colours)
         ax.set_yscale('log')
         ax.set_title(r'$e^{-\beta H(s)}, \beta=%.2f$, field=%s' % (beta, fstring))
     plt.show()
@@ -138,7 +138,7 @@ def hypercube_visualize(simsetup, X_reduced, energies, num_cells=1, elevate3D=Tr
 
     # setup data
     N = simsetup['N'] * num_cells
-    states = np.array([label_to_state(label, N) for label in xrange(2 ** N)])
+    states = np.array([label_to_state(label, N) for label in range(2 ** N)])
 
     # setup cmap
     if beta is None:
@@ -167,7 +167,7 @@ def hypercube_visualize(simsetup, X_reduced, energies, num_cells=1, elevate3D=Tr
                 #sc = ax.plot_wireframe(X_reduced[:,0], X_reduced[:,1], energies_norm)
             else:
                 if colours_dict is not None:
-                    for key in colours_dict['basins_dict'].keys():
+                    for key in list(colours_dict['basins_dict'].keys()):
                         indices = colours_dict['basins_dict'][key]
                         sc = ax.scatter(X_reduced[indices, 0], X_reduced[indices, 1], energies_norm[indices], s=20,
                                         c=colours_dict['fp_label_to_colour'][key],
@@ -179,7 +179,7 @@ def hypercube_visualize(simsetup, X_reduced, energies, num_cells=1, elevate3D=Tr
             if colours_dict is None:
                 sc = ax.scatter(X_reduced[:, 0], X_reduced[:, 1], c=colours)
             else:
-                for key in colours_dict['basins_dict'].keys():
+                for key in list(colours_dict['basins_dict'].keys()):
                     indices = colours_dict['basins_dict'][key]
                     sc = ax.scatter(X_reduced[indices, 0], X_reduced[indices, 1], s=20,
                                     c=colours_dict['fp_label_to_colour'][key],
@@ -207,13 +207,13 @@ def hypercube_visualize(simsetup, X_reduced, energies, num_cells=1, elevate3D=Tr
             ax.annotate(txt, xy=(state_new[0], state_new[1]), fontsize=12)
 
     if edges:
-        print 'Adding edges to plot...'  # TODO these appear incorrect for twocell visualization
-        for label in xrange(2 ** N):
+        print('Adding edges to plot...')  # TODO these appear incorrect for twocell visualization
+        for label in range(2 ** N):
             state_orig = states[label, :]
             state_new = X_reduced[label, :]
             nbrs = [0] * N
             if all_edges or label in maxima or label in minima or abs(energies_norm[label] - 1.0) < 1e-4:
-                for idx in xrange(N):
+                for idx in range(N):
                     nbr_state = np.copy(state_orig)
                     nbr_state[idx] = -1 * nbr_state[idx]
                     nbrs[idx] = state_to_label(nbr_state)

@@ -21,8 +21,8 @@ if __name__ == '__main__':
     random_W = False
     #simsetup = singlecell_simsetup(unfolding=False, random_mem=random_mem, random_W=random_W, npzpath=MEMS_MEHTA, housekeeping=HOUSEKEEPING)
     simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, npzpath=MEMS_UNFOLD, housekeeping=HOUSEKEEPING_EXTEND, curated=True)
-    print 'note: N =', simsetup['N'], 'P =', simsetup['P']
-    print simsetup['J']
+    print('note: N =', simsetup['N'], 'P =', simsetup['P'])
+    print(simsetup['J'])
 
     DIM = 2
     METHOD = 'pca'  # diffusion_custom, spectral_custom, pca
@@ -49,7 +49,7 @@ if __name__ == '__main__':
         app_field = np.zeros(simsetup['N'])
         app_field[0:8] = +1 * 0  # delete anti mem basin
         app_field[5:7] = -1 * 0
-    print "app_field", app_field
+    print("app_field", app_field)
 
     # additional visualizations based on field
     """
@@ -78,45 +78,45 @@ if __name__ == '__main__':
         print
     """
     # get & report energy levels data
-    print "\nSorting energy levels, finding extremes..."
+    print("\nSorting energy levels, finding extremes...")
     energies, _ = sorted_energies(simsetup['J'], field=app_field, fs=KAPPA, flag_sort=False)
     fp_annotation, minima, maxima = get_all_fp(simsetup['J'], field=app_field, fs=KAPPA, energies=energies)  # TODO this may have bug where it says something is maxima but partition_basins() says minima
-    print 'Minima labels:'
-    print minima
-    print 'label, state vec, overlap vec, proj vec, energy'
+    print('Minima labels:')
+    print(minima)
+    print('label, state vec, overlap vec, proj vec, energy')
     for minimum in minima:
         minstate = label_to_state(minimum, simsetup['N'])
-        print minimum, minstate, np.dot(simsetup['XI'].T, minstate)/simsetup['N'], np.dot(simsetup['ETA'], minstate), energies[minimum]
-    print '\nMaxima labels:'
-    print maxima
-    print 'label, state vec, overlap vec, proj vec, energy'
+        print(minimum, minstate, np.dot(simsetup['XI'].T, minstate)/simsetup['N'], np.dot(simsetup['ETA'], minstate), energies[minimum])
+    print('\nMaxima labels:')
+    print(maxima)
+    print('label, state vec, overlap vec, proj vec, energy')
     for maximum in maxima:
         maxstate = label_to_state(maximum, simsetup['N'])
-        print maximum, maxstate, np.dot(simsetup['XI'].T, maxstate)/simsetup['N'], np.dot(simsetup['ETA'], maxstate), energies[maxstate]
+        print(maximum, maxstate, np.dot(simsetup['XI'].T, maxstate)/simsetup['N'], np.dot(simsetup['ETA'], maxstate), energies[maxstate])
 
-    print "\nPartitioning basins..."
+    print("\nPartitioning basins...")
     basins_dict, label_to_fp_label = partition_basins(simsetup['J'], X=None, minima=minima, field=app_field, fs=KAPPA, dynamics='async_fixed')
-    print "\nMore minima stats"
-    print "key, label_to_state(key, simsetup['N']), len(basins_dict[key]), key in minima, energy"
-    for key in basins_dict.keys():
-        print key, label_to_state(key, simsetup['N']), len(basins_dict[key]), key in minima, energies[key]
+    print("\nMore minima stats")
+    print("key, label_to_state(key, simsetup['N']), len(basins_dict[key]), key in minima, energy")
+    for key in list(basins_dict.keys()):
+        print(key, label_to_state(key, simsetup['N']), len(basins_dict[key]), key in minima, energies[key])
     # reduce dimension
     X_new = reduce_hypercube_dim(simsetup, METHOD, dim=DIM,  use_hd=use_hd, use_proj=use_proj, add_noise=False,
                                  plot_X=plot_X, field=app_field, fs=KAPPA, beta=beta)
     # setup basin colours for visualization
     cdict = {}
     if label_to_fp_label is not None:
-        basins_keys = basins_dict.keys()
+        basins_keys = list(basins_dict.keys())
         assert len(basins_keys) <= 20  # get more colours
         fp_label_to_colour = {a: DISTINCT_COLOURS[idx] for idx, a in enumerate(basins_keys)}
         cdict['basins_dict'] = basins_dict
         cdict['fp_label_to_colour'] = fp_label_to_colour
         cdict['clist'] = [0] * (2 ** simsetup['N'])
-        for i in xrange(2 ** simsetup['N']):
+        for i in range(2 ** simsetup['N']):
             cdict['clist'][i] = fp_label_to_colour[label_to_fp_label[i]]
     # setup basin labels depending on npz
     basin_labels = {}
-    for idx in xrange(simsetup['P']):
+    for idx in range(simsetup['P']):
         state = simsetup['XI'][:, idx]
         antistate = state * -1
         label = state_to_label(state)
@@ -125,23 +125,23 @@ if __name__ == '__main__':
         basin_labels[antilabel] = r'$-\xi^%d$' % idx
     i = 1
     for label in minima:
-        if label not in basin_labels.keys():
+        if label not in list(basin_labels.keys()):
             if label == 0:
                 basin_labels[label] = r'$S-$'
             elif label == 511:
                 basin_labels[label] = r'$S+$'
             else:
                 basin_labels[label] = 'spurious: %d' % i
-                print 'unlabelled spurious minima %d: %s' % (i, label_to_state(label, simsetup['N']))
+                print('unlabelled spurious minima %d: %s' % (i, label_to_state(label, simsetup['N'])))
             i += 1
     # conditionally plot housekeeping on subspace
     housekeeping_on_labels = []  # TODO cleanup
-    for label in xrange(2**simsetup['N']):
+    for label in range(2**simsetup['N']):
         state = label_to_state(label, simsetup['N'])
         substate = state[-HOUSEKEEPING:]
         if np.all(substate == 1.0):
             housekeeping_on_labels.append(label)
-    print len(housekeeping_on_labels)
+    print(len(housekeeping_on_labels))
     # visualize with and without basins colouring
     hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels,
                         elevate3D=True, edges=True, all_edges=False, surf=False, colours_dict=None, beta=None)

@@ -30,7 +30,7 @@ def copy_and_rename_plots(source_dir, output_dir, fhead='lattice_at_time_', fmod
         if obj[:len(fhead)] == fhead:
             shutil.copy(source_dir + os.sep + obj, output_dir)
     # naturally sort the copied files
-    print output_dir
+    print(output_dir)
     unsorted_files = os.listdir(output_dir)
     assert len(unsorted_files) <= 99999  # assume <= 5 digits later
     sorted_files = natural_sort(unsorted_files)
@@ -89,7 +89,7 @@ def make_video_ffmpeg(source_dir, outpath, fps=5, fhead='lattice_at_time_', fmod
                 sys.stdout.write(out)
                 sys.stdout.flush()
     out, err = sp.communicate()
-    print out, err, sp.returncode
+    print(out, err, sp.returncode)
     # delete temp dir
     shutil.rmtree(temp_plot_dir)
     return
@@ -98,4 +98,4 @@ def make_video_ffmpeg(source_dir, outpath, fps=5, fhead='lattice_at_time_', fmod
 if __name__ == '__main__':
     pardir = os.path.abspath(os.path.join('.', os.pardir))
     ld = os.listdir(pardir)
-    print filter(os.path.isfile, ld)
+    print(list(filter(os.path.isfile, ld)))

@@ -19,7 +19,7 @@ def interaction_matrix(xi, corr_inv, method, flag_prune_intxn_matrix=False, holl
     else:
         raise ValueError("method arg invalid, must be one of %s" % ["projection", "hopfield"])
     if not hollow:
-        print "Warning, hollow flag set to False in single-cell constants (for intxn matrix build)"
+        print("Warning, hollow flag set to False in single-cell constants (for intxn matrix build)")
     else:
         np.fill_diagonal(intxn_matrix, 0)
     if flag_prune_intxn_matrix:

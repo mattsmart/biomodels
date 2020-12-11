@@ -22,17 +22,17 @@ def twocell_ensemble_stats(simsetup, steps, beta, gamma, ens=10, monolothic_flag
     XI_scaled = simsetup['XI'] / simsetup['N']
 
     def random_twocell_lattice():
-        cell_a_init = np.array([2*int(np.random.rand() < .5) - 1 for _ in xrange(simsetup['N'])]).T
-        cell_b_init = np.array([2*int(np.random.rand() < .5) - 1 for _ in xrange(simsetup['N'])]).T
+        cell_a_init = np.array([2*int(np.random.rand() < .5) - 1 for _ in range(simsetup['N'])]).T
+        cell_b_init = np.array([2*int(np.random.rand() < .5) - 1 for _ in range(simsetup['N'])]).T
         #cell_a_init = np.ones(20) #np.array([-1, -1, 1, -1,-1,-1])
         #cell_b_init = np.ones(20) #np.array([1, 1, 1, 1, 1, 1])
         lattice = [[SpatialCell(cell_a_init, 'Cell A', [0, 0], simsetup),
                     SpatialCell(cell_b_init, 'Cell B', [0, 1], simsetup)]]
         return lattice
 
-    for traj in xrange(ens):
+    for traj in range(ens):
         if traj % 100 == 0:
-            print "Running traj", traj, "..."
+            print("Running traj", traj, "...")
         lattice = random_twocell_lattice()
 
         # TODO replace with twocell_sim_as_onelargemodel (i.e. one big ising model)
@@ -58,7 +58,7 @@ def twocell_ensemble_stats(simsetup, steps, beta, gamma, ens=10, monolothic_flag
         plt.ylim(-1.05, 1.05)
         plt.savefig(RUNS_FOLDER + os.sep + "twocell_analysis" + os.sep + fname)
         plt.close()
-        print fname
+        print(fname)
         """
         import seaborn as sns; sns.set()
         import pandas as pd
@@ -80,8 +80,8 @@ def twocell_ensemble_stats(simsetup, steps, beta, gamma, ens=10, monolothic_flag
 def twocell_coarse_hamiltonian(simsetup, gamma, ens=10000):
 
     def random_twocell_lattice():
-        cell_a_init = np.array([2*int(np.random.rand() < .5) - 1 for _ in xrange(simsetup['N'])]).T
-        cell_b_init = np.array([2*int(np.random.rand() < .5) - 1 for _ in xrange(simsetup['N'])]).T
+        cell_a_init = np.array([2*int(np.random.rand() < .5) - 1 for _ in range(simsetup['N'])]).T
+        cell_b_init = np.array([2*int(np.random.rand() < .5) - 1 for _ in range(simsetup['N'])]).T
         lattice = [[SpatialCell(cell_a_init, 'Cell A', [0, 0], simsetup),
                     SpatialCell(cell_b_init, 'Cell B', [0, 1], simsetup)]]
         return lattice
@@ -126,7 +126,7 @@ def twocell_coarse_hamiltonian(simsetup, gamma, ens=10000):
             beta_step = beta_high
         return beta_step
 
-    for elem in xrange(ens):
+    for elem in range(ens):
 
         # anneal to reach the corners
         beta_schedule = beta_anneal(elem)
@@ -134,7 +134,7 @@ def twocell_coarse_hamiltonian(simsetup, gamma, ens=10000):
 
         cell_a = lattice[0][0].get_current_state()
         cell_b = lattice[0][1].get_current_state()
-        print elem, beta_schedule, np.dot(cell_a, np.ones(20)) / 20.0, np.dot(cell_b, np.ones(20)) / 20.0
+        print(elem, beta_schedule, np.dot(cell_a, np.ones(20)) / 20.0, np.dot(cell_b, np.ones(20)) / 20.0)
 
         energy_A = -0.5 * np.dot(cell_a, np.dot(simsetup['J'], cell_a))
         energy_B = -0.5 * np.dot(cell_b, np.dot(simsetup['J'], cell_b))
@@ -181,7 +181,7 @@ if __name__ == '__main__':
     random_W = False
     simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, npzpath=MEMS_UNFOLD,
                                    curated=True)
-    print 'note: N =', simsetup['N']
+    print('note: N =', simsetup['N'])
 
     ensemble = 2500
     steps = 10

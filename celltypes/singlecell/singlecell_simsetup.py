@@ -22,10 +22,10 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath
     assert NETWORK_METHOD in ["projection", "hopfield"]
     # comments
     if flag_prune_intxn_matrix:
-        print "Note FLAG_PRUNE_INTXN_MATRIX is True with ratio %.2f" % J_RANDOM_DELETE_RATIO
+        print("Note FLAG_PRUNE_INTXN_MATRIX is True with ratio %.2f" % J_RANDOM_DELETE_RATIO)
     # unfolding block
     if unfolding:
-        print "Using unfolding npz"
+        print("Using unfolding npz")
         xi, gene_labels, celltype_labels, field_send = load_npz_of_arr_genes_cells_signals(npzpath, verbose=True)
     else:
         assert npzpath != MEMS_UNFOLD
@@ -35,7 +35,7 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath
     gene_labels = gene_labels.tolist()
     celltype_labels = celltype_labels.tolist()
     if curated:
-        print 'CURATED selected, resetting simsetup vars'
+        print('CURATED selected, resetting simsetup vars')
         xi = CURATED_XI
         field_send = CURATED_W
         celltype_labels = CURATED_CELLTYPE_LABELS
@@ -43,10 +43,10 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath
     # model extension block to delete anti-minima
     if housekeeping != 0:
         assert type(housekeeping) == int and housekeeping > 0
-        print 'Note housekeeping ON, adding %d genes' % housekeeping
+        print('Note housekeeping ON, adding %d genes' % housekeeping)
         # need to extend gene_labels, xi, and cell-cell signalling accordingly
-        print type(gene_labels), len(gene_labels)
-        gene_labels += ['artificial_%d' % i for i in xrange(housekeeping)]
+        print(type(gene_labels), len(gene_labels))
+        gene_labels += ['artificial_%d' % i for i in range(housekeeping)]
         hk_block = np.ones((housekeeping, len(celltype_labels)))
         xi = np.concatenate((xi, hk_block))
         if field_send is not None:
@@ -55,11 +55,11 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath
     P = len(celltype_labels)
     # optional random XI (memories)
     if random_mem:
-        print "WARNING: simsetup random_mem, half -1 half 1, size %d x %d" % (N, P)
+        print("WARNING: simsetup random_mem, half -1 half 1, size %d x %d" % (N, P))
         xi = np.random.choice([-1, 1], (N, P))
     # optional random W (cell-cell signalling)
     if random_W:
-        print "WARNING: simsetup random_W, creating symmetric U[-1,1], size %d x %d" % (N, N)
+        print("WARNING: simsetup random_W, creating symmetric U[-1,1], size %d x %d" % (N, N))
         W_0 = np.random.rand(N, N)*2 - 1  # scale to Uniform [-1, 1]
         W_lower = np.tril(W_0, k=-1)
         W_diag = np.diag(np.diag(W_0))
@@ -82,7 +82,7 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath
         #a = np.eye(len(celltype_labels))      # identity p x p
         #a_inv = np.eye(len(celltype_labels))  # identity p x p
         #eta = np.copy(xi)
-        print "Warning, NOT changing correlation matrix to identity"
+        print("Warning, NOT changing correlation matrix to identity")
     celltype_id = {k: v for v, k in enumerate(celltype_labels)}
     gene_id = {k: v for v, k in enumerate(gene_labels)}
     # store in sim object (currently just a dict)
@@ -141,16 +141,16 @@ if __name__ == '__main__':
         gene_name = 'S100a4'
         gene_int = simsetup['GENE_ID'][gene_name]
     if print_genes:
-        print 'Genes:'
+        print('Genes:')
         for idx, label in enumerate(simsetup['GENE_LABELS']):
-            print idx, label
+            print(idx, label)
     if print_celltypes:
-        print 'Celltypes:'
+        print('Celltypes:')
         for idx, label in enumerate(simsetup['CELLTYPE_LABELS']):
             if print_gene_expression_row:
-                print idx, label, '|', gene_name, simsetup['XI'][gene_int, idx]
+                print(idx, label, '|', gene_name, simsetup['XI'][gene_int, idx])
             else:
-                print idx, label
+                print(idx, label)
 
     edit_npz = False
     # edit npz block
@@ -163,6 +163,6 @@ if __name__ == '__main__':
         save_npz_of_arr_genes_cells(npz_outname, xi, gene_labels, celltype_labels)
         xi, gene_labels, celltype_labels = load_npz_of_arr_genes_cells(npz_outname, verbose=True)
         if print_celltypes:
-            print 'Celltypes:'
+            print('Celltypes:')
             for idx, label in enumerate(celltype_labels):
-                print idx, label
+                print(idx, label)

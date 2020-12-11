@@ -82,15 +82,15 @@ def twocell_sim_troubleshoot(beta=200.0, gamma=0.0, flag_01=False):
         # update cell A -- first get nbr field
         nbr_cell_state_01_rep = (cell_B.get_current_state() + 1) / 2.0  # convert to 0, 1 rep
         total_field_A = gamma * np.dot(simsetup['FIELD_SEND'], cell_B_01_init)
-        print "total_field_A"
-        print total_field_A
+        print("total_field_A")
+        print(total_field_A)
         cell_A.update_state(simsetup['J'], beta=beta, ext_field_strength=1.0, ext_field=total_field_A, async=async)
 
         # update cell B -- first get nbr field
         nbr_cell_state_01_rep = (cell_A.get_current_state() + 1) / 2.0  # convert to 0, 1 rep
         total_field_B = gamma * np.dot(simsetup['FIELD_SEND'], cell_A_01_init)
-        print "total_field_B"
-        print total_field_B
+        print("total_field_B")
+        print(total_field_B)
         cell_B.update_state(simsetup['J'], beta=beta, ext_field_strength=1.0, ext_field=total_field_B, async=async)
 
         return lattice
@@ -108,46 +108,46 @@ def twocell_sim_troubleshoot(beta=200.0, gamma=0.0, flag_01=False):
     simsetup = singlecell_simsetup(unfolding=True, random_mem=False, random_W=False, npzpath=MEMS_UNFOLD, curated=True)
     lattice_staggered = random_twocell_lattice(simsetup)
     J_multicell, h_multicell, lattice_monolithic = prep_monolothic(lattice_staggered, simsetup)
-    print "INIT COND"
-    print lattice_staggered[0][0].get_current_state()
-    print lattice_staggered[0][1].get_current_state()
-    print lattice_monolithic.get_current_state()
+    print("INIT COND")
+    print(lattice_staggered[0][0].get_current_state())
+    print(lattice_staggered[0][1].get_current_state())
+    print(lattice_monolithic.get_current_state())
 
     num_steps = 3
-    for step in xrange(num_steps):
+    for step in range(num_steps):
 
-        print "\nCURRENT STEP:", step
+        print("\nCURRENT STEP:", step)
         # monolthic step
-        print "\nmonolithic stepping..."
+        print("\nmonolithic stepping...")
         lattice_monolithic = step_monolithic(J_multicell, h_multicell, lattice_monolithic, async=False)
         lattice_extracted = extract_monolithic(lattice_monolithic)
-        print "print lattice_monolithic.get_current_state() (step %d)" % step
-        print lattice_monolithic.get_current_state()
-        print lattice_extracted[0][0].get_current_state()
-        print lattice_extracted[0][1].get_current_state()
+        print("print lattice_monolithic.get_current_state() (step %d)" % step)
+        print(lattice_monolithic.get_current_state())
+        print(lattice_extracted[0][0].get_current_state())
+        print(lattice_extracted[0][1].get_current_state())
 
         # staggered step
-        print "\nlattice_staggered stepping..."
+        print("\nlattice_staggered stepping...")
         lattice_staggered = step_staggered(lattice_staggered, simsetup, async=False)
-        print "print cell_A.get_current_state() (step %d)" % step
-        print lattice_staggered[0][0].get_current_state()
-        print "print cell_B.get_current_state() (step %d)" % step
-        print lattice_staggered[0][1].get_current_state()
+        print("print cell_A.get_current_state() (step %d)" % step)
+        print(lattice_staggered[0][0].get_current_state())
+        print("print cell_B.get_current_state() (step %d)" % step)
+        print(lattice_staggered[0][1].get_current_state())
 
-    print "\nendproj..."
+    print("\nendproj...")
     XI_scaled = simsetup['XI'] / simsetup['N']
-    print "MONOLITHIC:"
+    print("MONOLITHIC:")
     cell_A_endstate = lattice_extracted[0][0].get_state_array()[:, -1]
     cell_B_endstate = lattice_extracted[0][1].get_state_array()[:, -1]
     cell_A_overlaps = np.dot(XI_scaled.T, cell_A_endstate)
     cell_B_overlaps = np.dot(XI_scaled.T, cell_B_endstate)
-    print cell_A_overlaps, cell_B_overlaps
-    print "STAGGERED:"
+    print(cell_A_overlaps, cell_B_overlaps)
+    print("STAGGERED:")
     cell_A_endstate = lattice_staggered[0][0].get_state_array()[:, -1]
     cell_B_endstate = lattice_staggered[0][1].get_state_array()[:, -1]
     cell_A_overlaps = np.dot(XI_scaled.T, cell_A_endstate)
     cell_B_overlaps = np.dot(XI_scaled.T, cell_B_endstate)
-    print cell_A_overlaps, cell_B_overlaps
+    print(cell_A_overlaps, cell_B_overlaps)
 
     return
 
@@ -183,7 +183,7 @@ def twocell_sim_as_onelargemodel(lattice, simsetup, num_steps, beta=BETA, gamma=
     singlecell = Cell(init_state, 'multicell', memories_list=simsetup['CELLTYPE_LABELS'], gene_list=genelabels_multicell)
 
     # simulate
-    for step in xrange(num_steps):
+    for step in range(num_steps):
         singlecell.update_state(J_multicell, beta=beta, app_field=h_multicell, app_field_strength=1.0, async=async)
 
     # repackage final state as multicell lattice
@@ -199,7 +199,7 @@ def twocell_sim_fast(lattice, simsetup, num_steps, beta=BETA, gamma=1.0, app_fie
                      async=True, flag_01=False):
     cell_A = lattice[0][0]
     cell_B = lattice[0][1]
-    for step in xrange(num_steps):
+    for step in range(num_steps):
         if async:
             # update cell A -- first get nbr field
             cell_B_time_t = cell_B.get_current_state()
@@ -251,7 +251,7 @@ def twocell_sim(lattice, simsetup, num_steps, data_dict, io_dict, beta=BETA, exo
     # initial condition vis
     if ioflag:
         simple_vis(lattice, simsetup, io_dict['plotlatticedir'], 'Initial condition', savemod='_%d' % 0)
-    for step in xrange(num_steps-1):
+    for step in range(num_steps-1):
         # TODO could compare against whole model random update sequence instead of this block version
         app_field_step = app_field  # TODO housekeeping applied field; N vs N+M
         # update cell A
@@ -280,23 +280,23 @@ def twocell_sim(lattice, simsetup, num_steps, data_dict, io_dict, beta=BETA, exo
             simple_vis(lattice, simsetup, io_dict['plotlatticedir'], 'Step %dB' % step, savemod='_%dB' % step)
 
     # fill in data
-    print 'simulation done; gathering data'
-    if 'memory_proj_arr' in data_dict.keys():
+    print('simulation done; gathering data')
+    if 'memory_proj_arr' in list(data_dict.keys()):
         for memory_idx in range(simsetup['P']):
             data_dict['memory_proj_arr'][memory_idx][0, :] = \
                 single_memory_projection_timeseries(cell_A.get_state_array(), memory_idx, simsetup['ETA'])
             data_dict['memory_proj_arr'][memory_idx][1, :] = \
                 single_memory_projection_timeseries(cell_B.get_state_array(), memory_idx, simsetup['ETA'])
-    if 'overlap' in data_dict.keys():
+    if 'overlap' in list(data_dict.keys()):
         data_dict['overlap'] = np.array([
-            np.dot(cell_A.state_array[:, i], cell_B.state_array[:, i]) for i in xrange(num_steps)]) / simsetup['N']
-    if 'grid_state_int' in data_dict.keys():
+            np.dot(cell_A.state_array[:, i], cell_B.state_array[:, i]) for i in range(num_steps)]) / simsetup['N']
+    if 'grid_state_int' in list(data_dict.keys()):
         # TODO
-        print 'TODO grid_state_int data fill in'
+        print('TODO grid_state_int data fill in')
         #data_dict['grid_state_int'] = np.zeros((2, num_steps), dtype=int)
-    if 'multi_hamiltonian' in data_dict.keys():
-        data_dict['single_hamiltonians'][0, :] = [hamiltonian(cell_A.state_array[:, i], simsetup['J'], field=app_field, fs=app_field_strength) for i in xrange(num_steps)]
-        data_dict['single_hamiltonians'][1, :] = [hamiltonian(cell_B.state_array[:, i], simsetup['J'], field=app_field, fs=app_field_strength) for i in xrange(num_steps)]
+    if 'multi_hamiltonian' in list(data_dict.keys()):
+        data_dict['single_hamiltonians'][0, :] = [hamiltonian(cell_A.state_array[:, i], simsetup['J'], field=app_field, fs=app_field_strength) for i in range(num_steps)]
+        data_dict['single_hamiltonians'][1, :] = [hamiltonian(cell_B.state_array[:, i], simsetup['J'], field=app_field, fs=app_field_strength) for i in range(num_steps)]
         if simsetup['FIELD_SEND'] is not None:
             # TODO check the algebra here...
             W = simsetup['FIELD_SEND']
@@ -305,7 +305,7 @@ def twocell_sim(lattice, simsetup, num_steps, data_dict, io_dict, beta=BETA, exo
             data_dict['unweighted_coupling_term'][:] = \
                 [- 0.5 * np.dot( cell_A.state_array[:, i], np.dot(WSym2, cell_B.state_array[:, i]) )
                  - 0.5 * np.dot(WdotOne, cell_A.state_array[:, i] + cell_B.state_array[:, i])
-                 for i in xrange(num_steps)]
+                 for i in range(num_steps)]
         data_dict['multi_hamiltonian'] = (data_dict['single_hamiltonians'][0, :] + data_dict['single_hamiltonians'][1, :]) + gamma * data_dict['unweighted_coupling_term']
     return lattice, data_dict, io_dict
 

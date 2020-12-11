@@ -81,8 +81,8 @@ def refine_applied_field_twocell(N_multicell, h_multicell, housekeeping=0, kappa
 def build_multicell_basin_labels(simsetup, N_multicell, minima):
     N_sc = simsetup['N']
     basin_labels = {}
-    for i in xrange(simsetup['P']):
-        for j in xrange(simsetup['P']):
+    for i in range(simsetup['P']):
+        for j in range(simsetup['P']):
             joint_state_pp = np.zeros(N_multicell)
             joint_state_pn = np.zeros(N_multicell)
             # for two cells, have four different joint states depending on the sign (unlike one antistate for one cell)
@@ -103,52 +103,52 @@ def build_multicell_basin_labels(simsetup, N_multicell, minima):
             basin_labels[label_np] = r'$(-\xi^%d, \xi^%d)$' % (i, j)
     i = 1
     for label in minima:
-        if label not in basin_labels.keys():
+        if label not in list(basin_labels.keys()):
             if label == 0:
                 basin_labels[label] = r'$S-$'
             elif label == (2**N_multicell - 1):
                 basin_labels[label] = r'$S+$'
             else:
                 basin_labels[label] = 'spurious: %d' % i
-                print 'unlabelled spurious minima %d (#%d): %s' % (i, label, label_to_state(label, N_multicell))
+                print('unlabelled spurious minima %d (#%d): %s' % (i, label, label_to_state(label, N_multicell)))
             i += 1
     return basin_labels
 
 
 def print_fp_info_twocell(simsetup, N_multicell, minima, maxima, energies):
     assert N_multicell == 2 * simsetup['N']
-    print 'Minima labels (get_all_fp):'
-    print minima
-    print 'minima label, energy, state vec, overlap vec, proj vec, '
+    print('Minima labels (get_all_fp):')
+    print(minima)
+    print('minima label, energy, state vec, overlap vec, proj vec, ')
     for minimum in minima:
         minstate = label_to_state(minimum, N_multicell)
         cell_A = minstate[0:simsetup['N']]
         cell_B = minstate[simsetup['N']:]
-        print 'state id and energy:', minimum, energies[minimum]
-        print'\tA', cell_A, np.dot(simsetup['XI'].T, cell_A) / simsetup['N'], np.dot(simsetup['ETA'], cell_A)
-        print '\tB', cell_B, np.dot(simsetup['XI'].T, cell_B) / simsetup['N'], np.dot(simsetup['ETA'], cell_B)
-    print '\nMaxima labels (get_all_fp):'
-    print maxima
-    print 'minima label, energy, state vec, overlap vec, proj vec, '
+        print('state id and energy:', minimum, energies[minimum])
+        print('\tA', cell_A, np.dot(simsetup['XI'].T, cell_A) / simsetup['N'], np.dot(simsetup['ETA'], cell_A))
+        print('\tB', cell_B, np.dot(simsetup['XI'].T, cell_B) / simsetup['N'], np.dot(simsetup['ETA'], cell_B))
+    print('\nMaxima labels (get_all_fp):')
+    print(maxima)
+    print('minima label, energy, state vec, overlap vec, proj vec, ')
     for maximum in maxima:
         maxstate = label_to_state(maximum, N_multicell)
         cell_A = maxstate[0:simsetup['N']]
         cell_B = maxstate[simsetup['N']:]
-        print 'state id and energy:', maximum, energies[maximum]
-        print'\tA', cell_A, np.dot(simsetup['XI'].T, cell_A) / simsetup['N'], np.dot(simsetup['ETA'], cell_A)
-        print '\tB', cell_B, np.dot(simsetup['XI'].T, cell_B) / simsetup['N'], np.dot(simsetup['ETA'], cell_B)
+        print('state id and energy:', maximum, energies[maximum])
+        print('\tA', cell_A, np.dot(simsetup['XI'].T, cell_A) / simsetup['N'], np.dot(simsetup['ETA'], cell_A))
+        print('\tB', cell_B, np.dot(simsetup['XI'].T, cell_B) / simsetup['N'], np.dot(simsetup['ETA'], cell_B))
 
 
 def build_colour_dict(basins_dict, label_to_fp_label, N_multicell):
     cdict = {}
     if label_to_fp_label is not None:
-        basins_keys = basins_dict.keys()
+        basins_keys = list(basins_dict.keys())
         fp_label_to_colour = {a: DISTINCT_COLOURS[idx] if idx < len(DISTINCT_COLOURS) else '#000000'
                               for idx, a in enumerate(basins_keys)}  # Note: colours after 20th label are all black
         cdict['basins_dict'] = basins_dict
         cdict['fp_label_to_colour'] = fp_label_to_colour
         cdict['clist'] = [0] * (2 ** N_multicell)
-        for i in xrange(2 ** N_multicell):
+        for i in range(2 ** N_multicell):
             cdict['clist'][i] = fp_label_to_colour[label_to_fp_label[i]]
     return cdict
 
@@ -190,7 +190,7 @@ if __name__ == '__main__':
         CURATED = True
         simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, npzpath=MEMS_UNFOLD,
                                        housekeeping=HOUSEKEEPING, curated=CURATED)
-        print 'note: total N = (%d) x %d' % (simsetup['N'], NUM_CELLS)
+        print('note: total N = (%d) x %d' % (simsetup['N'], NUM_CELLS))
         N_multicell = simsetup['N'] * NUM_CELLS
 
         # dynamics and im reduction settings
@@ -204,35 +204,35 @@ if __name__ == '__main__':
         manual_field = None
 
         # prep multicell state space, interaction matrix
-        statespace_multicell = np.array([label_to_state(label, N_multicell) for label in xrange(2 ** N_multicell)])
+        statespace_multicell = np.array([label_to_state(label, N_multicell) for label in range(2 ** N_multicell)])
         J_multicell, h_multicell = build_twocell_J_h(simsetup, GAMMA, flag_01=FLAG_01)
         h_multicell = refine_applied_field_twocell(N_multicell, h_multicell, housekeeping=HOUSEKEEPING, kappa=KAPPA,
                                                    manual_field=manual_field)
 
         # get & report energy levels data
-        print "\nSorting energy levels, finding extremes..."
+        print("\nSorting energy levels, finding extremes...")
         energies, _ = sorted_energies(J_multicell, field=h_multicell, fs=1.0, flag_sort=False)
-        print "\nRunning 'get_all_fp()'..."
+        print("\nRunning 'get_all_fp()'...")
         fp_annotation, minima, maxima = get_all_fp(J_multicell, field=h_multicell, fs=1.0, statespace=statespace_multicell,
                                                    energies=energies, inspection=False)
         print_fp_info_twocell(simsetup, N_multicell, minima, maxima, energies)
 
-        print "\nPartitioning basins..."
+        print("\nPartitioning basins...")
         # TODO resolve partitioning and get_all_fp discrepancies
         basins_dict, label_to_fp_label = partition_basins(J_multicell, X=statespace_multicell, minima=minima,
                                                           field=h_multicell, fs=1.0, dynamics='async_batch')
-        print "\nMore minima stats"
-        print 'partition basin dict labels:', sorted(basins_dict.keys())
-        print "key, energy, state, basin size, key in minima"
-        for key in basins_dict.keys():
-            print key, energies[key], label_to_state(key, N_multicell), len(basins_dict[key]), key in minima
+        print("\nMore minima stats")
+        print('partition basin dict labels:', sorted(basins_dict.keys()))
+        print("key, energy, state, basin size, key in minima")
+        for key in list(basins_dict.keys()):
+            print(key, energies[key], label_to_state(key, N_multicell), len(basins_dict[key]), key in minima)
 
         if basic_visualize:
             # setup basin colours for visualization
             cdict = build_colour_dict(basins_dict, label_to_fp_label, N_multicell)
 
             # setup basin labels depending on npz
-            print "\nBuilding multicell basin labels..."
+            print("\nBuilding multicell basin labels...")
             basin_labels = build_multicell_basin_labels(simsetup, N_multicell, minima)
 
             # TODO  mulicell revise
@@ -242,7 +242,7 @@ if __name__ == '__main__':
                                          plot_X=plot_X, field=app_field, fs=KAPPA, beta=beta)
             """
             # reduce dimension via spectral embedding
-            print '\nBuilding 2 ** %d glauber transition matrix...' % (N_multicell)
+            print('\nBuilding 2 ** %d glauber transition matrix...' % (N_multicell))
             X = glauber_transition_matrix(J_multicell, field=h_multicell, fs=1.0, beta=beta, override=0.0, DTMC=False)
             dim_spectral = 20  # use dim >= number of known minima?
             X_lower = spectral_custom(-X, dim_spectral, norm_each=False, plot_evec=False, skip_small_eval=False)
@@ -288,7 +288,7 @@ if __name__ == '__main__':
         # gamma independent steps
         simsetup = singlecell_simsetup(unfolding=True, random_mem=False, random_W=False, npzpath=MEMS_UNFOLD,
                                        housekeeping=HOUSEKEEPING, curated=True)
-        print 'note: total N = (%d) x %d' % (simsetup['N'], NUM_CELLS)
+        print('note: total N = (%d) x %d' % (simsetup['N'], NUM_CELLS))
         N_multicell = simsetup['N'] * NUM_CELLS
         # dynamics and im reduction settings
         DIM_REDUCE = 2
@@ -298,27 +298,27 @@ if __name__ == '__main__':
         # manual applied field on both cells
         manual_field = None
         # prep multicell state space, interaction matrix
-        statespace_multicell = np.array([label_to_state(label, N_multicell) for label in xrange(2 ** N_multicell)])
+        statespace_multicell = np.array([label_to_state(label, N_multicell) for label in range(2 ** N_multicell)])
 
         gamma_norm_eval = False
         evals_vary = np.zeros((N_multicell, len(gamma_vals)))  # TODO dtype = complex or not? symmetric case care assert
-        print "\nRunning gamma_scan in (%.2f, %.2f) (%d points)" % (gamma_vals[0], gamma_vals[-1], len(gamma_vals))
+        print("\nRunning gamma_scan in (%.2f, %.2f) (%d points)" % (gamma_vals[0], gamma_vals[-1], len(gamma_vals)))
         for idx, gamma in enumerate(gamma_vals):
             J_multicell, h_multicell = build_twocell_J_h(simsetup, gamma, flag_01=FLAG_01)
             h_multicell = refine_applied_field_twocell(N_multicell, h_multicell, housekeeping=HOUSEKEEPING, kappa=KAPPA,
                                                        manual_field=manual_field)
             evals, evecs = sorted_eig(J_multicell)
-            print "idx %d, gamma %.3f" % (idx, gamma)
+            print("idx %d, gamma %.3f" % (idx, gamma))
             with np.printoptions(precision=2, suppress=True):
                 if gamma_norm_eval:
                     anchor = 1.0
                     evals_vary[:, idx] = evals[:] / (anchor + gamma)
                 else:
                     evals_vary[:, idx] = evals[:]
-                print "\t", evals_vary[:, idx]
+                print("\t", evals_vary[:, idx])
         plot_evals_vs_gamma(gamma_vals, evals_vary, show=False, hollow=HOLLOW_INTXN_MATRIX, norm=gamma_norm_eval)
 
-        print "\n************************************************Rough evec block"
+        print("\n************************************************Rough evec block")
         if scan_evec:
             gamma_evecs = [0.0, 0.1, 2.0]
             for idx, gamma in enumerate(gamma_evecs):
@@ -326,11 +326,11 @@ if __name__ == '__main__':
                 h_multicell = refine_applied_field_twocell(N_multicell, h_multicell, housekeeping=HOUSEKEEPING, kappa=KAPPA,
                                                            manual_field=manual_field)
                 evals, evecs = sorted_eig(J_multicell)
-                print "idx %d, gamma %.3f" % (idx, gamma)
-                for gene_idx in xrange(N_multicell):
+                print("idx %d, gamma %.3f" % (idx, gamma))
+                for gene_idx in range(N_multicell):
                     with np.printoptions(precision=2, suppress=True):
-                        print "\tevec rank %d (eval %.2f)" % (gene_idx, evals[gene_idx])
-                        print "\t", evecs[:, gene_idx]
+                        print("\tevec rank %d (eval %.2f)" % (gene_idx, evals[gene_idx]))
+                        print("\t", evecs[:, gene_idx])
                         """if gamma_norm_eval:
                             anchor = 1
                             evals_vary[:, idx] = evals[:] / (anchor + gamma)
@@ -342,29 +342,29 @@ if __name__ == '__main__':
 
     if evec_combo_investigate:
         gamma_check = 100.0
-        print "\ngamma_check %.3f" % (gamma_check)
+        print("\ngamma_check %.3f" % (gamma_check))
         J_multicell, h_multicell = build_twocell_J_h(simsetup, gamma_check, flag_01=FLAG_01)
         h_multicell = refine_applied_field_twocell(N_multicell, h_multicell, housekeeping=HOUSEKEEPING, kappa=KAPPA,
                                                    manual_field=manual_field)
 
         # get & report energy levels data
-        print "\nSorting energy levels, finding extremes..."
+        print("\nSorting energy levels, finding extremes...")
         energies, _ = sorted_energies(J_multicell, field=h_multicell, fs=1.0, flag_sort=False)
-        print "\nRunning 'get_all_fp()'..."
+        print("\nRunning 'get_all_fp()'...")
         fp_annotation, minima, maxima = get_all_fp(J_multicell, field=h_multicell, fs=1.0,
                                                    statespace=statespace_multicell,
                                                    energies=energies, inspection=False)
         print_fp_info_twocell(simsetup, N_multicell, minima, maxima, energies)
 
-        print "\nPartitioning basins..."
+        print("\nPartitioning basins...")
         # TODO resolve partitioning and get_all_fp discrepancies
         basins_dict, label_to_fp_label = partition_basins(J_multicell, X=statespace_multicell, minima=minima,
                                                           field=h_multicell, fs=1.0, dynamics='async_batch')
-        print "\nMore minima stats"
-        print 'partition basin dict labels:', sorted(basins_dict.keys())
-        print "key, energy, state, basin size, key in minima"
-        for key in basins_dict.keys():
-            print key, energies[key], label_to_state(key, N_multicell), len(basins_dict[key]), key in minima
+        print("\nMore minima stats")
+        print('partition basin dict labels:', sorted(basins_dict.keys()))
+        print("key, energy, state, basin size, key in minima")
+        for key in list(basins_dict.keys()):
+            print(key, energies[key], label_to_state(key, N_multicell), len(basins_dict[key]), key in minima)
 
         cA1B1pp = np.array([1, 1, 1, 1, 1,
                             1, 1, -1, -1, 1])
@@ -412,16 +412,16 @@ if __name__ == '__main__':
                     cA1B2Fpp, cA1B2Fpm, cA1B2Fmp, cA1B2Fmm]
 
         with np.printoptions(precision=2, suppress=True):
-            for idx in xrange(16):
-                print 'idx', 2*idx, vec_labels[idx], \
+            for idx in range(16):
+                print('idx', 2*idx, vec_labels[idx], \
                     hamiltonian(vec_vals[idx], J_multicell, field=h_multicell, fs=1.0), \
-                    abs(sum(vec_vals[idx][0:5])), abs(sum(vec_vals[idx][5:]))
+                    abs(sum(vec_vals[idx][0:5])), abs(sum(vec_vals[idx][5:])))
                 vec_conj = vec_vals[idx]
                 vec_conj[1] = vec_conj[1] * -1
                 vec_conj[6] = vec_conj[6] * -1
-                print 'idx', 2*idx + 1, vec_labels[idx] + '_altA', \
+                print('idx', 2*idx + 1, vec_labels[idx] + '_altA', \
                     hamiltonian(vec_conj, J_multicell, field=h_multicell, fs=1.0), \
-                    abs(sum(vec_conj[0:5])), abs(sum(vec_conj[5:]))
+                    abs(sum(vec_conj[0:5])), abs(sum(vec_conj[5:])))
 
     if inf_gamma_analysis:
         J_multicell, h_multicell = build_twocell_J_h(simsetup, 1.0, flag_01=False)
@@ -433,12 +433,12 @@ if __name__ == '__main__':
         inf_gamma_intxn[N_multicell/2:, N_multicell/2:] = 0
 
 
-        print "\nBig matrix"
+        print("\nBig matrix")
         evals, evecs = sorted_eig(inf_gamma_intxn)
-        print evecs
-        print evals
+        print(evecs)
+        print(evals)
 
-        print "\nField send matrix"
+        print("\nField send matrix")
         evals, evecs = sorted_eig(simsetup['FIELD_SEND'])
-        print evecs
-        print evals
+        print(evecs)
+        print(evals)

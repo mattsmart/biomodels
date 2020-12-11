@@ -40,7 +40,7 @@ def single_projection_timeseries_vary_basin_init(memory_label='esc', figname='me
     # cleanup output folders from main()
     # TODO: function to cleanup runs subdir mehta1E call here call
     # plot output
-    plt.plot(xrange(num_steps), proj_timeseries_array, color='blue', linewidth=0.75)
+    plt.plot(range(num_steps), proj_timeseries_array, color='blue', linewidth=0.75)
     plt.title('Mehta Fig 1E analog: proj on memory %s while corrupting IC' % (memory_label))
     plt.ylabel('proj on memory %s' % (memory_label))
     plt.xlabel('Time (10^3 updates, all spins)')

@@ -18,7 +18,7 @@ def params_unpack(params):
 
 def params_fill(params_base, pdict):
     params = params_base.copy()
-    for k in pdict.keys():
+    for k in list(pdict.keys()):
         params[k] = pdict[k]
     return params
 
@@ -77,7 +77,7 @@ def plot_f_and_df(params, num_pts=20):
     axarr[0].set_ylabel(r'$f(m)$')
     axarr[1].plot(mvals, [free_energy_dm(m, params) for m in mvals])
     axarr[1].set_ylabel(r'$df/dm$')
-    for idx in xrange(2):
+    for idx in range(2):
         axarr[idx].set_xlabel(r'$m$')
         axarr[idx].axvline(x=-1, color='k', linestyle='--')
         axarr[idx].axvline(x=1, color='k', linestyle='--')
@@ -102,21 +102,21 @@ def get_data_wrapper(fn_args_dict):
 
 def get_data_parallel(p1, p2, p1range, p2range, params, num_proc=cpu_count()):
     fn_args_dict = [0] * num_proc
-    print "NUM_PROCESSES:", num_proc
+    print("NUM_PROCESSES:", num_proc)
     assert len(p1range) % num_proc == 0
-    for i in xrange(num_proc):
+    for i in range(num_proc):
         range_step = len(p1range) / num_proc
         p1range_reduced = p1range[i * range_step: (1 + i) * range_step]
-        print "process:", i, "job size:", len(p1range_reduced), "x", len(p2range)
+        print("process:", i, "job size:", len(p1range_reduced), "x", len(p2range))
         fn_args_dict[i] = {'args': (p1, p2, p1range_reduced, p2range, params),
                            'kwargs': {}}
-        print i, p1, np.min(p1range_reduced), np.max(p1range_reduced)
+        print(i, p1, np.min(p1range_reduced), np.max(p1range_reduced))
     t0 = time.time()
     pool = Pool(num_proc)
     results = pool.map(get_data_wrapper, fn_args_dict)
     pool.close()
     pool.join()
-    print "TIMER:", time.time() - t0
+    print("TIMER:", time.time() - t0)
 
     results_dim = np.shape(results[0])
     results_collected = np.zeros((results_dim[0] * num_proc, results_dim[1]))
@@ -162,7 +162,7 @@ def free_energy_pdim(c, simsetup, beta=10**3):
     xi_dot_c = np.dot(xi, c)  # this is N x 1 object
     term1 = 0.5 * np.dot(xi_dot_c, xi_dot_c)
     term2 = 0
-    for idx in xrange(simsetup['N']):
+    for idx in range(simsetup['N']):
         term2 += np.log( np.cosh( beta * xi_dot_c[idx] ) )
     term2_scaled = term2 / beta
     return term1 - term2_scaled
@@ -174,8 +174,8 @@ def free_energy_pdim_neg_grad(c, simsetup, beta=10**3):
     tanh_factor = np.tanh(beta * xi_dot_c)
     cdot_term1 = np.dot(xi.T, xi_dot_c)
     cdot_term2 = np.zeros(simsetup['P'])
-    for idx in xrange(simsetup['N']):
-        for mu in xrange(simsetup['P']):
+    for idx in range(simsetup['N']):
+        for mu in range(simsetup['P']):
             cdot_term2[mu] += xi[idx, mu] * tanh_factor[idx]
     return -1 * cdot_term1 + cdot_term2
 
@@ -187,9 +187,9 @@ def free_energy_pdim_hessian(c, simsetup, beta=10**3):
     A_unscaled = np.dot(xi.T, xi)
     hess_term1 = A_unscaled  # this is the first term of the p x p matrix
     hess_term2_unscaled = np.zeros((simsetup['P'], simsetup['P']))
-    for mu in xrange(simsetup['P']):
-        for nu in xrange(simsetup['P']):
-            for idx in xrange(simsetup['N']):
+    for mu in range(simsetup['P']):
+        for nu in range(simsetup['P']):
+            for idx in range(simsetup['N']):
                 hess_term2_unscaled[mu, nu] += xi[idx, mu] * xi[idx, nu] * sech_factor[idx]
     hess = hess_term1 - hess_term2_unscaled * beta
     return hess
@@ -204,7 +204,7 @@ def unique_roots_check(unique_roots, solution, infodict, tol=1e-4):
     if append_flag:
         if np.linalg.norm(infodict["fvec"]) <= 10e-3:  # only append actual roots (i.e. f(x)=0)
             unique_roots.append(solution)
-            print solution, np.linalg.norm(infodict["fvec"]), infodict["fvec"]
+            print(solution, np.linalg.norm(infodict["fvec"]), infodict["fvec"])
     return unique_roots
 
 
@@ -214,17 +214,17 @@ def pdim_fixedpoints_gridsearch(simsetup):
     c0_base = c0_coord_init * np.ones(simsetup['P'])
     pts_per_axis = 1 + int((np.abs(c0_coord_init) - c0_coord_init) / c0_coord_step)
     num_pts = pts_per_axis ** simsetup['P']
-    print "Running: pdim minima search with num_pts", num_pts, "step size", c0_coord_step
+    print("Running: pdim minima search with num_pts", num_pts, "step size", c0_coord_step)
 
     def step_vec(pt):
         step_vec = np.zeros(simsetup['P'], dtype=int)
-        for mu in xrange(simsetup['P']):
+        for mu in range(simsetup['P']):
             step_vec[mu] = (pt / (pts_per_axis ** mu)) % pts_per_axis
         return step_vec
 
     unique_roots = []
     # TODO parallelize
-    for pt in xrange(num_pts):
+    for pt in range(num_pts):
         c0_pt = c0_base + c0_coord_step * step_vec(pt)
         solution, infodict, _, _ = fsolve(free_energy_pdim_neg_grad, c0_pt, args=simsetup, full_output=True)
         unique_roots = unique_roots_check(unique_roots, solution, infodict)
@@ -244,11 +244,11 @@ def pdim_fixedpoints_randomsearch(simsetup, num_pts=500):
     unique_roots = []
     # TODO parallelize
     c0_pt_arr = np.zeros((num_pts,3))
-    for pt in xrange(num_pts):
+    for pt in range(num_pts):
         c0_pt = c0_randomize()
 
         c0_pt_arr[pt, :] = c0_pt
-        print pt, c0_pt
+        print(pt, c0_pt)
 
         solution, infodict, _, _ = fsolve(free_energy_pdim_neg_grad, c0_pt, args=simsetup, full_output=True)
         unique_roots = unique_roots_check(unique_roots, solution, infodict)
@@ -262,14 +262,14 @@ def minima_from_fixed_points(fixed_points, simsetup, beta=10**3, verbose=False):
     def check_if_minimum(c0, simsetup):
         hess = free_energy_pdim_hessian(c0, simsetup, beta=beta)
         eigenvalues, V = np.linalg.eig(hess)
-        print "\n", "Hessian evals", eigenvalues
+        print("\n", "Hessian evals", eigenvalues)
         return all(np.real(eig) > 0 for eig in eigenvalues)
 
     minima = []
     for cRoot in fixed_points:
         boolv = check_if_minimum(cRoot, simsetup)
-        print "gradient", free_energy_pdim_neg_grad(cRoot, simsetup)
-        print "is minimum:", cRoot, boolv
+        print("gradient", free_energy_pdim_neg_grad(cRoot, simsetup))
+        print("is minimum:", cRoot, boolv)
         if boolv:
             minima.append(cRoot)
 
@@ -290,8 +290,8 @@ if __name__ == '__main__':
             'N2': 0,
             'kappa1': 0.0,
             'kappa2': 0.0}
-        print get_all_roots(params, tol=1e-6)
-        print get_stable_roots(params, tol=1e-6)
+        print(get_all_roots(params, tol=1e-6))
+        print(get_stable_roots(params, tol=1e-6))
         plot_f_and_df(params)
 
     if phase_diagram:
@@ -316,12 +316,12 @@ if __name__ == '__main__':
         random_W = False
         # simsetup = singlecell_simsetup(unfolding=False, random_mem=random_mem, random_W=random_W, npzpath=MEMS_MEHTA, housekeeping=HOUSEKEEPING)
         simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, housekeeping=0, curated=True)
-        print 'note: N =', simsetup['N'], 'P =', simsetup['P']
+        print('note: N =', simsetup['N'], 'P =', simsetup['P'])
         #fixed_points = pdim_fixedpoints_gridsearch(simsetup)
         fixed_points = pdim_fixedpoints_randomsearch(simsetup, num_pts=500)
         minima = minima_from_fixed_points(fixed_points, simsetup)
         for idx, minimum in enumerate(minima):
-            print idx, minimum
+            print(idx, minimum)
 
     if run_twocell:
         GAMMA = 1.0
@@ -334,11 +334,11 @@ if __name__ == '__main__':
         random_W = False
         # simsetup = singlecell_simsetup(unfolding=False, random_mem=random_mem, random_W=random_W, npzpath=MEMS_MEHTA, housekeeping=HOUSEKEEPING)
         simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W, housekeeping=0, curated=True)
-        print 'note: single cell N =', simsetup['N'], 'P =', simsetup['P']
+        print('note: single cell N =', simsetup['N'], 'P =', simsetup['P'])
         N_multicell = simsetup['N'] * 2
-        print 'note: multi cell N =', N_multicell
+        print('note: multi cell N =', N_multicell)
 
-        statespace_multicell = np.array([label_to_state(label, N_multicell) for label in xrange(2 ** N_multicell)])
+        statespace_multicell = np.array([label_to_state(label, N_multicell) for label in range(2 ** N_multicell)])
         J_multicell, h_multicell = build_twocell_J_h(simsetup, GAMMA, flag_01=FLAG_01)
         h_multicell = refine_applied_field_twocell(N_multicell, h_multicell, housekeeping=HOUSEKEEPING, kappa=KAPPA,
                                                    manual_field=manual_field)
@@ -348,4 +348,4 @@ if __name__ == '__main__':
         fixed_points = pdim_fixedpoints_randomsearch(simsetup, num_pts=500)
         minima = minima_from_fixed_points(fixed_points, simsetup)
         for idx, minimum in enumerate(minima):
-            print idx, minimum
+            print(idx, minimum)

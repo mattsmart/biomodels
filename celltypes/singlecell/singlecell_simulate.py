@@ -33,7 +33,7 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_FULL_STEPS, bet
         io_dict = run_subdir_setup(run_subfolder=analysis_subdir)
     else:
         if verbose:
-            print "Warning: flag_write set to False -- nothing will be saved"
+            print("Warning: flag_write set to False -- nothing will be saved")
         io_dict = None
 
     # simsetup unpack
@@ -58,9 +58,9 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_FULL_STEPS, bet
     app_field_strength = field_dict['app_field_strength']
 
     # Simulate
-    for step in xrange(iterations-1):
+    for step in range(iterations-1):
         if verbose:
-            print "cell steps:", singlecell.steps, " H(state) =", singlecell.get_energy(intxn_matrix=intxn_matrix)  # TODO need general intxn_matrix parent class
+            print("cell steps:", singlecell.steps, " H(state) =", singlecell.get_energy(intxn_matrix=intxn_matrix))  # TODO need general intxn_matrix parent class
         # apply burst errors
         if flag_burst_error and step % BURST_ERROR_PERIOD == 0:
             singlecell.apply_burst_errors()
@@ -73,14 +73,14 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_FULL_STEPS, bet
 
     # Write
     if verbose:
-        print singlecell.get_current_state()
+        print(singlecell.get_current_state())
     if flag_write:
         if verbose:
-            print "Writing state to file.."
+            print("Writing state to file..")
         singlecell.write_state(io_dict['datadir'])
     if verbose:
-        print io_dict['basedir']
-        print "Done"
+        print(io_dict['basedir'])
+        print("Done")
     return singlecell.get_state_array(), io_dict
 
 

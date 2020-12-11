@@ -33,8 +33,8 @@ def load_external_celltype(csvpath):
 def build_entrez_synonyms_for_celltype(gene_labels_raw, entrez_name='entrez_id_ext_celltype.csv'):
     entrez_path = DATADIR + os.sep + 'misc' + os.sep + 'genelist_entrezids' + os.sep + entrez_name
     if os.path.exists(entrez_path):
-        print "Warning, path %s exists" % entrez_path
-        print "Delete file to have it be remade (using existing one)"
+        print("Warning, path %s exists" % entrez_path)
+        print("Delete file to have it be remade (using existing one)")
     else:
         gene_hits, hitcounts = collect_mygene_hits(gene_labels_raw)
         write_genelist_id_csv(gene_labels_raw, gene_hits, outpath=entrez_path)
@@ -42,10 +42,10 @@ def build_entrez_synonyms_for_celltype(gene_labels_raw, entrez_name='entrez_id_e
 
 
 def truncate_celltype_data(matches, simsetup, gene_labels_raw, gene_states_raw):
-    print 'Loaded gene count from external celltype:', len(gene_labels_raw)
-    print 'Loaded gene count from memories:', len(simsetup['GENE_LABELS'])
-    print 'Number of matches, with possible redundancies:', len(matches)
-    print 'NOTE: choosing FIRST gene match in cases of degenerate matches'
+    print('Loaded gene count from external celltype:', len(gene_labels_raw))
+    print('Loaded gene count from memories:', len(simsetup['GENE_LABELS']))
+    print('Number of matches, with possible redundancies:', len(matches))
+    print('NOTE: choosing FIRST gene match in cases of degenerate matches')
     new_memory_rows = []
     new_celltype_rows = []
     for match in matches:
@@ -59,18 +59,18 @@ def truncate_celltype_data(matches, simsetup, gene_labels_raw, gene_states_raw):
             new_memory_rows.append(matched_memory_gene_idx)
             new_celltype_rows.append(matched_celltype_gene_idx)
     assert len(new_memory_rows) == len(new_celltype_rows)
-    print 'Number of genes which match simsetup gene list:', len(new_memory_rows)
+    print('Number of genes which match simsetup gene list:', len(new_memory_rows))
     xi_truncated = simsetup['XI'][new_memory_rows, :]
     ext_gene_states_truncated = np.array(gene_states_raw)[new_celltype_rows]
-    print xi_truncated.shape, ext_gene_states_truncated.shape
+    print(xi_truncated.shape, ext_gene_states_truncated.shape)
     return xi_truncated, ext_gene_states_truncated
 
 
 def truncate_celltype_data_for_dual_npz(matches, simsetup_A, simsetup_B):
-    print 'Loaded gene count from npz A:', len(simsetup_A['GENE_LABELS'])
-    print 'Loaded gene count from npz B:', len(simsetup_B['GENE_LABELS'])
-    print 'Number of matches, with possible redundancies:', len(matches)
-    print 'NOTE: choosing FIRST gene match in cases of degenerate matches'
+    print('Loaded gene count from npz A:', len(simsetup_A['GENE_LABELS']))
+    print('Loaded gene count from npz B:', len(simsetup_B['GENE_LABELS']))
+    print('Number of matches, with possible redundancies:', len(matches))
+    print('NOTE: choosing FIRST gene match in cases of degenerate matches')
     new_npzA_rows = []
     new_npzB_rows = []
     for match in matches:
@@ -84,10 +84,10 @@ def truncate_celltype_data_for_dual_npz(matches, simsetup_A, simsetup_B):
             new_npzA_rows.append(matched_A_gene_idx)
             new_npzB_rows.append(matched_B_gene_idx)
     assert len(new_npzA_rows) == len(new_npzB_rows)
-    print 'Number of genes which match both simsetup gene lists:', len(new_npzA_rows)
+    print('Number of genes which match both simsetup gene lists:', len(new_npzA_rows))
     xi_truncated_A = simsetup_A['XI'][new_npzA_rows, :]
     xi_truncated_B = simsetup_B['XI'][new_npzB_rows, :]
-    print xi_truncated_A.shape, xi_truncated_B.shape
+    print(xi_truncated_A.shape, xi_truncated_B.shape)
     return xi_truncated_A, xi_truncated_B
 
 
@@ -100,7 +100,7 @@ def compute_and_plot_score(simsetup, xi_truncated, ext_gene_states_truncated, ce
         filemod = 'proj'
         scores = np.dot(simsetup['A_INV'], scores)
     for idx, label in enumerate(simsetup['CELLTYPE_LABELS']):
-        print "Celltype %s, %s %.3f" % (label, scorelabel, scores[idx])
+        print("Celltype %s, %s %.3f" % (label, scorelabel, scores[idx]))
     # plot overlaps
     plot_as_bar(scores, simsetup['CELLTYPE_LABELS'])
     plt.title('%s between %s and loaded memories (num matching genes: %d)' % (scorelabel, celltype_name, len(ext_gene_states_truncated)))
@@ -225,7 +225,7 @@ if __name__ == '__main__':
         memories_npz = MEMORIESDIR + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_pruned_A_TFonly.npz'
         memories_entrez_path = DATADIR + os.sep + 'misc' + os.sep + 'genelist_entrezids' + os.sep + 'entrez_id_2018scMCA_pruned_TFonly.csv'
         # scoring
-        print 'Scoring similarity between %s and celltypes in %s...' % (external_celltype, memories_npz)
+        print('Scoring similarity between %s and celltypes in %s...' % (external_celltype, memories_npz))
         simsetup, xi_truncated, ext_gene_states_truncated = \
             score_similarity(external_celltype, memories_npz, memories_entrez_path, celltype_name=ext_celltype_name, use_proj=True)
         compute_and_plot_score(simsetup, xi_truncated, ext_gene_states_truncated, celltype_name=ext_celltype_name, use_proj=False)
@@ -247,7 +247,7 @@ if __name__ == '__main__':
                 '2018pruneA': MEMORIESDIR + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_pruned_A.npz',
                 '2018_TF': MEMORIESDIR + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_TFonly.npz',
                 '2018pruneA_TF': MEMORIESDIR + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_pruned_A_TFonly.npz'}
-        for k, v in npzs.iteritems():
+        for k, v in npzs.items():
             simsetup = singlecell_simsetup(npzpath=v)
             plot_overlaps_for_npz(simsetup['XI'], simsetup['CELLTYPE_LABELS'], k, outdir, namemod='_orig_overlap')
 

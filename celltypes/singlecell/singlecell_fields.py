@@ -58,16 +58,16 @@ def construct_app_field_from_genes(gene_name_effect, gene_id, num_steps=0):
     Return:
     - applied field array of size N x 1 or N x num_steps
     """
-    print "Constructing applied field:"
-    N = len(gene_id.keys())
+    print("Constructing applied field:")
+    N = len(list(gene_id.keys()))
     #app_field = np.zeros((N, num_steps))  $ TODO implement time based
     app_field = np.zeros(N)
-    for label, effect in gene_name_effect.iteritems():
-        if label in gene_id.keys():
+    for label, effect in gene_name_effect.items():
+        if label in list(gene_id.keys()):
             #print label, gene_id[label], 'effect:', effect
             app_field[gene_id[label]] += effect
         else:
-            print "Field construction warning: label %s not in gene_id.keys()" % label
+            print("Field construction warning: label %s not in gene_id.keys()" % label)
     return app_field
 
 
@@ -96,14 +96,14 @@ def field_setup(simsetup, protocol=FIELD_PROTOCOL, level=None):
     elif simsetup['memories_path'] == MEMS_SCMCA:
         npz_label = '2018scMCA'
     else:
-        print "Note npz mems not supported:", simsetup['memories_path']
+        print("Note npz mems not supported:", simsetup['memories_path'])
         npz_label = None
     if level is None:
-        print "Warning: Arg 'level' is None -- setting field level to 'level_1'"
+        print("Warning: Arg 'level' is None -- setting field level to 'level_1'")
         level = 'level_1'
 
     if protocol == "yamanaka":
-        print "Note: field_setup using", protocol, npz_label, level
+        print("Note: field_setup using", protocol, npz_label, level)
         field_genes = EXPT_FIELDS[protocol][npz_label][level]
         field_genes_effects = {label: 1.0 for label in field_genes}  # this ensure all should be ON
         app_field_start = construct_app_field_from_genes(field_genes_effects, gene_id, num_steps=0)
@@ -113,7 +113,7 @@ def field_setup(simsetup, protocol=FIELD_PROTOCOL, level=None):
         - 2018 Nature comm macrophage -> fibroblast paper lists KLF-5 and PTEN as primary targets of miR-21
         - 2014 mehta dataset does not contain PTEN, but 2018 scMCA does
         """
-        print "Note: field_setup using", protocol, npz_label, level
+        print("Note: field_setup using", protocol, npz_label, level)
         field_genes = EXPT_FIELDS[protocol][npz_label][level]
         field_genes_effects = {label: -1.0 for label in field_genes}  # this ensure all should be OFF
         app_field_start = construct_app_field_from_genes(field_genes_effects, gene_id, num_steps=0)
@@ -135,15 +135,15 @@ if __name__ == '__main__':
 
     def make_field_plots(field_type, field_level, npz_type, simsetup, outdir=FIELD_EFFECT_FOLDER):
         plot_subtitle = "Field effect of %s, %s on %s" % (field_type, field_level, npz_type)
-        print plot_subtitle
+        print(plot_subtitle)
         field_dict = field_setup(simsetup, protocol=field_type, level=field_level)
         app_field_vector = field_dict['app_field']
         xi_orig = simsetup['XI']
         xi_under_field = np.zeros(xi_orig.shape)
         if app_field_vector is None:
             app_field_vector = np.zeros(xi_orig.shape[0])
-        print app_field_vector.shape
-        for idx in xrange(app_field_vector.shape[0]):
+        print(app_field_vector.shape)
+        for idx in range(app_field_vector.shape[0]):
             if app_field_vector[idx] == 0:
                 xi_under_field[idx, :] = xi_orig[idx, :]
             else:
@@ -159,7 +159,7 @@ if __name__ == '__main__':
         # compute energies of shifted celltypes
         E0 = -0.5 * xi_orig.shape[0] + 0.5 * xi_orig.shape[1]  # i.e. -N/2 + p/2
         energies = np.zeros(xi_orig.shape[1])
-        for col in xrange(xi_orig.shape[1]):
+        for col in range(xi_orig.shape[1]):
             energies[col] = hamiltonian(xi_under_field[:, col], simsetup['J']) - field_term[col]
         plot_as_bar(energies, simsetup['CELLTYPE_LABELS'])
         plt.axhline(y=E0, linewidth=1, color='k', linestyle='--')
@@ -170,7 +170,7 @@ if __name__ == '__main__':
         plt.close()
         # compute overlaps of shifted celltypes
         self_overlaps = np.zeros(xi_orig.shape[1])
-        for idx in xrange(xi_orig.shape[1]):
+        for idx in range(xi_orig.shape[1]):
             self_overlaps[idx] = np.dot(xi_orig[:, idx], xi_under_field[:, idx]) / xi_orig.shape[0]
         plot_as_bar(self_overlaps, simsetup['CELLTYPE_LABELS'])
         plt.axhline(y=1.0, linewidth=1, color='k', linestyle='--')
@@ -181,7 +181,7 @@ if __name__ == '__main__':
         plt.close()
         # compute projections of shifted celltypes
         self_proj = np.zeros(xi_orig.shape[1])
-        for idx in xrange(xi_orig.shape[1]):
+        for idx in range(xi_orig.shape[1]):
             proj_vector_of_shifted_mem = np.dot(simsetup['A_INV'], np.dot(xi_orig.T, xi_under_field[:, idx])) / \
                                          xi_orig.shape[0]
             self_proj[idx] = proj_vector_of_shifted_mem[idx]
@@ -195,10 +195,10 @@ if __name__ == '__main__':
         # compute celltype specific overlaps of shifted celltypes
         cell_idx_A = 7
         cell_idx_B = 86
-        print simsetup['CELLTYPE_LABELS'][cell_idx_A], simsetup['CELLTYPE_LABELS'][cell_idx_B]
+        print(simsetup['CELLTYPE_LABELS'][cell_idx_A], simsetup['CELLTYPE_LABELS'][cell_idx_B])
         hetero_overlaps_A = np.zeros(xi_orig.shape[1])
         hetero_overlaps_B = np.zeros(xi_orig.shape[1])
-        for idx in xrange(xi_orig.shape[1]):
+        for idx in range(xi_orig.shape[1]):
             hetero_overlaps_A[idx] = np.dot(xi_orig[:, cell_idx_A], xi_under_field[:, idx]) / xi_orig.shape[0]
             hetero_overlaps_B[idx] = np.dot(xi_orig[:, cell_idx_B], xi_under_field[:, idx]) / xi_orig.shape[0]
         plot_as_bar(hetero_overlaps_A, simsetup['CELLTYPE_LABELS'], alpha=0.8)
@@ -223,11 +223,11 @@ if __name__ == '__main__':
         else:
             npz_type = '2014mehta'
         simsetup = singlecell_simsetup(npzpath=npz)
-        for field_type in EXPT_FIELDS.keys():
+        for field_type in list(EXPT_FIELDS.keys()):
             if field_type is None:
                 continue
             field_levels_dict = EXPT_FIELDS[field_type][npz_type]
-            for field_level in field_levels_dict.keys():
+            for field_level in list(field_levels_dict.keys()):
                 make_field_plots(field_type, field_level, npz_type, simsetup)
 
     if plot_specific_field:
@@ -243,5 +243,5 @@ if __name__ == '__main__':
         field_type = 'miR_21'
         field_level = 'level_3'
         if field_type is not None:
-            assert field_type in EXPT_FIELDS.keys() and field_level in EXPT_FIELDS[field_type][npz_type].keys()
+            assert field_type in list(EXPT_FIELDS.keys()) and field_level in list(EXPT_FIELDS[field_type][npz_type].keys())
         make_field_plots(field_type, field_level, npz_type, simsetup)

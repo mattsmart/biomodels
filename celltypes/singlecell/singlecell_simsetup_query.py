@@ -19,12 +19,12 @@ MOUSE_TFS = ['mouse_TF']
 
 
 def print_simsetup_labels(simsetup):
-    print 'Genes:'
+    print('Genes:')
     for idx, label in enumerate(simsetup['GENE_LABELS']):
-        print idx, label
-    print 'Celltypes:'
+        print(idx, label)
+    print('Celltypes:')
     for idx, label in enumerate(simsetup['CELLTYPE_LABELS']):
-        print idx, label
+        print(idx, label)
 
 
 def read_gene_list_csv(csvpath, aliases=False):
@@ -75,43 +75,43 @@ def collect_mygene_hits(gene_symbol_list, taxid=TAXID_MOUSE, entrez_compress=Tru
     hitcounts = {}
 
     # if gene_list arg is path, load the list it contains
-    if isinstance(gene_symbol_list, basestring):
+    if isinstance(gene_symbol_list, str):
         if os.path.exists(gene_symbol_list):
-            print "loading data from %s" % gene_symbol_list
+            print("loading data from %s" % gene_symbol_list)
             gene_symbol_list = read_gene_list_csv(gene_symbol_list)
 
-    print "Searching through %d genes..." % len(gene_symbol_list)
+    print("Searching through %d genes..." % len(gene_symbol_list))
     for idx, g in enumerate(gene_symbol_list):
         hits = get_mygene_hits(g, taxid=taxid)
         if entrez_compress:
             hits = [int(h.get('entrezgene', 0)) for h in hits]
             hits = [h for h in hits if h > 0]
             if len(hits) > 1:
-                print "WARNING len(hits)=%d > 1 for %s (%d)" % (len(hits), g, idx)
+                print("WARNING len(hits)=%d > 1 for %s (%d)" % (len(hits), g, idx))
             if len(hits) == 0:
-                print "WARNING len(hits)=%d for %s (%d)" % (len(hits), g, idx)
+                print("WARNING len(hits)=%d for %s (%d)" % (len(hits), g, idx))
         gene_hits[g] = hits
 
-        if len(hits) in hitcounts.keys():
+        if len(hits) in list(hitcounts.keys()):
             hitcounts[len(hits)][g] = hits
         else:
             hitcounts[len(hits)] = {g: hits}
         if idx % 100 == 0:
-            print "Progress: %d of %d" % (idx, len(gene_symbol_list))
+            print("Progress: %d of %d" % (idx, len(gene_symbol_list)))
 
     # print some stats
-    for count in xrange(max(hitcounts.keys())+1):
-        if count in hitcounts.keys():
-            print "Found %d with %d hits" % (len(hitcounts[count].keys()), count)
+    for count in range(max(hitcounts.keys())+1):
+        if count in list(hitcounts.keys()):
+            print("Found %d with %d hits" % (len(list(hitcounts[count].keys())), count))
         else:
-            print "Found 0 with %d hits" % count
+            print("Found 0 with %d hits" % count)
     return gene_hits, hitcounts
 
 
 def write_genelist_id_csv(gene_list, gene_hits, outpath='genelist_id.csv'):
     with open(outpath, 'w') as fcsv:
         for idx, gene in enumerate(gene_list):
-            print [gene], gene_hits[gene]
+            print([gene], gene_hits[gene])
             info_list = [gene] + gene_hits[gene]
             fcsv.write(','.join(str(s) for s in info_list) + '\n')
     return outpath
@@ -123,8 +123,8 @@ def check_target_in_gene_id_dict(memories_genes_id, target_genes_id, outpath=Non
         list of tuples (mem_symbol, target_symbol) if they are aliases
     """
     matches = []
-    for target_key, target_val in target_genes_id.iteritems():
-        for mem_key, mem_val in memories_genes_id.iteritems():
+    for target_key, target_val in target_genes_id.items():
+        for mem_key, mem_val in memories_genes_id.items():
             #print target_key, target_val, mem_key, mem_val
             if target_key == mem_key:
                 matches.append((mem_key, target_key))
@@ -162,7 +162,7 @@ if __name__ == '__main__':
         gene_list = [row[0] for row in mouse_TF_incomplete]
         gene_hits = {row[0]: [row[1]] for row in mouse_TF_incomplete if row[1] is not None}
         missing_genes = [row[0] for row in mouse_TF_incomplete if row[1] is None]
-        print "Number of missing entrez IDs in the mouse TF list: %d" % len(missing_genes)
+        print("Number of missing entrez IDs in the mouse TF list: %d" % len(missing_genes))
         gene_hits_missing, hitcounts = collect_mygene_hits(missing_genes)
         gene_hits.update(gene_hits_missing)
         write_genelist_id_csv(gene_list, gene_hits, outpath=mouse_tf_id_csv_complete_path)
@@ -203,6 +203,6 @@ if __name__ == '__main__':
             target_genes_id = read_gene_list_csv(targetgenes_id_dir + os.sep + 'entrez_id_%s.csv' % name, aliases=True)
             # read target csv to compare gene list to target database
             matches = check_target_in_gene_id_dict(memories_genes_id, target_genes_id, outpath='genes_to_keep_%s.txt' % name)
-            print "MATCHES for %s" % name
+            print("MATCHES for %s" % name)
             for idx, match in enumerate(matches):
-                print match, memories_genes_id[match[0]], target_genes_id[match[1]]
+                print(match, memories_genes_id[match[0]], target_genes_id[match[1]])

@@ -43,7 +43,7 @@ def lattice_timeseries_proj_grid(data_dict, simsetup, plot_data_dir, savemod='',
     cmap = plt.get_cmap('PiYG')
     imshow_kw = {'vmin': -1.0, 'vmax': 1.0}
     if conj:
-        for i in xrange(simsetup['P']):
+        for i in range(simsetup['P']):
             imshow_A[i, :] = data_dict['memory_proj_arr'][i][0, :]
             imshow_B[i, :] = data_dict['memory_proj_arr'][i][1, :]
         im = axarr[0].imshow(imshow_A, cmap=cmap, **imshow_kw)
@@ -51,7 +51,7 @@ def lattice_timeseries_proj_grid(data_dict, simsetup, plot_data_dir, savemod='',
         axarr[0].set_ylabel('Cell A projections')
         axarr[1].set_ylabel('Cell B projections')
     else:
-        for i in xrange(simsetup['P']):
+        for i in range(simsetup['P']):
             im = axarr[i].imshow(data_dict['memory_proj_arr'][i], cmap=cmap, **imshow_kw)
             #im = axarr[i].imshow(ll[i], cmap=cmap)
             axarr[i].set_ylabel('mem %d' % i)
@@ -67,7 +67,7 @@ def lattice_timeseries_proj_grid(data_dict, simsetup, plot_data_dir, savemod='',
     # TODO
     if state_int:
         # data_dict['grid_state_int'] 2xT as text into bars
-        print 'todo state_int vis'
+        print('todo state_int vis')
     # save figure
     plt.savefig(os.path.join(plot_data_dir, 'twocell_memprojvis%s.png' % savemod), dpi=120)
     plt.close()
@@ -91,7 +91,7 @@ def lattice_timeseries_state_grid(lattice, simsetup, plot_data_dir, savemod='', 
     # decorate
     axarr[0].set_ylabel('Cell A expression')
     axarr[1].set_ylabel('Cell B expression')
-    for j in xrange(2):
+    for j in range(2):
         tick_period = 5
         # major ticks
         axarr[j].set_xticks(np.arange(0, T, tick_period))
@@ -110,7 +110,7 @@ def lattice_timeseries_state_grid(lattice, simsetup, plot_data_dir, savemod='', 
     # TODO
     if state_int:
         # data_dict['grid_state_int'] 2xT as text into bars
-        print 'todo state_int vis'
+        print('todo state_int vis')
     # save figure
     plt.savefig(os.path.join(plot_data_dir, 'twocell_statevis%s.png' % savemod), dpi=120)
     plt.close()
@@ -120,7 +120,7 @@ def lattice_timeseries_state_grid(lattice, simsetup, plot_data_dir, savemod='', 
 def lattice_timeseries_overlap(data_dict, simsetup, plot_data_dir, savemod='', ax=None):
     if ax is None:
         ax = plt.figure().gca()
-    ax.plot(range(len(data_dict['overlap'])), data_dict['overlap'], '-ok')
+    ax.plot(list(range(len(data_dict['overlap']))), data_dict['overlap'], '-ok')
     ax.set_title('Dual cell: overlap over time')
     ax.set_xlabel('Time')
     ax.set_ylabel(r'Overlap $s^a(t) \cdot s^b(t)/N(t)$')
@@ -137,10 +137,10 @@ def lattice_timeseries_energy(data_dict, simsetup, plot_data_dir, savemod='', ax
         ax = plt.figure().gca()
 
     num_steps = len(data_dict['overlap'])
-    ax.plot(range(num_steps), data_dict['multi_hamiltonian'], '-ok', label=r'$H_{tot}(t)$')
-    ax.plot(range(num_steps), data_dict['single_hamiltonians'][0, :], '-ob', label=r'$H_0(s^a(t))$')
-    ax.plot(range(num_steps), data_dict['single_hamiltonians'][1, :], '-or', label=r'$H_0(s^b(t))$')
-    ax.plot(range(num_steps), data_dict['unweighted_coupling_term'][:], '-og', label='Coupling term (unweighted)')
+    ax.plot(list(range(num_steps)), data_dict['multi_hamiltonian'], '-ok', label=r'$H_{tot}(t)$')
+    ax.plot(list(range(num_steps)), data_dict['single_hamiltonians'][0, :], '-ob', label=r'$H_0(s^a(t))$')
+    ax.plot(list(range(num_steps)), data_dict['single_hamiltonians'][1, :], '-or', label=r'$H_0(s^b(t))$')
+    ax.plot(list(range(num_steps)), data_dict['unweighted_coupling_term'][:], '-og', label='Coupling term (unweighted)')
 
     ax.set_title('Dual cell hamiltonian vs single cell hamiltonian')
     ax.set_xlabel('Time')
