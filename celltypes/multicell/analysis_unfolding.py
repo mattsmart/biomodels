@@ -15,12 +15,12 @@ def scan_gamma_dynamics(J, W, state, coordnum=8, verbose=False):
         updated_state = np.sign(Js_internal + h_field_nbr)
         if np.array_equal(updated_state, state):
             if verbose:
-                print gamma, True
+                print(gamma, True)
         else:
             if critgamma is None:
                 critgamma = gamma
             if verbose:
-                print gamma, False
+                print(gamma, False)
     return critgamma
 
 
@@ -69,8 +69,8 @@ if __name__ == '__main__':
         coordnum = 8  # num neighbours which signals are received from
         W = simsetup['FIELD_SEND']
         J = simsetup['J']
-        celltypes = (simsetup['XI'][:, a] for a in xrange(simsetup['P']))
-        print 'Scanning for monotype destabilizing gamma (for coordination number %d)' % coordnum
+        celltypes = (simsetup['XI'][:, a] for a in range(simsetup['P']))
+        print('Scanning for monotype destabilizing gamma (for coordination number %d)' % coordnum)
         for idx, celltype in enumerate(celltypes):
             critgamma = scan_gamma_dynamics(J, W, celltype, coordnum=coordnum, verbose=False)
-            print idx, simsetup['CELLTYPE_LABELS'][idx], critgamma
+            print(idx, simsetup['CELLTYPE_LABELS'][idx], critgamma)

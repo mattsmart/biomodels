@@ -47,7 +47,7 @@ def polygon_celltypes_example(labels, colours):
     x, y = np.mgrid[:height, :width]
     coors = np.hstack((x.reshape(-1, 1), y.reshape(-1, 1)))  # coors.shape is (4000000,2)
     mask = poly_path.contains_points(coors)
-    print coors.shape, mask.shape
+    print(coors.shape, mask.shape)
     plt.imshow(mask.reshape(height, width))
     plt.show()
 
@@ -121,17 +121,17 @@ def polygon_celltypes_legend(labels, colours, ax=None):
     #print y.reshape(-1, 1).shape
     #coors_reshape = coors.reshape(height, width)
     mask = poly_path.contains_points(coors).reshape(height, width)   # get true false on bounding rectangle
-    print x.shape, y.shape
-    print mask.shape
+    print(x.shape, y.shape)
+    print(mask.shape)
     #print mask[0,0], type(mask[0,0])
     #print mask_reshape[npts/2, npts/2], type(mask_reshape[npts/2, npts/2])
     #rint coors.shape, mask.shape
 
     # build imshow colour array
     imshow_array = np.zeros((len(x), len(y), 4))  # last slow is RGB + transparency
-    for i in xrange(npts):
-        print i
-        for j in xrange(npts):
+    for i in range(npts):
+        print(i)
+        for j in range(npts):
             xval = x[i, j]
             yval = y[i, j]
             if mask[i, j]:

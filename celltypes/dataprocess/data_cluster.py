@@ -25,7 +25,7 @@ def load_cluster_labels(clusterpath, one_indexed=True):
         for idx, line in enumerate(f):
             line = line.rstrip()
             line = line.split(',')
-            print line
+            print(line)
             cluster_labels[int(line[0])-dec] = line[1]
     return cluster_labels
 
@@ -47,14 +47,14 @@ def attach_cluster_id_arr_manual(npzpath, clusterpath, save=True, one_indexed=Tr
     arr = np.insert(arr, 0, 0, axis=0)
     genes = np.insert(genes, 0, 'cluster_id')  # TODO should have global constant for this mock gene label
     if one_indexed:
-        for idx in xrange(len(cells)):
+        for idx in range(len(cells)):
             arr[0,idx] = cluster_info[cells[idx]] - 1
     else:
-        for idx in xrange(len(cells)):
+        for idx in range(len(cells)):
             arr[0,idx] = cluster_info[cells[idx]]
     # save and return data
     if save:
-        print "saving cluster-appended arrays..."
+        print("saving cluster-appended arrays...")
         datadir = os.path.abspath(os.path.join(npzpath, os.pardir))
         np.savez_compressed(datadir + os.sep + "arr_genes_cells_withcluster_compressed.npz", arr=arr, genes=genes, cells=cells)
     return arr, genes, cells

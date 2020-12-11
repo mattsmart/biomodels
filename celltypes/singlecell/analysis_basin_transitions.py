@@ -60,11 +60,11 @@ def anneal_iterate(proj_onto_init, beta_current, step, wandering, anneal_dict, v
     # TODO implement "acceleration" if it stays in basin or keeps re-entering basin
     if proj_onto_init < anneal_dict['wandering_threshold']:
         if verbose:
-            print "+++++++++++++++++++++++++++++++++ Wandering condition passed at step %d" % step
+            print("+++++++++++++++++++++++++++++++++ Wandering condition passed at step %d" % step)
         wandering = True
     elif wandering:
         if verbose:
-            print "+++++++++++++++++++++++++++++++++ Re-entered orig basin after wandering at step %d" % step
+            print("+++++++++++++++++++++++++++++++++ Re-entered orig basin after wandering at step %d" % step)
         wandering = False
         beta_current = anneal_dict['beta_start']
     if wandering and beta_current < anneal_dict['beta_end']:
@@ -135,7 +135,7 @@ def fetch_from_run_info(txtpath, obj_labels):
     """
     label_obj_map = {'ensemble': int,
                      'num_steps': int}
-    assert all([a in label_obj_map.keys() for a in obj_labels])
+    assert all([a in list(label_obj_map.keys()) for a in obj_labels])
     linelist = [line.rstrip() for line in open(txtpath)]
     fetched_values = [None for _ in obj_labels]
     for line in linelist:
@@ -182,14 +182,14 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, sims
     if profile:
         start_inner = time.time()  # TODO remove
 
-    for cell_idx in xrange(ensemble_idx, ensemble_idx + ensemble):
+    for cell_idx in range(ensemble_idx, ensemble_idx + ensemble):
         if verbose:
-            print "Simulating cell:", cell_idx
+            print("Simulating cell:", cell_idx)
         cell = Cell(init_state, init_id, memory_labels, gene_labels)
 
         beta = anneal_dict['beta_start']  # reset beta to use in each trajectory
 
-        for step in xrange(num_steps):
+        for step in range(num_steps):
 
             # report on each mem proj ranked
             projvec = cell.get_memories_projection(a_inv, xi)
@@ -197,17 +197,17 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, sims
             absprojvec = np.abs(projvec)
             topranked = np.argmax(absprojvec)
             if verbose:
-                print "\ncell %d step %d" % (cell_idx, step)
+                print("\ncell %d step %d" % (cell_idx, step))
 
             # print some timestep proj ranking info
             if verbose:
-                for rank in xrange(10):
+                for rank in range(10):
                     sortedmems_smalltobig = np.argsort(absprojvec)
                     sortedmems_bigtosmall = sortedmems_smalltobig[::-1]
                     topranked = sortedmems_bigtosmall[0]
                     ranked_mem_idx = sortedmems_bigtosmall[rank]
                     ranked_mem = memory_labels[ranked_mem_idx]
-                    print rank, ranked_mem_idx, ranked_mem, projvec[ranked_mem_idx], absprojvec[ranked_mem_idx]
+                    print(rank, ranked_mem_idx, ranked_mem, projvec[ranked_mem_idx], absprojvec[ranked_mem_idx])
 
             if projvec[topranked] > occ_threshold:
                 basin_occupancy_timeseries[topranked, step] += 1
@@ -236,11 +236,11 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, sims
         end_inner = time.time()
         total_time = end_inner - start_outer
         if verbose:
-            print "TIMINGS for %s, process %s, ensemble_start %d, last job %d" % \
-                  (init_cond, current_process(), ensemble_idx, cell_idx)
-            print "start outer | start inner | end --- init_time | total time"
-            print "%.2f | %.2f | %.2f --- %.2f | %.2f " % \
-                  (start_outer, start_inner, end_inner, start_inner - start_outer, total_time)
+            print("TIMINGS for %s, process %s, ensemble_start %d, last job %d" % \
+                  (init_cond, current_process(), ensemble_idx, cell_idx))
+            print("start outer | start inner | end --- init_time | total time")
+            print("%.2f | %.2f | %.2f --- %.2f | %.2f " % \
+                  (start_outer, start_inner, end_inner, start_inner - start_outer, total_time))
     else:
         total_time = None
 
@@ -258,25 +258,25 @@ def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, si
                    'occ_threshold': occ_threshold, 'async_batch': async_batch, 'verbose': verbose, 'profile': profile}
     fn_args_dict = [0]*num_processes
     if verbose:
-        print "NUM_PROCESSES:", num_processes
+        print("NUM_PROCESSES:", num_processes)
     assert ensemble % num_processes == 0
-    for i in xrange(num_processes):
+    for i in range(num_processes):
         subensemble = ensemble / num_processes
         cell_startidx = i * subensemble
         if verbose:
-            print "process:", i, "job size:", subensemble, "runs"
+            print("process:", i, "job size:", subensemble, "runs")
         fn_args_dict[i] = {'args': (init_cond, init_state, init_id, subensemble, cell_startidx, simsetup),
                            'kwargs': kwargs_dict}
     # generate results list over workers
     t0 = time.time()
     pool = Pool(num_processes)
-    print "pooling"
+    print("pooling")
     results = pool.map(wrapper_get_basin_stats, fn_args_dict)
-    print "done"
+    print("done")
     pool.close()
     pool.join()
     if verbose:
-        print "TIMER:", time.time() - t0
+        print("TIMER:", time.time() - t0)
     # collect pooled results
     summed_transfer_dict = {}  # TODO remove?
     summed_proj_timeseries_array = np.zeros((len(simsetup['CELLTYPE_LABELS']), num_steps))
@@ -397,7 +397,7 @@ def basin_transitions(init_cond, ensemble, num_steps, beta, simsetup):
 
     for idx, memory_label in enumerate(simsetup['CELLTYPE_LABELS']):
         # TODO
-        print idx, memory_label
+        print(idx, memory_label)
         """
         cellstate_array, current_run_folder, data_folder, plot_lattice_folder, plot_data_folder = singlecell_sim(init_id=memory_label, iterations=num_steps, app_field=app_field, app_field_strength=10.0,
                                                                                                                  flag_burst_error=FLAG_BURST_ERRORS, flag_write=False, analysis_subdir=analysis_subdir,
@@ -462,7 +462,7 @@ if __name__ == '__main__':
                                 occ_threshold=OCC_THRESHOLD, async_batch=async_batch, verbose=False, profile=True)
             proj_timeseries_array = proj_timeseries_array / ensemble  # ensure normalized (get basin stats won't do this)
         t1 = time.time() - t0
-        print "Runtime:", t1
+        print("Runtime:", t1)
 
         # append info to run info file  TODO maybe move this INTO the function?
         info_list = [['fncall', 'ensemble_projection_timeseries()'], ['init_cond', init_cond], ['ensemble', ensemble],
@@ -478,7 +478,7 @@ if __name__ == '__main__':
         types = ["HSC","HSC","mef","mef","mef"]
         labels = ["yam_1e5", "yam_0", "None", "yam_idk", "yam_1e5"]
         ensemble = 10000
-        for i in xrange(len(bases)):
+        for i in range(len(bases)):
             celltypes = simsetup['CELLTYPE_LABELS']
             outdir = group_dir + os.sep + bases[i]
             outproj = outdir + os.sep + 'proj_timeseries_%s.png' % labels[i]
@@ -508,7 +508,7 @@ if __name__ == '__main__':
         ens_scaled = False
         if ens_scaled:
             ens_base = 16                                             # NETWORK_METHOD: all workers will do this many traj
-            proc_lists = {p: range(1,p+1) for p in [4,8,80]}
+            proc_lists = {p: list(range(1,p+1)) for p in [4,8,80]}
         else:
             ens_base = 128                                            # NETWORK_METHOD: divide this number amongst all workers
             proc_lists = {4: [1,2,3,4],
@@ -522,7 +522,7 @@ if __name__ == '__main__':
                 ensemble = ens_base * num_proc
             else:
                 ensemble = ens_base
-            print "Start timer for num_proc %d (%d ens x %d steps)" % (num_proc, ensemble, num_steps)
+            print("Start timer for num_proc %d (%d ens x %d steps)" % (num_proc, ensemble, num_steps))
             t0 = time.time()
             proj_timeseries_array, basin_occupancy_timeseries, worker_times, io_dict = \
                 ensemble_projection_timeseries(init_cond, ensemble, num_proc, num_steps=num_steps, simsetup=simsetup,
@@ -530,7 +530,7 @@ if __name__ == '__main__':
                                                field_protocol=field_protocol, async_batch=async_batch, plot=plot,
                                                output=True, profile=True)
             t1 = time.time() - t0
-            print "Runtime:", t1
+            print("Runtime:", t1)
 
             # append info to run info file  TODO maybe move this INTO the function?
             info_list = [['fncall', 'ensemble_projection_timeseries()'], ['init_cond', init_cond],
@@ -548,15 +548,15 @@ if __name__ == '__main__':
         for basedir in basedirs:
             for subdir in subdirs:
                 datadir = groupdir + os.sep + basedir + os.sep + subdir + os.sep + 'data'
-                print "working in", datadir
+                print("working in", datadir)
                 # load proj data and occ data
                 proj_data, occ_data = load_basinstats(datadir, basedir)
                 ens = float(np.sum(occ_data[:, 0]))
-                print proj_data.shape
+                print(proj_data.shape)
                 # setup timepoints
                 total_steps = proj_data.shape[1]
                 num_timepoints = 0
-                timepoints = [a*int(total_steps/num_timepoints) for a in xrange(num_timepoints)]
+                timepoints = [a*int(total_steps/num_timepoints) for a in range(num_timepoints)]
                 timepoints.append(total_steps-1)
                 for step in timepoints:
                     # sort proj and occ data at each timepoint
@@ -564,26 +564,26 @@ if __name__ == '__main__':
                     absprojvec = np.abs(projvec)
                     occvec = occ_data[:, step]  # TODO
                     # print some timestep proj ranking info
-                    print "\nRanking transitions (by proj) from %s, %s at step %d" % (basedir, subdir, step)
+                    print("\nRanking transitions (by proj) from %s, %s at step %d" % (basedir, subdir, step))
                     sortedmems_smalltobig = np.argsort(absprojvec)
                     sortedmems_bigtosmall = sortedmems_smalltobig[::-1]
-                    for rank in xrange(10):
+                    for rank in range(10):
                         ranked_mem_idx = sortedmems_bigtosmall[rank]
                         ranked_mem = simsetup['CELLTYPE_LABELS'][ranked_mem_idx]
-                        print rank, ranked_mem_idx, ranked_mem, projvec[ranked_mem_idx], absprojvec[ranked_mem_idx]
+                        print(rank, ranked_mem_idx, ranked_mem, projvec[ranked_mem_idx], absprojvec[ranked_mem_idx])
                     # print some timestep occ ranking info
-                    print "\nRanking transitions (by occ) from %s, %s at step %d" % (basedir, subdir, step)
+                    print("\nRanking transitions (by occ) from %s, %s at step %d" % (basedir, subdir, step))
                     occ_labels = simsetup['CELLTYPE_LABELS'] + SPURIOUS_LIST
                     sortedmems_smalltobig = np.argsort(occvec)
                     sortedmems_bigtosmall_occ = sortedmems_smalltobig[::-1]
-                    for rank in xrange(10):
+                    for rank in range(10):
                         ranked_mem_idx = sortedmems_bigtosmall_occ[rank]
                         ranked_mem = occ_labels[ranked_mem_idx]
-                        print rank, ranked_mem_idx, ranked_mem, occvec[ranked_mem_idx], occvec[ranked_mem_idx] / ens
+                        print(rank, ranked_mem_idx, ranked_mem, occvec[ranked_mem_idx], occvec[ranked_mem_idx] / ens)
                     # plot sorted data with labels
                     outpath = groupdir + os.sep + 'occ_%s_%s_step_%d.png' % (basedir, subdir, step)
                     sorted_occ = [occ_data[idx, step] for idx in sortedmems_bigtosmall_occ]
                     sorted_labels = [occ_labels[idx] for idx in sortedmems_bigtosmall_occ]
-                    print '\n', len(sorted_occ)
+                    print('\n', len(sorted_occ))
                     plot_basin_step(sorted_occ, step, ens, sorted_labels, simsetup['CELLTYPE_ID'], [], outpath,
                                     highlights=None, autoscale=True, inset=True, title_add='(%s)' % subdir, init_mem=basedir)

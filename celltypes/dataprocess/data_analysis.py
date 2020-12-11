@@ -50,7 +50,7 @@ def build_basin_states(intxn_matrix, memory_vec,
 
     if recurse_basin_set is None:
         memory_vec_copy = np.array(memory_vec[:])
-        recurse_basin_set = {d: set() for d in xrange(num_genes + 1)}
+        recurse_basin_set = {d: set() for d in range(num_genes + 1)}
         recurse_basin_set[0].add(tuple(memory_vec_copy))
         recurse_state = memory_vec_copy
         sites_flipped_already = []
@@ -58,7 +58,7 @@ def build_basin_states(intxn_matrix, memory_vec,
 
     #size_basin_at_dist_d = len(recurse_basin_set[recurse_dist_d])    # number of states with hamming dist = d in the basin
 
-    for site_idx in [val for val in xrange(num_genes) if val not in sites_flipped_already]:
+    for site_idx in [val for val in range(num_genes) if val not in sites_flipped_already]:
         recurse_state_flipped = np.array(recurse_state[:])
         recurse_state_flipped[site_idx] = -1 * recurse_state[site_idx]
         if is_energy_increase(intxn_matrix, recurse_state, recurse_state_flipped):
@@ -82,7 +82,7 @@ def basin_projection_timeseries(k, memory_array, intxn_matrix, eta, basin_data_k
     def get_memory_proj_timeseries(state_array, memory_idx):
         num_steps = np.shape(state_array)[1]
         timeseries = np.zeros(num_steps)
-        for time_idx in xrange(num_steps):
+        for time_idx in range(num_steps):
             timeseries[time_idx] = single_memory_projection(state_array, time_idx, memory_idx, eta=eta)
         return timeseries
 
@@ -90,15 +90,15 @@ def basin_projection_timeseries(k, memory_array, intxn_matrix, eta, basin_data_k
 
     proj_timeseries_array = np.zeros((num_steps, basin_data_k.shape[1]))
 
-    for idx in xrange(basin_data_k.shape[1]):
+    for idx in range(basin_data_k.shape[1]):
         init_cond = basin_data_k[:, idx]
         cellstate_array, io_dict = singlecell_sim(
             init_state=init_cond, iterations=num_steps, beta=1/TEMP, xi=memory_array, intxn_matrix=intxn_matrix,
-            memory_labels=range(memory_array.shape[1]), gene_labels=range(memory_array.shape[0]),
+            memory_labels=list(range(memory_array.shape[1])), gene_labels=list(range(memory_array.shape[0])),
             flag_write=flag_write, analysis_subdir=ANALYSIS_SUBDIR, plot_period=num_steps * 2, verbose=False)
         proj_timeseries_array[:, idx] = get_memory_proj_timeseries(cellstate_array, k)[:]
     if plot:
-        plt.plot(xrange(num_steps), proj_timeseries_array, color='blue', linewidth=0.75)
+        plt.plot(range(num_steps), proj_timeseries_array, color='blue', linewidth=0.75)
         plt.title('Test memory %d projection for all cluster member' % k)
         plt.ylabel('proj on memory %d' % (k))
         plt.xlabel('Time (%d updates, all spins)' % num_steps)
@@ -119,9 +119,9 @@ def get_basins_scores(memory_array, binarized_cluster_dict, basinscore_method="d
     """
     assert basinscore_method in ['crawler', 'trajectories']
     num_genes, num_clusters = memory_array.shape
-    cells_each_cluster = [binarized_cluster_dict[idx].shape[1] for idx in xrange(num_clusters)]
+    cells_each_cluster = [binarized_cluster_dict[idx].shape[1] for idx in range(num_clusters)]
     num_cells = np.sum(cells_each_cluster)
-    print "num_genes, num_clusters, num_cells:\n%d %d %d" % (num_genes, num_clusters, num_cells)
+    print("num_genes, num_clusters, num_cells:\n%d %d %d" % (num_genes, num_clusters, num_cells))
 
     def basin_score_pairwise(basin_k, memory_vector, data_vector):
         # OPTION 1 -- is cell in basin yes/no
@@ -129,10 +129,10 @@ def get_basins_scores(memory_array, binarized_cluster_dict, basinscore_method="d
         # OPTION 3 -- based on compare if data vec in set of basin states (from aux fn)
         hd = hamming(memory_vector, data_vector)
         if tuple(data_vector) in basin_k[hd]:
-            print "data_vector in basin_k[hd]"
+            print("data_vector in basin_k[hd]")
             return 1.0
         else:
-            print "data_vector NOT in basin_k[hd]"
+            print("data_vector NOT in basin_k[hd]")
             return 0.0
 
     # 1 is build J_ij from Xi
@@ -141,34 +141,34 @@ def get_basins_scores(memory_array, binarized_cluster_dict, basinscore_method="d
     intxn_matrix = interaction_matrix(memory_array, a_inv_arr, "projection")
 
     # 2 is score each cell in each cluster based on method
-    score_dict = {k: 0 for k in xrange(num_clusters)}
+    score_dict = {k: 0 for k in range(num_clusters)}
 
     # setup io
     io_dict = run_subdir_setup(run_subfolder=ANALYSIS_SUBDIR)
 
     if basinscore_method == 'crawler':
-        for k in xrange(num_clusters):
-            print "Scoring basin for cluster:", k
+        for k in range(num_clusters):
+            print("Scoring basin for cluster:", k)
             binary_cluster_data = binarized_cluster_dict[k]
             memory_k = memory_array[:,k]
             basin_k = build_basin_states(intxn_matrix, memory_k)
             for cell_data in binary_cluster_data.T:  # TODO make sure his gives columns (len is N)
-                print len(cell_data), num_genes, cell_data.shape
+                print(len(cell_data), num_genes, cell_data.shape)
                 score_dict[k] += basin_score_pairwise(basin_k, memory_k, cell_data)
-            print score_dict
+            print(score_dict)
     else:
         assert basinscore_method == 'trajectories'
-        for k in xrange(num_clusters):
-            print "Scoring basin for cluster:", k
+        for k in range(num_clusters):
+            print("Scoring basin for cluster:", k)
             #init_conds = binarized_cluster_dict[k]
-            print "WARNING: only looking at first 10 cells in each cluster"
+            print("WARNING: only looking at first 10 cells in each cluster")
             init_conds = binarized_cluster_dict[k][:,0:10]
             trajectories = basin_projection_timeseries(k, memory_array, intxn_matrix, eta, init_conds, io_dict['plotdir'],
                                                        num_steps=3, plot=True, flag_write=False)
-            print trajectories
+            print(trajectories)
             score_dict[k] = np.mean(trajectories[-1,:])
     # save to file
-    scores = [score_dict[k] for k in xrange(num_clusters)]
+    scores = [score_dict[k] for k in range(num_clusters)]
     np.savetxt(data_folder + os.sep + "scores.txt", scores)
     return score_dict, io_dict
 
@@ -183,9 +183,9 @@ def plot_basins_scores(score_dict, savedir=None):
     # 1 is build J_ij from Xi
     # 2 is score each cell in each cluster based on method
     # 3 id store scores in score_dict and return
-    num_clusters = np.max(score_dict.keys())
-    x_axis = range(num_clusters)
-    y_axis = [score_dict[k] for k in xrange(num_clusters)]
+    num_clusters = np.max(list(score_dict.keys()))
+    x_axis = list(range(num_clusters))
+    y_axis = [score_dict[k] for k in range(num_clusters)]
     plt.bar(x_axis, y_axis, width=0.5)
     plt.title('Basin scores for each cluster')
     plt.xlabel('cluster idx')
@@ -232,7 +232,7 @@ if __name__ == '__main__':
             memnpz = datadir + os.sep + 'mems_genes_types_compressed_pruned.npz'
             memory_array, genes, clusters = load_memories_genes_clusters(memnpz)
             # check size matches
-            assert len(clusters) == len(binarized_cluster_dict.keys())
+            assert len(clusters) == len(list(binarized_cluster_dict.keys()))
             assert memory_array.shape[0] == binarized_cluster_dict[0].shape[0]
         # basin scores
         basin_scores, io_dict = get_basins_scores(memory_array, binarized_cluster_dict, basinscore_method=basinscore_method)
@@ -241,6 +241,6 @@ if __name__ == '__main__':
         if not flag_gen_basinscore:
             scorepath = OUTPUTDIR + os.sep + "scores.txt"
             basin_score_txt = np.loadtxt(scorepath)
-            basin_scores = {k:float(basin_score_txt[k]) for k in xrange(len(basin_score_txt))}
+            basin_scores = {k:float(basin_score_txt[k]) for k in range(len(basin_score_txt))}
             data_folder = OUTPUTDIR
         plot_basins_scores(basin_scores, data_folder)

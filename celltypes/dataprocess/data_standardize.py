@@ -31,7 +31,7 @@ def read_datafile_simple(datapath, verbose=True, txt=False):
     else:
         arr = np.load(datapath)
     if verbose:
-        print "Loaded dim %s data at %s" % (arr.shape, datapath)
+        print("Loaded dim %s data at %s" % (arr.shape, datapath))
     return arr
 
 
@@ -54,21 +54,21 @@ def read_datafile_manual(datapath, verbose=True, save_as_sep_npy=False):
                 count += 1
         arr = np.zeros((count, len(cell_names)), dtype=np.int16)  # max size ~ 33k (unsigned twice that)
         gene_names = [0] * count
-        print "data size will be (genes x cells):", arr.shape
+        print("data size will be (genes x cells):", arr.shape)
         # second pass to get gene names and array data
         f.seek(0)
         for idx, line in enumerate(f):
             if idx > 0:
                 if idx % 1000 == 0:
-                    print idx
+                    print(idx)
                 line = line.rstrip()
                 line = line.split('\t')
                 gene_names[idx-1] = line[0].strip('"')
                 arr[idx-1, :] = [int(val) for val in line[1:]]
     if verbose:
-        print "Loaded dim %s data at %s" % (arr.shape, datapath)
-        print "Max val in arr:", np.max(arr)
-        print "Size of arr in memory (bytes)", arr.nbytes
+        print("Loaded dim %s data at %s" % (arr.shape, datapath))
+        print("Max val in arr:", np.max(arr))
+        print("Size of arr in memory (bytes)", arr.nbytes)
 
     datadir = os.path.abspath(os.path.join(datapath, os.pardir))
     if save_as_sep_npy:
@@ -118,13 +118,13 @@ def load_npz_of_arr_genes_cells(npzpath, verbose=True):
     Can also use for memory array, gene labels, and cell cluster names!
     """
     if verbose:
-        print "loading npz of arr genes cells at", npzpath, "..."
+        print("loading npz of arr genes cells at", npzpath, "...")
     loaded = np.load(npzpath)
     arr = loaded['arr']
     genes = loaded['genes']
     cells = loaded['cells']
     if verbose:
-        print "loaded arr, genes, cells:", arr.shape, genes.shape, cells.shape
+        print("loaded arr, genes, cells:", arr.shape, genes.shape, cells.shape)
     return arr, genes, cells
 
 
@@ -166,4 +166,4 @@ if __name__ == '__main__':
             rows_to_delete = read_datafile_simple(rowfile, verbose=True, txt=True)
             rows_to_delete = rows_to_delete.astype(int)
             for idx, row in enumerate(rows_to_delete):
-                print row, genes[row]
+                print(row, genes[row])

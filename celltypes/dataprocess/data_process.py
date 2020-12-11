@@ -51,23 +51,23 @@ def binarize_cluster_dict(cluster_dict, metadata, binarize_method="by_gene", sav
     assert binarize_method in ['by_cluster', 'by_gene']
     num_clusters = metadata['num_clusters']
 
-    print num_clusters, np.max(cluster_dict.keys()), cluster_dict[0].shape
+    print(num_clusters, np.max(list(cluster_dict.keys())), cluster_dict[0].shape)
 
     binarize_cluster_dict = {}
     if binarize_method == 'by_gene':
-        for k in xrange(num_clusters):
+        for k in range(num_clusters):
             cluster_data = cluster_dict[k]
             min_gene_vals = np.amin(cluster_data, axis=1)  # min value each gene has over all cells in the cluster
             max_gene_vals = np.amax(cluster_data, axis=1)
             mids = 0.5 * (min_gene_vals - max_gene_vals)
             # TODO vectorize this
             binarized_cluster = np.zeros(cluster_data.shape, dtype=np.int8)
-            for idx in xrange(cluster_data.shape[0]):
+            for idx in range(cluster_data.shape[0]):
                 binarized_cluster[idx,:] = np.where(cluster_data[idx,:] > mids[idx], 1.0, -1.0)  # mult by 1.0 to cast as float
             binarize_cluster_dict[k] = binarized_cluster
     else:
-        print "WARNING: binarize_method by_cluster is not stable (data too sparse)"
-        for k in xrange(num_clusters):
+        print("WARNING: binarize_method by_cluster is not stable (data too sparse)")
+        for k in range(num_clusters):
             cluster_data = cluster_dict[k]
             min_val = np.min(cluster_data)
             max_val = np.max(cluster_data)
@@ -94,15 +94,15 @@ def binary_cluster_dict_to_memories(binarized_cluster_dict, gene_labels, memory_
         - memory_array: i.e. xi matrix, will be N x K (one memory from each cluster)
     """
     if gene_labels[0] == 'cluster_id':
-        print "Warning: gene_labels[0] == 'cluster_id', removing first element"
+        print("Warning: gene_labels[0] == 'cluster_id', removing first element")
         gene_labels = gene_labels[1:]
     num_genes = len(gene_labels)
-    num_clusters = len(binarized_cluster_dict.keys())
-    print "num_genes", num_genes
+    num_clusters = len(list(binarized_cluster_dict.keys()))
+    print("num_genes", num_genes)
 
     eps = 1e-4  # used to bias the np.sign(call) to be either 1 or -1 (breaks ties towards on state)
     memory_array = np.zeros((num_genes, num_clusters))
-    for k in xrange(num_clusters):
+    for k in range(num_clusters):
         cluster_arr = binarized_cluster_dict[k]
         cluster_arr_rowsum = np.sum(cluster_arr, axis=1)
         memory_vec = np.sign(cluster_arr_rowsum + eps)
@@ -116,7 +116,7 @@ def binary_cluster_dict_to_memories(binarized_cluster_dict, gene_labels, memory_
 def store_memories_genes_clusters(npzpath, mem_arr, genes):
     # TODO move cluster labels to metadata with gene labels, pass to this function
     cluster_id = load_cluster_labels(DATADIR + os.sep + '2018_scMCA' + os.sep + 'SI_cluster_labels.csv')
-    clusters = np.array([cluster_id[idx] for idx in xrange(len(cluster_id.keys()))])
+    clusters = np.array([cluster_id[idx] for idx in range(len(list(cluster_id.keys())))])
     save_npz_of_arr_genes_cells(npzpath, mem_arr, genes, clusters)
     return
 
@@ -138,8 +138,8 @@ def prune_cluster_dict(cluster_dict, rows_to_delete, savedir=None):
         - rows_to_delete: rows to delete from each array (val) in cluster_dict
         - savedir: where to save the memory file (None -> don't save)
     """
-    pruned_cluster_dict = {k: 0 for k in cluster_dict.keys()}
-    for k in xrange(len(cluster_dict.keys())):
+    pruned_cluster_dict = {k: 0 for k in list(cluster_dict.keys())}
+    for k in range(len(list(cluster_dict.keys()))):
         cluster_data = cluster_dict[k]
         pruned_cluster_dict[k] = np.delete(cluster_data, rows_to_delete, axis=0)
     # save pruned_cluster_dict
@@ -151,19 +151,19 @@ def prune_cluster_dict(cluster_dict, rows_to_delete, savedir=None):
 
 def save_cluster_dict(npzpath, cluster_dict):
     # convert int keys to str (and deconvert on loading)
-    print "saving cluster dict at %s..." % npzpath
-    cluster_dict = {str(k):v for k,v in cluster_dict.iteritems()}
+    print("saving cluster dict at %s..." % npzpath)
+    cluster_dict = {str(k):v for k,v in cluster_dict.items()}
     np.savez_compressed(npzpath, **cluster_dict)
-    print "done saving cluster dict"
+    print("done saving cluster dict")
     return
 
 
 def load_cluster_dict(npzpath):
-    print "loading cluster dict at %s..." % npzpath
+    print("loading cluster dict at %s..." % npzpath)
     cluster_dict = np.load(npzpath)
     # convert str keys back to int
-    cluster_dict = {int(k):v for k,v in cluster_dict.iteritems()}
-    print "done loading cluster dict"
+    cluster_dict = {int(k):v for k,v in cluster_dict.items()}
+    print("done loading cluster dict")
     return cluster_dict
 
 
@@ -192,9 +192,9 @@ def parse_exptdata(states_raw, gene_labels, verbose=True, savedir=None):
     num_genes, num_cells = states_truncated.shape  # aka N, M
     num_clusters = np.max(states_raw[0, :]) + 1
     if verbose:
-        print "raw data dimension: %d x %d" % (states_raw.shape)
-        print "cleaned data dimension: %d x %d" % (states_truncated.shape)
-        print "num_clusters is %d" % num_clusters
+        print("raw data dimension: %d x %d" % (states_raw.shape))
+        print("cleaned data dimension: %d x %d" % (states_truncated.shape))
+        print("num_clusters is %d" % num_clusters)
 
     # process gene labels
     assert len(gene_labels) == num_genes or len(gene_labels) == num_genes + 1
@@ -204,17 +204,17 @@ def parse_exptdata(states_raw, gene_labels, verbose=True, savedir=None):
 
     # prep cluster_dict
     cluster_dict = {}
-    cluster_indices = {k: [] for k in xrange(num_clusters)}
+    cluster_indices = {k: [] for k in range(num_clusters)}
     # TODO optimize this chunk if needed
-    for cell_idx in xrange(num_cells):
+    for cell_idx in range(num_cells):
         cluster_idx = states_row0[cell_idx]
         cluster_indices[cluster_idx].append(cell_idx)
 
     # build cluster dict
     if verbose:
-        print "cluster_indices collected; building cluster arrays..."
-    for k in xrange(num_clusters):
-        print k
+        print("cluster_indices collected; building cluster arrays...")
+    for k in range(num_clusters):
+        print(k)
         cluster_dict[k] = states_truncated.take(cluster_indices[k], axis=1)
 
     # fill metatadata dict
@@ -324,4 +324,4 @@ if __name__ == '__main__':
         verbose = True
         binarize_method = "by_gene"  # either 'by_cluster', 'by_gene'
         memory_method = "default"
-        print "No misc processing implemented"
+        print("No misc processing implemented")

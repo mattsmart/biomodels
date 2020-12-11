@@ -86,7 +86,7 @@ def build_intracell_model(model_name=DEFAULT_CYTOKINE_MODEL):
                                         -BIAS_DEGRADE])      # degradation of C
 
     else:
-        print "Warning: invalid model name specified"
+        print("Warning: invalid model name specified")
         spin_labels = None
         intxn_matrix = None
         applied_field_const = None
@@ -110,7 +110,7 @@ def build_intercell_model(model_name=DEFAULT_CYTOKINE_MODEL):
                                   [0.0, 0.0, 0.0, 0.0]])
 
     else:
-        print "Warning: invalid model name specified"
+        print("Warning: invalid model name specified")
         signal_matrix = None
 
     return spin_labels, intxn_matrix, applied_field_const, init_state, signal_matrix

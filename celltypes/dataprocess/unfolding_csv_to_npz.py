@@ -15,14 +15,14 @@ def load_npz_of_arr_genes_cells_signals(npzpath, verbose=True):
     Can also use for memory array, gene labels, and cell cluster names!
     """
     if verbose:
-        print "loading npz of arr genes cells at", npzpath, "..."
+        print("loading npz of arr genes cells at", npzpath, "...")
     loaded = np.load(npzpath)
     arr = loaded['arr']
     genes = loaded['genes']
     cells = loaded['cells']
     signals = loaded['signals']
     if verbose:
-        print "loaded arr, genes, cells, signals:", arr.shape, genes.shape, cells.shape, signals.shape
+        print("loaded arr, genes, cells, signals:", arr.shape, genes.shape, cells.shape, signals.shape)
     return arr, genes, cells, signals
 
 
@@ -32,8 +32,8 @@ def read_xi_with_row_col_labels(xi_path, verbose=True):
     gene_labels = np.array(df.index)
     xi = df.values
     if verbose:
-        print "Loaded xi_path: %s" % xi_path
-        print "xi.shape:", xi.shape, '\n', cell_labels, '\n', gene_labels
+        print("Loaded xi_path: %s" % xi_path)
+        print("xi.shape:", xi.shape, '\n', cell_labels, '\n', gene_labels)
     return xi, gene_labels, cell_labels
 
 
@@ -56,9 +56,9 @@ if __name__ == '__main__':
     for expt in os.listdir(UNFOLDINGDIR):
         expt_path = UNFOLDINGDIR + os.sep + expt
         expt_files = os.listdir(expt_path)
-        print expt_files
+        print(expt_files)
         if len(expt_files) != 2:
-            print "Skipping, require exactly 2 files (Xi and W) for processing"
+            print("Skipping, require exactly 2 files (Xi and W) for processing")
         else:
             xi = 'unfolding_%s_XI.csv' % expt
             signal = 'unfolding_%s_W.csv' % expt

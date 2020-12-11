@@ -30,16 +30,16 @@ fast_flag = False  # True - fast / simple plotting
 
 def get_lattice_uniproj(lattice, time, n, uniplot_key, simsetup):
     proj_vals = np.zeros((n,n))
-    for i in xrange(n):
-        for j in xrange(n):
+    for i in range(n):
+        for j in range(n):
             proj_vals[i, j] = single_memory_projection(lattice[i][j].get_state_array(), time, uniplot_key, simsetup['ETA'])
     return proj_vals
 
 
 def get_lattice_state_ints(lattice, n):
     state_ints = np.zeros((n,n), dtype=int)
-    for i in xrange(n):
-        for j in xrange(n):
+    for i in range(n):
+        for j in range(n):
             state_ints[i, j] = lattice[i][j].get_current_label()
     return state_ints
 
@@ -95,8 +95,8 @@ def lattice_projection_composite(lattice, time, n, lattice_plot_dir, simsetup, s
         return colourmap
 
     mem_idx = 0
-    for row in xrange(nrow):
-        for col in xrange(ncol):
+    for row in range(nrow):
+        for col in range(ncol):
             if mem_idx < simsetup['P']:
                 colourmap = get_colourmap(mem_idx)
                 subax = ax[row][col]
@@ -152,8 +152,8 @@ def site_site_overlap(lattice, loc_1, loc_2, time, N):
 def reference_overlap_plotter(lattice, time, n, lattice_plot_dir, simsetup, ref_site=(0,0), state_int=False):
     # get lattice size array of overlaps
     overlaps = np.zeros((n,n))
-    for i in xrange(n):
-        for j in xrange(n):
+    for i in range(n):
+        for j in range(n):
             #cell = lattice[i][j]
             state_overlap = site_site_overlap(lattice, [i,j], ref_site, time, simsetup['N'])
             overlaps[i,j] = state_overlap

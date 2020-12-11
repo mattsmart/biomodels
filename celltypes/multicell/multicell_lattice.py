@@ -9,9 +9,9 @@ from singlecell.singlecell_functions import state_to_label
 
 
 def build_lattice_mono(n, simsetup, type_1_idx=None):
-    lattice = [[0 for _ in xrange(n)] for _ in xrange(n)]  # TODO: this can be made faster as np array
-    for i in xrange(n):
-        for j in xrange(n):
+    lattice = [[0 for _ in range(n)] for _ in range(n)]  # TODO: this can be made faster as np array
+    for i in range(n):
+        for j in range(n):
             if type_1_idx is None:
                 celltype = np.random.choice(simsetup['CELLTYPE_LABELS'])
                 init_state = simsetup['XI'][:, simsetup['CELLTYPE_ID'][celltype]]
@@ -24,13 +24,13 @@ def build_lattice_mono(n, simsetup, type_1_idx=None):
 
 
 def build_lattice_half_half(n, type_1_idx, type_2_idx, simsetup):
-    lattice = [[0 for _ in xrange(n)] for _ in xrange(n)]  # TODO: this can be made faster as np array
+    lattice = [[0 for _ in range(n)] for _ in range(n)]  # TODO: this can be made faster as np array
     cellname_1 = simsetup['CELLTYPE_LABELS'][type_1_idx]
     cellstate_1 = simsetup['XI'][:, type_1_idx]
     cellname_2 = simsetup['CELLTYPE_LABELS'][type_2_idx]
     cellstate_2 = simsetup['XI'][:, type_2_idx]
-    for i in xrange(n):
-        for j in xrange(n):
+    for i in range(n):
+        for j in range(n):
             if j >= n/2:
                 lattice[i][j] = SpatialCell(cellstate_1, "%d,%d_%s" % (i, j, cellname_1), [i, j], simsetup)
             else:
@@ -39,10 +39,10 @@ def build_lattice_half_half(n, type_1_idx, type_2_idx, simsetup):
 
 
 def build_lattice_memory_sequence(n, mem_list, simsetup):
-    lattice = [[0 for _ in xrange(n)] for _ in xrange(n)]  # TODO: this can be made faster as np array
+    lattice = [[0 for _ in range(n)] for _ in range(n)]  # TODO: this can be made faster as np array
     idx = 0
-    for i in xrange(n):
-        for j in xrange(n):
+    for i in range(n):
+        for j in range(n):
             mem_idx = mem_list[idx % len(mem_list)]
             cellname = simsetup['CELLTYPE_LABELS'][mem_idx]
             cellstate = simsetup['XI'][:, mem_idx]
@@ -52,12 +52,12 @@ def build_lattice_memory_sequence(n, mem_list, simsetup):
 
 
 def build_lattice_random(n, simsetup):
-    lattice = [[0 for _ in xrange(n)] for _ in xrange(n)]  # TODO: this can be made faster as np array
+    lattice = [[0 for _ in range(n)] for _ in range(n)]  # TODO: this can be made faster as np array
     idx = 0
-    for i in xrange(n):
-        for j in xrange(n):
+    for i in range(n):
+        for j in range(n):
             cellname = str(i*j)
-            cellstate = np.array([2*int(np.random.rand() < .5) - 1 for _ in xrange(simsetup['N'])]).T
+            cellstate = np.array([2*int(np.random.rand() < .5) - 1 for _ in range(simsetup['N'])]).T
             lattice[i][j] = SpatialCell(cellstate, "%d,%d_%s" % (i, j, cellname), [i, j], simsetup)
             idx += 1
     return lattice
@@ -65,9 +65,9 @@ def build_lattice_random(n, simsetup):
 
 def build_lattice_explicit(n, simsetup, state=None):
     assert len(state) == n**2 * simsetup['N']
-    lattice = [[0 for _ in xrange(n)] for _ in xrange(n)]  # TODO: this can be made faster as np array    idx = 0
-    for i in xrange(n):
-        for j in xrange(n):
+    lattice = [[0 for _ in range(n)] for _ in range(n)]  # TODO: this can be made faster as np array    idx = 0
+    for i in range(n):
+        for j in range(n):
             cellname = str(i*j)
             posn = n * i + j
             start_spin = posn * simsetup['N']
@@ -78,7 +78,7 @@ def build_lattice_explicit(n, simsetup, state=None):
 
 
 def build_lattice_main(n, list_of_celltype_idx, buildstring, simsetup, state=None):
-    print "Building %s lattice with types %s" % (buildstring, list_of_celltype_idx)
+    print("Building %s lattice with types %s" % (buildstring, list_of_celltype_idx))
     if buildstring == "mono":
         assert len(list_of_celltype_idx) == 1
         return build_lattice_mono(n, simsetup, type_1_idx=list_of_celltype_idx[0])
@@ -120,40 +120,40 @@ def prep_lattice_data_dict(n, duration, list_of_celltype_idx, buildstring, data_
 
 def get_cell_locations(lattice, n):
     cell_locations = []
-    for i in xrange(n):
-        for j in xrange(n):
+    for i in range(n):
+        for j in range(n):
             loc = (i, j)
             if isinstance(lattice[i][j], SpatialCell):
                 cell_locations.append(loc)
             else:
-                print "Warning: non-SpatialCell at", i,j
+                print("Warning: non-SpatialCell at", i,j)
     return cell_locations
 
 
 def printer(lattice):
     n = len(lattice)
-    for i in xrange(n):
-        str_lst = [lattice[i][j].label for j in xrange(n)]
-        print " " + ' '.join(str_lst)
-    print
+    for i in range(n):
+        str_lst = [lattice[i][j].label for j in range(n)]
+        print(" " + ' '.join(str_lst))
+    print()
 
 
 def printer_labels(lattice):
     n = len(lattice)
-    for i in xrange(n):
-        for j in xrange(n):
+    for i in range(n):
+        for j in range(n):
             state = lattice[i][j].get_current_state()
             label = state_to_label(tuple(state))
-            print label, " | ",
-        print
+            print(label, " | ", end=' ')
+        print()
 
 
 def write_state_all_cells(lattice, data_folder):
-    print "Writing states to file.."
-    for i in xrange(len(lattice)):
-        for j in xrange(len(lattice[0])):
+    print("Writing states to file..")
+    for i in range(len(lattice)):
+        for j in range(len(lattice[0])):
             lattice[i][j].write_state(data_folder)
-    print "Done"
+    print("Done")
 
 
 def write_grid_state_int(grid_state_int, data_folder):
@@ -161,7 +161,7 @@ def write_grid_state_int(grid_state_int, data_folder):
     For each timestep, writes the n x n grid of integer states
     """
     num_steps = grid_state_int.shape[-1]
-    for i in xrange (num_steps):
+    for i in range (num_steps):
         filename = data_folder + os.sep + 'grid_state_int_at_step_%d.txt' % i
         np.savetxt(filename, grid_state_int[:, :, i], fmt='%d', delimiter=',')
 

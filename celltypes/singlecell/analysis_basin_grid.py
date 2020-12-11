@@ -31,7 +31,7 @@ def gen_basin_grid(ensemble, num_processes, simsetup=None, num_steps=100, anneal
     io_dict = run_subdir_setup(run_subfolder=ANALYSIS_SUBDIR)
     basin_grid = np.zeros((len(celltype_labels), len(celltype_labels)+len(SPURIOUS_LIST)))
     for idx, celltype in enumerate(celltype_labels):
-        print "Generating row: %d, %s" % (idx, celltype)
+        print("Generating row: %d, %s" % (idx, celltype))
         if saveall:
             assert parallel
             plot_all = False
@@ -83,15 +83,15 @@ def grid_stats(grid_data, printtorank=10):
     basin_row_sum = np.sum(grid_data, axis=1)
     ensemble = basin_row_sum[0]
     ref_list = celltype_labels + SPURIOUS_LIST
-    for row in xrange(len(celltype_labels)):
+    for row in range(len(celltype_labels)):
         assert basin_row_sum[row] == ensemble  # make sure all rows sum to expected value
         sortedmems_smalltobig = np.argsort(grid_data[row, :])
         sortedmems_bigtosmall = sortedmems_smalltobig[::-1]
-        print "\nRankings for row", row, celltype_labels[row], "(sum %d)" % int(basin_row_sum[row])
-        for rank in xrange(printtorank):
+        print("\nRankings for row", row, celltype_labels[row], "(sum %d)" % int(basin_row_sum[row]))
+        for rank in range(printtorank):
             ranked_col_idx = sortedmems_bigtosmall[rank]
             ranked_label = ref_list[ranked_col_idx]
-            print rank, ranked_label, grid_data[row, ranked_col_idx], grid_data[row, ranked_col_idx] / ensemble
+            print(rank, ranked_label, grid_data[row, ranked_col_idx], grid_data[row, ranked_col_idx] / ensemble)
 
 
 def static_overlap_grid(simsetup, calc_hamming=False, savedata=True, plot=True):
@@ -107,8 +107,8 @@ def static_overlap_grid(simsetup, calc_hamming=False, savedata=True, plot=True):
     xi = simsetup["XI"]
     if calc_hamming:
         grid_data = np.zeros((len(celltypes), len(celltypes)))
-        for i in xrange(len(celltypes)):
-            for j in xrange(len(celltypes)):
+        for i in range(len(celltypes)):
+            for j in range(len(celltypes)):
                 hd = hamming(xi[:, i], xi[:, j])
                 grid_data[i, j] = hd
                 grid_data[j, i] = hd
@@ -138,9 +138,9 @@ def stoch_from_distance(distance_data, kappa=None):
         else:
             return np.exp(-kappa*d_ab)
     stoch_array = np.zeros(distance_data.shape)
-    for col in xrange(distance_data.shape[1]):
+    for col in range(distance_data.shape[1]):
         colsum = 0.0
-        for row in xrange(distance_data.shape[0]):
+        for row in range(distance_data.shape[0]):
             if row != col:
                 distmod = transform_distance(distance_data[row, col], kappa)
                 stoch_array[row, col] = distmod
@@ -182,7 +182,7 @@ if __name__ == '__main__':
                                              anneal_protocol=anneal_protocol, field_protocol=field_protocol,
                                              async_batch=async_batch, saveall=saveall, plot=plot, parallel=parallel)
         t1 = time.time() - t0
-        print "GRID TIMER:", t1
+        print("GRID TIMER:", t1)
 
         # add info to run info file TODO maybe move this INTO the function?
         info_list = [['fncall', 'gen_basin_grid()'], ['ensemble', ensemble], ['num_steps', timesteps],
@@ -238,19 +238,19 @@ if __name__ == '__main__':
                           hamming=True, relmax=True, ext='.pdf', plotname='stochastic_matrix_nodiag')  # deleted diags
         # compute deviations
         truncated_sim = simulated_data_normed[:, 0:-len(SPURIOUS_LIST)]
-        print truncated_sim.shape
+        print(truncated_sim.shape)
         deviation_matrix = stochastic_matrix_nodiag - truncated_sim.T
-        print simulated_data[0:4, 0:4]
-        print simulated_data_normed[0:4, 0:4]
-        print distance_data_normed[0:4, 0:4]
-        print stochastic_matrix[0:4, 0:4]
-        print stochastic_matrix_nodiag[0:4, 0:4]
-        print deviation_matrix[0:4, 0:4]
+        print(simulated_data[0:4, 0:4])
+        print(simulated_data_normed[0:4, 0:4])
+        print(distance_data_normed[0:4, 0:4])
+        print(stochastic_matrix[0:4, 0:4])
+        print(stochastic_matrix_nodiag[0:4, 0:4])
+        print(deviation_matrix[0:4, 0:4])
         plot_overlap_grid(deviation_matrix, celltype_labels, comparisondir,
                           hamming=True, relmax=True, ext='.pdf', plotname='deviation_matrix')
         # solve for scaling constant such that difference is minimized (A-cB=0 => AB^-1=cI)
         inverted_deviation = stochastic_matrix_nodiag*np.linalg.inv(truncated_sim.T)
-        print inverted_deviation[0:4, 0:4]
+        print(inverted_deviation[0:4, 0:4])
 
     # use labelled collection of timeseries from each row to generate multiple grids over time
     if reanalyze_grid_over_time:
@@ -259,7 +259,7 @@ if __name__ == '__main__':
         basedirs = ['grid_785963_1kx500_2014mehta_mir21_lvl3']
         for basedir in basedirs:
             datadir = groupdir + os.sep + basedir
-            print "working in", datadir
+            print("working in", datadir)
 
             ensemble, num_steps = fetch_from_run_info(datadir + os.sep + 'run_info.txt', ['ensemble', 'num_steps'])
             # step 1 restructure data
@@ -270,14 +270,14 @@ if __name__ == '__main__':
             k = len(SPURIOUS_LIST)
             grid_over_time = np.zeros((p, p+k, num_steps))
             for idx, celltype in enumerate(celltype_labels):
-                print "loading:", idx, celltype
+                print("loading:", idx, celltype)
                 proj_timeseries_array, basin_occupancy_timeseries = load_basinstats(rowdatadir, celltype)
                 grid_over_time[idx, :, :] += basin_occupancy_timeseries
             # step 2 save and plot
             vforce = 0.5
             filename = 'grid_at_step'
-            for step in xrange(num_steps):
-                print "step", step
+            for step in range(num_steps):
+                print("step", step)
                 grid_at_step = grid_over_time[:, :, step]
                 namemod = '_%d' % step
                 np.savetxt(latticedir + os.sep + filename + namemod + '.txt', grid_at_step, delimiter=',', fmt='%.4f')

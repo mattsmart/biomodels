@@ -13,11 +13,11 @@ def plot_proj_timeseries(proj_timeseries_array, num_steps, ensemble, memory_labe
     assert proj_timeseries_array.shape[0] == len(memory_labels)
     plt.clf()
     if highlights is None:
-        plt.plot(xrange(num_steps), proj_timeseries_array.T, color='blue', linewidth=0.75)
+        plt.plot(range(num_steps), proj_timeseries_array.T, color='blue', linewidth=0.75)
     else:
-        plt.plot(xrange(num_steps), proj_timeseries_array.T, color='grey', linewidth=0.55, linestyle='dashed')
-        for key in highlights.keys():
-            plt.plot(xrange(num_steps), proj_timeseries_array[key,:], color=highlights[key], linewidth=0.75, label=memory_labels[key])
+        plt.plot(range(num_steps), proj_timeseries_array.T, color='grey', linewidth=0.55, linestyle='dashed')
+        for key in list(highlights.keys()):
+            plt.plot(range(num_steps), proj_timeseries_array[key,:], color=highlights[key], linewidth=0.75, label=memory_labels[key])
         plt.legend()
     plt.title('Ensemble mean (n=%d) projection timeseries' % ensemble)
     plt.ylabel('Mean projection onto each memory')
@@ -35,13 +35,13 @@ def plot_basin_occupancy_timeseries(basin_occupancy_timeseries, num_steps, ensem
     assert spurious_list[0] == 'mixed'
     plt.clf()
     if highlights is None:
-        plt.plot(xrange(num_steps), basin_occupancy_timeseries.T, color='blue', linewidth=0.75)
+        plt.plot(range(num_steps), basin_occupancy_timeseries.T, color='blue', linewidth=0.75)
     else:
-        plt.plot(xrange(num_steps), basin_occupancy_timeseries.T, color='grey', linewidth=0.55, linestyle='dashed')
-        for key in highlights.keys():
-            plt.plot(xrange(num_steps), basin_occupancy_timeseries[key,:], color=highlights[key], linewidth=0.75, label=memory_labels[key])
-        if len(memory_labels) not in highlights.keys():
-            plt.plot(xrange(num_steps), basin_occupancy_timeseries[len(memory_labels), :], color='orange',
+        plt.plot(range(num_steps), basin_occupancy_timeseries.T, color='grey', linewidth=0.55, linestyle='dashed')
+        for key in list(highlights.keys()):
+            plt.plot(range(num_steps), basin_occupancy_timeseries[key,:], color=highlights[key], linewidth=0.75, label=memory_labels[key])
+        if len(memory_labels) not in list(highlights.keys()):
+            plt.plot(range(num_steps), basin_occupancy_timeseries[len(memory_labels), :], color='orange',
                      linewidth=0.75, label='mixed')
         plt.legend()
     plt.title('Occupancy timeseries (ensemble %d)' % ensemble)
@@ -61,12 +61,12 @@ def plot_basin_step(basin_step_data, step, ensemble, memory_labels, memory_id, s
     if highlights is not None:
         if len(basin_step_data) == len(memory_labels):
             xticks = memory_labels
-            bar_colors = ['grey' if label not in [memory_labels[a] for a in highlights.keys()]
+            bar_colors = ['grey' if label not in [memory_labels[a] for a in list(highlights.keys())]
                           else highlights[memory_id[label]]
                           for label in xticks]
         else:
             xticks = memory_labels + spurious_list
-            bar_colors = ['grey' if label not in [memory_labels[a] for a in highlights.keys()]
+            bar_colors = ['grey' if label not in [memory_labels[a] for a in list(highlights.keys())]
                           else highlights[memory_id[label]]
                           for label in xticks]
     else:
@@ -81,7 +81,7 @@ def plot_basin_step(basin_step_data, step, ensemble, memory_labels, memory_id, s
     plt.clf()
     fig = plt.figure(1)
     fig.set_size_inches(21.5, 10.5)
-    h = plt.bar(xrange(len(xticks)), basin_step_data, color=bar_colors)
+    h = plt.bar(range(len(xticks)), basin_step_data, color=bar_colors)
     ax = plt.gca()
     plt.subplots_adjust(bottom=0.3)
     ax.set_xticks(np.arange(len(xticks)))
@@ -96,7 +96,7 @@ def plot_basin_step(basin_step_data, step, ensemble, memory_labels, memory_id, s
         from mpl_toolkits.axes_grid1.inset_locator import inset_axes
         axins = inset_axes(ax, 2.0, 2.0, loc='upper right', bbox_to_anchor=(0.85, 0.85),
                            bbox_transform=ax.figure.transFigure)  # no zoom
-        h = axins.bar(xrange(len(xticks)), basin_step_data, color=bar_colors)
+        h = axins.bar(range(len(xticks)), basin_step_data, color=bar_colors)
         axins.set_ylim(0.0, ensemble)
     fig.savefig(savepath, bbox_inches='tight')
     return plt.gca()
@@ -205,7 +205,7 @@ def plot_overlap_grid(grid_data, memory_labels, plotdir, ax=None, N=None, normal
     """
     if memory_labels_x is None:
         memory_labels_x = memory_labels
-    print 'plot_overlap_grid:', grid_data.shape, len(memory_labels_x), len(memory_labels), plotname, namemod
+    print('plot_overlap_grid:', grid_data.shape, len(memory_labels_x), len(memory_labels), plotname, namemod)
     plotnames = ['celltypes_overlap', 'celltypes_hamming']
     if plotname is None:
         plotname = plotnames[hamming]
@@ -293,11 +293,11 @@ def grid_video(rundir, vidname, imagedir=None, ext='.mp4', fps=20):
         os.makedirs(rundir + os.sep + "video")
     videopath = rundir + os.sep + "video" + os.sep + vidname + ext
     # call make video fn
-    print "Creating video at %s..." % videopath
+    print("Creating video at %s..." % videopath)
     make_video_ffmpeg(imagedir, videopath, fps=fps, ffmpeg_dir=None)
-    print "Done"
+    print("Done")
     return videopath
 
 
 if __name__ == '__main__':
-    print "main not implemented"
+    print("main not implemented")

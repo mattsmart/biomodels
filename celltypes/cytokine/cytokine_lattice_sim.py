@@ -54,8 +54,8 @@ def run_cytokine_network(lattice, num_lattice_steps, intxn_matrix, signal_matrix
             lattice_uniplotter(lattice, 0, n, plot_lattice_folder, mem_idx)
     """
 
-    for turn in xrange(1, num_lattice_steps):
-        print 'Turn ', turn
+    for turn in range(1, num_lattice_steps):
+        print('Turn ', turn)
         random.shuffle(cell_locations)
         for idx, loc in enumerate(cell_locations):
             cell = lattice[loc[0]][loc[1]]
@@ -100,9 +100,9 @@ def wrapper_cytokine_network(gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, ini
     # write cell state TODO: and data_dict to file
     #write_state_all_cells(lattice, data_folder)
 
-    print "\nMulticell simulation complete"
+    print("\nMulticell simulation complete")
     if flag_write:
-        print "output in %s" % dirs[0]
+        print("output in %s" % dirs[0])
     return lattice, dirs
 
 

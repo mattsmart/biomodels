@@ -18,11 +18,11 @@ if __name__ == '__main__':
 
     num_runs = 20
     ensemble = 1
-    for i in xrange(num_runs):
+    for i in range(num_runs):
         random_mem = False
         random_W = True
         simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W)
-        print "On run %d (%d total)" % (i, num_runs)
+        print("On run %d (%d total)" % (i, num_runs))
         mc_sim(simsetup, gridsize=n, num_steps=steps, buildstring=buildstring, exosome_string=fieldstring,
                field_remove_ratio=fieldprune, ext_field_strength=ext_field_strength, app_field=app_field,
                app_field_strength=app_field_strength, plot_period=plot_period, state_int=state_int)

@@ -24,8 +24,8 @@ def build_lattice_memories(simsetup, M):
             cellytpe_idx = simsetup['CELLTYPE_ID'][label]
             return simsetup['XI'][:, cellytpe_idx]
         lattice_vec = np.zeros(M * simsetup['N'])
-        for row in xrange(num_y):
-            for col in xrange(num_x):
+        for row in range(num_y):
+            for col in range(num_x):
                 posn = sqrtM * row + col
                 label = grid[row][col]
                 celltype_vec = label_to_celltype_vec(label)
@@ -34,12 +34,12 @@ def build_lattice_memories(simsetup, M):
                 lattice_vec[start_spin:end_spin] = celltype_vec
         return lattice_vec
 
-    mem1 = [['mem_A' for _ in xrange(sqrtM)] for _ in xrange(sqrtM)]  # TODO check elsewhere for bug that was here [[0]*a]*b (list of list)
-    mem2 = [['mem_A' for _ in xrange(sqrtM)] for _ in xrange(sqrtM)]
-    mem3 = [['mem_A' for _ in xrange(sqrtM)] for _ in xrange(sqrtM)]
+    mem1 = [['mem_A' for _ in range(sqrtM)] for _ in range(sqrtM)]  # TODO check elsewhere for bug that was here [[0]*a]*b (list of list)
+    mem2 = [['mem_A' for _ in range(sqrtM)] for _ in range(sqrtM)]
+    mem3 = [['mem_A' for _ in range(sqrtM)] for _ in range(sqrtM)]
     # build mem 1 -- number 1 on 12x12 grid
-    for row in xrange(num_y):
-        for col in xrange(num_x):
+    for row in range(num_y):
+        for col in range(num_x):
             if row in (1,2) and col in range(2,7):
                 mem1[row][col] = 'mem_B'
             if row in range(3,9) and col in (5,6):
@@ -48,8 +48,8 @@ def build_lattice_memories(simsetup, M):
                 mem1[row][col] = 'mem_B'
     mem1 = conv_grid_to_vector(mem1)
     # build mem 2 -- number 2 on 12x12 grid
-    for row in xrange(num_y):
-        for col in xrange(num_x):
+    for row in range(num_y):
+        for col in range(num_x):
             if row in (1,2,5,6,9,10) and col in range(2,10):
                 mem2[row][col] = 'mem_B'
             if row in (3,4) and col in (8,9):
@@ -58,8 +58,8 @@ def build_lattice_memories(simsetup, M):
                 mem2[row][col] = 'mem_B'
     mem2 = conv_grid_to_vector(mem2)
     # build mem 3 -- number 3 on 12x12 grid
-    for row in xrange(num_y):
-        for col in xrange(num_x):
+    for row in range(num_y):
+        for col in range(num_x):
             if row in (1,2,5,6,9,10) and col in range(2,10):
                 mem3[row][col] = 'mem_B'
             if row in (3,4,7,8) and col in (8,9):
@@ -76,9 +76,9 @@ def build_lattice_memories(simsetup, M):
 def hopfield_on_lattice_memories(simsetup, M, lattice_memories):
     xi = lattice_memories
     corr_matrix = np.dot(xi.T, xi) / float(xi.shape[0])
-    print xi[6 * (0):6 * (1), :]
-    print 'and'
-    print xi[6*(17):6*(18),:]
+    print(xi[6 * (0):6 * (1), :])
+    print('and')
+    print(xi[6*(17):6*(18),:])
     corr_inv = np.linalg.inv(corr_matrix)
     intxn_matrix = reduce(np.dot, [xi, corr_inv, xi.T]) / float(xi.shape[0])
     intxn_matrix = intxn_matrix - np.kron(np.eye(M), np.ones((simsetup['N'], simsetup['N'])))
@@ -93,11 +93,11 @@ def sim_lattice_as_cell(simsetup, num_steps, beta, app_field, app_field_strength
     total_spins = M * simsetup['N']
     lattice_memories = build_lattice_memories(simsetup, M)
     lattice_memories_list = ['%d' % idx for idx, elem in enumerate(lattice_memories)]
-    lattice_gene_list =['site_%d' % idx for idx in xrange(total_spins)]
+    lattice_gene_list =['site_%d' % idx for idx in range(total_spins)]
     lattice_intxn_matrix = np.kron(np.eye(M), simsetup['J']) + \
                            gamma * (hopfield_on_lattice_memories(simsetup, M, lattice_memories))
     # build lattice applied field (extended)
-    app_field_on_lattice = np.array([app_field for _ in xrange(M)]).reshape(total_spins)
+    app_field_on_lattice = np.array([app_field for _ in range(M)]).reshape(total_spins)
     # setup IO
     io_dict = run_subdir_setup()
     # initialize
@@ -106,14 +106,14 @@ def sim_lattice_as_cell(simsetup, num_steps, beta, app_field, app_field_strength
     lattice = build_lattice_main(sqrtM, None, "explicit", simsetup,
                                  state=lattice_as_cell.get_current_state())  # TODO hacky
     # simulate for t steps
-    for turn in xrange(num_steps):
-        print 'step', turn
+    for turn in range(num_steps):
+        print('step', turn)
         lattice_as_cell.update_state(lattice_intxn_matrix, beta=beta, app_field=app_field_on_lattice,
                                      app_field_strength=app_field_strength, async_batch=True)
         # fill in lattice info from update  # TODO convert to spatial cell method from explicit lattice vec?
         lattice_vec = lattice_as_cell.get_current_state()
-        for i in xrange(sqrtM):
-            for j in xrange(sqrtM):
+        for i in range(sqrtM):
+            for j in range(sqrtM):
                 cell = lattice[i][j]
                 posn = sqrtM * i + j
                 start_spin = posn * simsetup['N']
@@ -153,15 +153,15 @@ if __name__ == '__main__':
         app_field = np.zeros(simsetup['N'])
         if simsetup['K'] > 0:
             app_field[-simsetup['K']:] = 1.0
-            print app_field
+            print(app_field)
         else:
-            print 'Note gene 0 (on), 1 (on), 2 (on) are HK in A1 memories'
-            print 'Note gene 4 (off), 5 (on) are HK in C1 memories'
+            print('Note gene 0 (on), 1 (on), 2 (on) are HK in A1 memories')
+            print('Note gene 4 (off), 5 (on) are HK in C1 memories')
             app_field[4] = 1.0
             app_field[5] = 1.0
 
     lattice, io_dict = sim_lattice_as_cell(simsetup, num_steps, beta, app_field, KAPPA)
-    print 'Done'
+    print('Done')
 
 
     """
@@ -181,7 +181,7 @@ if __name__ == '__main__':
                app_field_strength=app_field_strength, beta=beta, plot_period=plot_period, state_int=state_int, meanfield=meanfield)
     """
     if make_video:
-        print 'Making video...'
+        print('Making video...')
         # fhead = "composite_lattice_step"
         fhead = "composite_lattice_step"
         fps = 2

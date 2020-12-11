@@ -29,10 +29,10 @@ def cytokine_sim(model_name=DEFAULT_CYTOKINE_MODEL, iterations=NUM_STEPS, beta=B
         dirs = None
 
     # simulate
-    for step in xrange(iterations-1):
+    for step in range(iterations-1):
 
         if flag_print:
-            print cell.steps, "cell steps:", cell.get_current_state(), "aka", cell.get_current_label()
+            print(cell.steps, "cell steps:", cell.get_current_state(), "aka", cell.get_current_label())
 
         # plotting
         #if singlecell.steps % plot_period == 0:
@@ -42,15 +42,15 @@ def cytokine_sim(model_name=DEFAULT_CYTOKINE_MODEL, iterations=NUM_STEPS, beta=B
 
     # end state
     if flag_print:
-        print cell.steps, "cell steps:", cell.get_current_state(), "aka", cell.get_current_label()
+        print(cell.steps, "cell steps:", cell.get_current_state(), "aka", cell.get_current_label())
 
     # Write
     if flag_write:
-        print "Writing state to file.."
+        print("Writing state to file..")
         cell.write_state(data_folder)
 
     if flag_print:
-        print "Done"
+        print("Done")
     return cell.get_state_array(), dirs
 
 

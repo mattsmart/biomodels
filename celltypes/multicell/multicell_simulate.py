@@ -38,14 +38,14 @@ def run_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_st
             assert app_field.shape[0] == simsetup['N']
             assert len(app_field[1]) == num_lattice_steps
         else:
-            app_field = np.array([app_field for _ in xrange(num_lattice_steps)]).T
+            app_field = np.array([app_field for _ in range(num_lattice_steps)]).T
         app_field_step = app_field[:, 0]
     else:
         app_field_step = None
 
     cell_locations = get_cell_locations(lattice, n)
     loc_to_idx = {pair: idx for idx, pair in enumerate(cell_locations)}
-    memory_idx_list = data_dict['memory_proj_arr'].keys()
+    memory_idx_list = list(data_dict['memory_proj_arr'].keys())
 
     # plot initial state of the lattice
     if flag_uniplots:
@@ -74,11 +74,11 @@ def run_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_st
     # special update method for meanfield case (infinite search radius)
     if meanfield:
         assert exosome_string == 'no_exo_field'  # TODO careful: not clear best way to update exo field as cell state changes in a time step, refactor exo fn?
-        print 'Initializing mean field...'
+        print('Initializing mean field...')
         # TODO decide if want scale factor to be rescaled by total popsize (i.e. *mean*field or total field?)
         state_total = np.zeros(simsetup['N'])
         field_global = np.zeros(simsetup['N'])
-        neighbours = [[a, b] for a in xrange(len(lattice[0])) for b in xrange(len(lattice))]  # TODO ok that cell is neighbour with self as well? remove diag
+        neighbours = [[a, b] for a in range(len(lattice[0])) for b in range(len(lattice))]  # TODO ok that cell is neighbour with self as well? remove diag
         if simsetup['FIELD_SEND'] is not None:
             for loc in neighbours:
                 state_total += lattice[loc[0]][loc[1]].get_current_state()
@@ -91,8 +91,8 @@ def run_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_st
                                                                  neighbours=neighbours)
             field_global += field_exo
 
-    for turn in xrange(1, num_lattice_steps):
-        print 'Turn ', turn
+    for turn in range(1, num_lattice_steps):
+        print('Turn ', turn)
         random.shuffle(cell_locations)
         for idx, loc in enumerate(cell_locations):
             cell = lattice[loc[0]][loc[1]]
@@ -105,8 +105,8 @@ def run_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_st
                 state_total += (cell.get_current_state() - cellstate_pre)  # TODO update field_avg based on new state TODO test
                 state_total_01 = (state_total + num_cells) / 2
                 field_global = np.dot(simsetup['FIELD_SEND'], state_total_01)
-                print field_global
-                print state_total
+                print(field_global)
+                print(state_total)
             else:
                 cell.update_with_signal_field(lattice, SEARCH_RADIUS_CELL, n, simsetup['J'], simsetup, beta=beta,
                                               exosome_string=exosome_string, ratio_to_remove=field_remove_ratio,
@@ -182,11 +182,11 @@ def mc_sim(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring
         list_of_type_idx = [type_1_idx, type_2_idx]
     if buildstring == "memory_sequence":
         flag_uniplots = False
-        list_of_type_idx = range(simsetup['P'])
+        list_of_type_idx = list(range(simsetup['P']))
         #random.shuffle(list_of_type_idx)  # TODO shuffle or not?
     if buildstring == "random":
         flag_uniplots = False
-        list_of_type_idx = range(simsetup['P'])
+        list_of_type_idx = list(range(simsetup['P']))
     lattice = build_lattice_main(gridsize, list_of_type_idx, buildstring, simsetup)
     #print list_of_type_idx
 
@@ -204,7 +204,7 @@ def mc_sim(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring
 
     # check the data dict
     for data_idx, memory_idx in enumerate(data_dict['memory_proj_arr'].keys()):
-        print data_dict['memory_proj_arr'][memory_idx]
+        print(data_dict['memory_proj_arr'][memory_idx])
         plt.plot(data_dict['memory_proj_arr'][memory_idx].T)
         plt.ylabel('Projection of all cells onto type: %s' % simsetup['CELLTYPE_LABELS'][memory_idx])
         plt.xlabel('Time (full lattice steps)')
@@ -217,7 +217,7 @@ def mc_sim(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring
     #write_state_all_cells(lattice, io_dict['datadir'])
     if state_int:
         write_grid_state_int(data_dict['grid_state_int'], io_dict['datadir'])
-    if 'lattice_energy' in data_dict.keys():
+    if 'lattice_energy' in list(data_dict.keys()):
         write_general_arr(data_dict['lattice_energy'], io_dict['datadir'], 'lattice_energy', txt=True, compress=False)
         plt.plot(data_dict['lattice_energy'][:, 0], '--ok', label=r'$H_{\mathrm{total}}$')
         plt.plot(data_dict['lattice_energy'][:, 1], '--b', alpha=0.7, label=r'$H_{\mathrm{self}}$')
@@ -240,7 +240,7 @@ def mc_sim(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring
         plt.savefig(io_dict['plotdatadir'] + os.sep + '%s_%s_n%d_t%d_hamiltonianZoom_remove%.2f_exo%.2f.png' %
                     (exosome_string, buildstring, gridsize, num_steps, field_remove_ratio, ext_field_strength))
         plt.clf()  # plt.show()
-    if 'compressibility_full' in data_dict.keys():
+    if 'compressibility_full' in list(data_dict.keys()):
         write_general_arr(data_dict['compressibility_full'], io_dict['datadir'], 'compressibility_full', txt=True, compress=False)
         plt.plot(data_dict['compressibility_full'][:,0], '--o', color='orange')
         plt.title(r'File compressibility ratio of the full lattice spin state')
@@ -253,14 +253,14 @@ def mc_sim(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring
                                        eta_0=data_dict['compressibility_full'][0,2], datatype='full', elemtype=np.int, method='manual')
         plt.axhline(y=ref_0[0], ls='-.', color='gray')
         plt.axhline(y=ref_1[0], ls='-.', color='blue')
-        print ref_0,ref_0,ref_0,ref_0, 'is', ref_0, 'vs', ref_1
+        print(ref_0,ref_0,ref_0,ref_0, 'is', ref_0, 'vs', ref_1)
         plt.xlabel(r'$t$ (lattice steps)')
         plt.ylim(-0.05, 1.01)
         plt.savefig(io_dict['plotdatadir'] + os.sep + '%s_%s_n%d_t%d_comp_remove%.2f_exo%.2f.png' %
                     (exosome_string, buildstring, gridsize, num_steps, field_remove_ratio, ext_field_strength))
         plt.clf()  # plt.show()
 
-    print "\nMulticell simulation complete - output in %s" % io_dict['basedir']
+    print("\nMulticell simulation complete - output in %s" % io_dict['basedir'])
     return lattice, data_dict, io_dict
 
 
@@ -286,10 +286,10 @@ if __name__ == '__main__':
         app_field = np.zeros(simsetup['N'])
         if simsetup['K'] > 0:
             app_field[-simsetup['K']:] = 1.0
-            print app_field
+            print(app_field)
         else:
-            print 'Note gene 0 (on), 1 (on), 2 (on) are HK in A1 memories'
-            print 'Note gene 4 (off), 5 (on) are HK in C1 memories'
+            print('Note gene 0 (on), 1 (on), 2 (on) are HK in A1 memories')
+            print('Note gene 4 (off), 5 (on) are HK in C1 memories')
             app_field[4] = 1.0
             app_field[5] = 1.0
 

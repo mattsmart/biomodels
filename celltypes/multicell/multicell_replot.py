@@ -71,7 +71,7 @@ def state_int_to_colour(state_int, simsetup, proj=True, noanti=True):
     #print proj, similarities, colour_a, colour_b, colour_c, idx_max
 
     sa = np
-    colour_mix = [(max(0, similarities[0])*colour_a[i] + max(0, similarities[1])*colour_b[i] + max(0, similarities[2])*colour_c[i]) /(max(0, similarities[0])+max(0, similarities[1])+max(0, similarities[2])) for i in xrange(3)]
+    colour_mix = [(max(0, similarities[0])*colour_a[i] + max(0, similarities[1])*colour_b[i] + max(0, similarities[2])*colour_c[i]) /(max(0, similarities[0])+max(0, similarities[1])+max(0, similarities[2])) for i in range(3)]
     return colour_mix
     #return colour_a, colour_b, colour_c, idx_max
 
@@ -80,8 +80,8 @@ def reference_overlap_plotter(lattice_ints, n, lattice_plot_dir, simsetup, ref_s
     # get lattice size array of overlaps
     celltype_overlaps = np.zeros((n, n, 3))
     lattice_colours = np.zeros((n, n, 3))
-    for i in xrange(n):
-        for j in xrange(n):
+    for i in range(n):
+        for j in range(n):
             #cell = lattice[i][j]
             state_int = lattice_ints[i, j]
             lattice_colours[i, j, :] = state_int_to_colour(state_int)
@@ -95,8 +95,8 @@ def replot(filename, simsetup):
     imshowcolours_A = np.zeros((n, n, 3))
     imshowcolours_B = np.zeros((n, n, 3))
     imshowcolours_C = np.zeros((n, n, 3))
-    for i in xrange(n):
-        for j in xrange(n):
+    for i in range(n):
+        for j in range(n):
             """
             c1, c2, c3, idx_max = state_int_to_colour(grid_state_int[i,j], simsetup)
             top_color = [c1,c2,c3][idx_max]
@@ -143,7 +143,7 @@ def replot(filename, simsetup):
 def replot_overlap(filename, simsetup, ref_site=(0,0), state_int=False):
     grid_state_int = read_grid_state_int(filename)
     ref_state = label_to_state(grid_state_int[0, 0], simsetup['N'], use_neg=True)
-    print grid_state_int
+    print(grid_state_int)
 
     def site_site_overlap(loc):
         cellstate = label_to_state(grid_state_int[loc[0], loc[1]], simsetup['N'], use_neg=True)
@@ -152,8 +152,8 @@ def replot_overlap(filename, simsetup, ref_site=(0,0), state_int=False):
     # get lattice size array of overlaps
     n = grid_state_int.shape[0]
     overlaps = np.zeros((n,n))
-    for i in xrange(n):
-        for j in xrange(n):
+    for i in range(n):
+        for j in range(n):
             overlaps[i, j] = site_site_overlap([i, j])
     # plot
     fig = plt.figure(figsize=(12, 12))

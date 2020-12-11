@@ -19,19 +19,19 @@ def prune_rows(npzpath, specified_rows=None, save_pruned=True, save_rows=True, d
     """
     arr, genes, cells = load_npz_of_arr_genes_cells(npzpath)
     num_rows, num_cols = arr.shape
-    print "CHECK FIRST ROW NOT CLUSTER ROW:", genes[0]
+    print("CHECK FIRST ROW NOT CLUSTER ROW:", genes[0])
     if specified_rows is None:
         # collect rows to delete (A - self-duplicate rows all on / all off)
         if del_A:
             rows_duplicates = np.all(arr.T == arr.T[0,:], axis=0)
             rows_to_delete_self_dup = set([idx for idx, val in enumerate(rows_duplicates) if val])
-            print "number of self-duplicate rows:", len(rows_to_delete_self_dup)
+            print("number of self-duplicate rows:", len(rows_to_delete_self_dup))
 
         # collect rows to delete (B - rows which are copies of other rows)
         if del_B:
             _, unique_indices = np.unique(arr, return_index=True, axis=0)
             rows_to_delete_dupe = set(range(num_rows)) - set(unique_indices)
-            print "number of duplicated rows (num to delete):", len(rows_to_delete_dupe)
+            print("number of duplicated rows (num to delete):", len(rows_to_delete_dupe))
 
         # prepare rows to delete based on deletion choice
         if del_A and del_B:
@@ -44,14 +44,14 @@ def prune_rows(npzpath, specified_rows=None, save_pruned=True, save_rows=True, d
         save_rows = False
         rows_to_delete = np.array(specified_rows)
     # adjust genes and arr contents
-    print "Orig shape arr, genes, cells:", arr.shape, genes.shape, cells.shape
+    print("Orig shape arr, genes, cells:", arr.shape, genes.shape, cells.shape)
     arr = np.delete(arr, rows_to_delete, axis=0)
     genes = np.delete(genes, rows_to_delete)  # TODO should have global constant for this mock gene label
-    print "New shape arr, genes, cells:", arr.shape, genes.shape, cells.shape
+    print("New shape arr, genes, cells:", arr.shape, genes.shape, cells.shape)
     # save and return data
     datadir = os.path.abspath(os.path.join(npzpath, os.pardir))
     if save_pruned:
-        print "saving pruned arrays..."
+        print("saving pruned arrays...")
         base = os.path.basename(npzpath)
         basestr = os.path.splitext(base)[0]
         savestr = basestr + '_pruned.npz'
@@ -67,9 +67,9 @@ def reduce_gene_set(xi, gene_labels):  # TODO: my removal ends with 1339 left bu
     """
     genes_to_remove = []
     for row_idx, row in enumerate(xi):
-        if all(map(lambda x: x == row[0], row)):
+        if all([x == row[0] for x in row]):
             genes_to_remove.append(row_idx)
-    reduced_gene_labels = [gene_labels[idx] for idx in xrange(len(xi)) if idx not in genes_to_remove]
+    reduced_gene_labels = [gene_labels[idx] for idx in range(len(xi)) if idx not in genes_to_remove]
     reduced_xi = np.array([row for idx, row in enumerate(xi) if idx not in genes_to_remove])
     return reduced_gene_labels, reduced_xi
 

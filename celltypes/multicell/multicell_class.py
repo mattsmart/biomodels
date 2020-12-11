@@ -28,8 +28,8 @@ class SpatialCell(Cell):
         row = self.location[0]
         col = self.location[1]
         surroundings = [[row_to_search % gridsize, col_to_search % gridsize]
-                        for row_to_search in xrange(row - search_radius, row + search_radius + 1)
-                        for col_to_search in xrange(col - search_radius, col + search_radius + 1)]
+                        for row_to_search in range(row - search_radius, row + search_radius + 1)
+                        for col_to_search in range(col - search_radius, col + search_radius + 1)]
         surroundings.remove(self.location)  # TODO test behaviour
         return surroundings
 

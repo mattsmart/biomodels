@@ -19,8 +19,8 @@ def calc_lattice_energy(lattice, simsetup, field, fs, gamma, search_radius, rati
     H_pairwise = 0
     H_app = 0
     # compute self energies and applied field contribution separately
-    for i in xrange(M1):
-        for j in xrange(M2):
+    for i in range(M1):
+        for j in range(M2):
             cell = lattice[i][j]
             H_self += hamiltonian(cell.get_current_state(), simsetup['J'], field=None, fs=0.0)
             if field is not None:
@@ -29,11 +29,11 @@ def calc_lattice_energy(lattice, simsetup, field, fs, gamma, search_radius, rati
     # meanfield case
     if meanfield:
         mf_search_radius = None
-        mf_neighbours = [[a, b] for a in xrange(M2) for b in xrange(M1)]  # TODO ok that cell is neighbour with self as well? remove diag
+        mf_neighbours = [[a, b] for a in range(M2) for b in range(M1)]  # TODO ok that cell is neighbour with self as well? remove diag
     else:
         assert search_radius is not None
-    for i in xrange(M1):
-        for j in xrange(M2):
+    for i in range(M1):
+        for j in range(M2):
             cell = lattice[i][j]
             if meanfield:
                 nbr_states_sent, neighbours = cell.get_local_exosome_field(lattice, mf_search_radius, M1,
@@ -76,8 +76,8 @@ def get_state_of_lattice(lattice, simsetup, datatype='full'):
     M2 = len(lattice[0])
     if datatype == 'full':
         x = np.zeros((M1, M2, simsetup['N']), dtype=int)
-        for i in xrange(M1):
-            for j in xrange(M2):
+        for i in range(M1):
+            for j in range(M2):
                 cell = lattice[i][j]
                 x[i,j,:] = (1 + cell.get_current_state()) / 2.0  # note 01 rep
     return x
@@ -107,7 +107,7 @@ def calc_compression_ratio(x, eta_0=None, datatype='full', elemtype=np.bool, met
             x_random = np.random.randint(0, high=2, size=x.shape, dtype=np.int)
             eta_0 = foo(x_random)  # consider max over few realizations?
         if x.dtype != elemtype:
-            print 'NOTE: Recasting x as elemtype', elemtype, 'from', x.dtype
+            print('NOTE: Recasting x as elemtype', elemtype, 'from', x.dtype)
             x = x.astype(dtype=elemtype)
         eta = foo(x)
     else:
@@ -117,7 +117,7 @@ def calc_compression_ratio(x, eta_0=None, datatype='full', elemtype=np.bool, met
             #x_random = np.random.rand(*(x.shape))*2 - 1  # TODO flag ref as float or bool
             if elemtype==np.bool:
                 if x.dtype!=np.bool:
-                    print 'NOTE: Recasting x as np.float from', x.dtype
+                    print('NOTE: Recasting x as np.float from', x.dtype)
                     x = x.astype(dtype=np.bool)
                 x_random = np.random.randint(0, high=2, size=x.shape, dtype=np.bool)
             elif elemtype==np.int:
@@ -127,7 +127,7 @@ def calc_compression_ratio(x, eta_0=None, datatype='full', elemtype=np.bool, met
             else:
                 assert elemtype==np.float
                 if x.dtype!=np.float:
-                    print 'NOTE: Recasting x as np.float from', x.dtype
+                    print('NOTE: Recasting x as np.float from', x.dtype)
                     x = x.astype(dtype=np.float)
                 x_random = np.random.rand(*(x.shape)) * 2 - 1
             eta_0 = foo(x_random)  # consider max over few realizations?
@@ -137,26 +137,26 @@ def calc_compression_ratio(x, eta_0=None, datatype='full', elemtype=np.bool, met
 
 def test_compression_ratio():
     nn = 10000
-    print "test_compression_ratio for x: %dx1 array..." % nn
+    print("test_compression_ratio for x: %dx1 array..." % nn)
     x1 = np.ones(nn, dtype=np.int)  #[1, 1, 1, 1]
     x2 = np.zeros(nn, dtype=np.int) #[-1, -1, -1, -1]
     x3 = np.random.randint(0, high=2, size=nn)
     eta_ratio_1, eta_1, eta_0_1 = calc_compression_ratio(x1, eta_0=None, datatype='custom', method='manual', elemtype=np.bool)
     eta_ratio_2, eta_2, eta_0_2 = calc_compression_ratio(x2, eta_0=None, datatype='custom', method='manual', elemtype=np.bool)
     eta_ratio_3, eta_3, eta_0_3 = calc_compression_ratio(x3, eta_0=None, datatype='custom', method='manual', elemtype=np.bool)
-    print 'x1', 'gives', eta_ratio_1, eta_1, eta_0_1
-    print 'x2', 'gives', eta_ratio_2, eta_2, eta_0_2
-    print 'x3', 'gives', eta_ratio_3, eta_3, eta_0_3
+    print('x1', 'gives', eta_ratio_1, eta_1, eta_0_1)
+    print('x2', 'gives', eta_ratio_2, eta_2, eta_0_2)
+    print('x3', 'gives', eta_ratio_3, eta_3, eta_0_3)
 
     xshape = (1000, 500)
-    print "test_compression_ratio for x: %d x %d array..." % (xshape[0], xshape[1])
+    print("test_compression_ratio for x: %d x %d array..." % (xshape[0], xshape[1]))
     x1 = np.ones(xshape)
     x2 = -np.ones(xshape)
     x3 = np.zeros(xshape)
     x4 = np.zeros(xshape)
     x4[:,0] = 1
     x5 = np.random.rand(*xshape)*2 - 1
-    print x5.shape
+    print(x5.shape)
     x6 = np.random.randint(-1, high=2, size=xshape)
     x7 = np.random.randint(0, high=2, size=xshape) * 2 - 1
     x_dict ={1: {'data': x1, 'label': 'all +1', 'dtype': np.bool},
@@ -166,12 +166,12 @@ def test_compression_ratio():
              5: {'data': x5, 'label': 'rand floats -1 to 1', 'dtype': np.float},
              6: {'data': x6, 'label': 'rand ints -1, 0, 1', 'dtype': np.float},
              7: {'data': x7, 'label': 'rand ints -1, 1', 'dtype': np.float}}
-    for idx in xrange(1, len(x_dict.keys())+1):
+    for idx in range(1, len(list(x_dict.keys()))+1):
         elem = x_dict[idx]['data']
         elemtype = x_dict[idx]['dtype']
         eta_ratio, eta, eta_0 = calc_compression_ratio(elem, eta_0=None, datatype='custom', method='manual',
                                                        elemtype=elemtype)
-        print x_dict[idx]['label'], 'gives', eta_ratio, eta, eta_0
+        print(x_dict[idx]['label'], 'gives', eta_ratio, eta, eta_0)
     return None
 
 

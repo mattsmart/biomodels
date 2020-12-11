@@ -15,18 +15,18 @@ def state_landscape(model_name=DEFAULT_CYTOKINE_MODEL, iterations=NUM_STEPS, app
     spin_labels, intxn_matrix, applied_field_const, init_state = build_intracell_model(model_name=DEFAULT_CYTOKINE_MODEL)
     N = len(spin_labels)
 
-    labels_to_states = {idx:label_to_state(idx, N) for idx in xrange(2 ** N)}
-    states_to_labels = {tuple(v): k for k, v in labels_to_states.iteritems()}
+    labels_to_states = {idx:label_to_state(idx, N) for idx in range(2 ** N)}
+    states_to_labels = {tuple(v): k for k, v in labels_to_states.items()}
 
     for state_label in range(2**N):
         init_cond = labels_to_states[state_label]
-        print "\n\nSimulating with init state label", state_label, ":", init_cond
+        print("\n\nSimulating with init state label", state_label, ":", init_cond)
         state_array, dirs = cytokine_sim(iterations=iterations, beta=BETA_CYTOKINE, flag_write=False,
                                          applied_field_strength=applied_field_strength, external_field=external_field,
                                          init_state_force=init_cond)
-        label_timeseries = [states_to_labels[tuple(state_array[:,t])] for t in xrange(iterations)]
+        label_timeseries = [states_to_labels[tuple(state_array[:,t])] for t in range(iterations)]
         for elem in label_timeseries:
-            print elem, "|",
+            print(elem, "|", end=' ')
     return
 
 
