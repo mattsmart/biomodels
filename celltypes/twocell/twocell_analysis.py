@@ -168,14 +168,17 @@ def plot_evals_vs_gamma(gamma_vary, evals, hollow=False, norm=False, show=False)
 
 if __name__ == '__main__':
     # main flags
-    basic_run = False
-    basic_visualize = False
+    basic_run = True
+    basic_visualize = True
     scan_gamma = True
+    scan_evec = True
+    evec_combo_investigate = True
+    inf_gamma_analysis = True
 
     if basic_run:
         # model settings
         beta = 6  # 2.0
-        GAMMA = 0.5
+        GAMMA = 200
         NUM_CELLS = 2
         HOUSEKEEPING = 0
         FLAG_01 = False
@@ -224,51 +227,51 @@ if __name__ == '__main__':
         for key in basins_dict.keys():
             print key, energies[key], label_to_state(key, N_multicell), len(basins_dict[key]), key in minima
 
-    if basic_visualize:
-        # setup basin colours for visualization
-        cdict = build_colour_dict(basins_dict, label_to_fp_label, N_multicell)
+        if basic_visualize:
+            # setup basin colours for visualization
+            cdict = build_colour_dict(basins_dict, label_to_fp_label, N_multicell)
 
-        # setup basin labels depending on npz
-        print "\nBuilding multicell basin labels..."
-        basin_labels = build_multicell_basin_labels(simsetup, N_multicell, minima)
+            # setup basin labels depending on npz
+            print "\nBuilding multicell basin labels..."
+            basin_labels = build_multicell_basin_labels(simsetup, N_multicell, minima)
 
-        # TODO  mulicell revise
-        """ 
-        # reduce dimension (SC script)
-        X_new = reduce_hypercube_dim(simsetup, METHOD, dim=DIM, use_hd=use_hd, use_proj=use_proj, add_noise=False,
-                                     plot_X=plot_X, field=app_field, fs=KAPPA, beta=beta)
-        """
-        # reduce dimension via spectral embedding
-        print '\nBuilding 2 ** %d glauber transition matrix...' % (N_multicell)
-        X = glauber_transition_matrix(J_multicell, field=h_multicell, fs=1.0, beta=beta, override=0.0, DTMC=False)
-        dim_spectral = 20  # use dim >= number of known minima?
-        X_lower = spectral_custom(-X, dim_spectral, norm_each=False, plot_evec=False, skip_small_eval=False)
-        from sklearn.decomposition import PCA
-        X_new = PCA(n_components=DIM_REDUCE).fit_transform(X_lower)
+            # TODO  mulicell revise
+            """ 
+            # reduce dimension (SC script)
+            X_new = reduce_hypercube_dim(simsetup, METHOD, dim=DIM, use_hd=use_hd, use_proj=use_proj, add_noise=False,
+                                         plot_X=plot_X, field=app_field, fs=KAPPA, beta=beta)
+            """
+            # reduce dimension via spectral embedding
+            print '\nBuilding 2 ** %d glauber transition matrix...' % (N_multicell)
+            X = glauber_transition_matrix(J_multicell, field=h_multicell, fs=1.0, beta=beta, override=0.0, DTMC=False)
+            dim_spectral = 20  # use dim >= number of known minima?
+            X_lower = spectral_custom(-X, dim_spectral, norm_each=False, plot_evec=False, skip_small_eval=False)
+            from sklearn.decomposition import PCA
+            X_new = PCA(n_components=DIM_REDUCE).fit_transform(X_lower)
 
-        # TODO  multicell revise
-        # visualize with and without basins colouring
-        hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
-                            elevate3D=True, edges=True, all_edges=False, surf=False, colours_dict=None, beta=None)
-        hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
-                            elevate3D=True, edges=False, all_edges=False, surf=True, colours_dict=None, beta=None)
-        hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
-                            elevate3D=True, edges=True, all_edges=False, surf=False, colours_dict=None, beta=beta)
-        hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
-                            elevate3D=True, edges=False, all_edges=False, surf=True, colours_dict=None, beta=beta)
-        hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
-                            elevate3D=True, edges=False, all_edges=False, surf=False, colours_dict=cdict)
-        hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
-                            elevate3D=True, edges=True, all_edges=False, surf=False, colours_dict=cdict)
-        hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
-                            elevate3D=False, edges=False, all_edges=False, surf=False, colours_dict=None)
-        hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
-                            elevate3D=False, edges=True, all_edges=False, surf=False, colours_dict=cdict)
+            # TODO  multicell revise
+            # visualize with and without basins colouring
+            hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
+                                elevate3D=True, edges=True, all_edges=False, surf=False, colours_dict=None, beta=None)
+            hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
+                                elevate3D=True, edges=False, all_edges=False, surf=True, colours_dict=None, beta=None)
+            hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
+                                elevate3D=True, edges=True, all_edges=False, surf=False, colours_dict=None, beta=beta)
+            hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
+                                elevate3D=True, edges=False, all_edges=False, surf=True, colours_dict=None, beta=beta)
+            hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
+                                elevate3D=True, edges=False, all_edges=False, surf=False, colours_dict=cdict)
+            hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
+                                elevate3D=True, edges=True, all_edges=False, surf=False, colours_dict=cdict)
+            hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
+                                elevate3D=False, edges=False, all_edges=False, surf=False, colours_dict=None)
+            hypercube_visualize(simsetup, X_new, energies, minima=minima, maxima=maxima, basin_labels=basin_labels, num_cells=2,
+                                elevate3D=False, edges=True, all_edges=False, surf=False, colours_dict=cdict)
 
-        plot_state_prob_map(J_multicell, beta=None)
-        plot_state_prob_map(J_multicell, beta=5.0)
-        plot_state_prob_map(J_multicell, beta=None, field=h_multicell, fs=1.0)
-        plot_state_prob_map(J_multicell, beta=1.0, field=h_multicell, fs=1.0)
+            plot_state_prob_map(J_multicell, beta=None)
+            plot_state_prob_map(J_multicell, beta=5.0)
+            plot_state_prob_map(J_multicell, beta=None, field=h_multicell, fs=1.0)
+            plot_state_prob_map(J_multicell, beta=1.0, field=h_multicell, fs=1.0)
 
     if scan_gamma:
         # TODO choose range based on spectral dynamics of J(gamma)
@@ -280,7 +283,7 @@ if __name__ == '__main__':
         HOUSEKEEPING = 0  # to pass to simsetup
         FLAG_01 = False
         assert NUM_CELLS == 2  # try 3 later maybe
-        gamma_vals = np.linspace(0.0, 2.0, 500)  # TODO choose range based on spectral dynamics of J(gamma)
+        gamma_vals = np.linspace(0.0, 0.4, 500)  # TODO choose range based on spectral dynamics of J(gamma)
 
         # gamma independent steps
         simsetup = singlecell_simsetup(unfolding=True, random_mem=False, random_W=False, npzpath=MEMS_UNFOLD,
@@ -304,25 +307,46 @@ if __name__ == '__main__':
             J_multicell, h_multicell = build_twocell_J_h(simsetup, gamma, flag_01=FLAG_01)
             h_multicell = refine_applied_field_twocell(N_multicell, h_multicell, housekeeping=HOUSEKEEPING, kappa=KAPPA,
                                                        manual_field=manual_field)
-
             evals, evecs = sorted_eig(J_multicell)
             print "idx %d, gamma %.3f" % (idx, gamma)
             with np.printoptions(precision=2, suppress=True):
                 if gamma_norm_eval:
-                    anchor = 1
+                    anchor = 1.0
                     evals_vary[:, idx] = evals[:] / (anchor + gamma)
-                    """if gamma == 0.0:
-                        evals_vary[:, idx] = evals[:]
-                    else:
-                        # eps=1e-10
-                        evals_vary[:, idx] = evals[:] / (gamma)  # normalize by gamma to flatten as gamma to inf"""
                 else:
                     evals_vary[:, idx] = evals[:]
                 print "\t", evals_vary[:, idx]
         plot_evals_vs_gamma(gamma_vals, evals_vary, show=False, hollow=HOLLOW_INTXN_MATRIX, norm=gamma_norm_eval)
 
+        print "\n************************************************Rough evec block"
+        if scan_evec:
+            gamma_evecs = [0.0, 0.1, 2.0]
+            for idx, gamma in enumerate(gamma_evecs):
+                J_multicell, h_multicell = build_twocell_J_h(simsetup, gamma, flag_01=FLAG_01)
+                h_multicell = refine_applied_field_twocell(N_multicell, h_multicell, housekeeping=HOUSEKEEPING, kappa=KAPPA,
+                                                           manual_field=manual_field)
+                evals, evecs = sorted_eig(J_multicell)
+                print "idx %d, gamma %.3f" % (idx, gamma)
+                for gene_idx in xrange(N_multicell):
+                    with np.printoptions(precision=2, suppress=True):
+                        print "\tevec rank %d (eval %.2f)" % (gene_idx, evals[gene_idx])
+                        print "\t", evecs[:, gene_idx]
+                        """if gamma_norm_eval:
+                            anchor = 1
+                            evals_vary[:, idx] = evals[:] / (anchor + gamma)
+                        else:
+                            evals_vary[:, idx] = evals[:]
+                        print "\t", evals_vary[:, idx]"""
+            #plot_evals_vs_gamma(gamma_vals, evals_vary, show=False, hollow=HOLLOW_INTXN_MATRIX, norm=gamma_norm_eval)
+            # todo consider parametric curves in overlap or in projection space (so 10 curves param'd by gamma)
 
-        """
+    if evec_combo_investigate:
+        gamma_check = 100.0
+        print "\ngamma_check %.3f" % (gamma_check)
+        J_multicell, h_multicell = build_twocell_J_h(simsetup, gamma_check, flag_01=FLAG_01)
+        h_multicell = refine_applied_field_twocell(N_multicell, h_multicell, housekeeping=HOUSEKEEPING, kappa=KAPPA,
+                                                   manual_field=manual_field)
+
         # get & report energy levels data
         print "\nSorting energy levels, finding extremes..."
         energies, _ = sorted_energies(J_multicell, field=h_multicell, fs=1.0, flag_sort=False)
@@ -341,4 +365,80 @@ if __name__ == '__main__':
         print "key, energy, state, basin size, key in minima"
         for key in basins_dict.keys():
             print key, energies[key], label_to_state(key, N_multicell), len(basins_dict[key]), key in minima
-        """
+
+        cA1B1pp = np.array([1, 1, 1, 1, 1,
+                            1, 1, -1, -1, 1])
+        cA1B1pm = np.array([1, 1, 1, 1, 1,
+                            -1, 1, -1, -1, -1])
+        cA1B1mp = np.array([-1, 1, 1, 1, -1,
+                            1, 1, -1, -1, 1])
+        cA1B1mm = np.array([-1, 1, 1, 1, -1,
+                            -1, 1, -1, -1, -1])
+
+        cA1B1Fpp = np.array([1, 1, -1, -1, 1,
+                            1, 1, 1, 1, 1])
+        cA1B1Fpm = np.array([1, 1, -1, -1, 1,
+                            -1, 1, 1, 1, -1])
+        cA1B1Fmp = np.array([-1, 1, -1, -1, -1,
+                            1, 1, 1, 1, 1])
+        cA1B1Fmm = np.array([-1, 1, -1, -1, -1,
+                            -1, 1, 1, 1, -1])
+
+        cA1B2pp = np.array([1, 1, 1, -1, 1,
+                            1, 1, 1, -1, 1])
+        cA1B2pm = np.array([1, 1, 1, -1, 1,
+                            -1, 1, 1, -1, -1])
+        cA1B2mp = np.array([-1, 1, 1, -1, -1,
+                            1, 1, 1, -1, 1])
+        cA1B2mm = np.array([-1, 1, 1, -1, -1,
+                            -1, 1, 1, -1, -1])
+
+        cA1B2Fpp = np.array([1, 1, -1, 1, 1,
+                            1, 1, -1, 1, 1])
+        cA1B2Fpm = np.array([1, 1, -1, 1, 1,
+                            -1, 1, -1, 1, -1])
+        cA1B2Fmp = np.array([-1, 1, -1, 1, -1,
+                            1, 1, -1, 1, 1])
+        cA1B2Fmm = np.array([-1, 1, -1, 1, -1,
+                            -1, 1, -1, 1, -1])
+
+        vec_labels = ['cA1B1pp', 'cA1B1pm', 'cA1B1mp', 'cA1B1mm',
+                      'cA1B1Fpp', 'cA1B1Fpm', 'cA1B1Fmp', 'cA1B1Fmm',
+                      'cA1B2pp', 'cA1B2pm', 'cA1B2mp', 'cA1B2mm',
+                      'cA1B2Fpp', 'cA1B2Fpm', 'cA1B2Fmp', 'cA1B2Fmm']
+        vec_vals = [cA1B1pp, cA1B1pm, cA1B1mp, cA1B1mm,
+                    cA1B1Fpp, cA1B1Fpm, cA1B1Fmp, cA1B1Fmm,
+                    cA1B2pp, cA1B2pm, cA1B2mp, cA1B2mm,
+                    cA1B2Fpp, cA1B2Fpm, cA1B2Fmp, cA1B2Fmm]
+
+        with np.printoptions(precision=2, suppress=True):
+            for idx in xrange(16):
+                print 'idx', 2*idx, vec_labels[idx], \
+                    hamiltonian(vec_vals[idx], J_multicell, field=h_multicell, fs=1.0), \
+                    abs(sum(vec_vals[idx][0:5])), abs(sum(vec_vals[idx][5:]))
+                vec_conj = vec_vals[idx]
+                vec_conj[1] = vec_conj[1] * -1
+                vec_conj[6] = vec_conj[6] * -1
+                print 'idx', 2*idx + 1, vec_labels[idx] + '_altA', \
+                    hamiltonian(vec_conj, J_multicell, field=h_multicell, fs=1.0), \
+                    abs(sum(vec_conj[0:5])), abs(sum(vec_conj[5:]))
+
+    if inf_gamma_analysis:
+        J_multicell, h_multicell = build_twocell_J_h(simsetup, 1.0, flag_01=False)
+        h_multicell = refine_applied_field_twocell(N_multicell, h_multicell, housekeeping=HOUSEKEEPING, kappa=KAPPA,
+                                                   manual_field=manual_field)
+
+        inf_gamma_intxn = J_multicell
+        inf_gamma_intxn[0:N_multicell/2, 0:N_multicell/2] = 0
+        inf_gamma_intxn[N_multicell/2:, N_multicell/2:] = 0
+
+
+        print "\nBig matrix"
+        evals, evecs = sorted_eig(inf_gamma_intxn)
+        print evecs
+        print evals
+
+        print "\nField send matrix"
+        evals, evecs = sorted_eig(simsetup['FIELD_SEND'])
+        print evecs
+        print evals
