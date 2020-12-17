@@ -1,7 +1,11 @@
 import numpy as np
 
 
+# Constants for the curation dict of presets
+MULTICELL_PRESET = '3MemCorr'
 N_FERRO = 6
+REFINE_W = False
+RANDOM_W = True  # TODO care how this interacts with random W in singlecell_simsetup
 
 curated = {
     'mutual_inhibition':
@@ -62,25 +66,22 @@ curated = {
          }
 }
 
-LABEL = 'ferro'
-assert LABEL in list(curated.keys())
+assert MULTICELL_PRESET in list(curated.keys())
 
-refine_W = True
-random_W = True
-if refine_W:
+if REFINE_W:
     # manually refine the W matrix of the chosen scheme
-    Ntot = curated[LABEL]['XI'].shape[0]
-    if random_W:
+    Ntot = curated[MULTICELL_PRESET]['XI'].shape[0]
+    if RANDOM_W:
         W_0 = np.random.rand(Ntot, Ntot) * 2 - 1  # scale to Uniform [-1, 1]
         W_lower = np.tril(W_0, k=-1)
         W_diag = np.diag(np.diag(W_0))
-        curated[LABEL]['W'] = (W_lower + W_lower.T + W_diag) / Ntot
+        curated[MULTICELL_PRESET]['W'] = (W_lower + W_lower.T + W_diag) / Ntot
     else:
-        curated[LABEL]['W'][1, 1] = 10.0/Ntot
-        curated[LABEL]['W'][2, 3] = -10.0/Ntot
-        curated[LABEL]['W'][3, 2] = -10.0/Ntot
+        curated[MULTICELL_PRESET]['W'][1, 1] = 10.0 / Ntot
+        curated[MULTICELL_PRESET]['W'][2, 3] = -10.0 / Ntot
+        curated[MULTICELL_PRESET]['W'][3, 2] = -10.0 / Ntot
 
-CURATED_XI = curated[LABEL]['XI']
-CURATED_W = curated[LABEL]['W']
-CURATED_CELLTYPE_LABELS = curated[LABEL]['celltype_labels']
-CURATED_GENE_LABELS = curated[LABEL]['gene_labels']
+CURATED_XI = curated[MULTICELL_PRESET]['XI']
+CURATED_W = curated[MULTICELL_PRESET]['W']
+CURATED_CELLTYPE_LABELS = curated[MULTICELL_PRESET]['celltype_labels']
+CURATED_GENE_LABELS = curated[MULTICELL_PRESET]['gene_labels']
