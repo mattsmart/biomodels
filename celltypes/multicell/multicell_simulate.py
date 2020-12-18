@@ -26,7 +26,6 @@ def run_mc_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome
     Notes:
         -can replace update_with_signal_field with update_state to simulate ensemble of non-intxn n**2 cells
     """
-
     def input_checks(app_field):
         n = len(lattice)
         assert n == len(lattice[0])  # work with square lattice for simplicity
@@ -44,16 +43,18 @@ def run_mc_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome
             app_field_step = None
         return n, num_cells, app_field, app_field_step
 
-    def lattice_state_measure(lattice, cell_locations, memory_idx_list, timestep_idx):
-        # get data for initial state of the lattice
-        for loc in cell_locations:
-            cell = lattice[loc[0]][loc[1]]
-            cell.get_memories_projection(simsetup['A_INV'], simsetup['XI'])
+    def update_datadict_timestep_cell(lattice, loc, memory_idx_list, timestep_idx):
+        cell = lattice[loc[0]][loc[1]]
+        # store the projections
+        proj = cell.get_memories_projection(simsetup['A_INV'], simsetup['XI'])
+        for mem_idx in memory_idx_list:
+            data_dict['memory_proj_arr'][mem_idx][loc_to_idx[loc], timestep_idx] = proj[mem_idx]
+        # store the integer representation of the state
+        if state_int:
             data_dict['grid_state_int'][loc[0], loc[1], timestep_idx] = cell.get_current_label()
-            for mem_idx in memory_idx_list:
-                proj = cell.get_memories_projection(simsetup['A_INV'], simsetup['XI'])
-                data_dict['memory_proj_arr'][mem_idx][loc_to_idx[loc], 0] = proj[mem_idx]
+        return proj
 
+    def update_datadict_timestep_global(lattice, timestep_idx):
         data_dict['lattice_energy'][timestep_idx, :] = calc_lattice_energy(
             lattice, simsetup, app_field_step, app_field_strength, ext_field_strength, SEARCH_RADIUS_CELL,
             field_remove_ratio, exosome_string, meanfield)
@@ -88,7 +89,6 @@ def run_mc_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome
             field_global += field_exo
         return field_global
 
-
     # input processing
     n, num_cells, app_field, app_field_step = input_checks(app_field)
     cell_locations = get_cell_locations(lattice, n)
@@ -96,8 +96,10 @@ def run_mc_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome
     memory_idx_list = list(data_dict['memory_proj_arr'].keys())
 
     # assess & plot initial state
-    lattice_state_measure(lattice, cell_locations, memory_idx_list, 0)  # measure initial state
-    lattice_plot_init(lattice, memory_idx_list)                         # plot initial state
+    for loc in cell_locations:
+        update_datadict_timestep_cell(lattice, loc, memory_idx_list, 0)
+    update_datadict_timestep_global(lattice, cell_locations, memory_idx_list, 0)  # measure initial state
+    lattice_plot_init(lattice, memory_idx_list)                                   # plot initial state
 
     # special update method for meanfield case (infinite search radius)
     if meanfield:
@@ -124,13 +126,18 @@ def run_mc_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome
                                               exosome_string=exosome_string, ratio_to_remove=field_remove_ratio,
                                               ext_field_strength=ext_field_strength, app_field=app_field_step,
                                               app_field_strength=app_field_strength)
-            if state_int:
-                data_dict['grid_state_int'][loc[0], loc[1], turn] = cell.get_current_label()
-            proj = cell.get_memories_projection(simsetup['A_INV'], simsetup['XI'])
-            for mem_idx in memory_idx_list:
-                data_dict['memory_proj_arr'][mem_idx][loc_to_idx[loc], turn] = proj[mem_idx]
+
+            # update cell specific datdict entries for the current timestep
+            cell_proj = update_datadict_timestep_cell(lattice, loc, memory_idx_list, turn)
+
             if turn % (120*plot_period) == 0:  # plot proj visualization of each cell (takes a while; every k lat plots)
-                fig, ax, proj = cell.plot_projection(simsetup['A_INV'], simsetup['XI'], use_radar=False, pltdir=io_dict['latticedir'])
+                fig, ax, proj = cell.plot_projection(simsetup['A_INV'], simsetup['XI'], proj=cell_proj,
+                                                     use_radar=False, pltdir=io_dict['latticedir'])
+
+        # compute lattice properties (assess global state)
+        # TODO 1 - consider lattice energy at each cell update (not lattice update)
+        # TODO 2 - speedup lattice energy calc by using info from state update calls...
+        update_datadict_timestep_global(lattice, turn)
 
         if turn % plot_period == 0:  # plot the lattice
             lattice_projection_composite(lattice, turn, n, io_dict['latticedir'], simsetup, state_int=state_int)
@@ -138,16 +145,6 @@ def run_mc_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome
             #if flag_uniplots:
             #    for mem_idx in memory_idx_list:
             #        lattice_uniplotter(lattice, turn, n, io_dict['latticedir'], mem_idx, simsetup)
-
-        # compute lattice properties
-        # TODO 1 - consider lattice energy at each cell update (not lattice update)
-        # TODO 2 - speedup lattice energy calc by using info from state update calls...
-        data_dict['lattice_energy'][turn, :] = calc_lattice_energy(
-            lattice, simsetup, app_field_step, app_field_strength, ext_field_strength, SEARCH_RADIUS_CELL,
-            field_remove_ratio, exosome_string, meanfield)
-        data_dict['compressibility_full'][turn, :] = calc_compression_ratio(
-            get_state_of_lattice(lattice, simsetup, datatype='full'),
-            eta_0=data_dict['compressibility_full'][0,2], datatype='full', elemtype=np.int, method='manual')
 
     return lattice, data_dict, io_dict
 

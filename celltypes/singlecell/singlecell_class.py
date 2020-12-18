@@ -71,8 +71,9 @@ class Cell(object):
     def get_memories_projection(self, a_inv, xi):
         return state_memory_projection(self.state_array, self.steps, a_inv, self.N, xi)
 
-    def plot_projection(self, a_inv, xi, use_radar=False, pltdir=None):
-        proj = self.get_memories_projection(a_inv, xi)
+    def plot_projection(self, a_inv, xi, use_radar=False, pltdir=None, proj=None):
+        if proj is None:
+            proj = self.get_memories_projection(a_inv, xi)
         if use_radar:
             fig, ax = plot_as_radar(proj, self.memories_list)
             if pltdir is not None:
