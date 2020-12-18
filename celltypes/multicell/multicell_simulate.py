@@ -4,7 +4,7 @@ import random
 import matplotlib.pyplot as plt
 
 from multicell_constants import GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS, VALID_BUILDSTRINGS, MEANFIELD, \
-    VALID_EXOSOME_STRINGS, EXOSTRING, BUILDSTRING, LATTICE_PLOT_PERIOD, FIELD_REMOVE_RATIO
+    VALID_EXOSOME_STRINGS, EXOSTRING, BUILDSTRING, LATTICE_PLOT_PERIOD, FIELD_REMOVE_RATIO, BLOCK_UPDATE_LATTICE
 from multicell_lattice import build_lattice_main, get_cell_locations, prep_lattice_data_dict, write_state_all_cells, \
     write_grid_state_int, write_general_arr, read_general_arr
 from multicell_metrics import calc_lattice_energy, calc_compression_ratio, get_state_of_lattice
@@ -98,7 +98,7 @@ def run_mc_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome
     # assess & plot initial state
     for loc in cell_locations:
         update_datadict_timestep_cell(lattice, loc, memory_idx_list, 0)
-    update_datadict_timestep_global(lattice, cell_locations, memory_idx_list, 0)  # measure initial state
+    update_datadict_timestep_global(lattice, 0)  # measure initial state
     lattice_plot_init(lattice, memory_idx_list)                                   # plot initial state
 
     # special update method for meanfield case (infinite search radius)
@@ -107,32 +107,43 @@ def run_mc_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome
 
     for turn in range(1, num_lattice_steps):
         print('Turn ', turn)
-        random.shuffle(cell_locations)
-        for idx, loc in enumerate(cell_locations):
-            cell = lattice[loc[0]][loc[1]]
-            if app_field is not None:
-                app_field_step = app_field[:, turn]
-            if meanfield:
-                cellstate_pre = np.copy(cell.get_current_state())
-                cell.update_with_meanfield(simsetup['J'], field_global, beta=beta, app_field=app_field_step,
-                                           ext_field_strength=ext_field_strength, app_field_strength=app_field_strength)
-                state_total += (cell.get_current_state() - cellstate_pre)  # TODO update field_avg based on new state TODO test
-                state_total_01 = (state_total + num_cells) / 2
-                field_global = np.dot(simsetup['FIELD_SEND'], state_total_01)
-                print(field_global)
-                print(state_total)
-            else:
-                cell.update_with_signal_field(lattice, SEARCH_RADIUS_CELL, n, simsetup['J'], simsetup, beta=beta,
-                                              exosome_string=exosome_string, ratio_to_remove=field_remove_ratio,
-                                              ext_field_strength=ext_field_strength, app_field=app_field_step,
-                                              app_field_strength=app_field_strength)
+        if BLOCK_UPDATE_LATTICE:
+            # Psuedo 1: build J = I dot J0 + A dot W
+            # I will be M x M, A will be determined by the type of graph (could explore other, non-lattice, types here)
+            # TODO
+            # Pseudo 2: store lattice state as blocked vector s_hat
+            # TODO
+            # Pseudo 3: update state loop (lattice steps). Gather info after each step.
+            # TODO
+            assert 1==2
 
-            # update cell specific datdict entries for the current timestep
-            cell_proj = update_datadict_timestep_cell(lattice, loc, memory_idx_list, turn)
+        else:
+            random.shuffle(cell_locations)
+            for idx, loc in enumerate(cell_locations):
+                cell = lattice[loc[0]][loc[1]]
+                if app_field is not None:
+                    app_field_step = app_field[:, turn]
+                if meanfield:
+                    cellstate_pre = np.copy(cell.get_current_state())
+                    cell.update_with_meanfield(simsetup['J'], field_global, beta=beta, app_field=app_field_step,
+                                               ext_field_strength=ext_field_strength, app_field_strength=app_field_strength)
+                    state_total += (cell.get_current_state() - cellstate_pre)  # TODO update field_avg based on new state TODO test
+                    state_total_01 = (state_total + num_cells) / 2
+                    field_global = np.dot(simsetup['FIELD_SEND'], state_total_01)
+                    print(field_global)
+                    print(state_total)
+                else:
+                    cell.update_with_signal_field(lattice, SEARCH_RADIUS_CELL, n, simsetup['J'], simsetup, beta=beta,
+                                                  exosome_string=exosome_string, ratio_to_remove=field_remove_ratio,
+                                                  ext_field_strength=ext_field_strength, app_field=app_field_step,
+                                                  app_field_strength=app_field_strength)
 
-            if turn % (120*plot_period) == 0:  # plot proj visualization of each cell (takes a while; every k lat plots)
-                fig, ax, proj = cell.plot_projection(simsetup['A_INV'], simsetup['XI'], proj=cell_proj,
-                                                     use_radar=False, pltdir=io_dict['latticedir'])
+                # update cell specific datdict entries for the current timestep
+                cell_proj = update_datadict_timestep_cell(lattice, loc, memory_idx_list, turn)
+
+                if turn % (120*plot_period) == 0:  # plot proj visualization of each cell (takes a while; every k lat plots)
+                    fig, ax, proj = cell.plot_projection(simsetup['A_INV'], simsetup['XI'], proj=cell_proj,
+                                                         use_radar=False, pltdir=io_dict['latticedir'])
 
         # compute lattice properties (assess global state)
         # TODO 1 - consider lattice energy at each cell update (not lattice update)
@@ -174,7 +185,9 @@ def mc_sim_wrapper(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, bui
                  ['field_remove_ratio', field_remove_ratio], ['app_field_strength', app_field_strength],
                  ['ext_field_strength', ext_field_strength], ['app_field', app_field], ['beta', beta],
                  ['search_radius', search_radius_txt], ['random_mem', simsetup['random_mem']],
-                 ['random_W', simsetup['random_W']], ['meanfield', meanfield], ['housekeeping', simsetup['K']]]
+                 ['random_W', simsetup['random_W']], ['meanfield', meanfield], ['housekeeping', simsetup['K']],
+                 ['dynamics_parallel', BLOCK_UPDATE_LATTICE]
+                 ]
     runinfo_append(io_dict, info_list, multi=True)
     # conditionally store random mem and W
     np.savetxt(io_dict['simsetupdir'] + os.sep + 'simsetup_XI.txt', simsetup['XI'], delimiter=',', fmt='%d')
