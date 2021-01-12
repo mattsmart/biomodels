@@ -117,7 +117,7 @@ def single_memory_projection(state_arr, time, memory_idx, eta):
     - this should be faster than performing the full matrix multiplication (its just a row.T * col dot product)
     - this should be faster if we want many single memories, say less than half of num memories
     """
-    return np.dot(eta[memory_idx,:], state_arr[:,time])
+    return np.dot(eta[memory_idx, :], state_arr[:,time])
 
 
 def single_memory_projection_timeseries(state_array, memory_idx, eta):
@@ -147,7 +147,7 @@ def state_to_label(state):
     # "0" corresponds to all -1
     # 2^N - 1 corresponds to all +1
     label = 0
-    bitlist = (1+np.sign(np.array(state, dtype=int)))/2  # was np.array, now np.sign to handle xi corruption experiments
+    bitlist = ((1+np.sign(np.array(state, dtype=int)))/2).astype(int)  # was np.array, now np.sign to handle xi corruption experiments
     for bit in bitlist:
         label = (label << 1) | bit
     return label

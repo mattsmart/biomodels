@@ -15,8 +15,7 @@ TODO:
 
 
 class Cell(object):
-    def __init__(self, state, label, memories_list, gene_list, state_array=None,
-                 steps=None):
+    def __init__(self, state, label, memories_list, gene_list, state_array=None, steps=None):
         self.state = state  # this should be N x 1 array
         self.label = label  # label represents it's init cond
         self.memories_list = memories_list  # may not be needed here
@@ -91,7 +90,7 @@ class Cell(object):
         return burst_errors
 
     def update_state(self, intxn_matrix, beta=BETA, ext_field=None, ext_field_strength=EXT_FIELD_STRENGTH, app_field=None,
-                     app_field_strength=APP_FIELD_STRENGTH, async_batch=ASYNC_BATCH, async=True):
+                     app_field_strength=APP_FIELD_STRENGTH, async_batch=ASYNC_BATCH, async_flag=True):
         """
         async_batch: if True, sample from 0 to N with replacement, else each step will be 'fully random'
                      i.e. can update same site twice in a row, vs time gap of at least N substeps
@@ -101,7 +100,7 @@ class Cell(object):
         app_field - N x 1 - unnatural external field (e.g. force TF on for some time period experimentally)
         app_field_strength - scaling factor for appt_field
         """
-        if async:
+        if async_flag:
             sites = list(range(self.N))
             rsamples = np.random.rand(self.N)  # optimized: pass one to each of the N single spin update calls  TODO: benchmark vs intels
             if async_batch:
