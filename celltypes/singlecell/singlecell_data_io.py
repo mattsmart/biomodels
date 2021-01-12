@@ -2,7 +2,7 @@ import datetime
 import numpy as np
 import os
 
-from singlecell_constants import RUNS_FOLDER, SETTINGS_FILE
+from singlecell.singlecell_constants import RUNS_FOLDER, SETTINGS_FILE
 
 
 def run_subdir_setup(run_subfolder=None):

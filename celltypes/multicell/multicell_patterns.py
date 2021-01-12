@@ -3,9 +3,9 @@ import os
 import random
 import matplotlib.pyplot as plt
 
-from multicell_lattice import build_lattice_main, get_cell_locations, prep_lattice_data_dict, write_state_all_cells, \
+from multicell.multicell_lattice import build_lattice_main, get_cell_locations, prep_lattice_data_dict, write_state_all_cells, \
     write_grid_state_int, write_general_arr, read_general_arr
-from multicell_visualize import lattice_uniplotter, reference_overlap_plotter, lattice_projection_composite
+from multicell.multicell_visualize import lattice_uniplotter, reference_overlap_plotter, lattice_projection_composite
 from singlecell.singlecell_class import Cell
 from singlecell.singlecell_data_io import run_subdir_setup, runinfo_append
 from singlecell.singlecell_simsetup import singlecell_simsetup # N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS, GENE_ID

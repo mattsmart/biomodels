@@ -3,6 +3,7 @@ import os
 
 from singlecell.singlecell_functions import hamiltonian
 
+
 def calc_lattice_energy(lattice, simsetup, field, fs, gamma, search_radius, ratio_to_remove, exosome_string, meanfield,
                         norm=True):
     """

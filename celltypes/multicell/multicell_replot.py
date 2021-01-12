@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from multicell_lattice import read_grid_state_int
+from multicell.multicell_lattice import read_grid_state_int
 from singlecell.singlecell_functions import label_to_state
 from singlecell.singlecell_simsetup import singlecell_simsetup
 

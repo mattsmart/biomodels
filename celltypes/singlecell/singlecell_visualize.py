@@ -8,7 +8,7 @@ import numpy as np
 import os
 from math import pi
 
-from singlecell_functions import label_to_state, state_to_label, hamiltonian, check_min_or_max, hamming, get_all_fp, calc_state_dist_to_local_min
+from singlecell.singlecell_functions import label_to_state, state_to_label, hamiltonian, check_min_or_max, hamming, get_all_fp, calc_state_dist_to_local_min
 
 
 def plot_as_bar(projection_vec, memory_labels, alpha=1.0):

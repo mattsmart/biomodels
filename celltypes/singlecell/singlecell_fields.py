@@ -3,11 +3,11 @@ import numpy as np
 import os
 from random import random
 
-from analysis_basin_plotting import plot_overlap_grid
-from singlecell_constants import BETA, EXT_FIELD_STRENGTH, RUNS_FOLDER, MEMS_MEHTA, MEMS_SCMCA, FIELD_PROTOCOL, MEMORIESDIR
-from singlecell_functions import hamiltonian
-from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
-from singlecell_visualize import plot_as_bar
+from singlecell.analysis_basin_plotting import plot_overlap_grid
+from singlecell.singlecell_constants import BETA, EXT_FIELD_STRENGTH, RUNS_FOLDER, MEMS_MEHTA, MEMS_SCMCA, FIELD_PROTOCOL, MEMORIESDIR
+from singlecell.singlecell_functions import hamiltonian
+from singlecell.singlecell_simsetup import singlecell_simsetup, unpack_simsetup
+from singlecell.singlecell_visualize import plot_as_bar
 
 
 EXPT_FIELDS = {

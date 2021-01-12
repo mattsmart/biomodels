@@ -1,11 +1,11 @@
 import numpy as np
 from random import shuffle, random
 
-from singlecell_data_io import state_write
-from singlecell_constants import BETA, EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, ASYNC_BATCH
-from singlecell_functions import glauber_dynamics_update, state_memory_projection, state_memory_overlap, hamiltonian, \
-    state_burst_errors, state_to_label
-from singlecell_visualize import plot_as_bar, plot_as_radar, save_manual
+from singlecell.singlecell_data_io import state_write
+from singlecell.singlecell_constants import BETA, EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, ASYNC_BATCH
+from singlecell.singlecell_functions import glauber_dynamics_update, state_memory_projection, state_memory_overlap, \
+    hamiltonian, state_burst_errors, state_to_label
+from singlecell.singlecell_visualize import plot_as_bar, plot_as_radar, save_manual
 
 """
 TODO:

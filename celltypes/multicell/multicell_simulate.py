@@ -3,16 +3,18 @@ import os
 import random
 import matplotlib.pyplot as plt
 
-from multicell_constants import GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS, VALID_BUILDSTRINGS, MEANFIELD, \
-    VALID_EXOSOME_STRINGS, EXOSTRING, BUILDSTRING, LATTICE_PLOT_PERIOD, FIELD_REMOVE_RATIO, BLOCK_UPDATE_LATTICE
-from multicell_lattice import build_lattice_main, get_cell_locations, prep_lattice_data_dict, write_state_all_cells, \
+from multicell.multicell_class import grid_int_to_loc
+from multicell.multicell_constants import GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS, VALID_BUILDSTRINGS, MEANFIELD, \
+    VALID_EXOSOME_STRINGS, EXOSTRING, BUILDSTRING, LATTICE_PLOT_PERIOD, FIELD_REMOVE_RATIO, BLOCK_UPDATE_LATTICE, \
+    AUTOCRINE
+from multicell.multicell_lattice import build_lattice_main, get_cell_locations, prep_lattice_data_dict, write_state_all_cells, \
     write_grid_state_int, write_general_arr, read_general_arr
-from multicell_metrics import calc_lattice_energy, calc_compression_ratio, get_state_of_lattice
-from multicell_visualize import lattice_uniplotter, reference_overlap_plotter, lattice_projection_composite
+from multicell.multicell_metrics import calc_lattice_energy, calc_compression_ratio, get_state_of_lattice
+from multicell.multicell_visualize import lattice_uniplotter, reference_overlap_plotter, lattice_projection_composite
 from singlecell.singlecell_constants import EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, BETA
 from singlecell.singlecell_data_io import run_subdir_setup, runinfo_append
 from singlecell.singlecell_fields import construct_app_field_from_genes
-from singlecell.singlecell_simsetup import singlecell_simsetup # N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS, GENE_ID
+from singlecell.singlecell_simsetup import singlecell_simsetup  # N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS, GENE_ID
 
 
 def run_mc_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_string=EXOSTRING, field_remove_ratio=0.0,

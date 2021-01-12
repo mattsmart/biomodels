@@ -1,12 +1,12 @@
 import numpy as np
 import os
 
-from singlecell_constants import NETWORK_METHOD, DEFAULT_MEMORIES_NPZPATH, J_RANDOM_DELETE_RATIO, \
+from singlecell.singlecell_constants import NETWORK_METHOD, DEFAULT_MEMORIES_NPZPATH, J_RANDOM_DELETE_RATIO, \
     FLAG_PRUNE_INTXN_MATRIX, MEMORIESDIR, MEMS_UNFOLD
-from singlecell_linalg import memory_corr_matrix_and_inv, interaction_matrix, predictivity_matrix
+from singlecell.singlecell_linalg import memory_corr_matrix_and_inv, interaction_matrix, predictivity_matrix
 from dataprocess.data_standardize import load_npz_of_arr_genes_cells, save_npz_of_arr_genes_cells
 from dataprocess.unfolding_csv_to_npz import load_npz_of_arr_genes_cells_signals
-from singlecell_simsetup_curated import CURATED_XI, CURATED_W, CURATED_CELLTYPE_LABELS, CURATED_GENE_LABELS
+from singlecell.singlecell_simsetup_curated import CURATED_XI, CURATED_W, CURATED_CELLTYPE_LABELS, CURATED_GENE_LABELS
 
 """
 Conventions follow from Lang & Mehta 2014, PLOS Comp. Bio

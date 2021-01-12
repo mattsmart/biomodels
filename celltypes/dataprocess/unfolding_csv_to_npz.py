@@ -2,7 +2,7 @@ import numpy as np
 import os
 import pandas as pd
 
-from data_settings import DATADIR
+from dataprocess.data_settings import DATADIR
 
 
 def save_npz_of_xi_genes_cells_signal(npzpath, arr, genes, cells, signals):
@@ -16,7 +16,7 @@ def load_npz_of_arr_genes_cells_signals(npzpath, verbose=True):
     """
     if verbose:
         print("loading npz of arr genes cells at", npzpath, "...")
-    loaded = np.load(npzpath)
+    loaded = np.load(npzpath, allow_pickle=True)
     arr = loaded['arr']
     genes = loaded['genes']
     cells = loaded['cells']

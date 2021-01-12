@@ -2,7 +2,7 @@ import numpy as np
 import os
 import re
 
-from data_settings import DATADIR, RAWDATA_2014MEHTA, RAWDATA_2018SCMCA, PIPELINES_VALID
+from dataprocess.data_settings import DATADIR, RAWDATA_2014MEHTA, RAWDATA_2018SCMCA, PIPELINES_VALID
 
 """
 Standardize: convert different formats of scRNA expression data into local standard

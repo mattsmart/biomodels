@@ -1,8 +1,8 @@
 import numpy as np
 import os
 
-from multicell_class import SpatialCell
-from multicell_constants import VALID_BUILDSTRINGS
+from multicell.multicell_class import SpatialCell
+from multicell.multicell_constants import VALID_BUILDSTRINGS
 from singlecell.singlecell_functions import state_to_label
 
 # TODO: could wrap all these lattice operations into Lattice class

@@ -1,9 +1,9 @@
 import numpy as np
 from random import random, shuffle
 
-from singlecell_constants import BETA, EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, MEMS_UNFOLD
-from singlecell_linalg import sorted_eig
-from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
+from singlecell.singlecell_constants import BETA, EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, MEMS_UNFOLD
+from singlecell.singlecell_linalg import sorted_eig
+from singlecell.singlecell_simsetup import singlecell_simsetup, unpack_simsetup
 from functools import reduce
 
 """

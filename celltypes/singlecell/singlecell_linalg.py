@@ -1,6 +1,6 @@
 import numpy as np
 
-from singlecell_constants import J_RANDOM_DELETE_RATIO, HOLLOW_INTXN_MATRIX
+from singlecell.singlecell_constants import J_RANDOM_DELETE_RATIO, HOLLOW_INTXN_MATRIX
 from functools import reduce
 
 
