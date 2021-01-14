@@ -56,3 +56,4 @@ RBM/models/poe/
 RBM/models/saved/hopfield_mnist_*_*
 RBM/output/recall/
 RBM/output/reversemap/
+celltypes/runs/

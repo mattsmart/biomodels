@@ -7,11 +7,12 @@ from singlecell.singlecell_constants import RUNS_FOLDER, SETTINGS_FILE
 
 def run_subdir_setup(run_subfolder=None):
     current_time = datetime.datetime.now().strftime("%Y-%m-%d %I.%M.%S%p")
+    experiment_dir = RUNS_FOLDER
     time_folder = current_time
     if run_subfolder is None:
-        current_run_dir = RUNS_FOLDER + os.sep + time_folder
+        current_run_dir = experiment_dir + os.sep + time_folder
     else:
-        current_run_dir = RUNS_FOLDER + os.sep + run_subfolder + os.sep + time_folder
+        current_run_dir = experiment_dir + os.sep + run_subfolder + os.sep + time_folder
 
     # make subfolders in the timestamped run directory:
     data_dir = os.path.join(current_run_dir, "data")
