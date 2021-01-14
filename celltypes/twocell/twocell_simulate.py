@@ -1,9 +1,9 @@
-import singlecell.init_multiprocessing  # BEFORE numpy
+import utils.init_multiprocessing  # BEFORE numpy
 
 import numpy as np
 import os
 
-from twocell_visualize import simple_vis, lattice_timeseries_proj_grid, lattice_timeseries_overlap, \
+from twocell.twocell_visualize import simple_vis, lattice_timeseries_proj_grid, lattice_timeseries_overlap, \
     lattice_timeseries_energy, lattice_timeseries_state_grid
 from multicell.multicell_class import SpatialCell
 from multicell.multicell_constants import VALID_EXOSOME_STRINGS
@@ -67,12 +67,12 @@ def twocell_sim_troubleshoot(beta=200.0, gamma=0.0, flag_01=False):
 
         return J_multicell, h_multicell, singlecell
 
-    def step_monolithic(J_multicell, h_multicell, singlecell, async=True):
+    def step_monolithic(J_multicell, h_multicell, singlecell, async_flag=True):
         singlecell.update_state(J_multicell, beta=beta, app_field=h_multicell, app_field_strength=1.0,
-                                async_batch=True, async=async)
+                                async_batch=True, async_flag=async_flag)
         return singlecell
 
-    def step_staggered(lattice, simsetup, async=True):
+    def step_staggered(lattice, simsetup, async_flag=True):
         cell_A = lattice[0][0]
         cell_B = lattice[0][1]
 
@@ -84,14 +84,16 @@ def twocell_sim_troubleshoot(beta=200.0, gamma=0.0, flag_01=False):
         total_field_A = gamma * np.dot(simsetup['FIELD_SEND'], cell_B_01_init)
         print("total_field_A")
         print(total_field_A)
-        cell_A.update_state(simsetup['J'], beta=beta, ext_field_strength=1.0, ext_field=total_field_A, async=async)
+        cell_A.update_state(simsetup['J'], beta=beta, ext_field_strength=1.0, ext_field=total_field_A,
+                            async_flag=async_flag)
 
         # update cell B -- first get nbr field
         nbr_cell_state_01_rep = (cell_A.get_current_state() + 1) / 2.0  # convert to 0, 1 rep
         total_field_B = gamma * np.dot(simsetup['FIELD_SEND'], cell_A_01_init)
         print("total_field_B")
         print(total_field_B)
-        cell_B.update_state(simsetup['J'], beta=beta, ext_field_strength=1.0, ext_field=total_field_B, async=async)
+        cell_B.update_state(simsetup['J'], beta=beta, ext_field_strength=1.0, ext_field=total_field_B,
+                            async_flag=async_flag)
 
         return lattice
 
@@ -119,7 +121,8 @@ def twocell_sim_troubleshoot(beta=200.0, gamma=0.0, flag_01=False):
         print("\nCURRENT STEP:", step)
         # monolthic step
         print("\nmonolithic stepping...")
-        lattice_monolithic = step_monolithic(J_multicell, h_multicell, lattice_monolithic, async=False)
+        lattice_monolithic = step_monolithic(J_multicell, h_multicell, lattice_monolithic,
+                                             async_flag=False)
         lattice_extracted = extract_monolithic(lattice_monolithic)
         print("print lattice_monolithic.get_current_state() (step %d)" % step)
         print(lattice_monolithic.get_current_state())
@@ -128,7 +131,7 @@ def twocell_sim_troubleshoot(beta=200.0, gamma=0.0, flag_01=False):
 
         # staggered step
         print("\nlattice_staggered stepping...")
-        lattice_staggered = step_staggered(lattice_staggered, simsetup, async=False)
+        lattice_staggered = step_staggered(lattice_staggered, simsetup, async_flag=False)
         print("print cell_A.get_current_state() (step %d)" % step)
         print(lattice_staggered[0][0].get_current_state())
         print("print cell_B.get_current_state() (step %d)" % step)
@@ -152,7 +155,8 @@ def twocell_sim_troubleshoot(beta=200.0, gamma=0.0, flag_01=False):
     return
 
 
-def twocell_sim_as_onelargemodel(lattice, simsetup, num_steps, beta=BETA, gamma=1.0, async=True, flag_01=False):
+def twocell_sim_as_onelargemodel(lattice, simsetup, num_steps, beta=BETA, gamma=1.0, async_flag=True,
+                                 flag_01=False):
 
     J_singlecell = simsetup['J']
     W_matrix = simsetup['FIELD_SEND']
@@ -180,11 +184,13 @@ def twocell_sim_as_onelargemodel(lattice, simsetup, num_steps, beta=BETA, gamma=
     init_state[0:simsetup['N']] = lattice[0][0].get_current_state()
     init_state[-simsetup['N']:] = lattice[0][1].get_current_state()
     genelabels_multicell = simsetup['GENE_LABELS'] + simsetup['GENE_LABELS']
-    singlecell = Cell(init_state, 'multicell', memories_list=simsetup['CELLTYPE_LABELS'], gene_list=genelabels_multicell)
+    singlecell = Cell(init_state, 'multicell', memories_list=simsetup['CELLTYPE_LABELS'],
+                      gene_list=genelabels_multicell)
 
     # simulate
     for step in range(num_steps):
-        singlecell.update_state(J_multicell, beta=beta, app_field=h_multicell, app_field_strength=1.0, async=async)
+        singlecell.update_state(J_multicell, beta=beta, app_field=h_multicell, app_field_strength=1.0,
+                                async_flag=async_flag)
 
     # repackage final state as multicell lattice
     final_state = singlecell.get_current_state()
@@ -195,12 +201,12 @@ def twocell_sim_as_onelargemodel(lattice, simsetup, num_steps, beta=BETA, gamma=
     return lattice
 
 
-def twocell_sim_fast(lattice, simsetup, num_steps, beta=BETA, gamma=1.0, app_field=None, app_field_strength=0.0,
-                     async=True, flag_01=False):
+def twocell_sim_fast(lattice, simsetup, num_steps, beta=BETA, gamma=1.0, app_field=None,
+                     app_field_strength=0.0, async_flag=True, flag_01=False):
     cell_A = lattice[0][0]
     cell_B = lattice[0][1]
     for step in range(num_steps):
-        if async:
+        if async_flag:
             # update cell A -- first get nbr field
             cell_B_time_t = cell_B.get_current_state()
             if flag_01:
@@ -209,7 +215,7 @@ def twocell_sim_fast(lattice, simsetup, num_steps, beta=BETA, gamma=1.0, app_fie
                 cell_B_sent_time_t = cell_B_time_t
             total_field_A = gamma * np.dot(simsetup['FIELD_SEND'], cell_B_sent_time_t)
             cell_A.update_state(simsetup['J'], beta=beta, ext_field_strength=1.0, app_field=None,
-                                ext_field=total_field_A, async=async)
+                                ext_field=total_field_A, async_flag=async_flag)
             # update cell B -- first get nbr field
             cell_A_time_t = cell_A.get_current_state()
             if flag_01:
@@ -218,7 +224,7 @@ def twocell_sim_fast(lattice, simsetup, num_steps, beta=BETA, gamma=1.0, app_fie
                 cell_A_sent_time_t = cell_A_time_t
             total_field_B = gamma * np.dot(simsetup['FIELD_SEND'], cell_A_sent_time_t)
             cell_B.update_state(simsetup['J'], beta=beta, ext_field_strength=1.0, app_field=None,
-                                ext_field=total_field_B, async=async)
+                                ext_field=total_field_B, async_flag=async_flag)
 
         else:
             cell_A_time_t = cell_A.get_current_state()
@@ -232,11 +238,11 @@ def twocell_sim_fast(lattice, simsetup, num_steps, beta=BETA, gamma=1.0, app_fie
             # update cell A -- first get nbr field
             total_field_A = gamma * np.dot(simsetup['FIELD_SEND'], cell_B_sent_time_t)
             cell_A.update_state(simsetup['J'], beta=beta, ext_field_strength=1.0, app_field=None,
-                                ext_field=total_field_A, async=async)
+                                ext_field=total_field_A, async_flag=async_flag)
             # update cell B -- first get nbr field
             total_field_B = gamma * np.dot(simsetup['FIELD_SEND'], cell_A_sent_time_t)
             cell_B.update_state(simsetup['J'], beta=beta, ext_field_strength=1.0, app_field=None,
-                                ext_field=total_field_B, async=async)
+                                ext_field=total_field_B, async_flag=async_flag)
     return lattice
 
 

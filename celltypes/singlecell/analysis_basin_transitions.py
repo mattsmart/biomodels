@@ -1,5 +1,5 @@
 import os
-import singlecell.init_multiprocessing  # import before numpy
+import utils.init_multiprocessing  # import before numpy
 import numpy as np
 import time
 from multiprocessing import Pool, cpu_count, current_process
@@ -224,13 +224,14 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, sims
             """
             # annealing block
             proj_onto_init = projvec[celltype_id[init_cond]]
-            beta, wandering = anneal_iterate(proj_onto_init, beta, step, wandering, anneal_dict, verbose=verbose)
+            beta, wandering = anneal_iterate(
+                proj_onto_init, beta, step, wandering, anneal_dict, verbose=verbose)
 
             # main call to update
             if step < num_steps:
                 #cell.update_state(intxn_matrix, beta=beta, app_field=None, async_batch=async_batch)
-                cell.update_state(intxn_matrix, beta=beta, app_field=app_field, app_field_strength=app_field_strength,
-                                  async_batch=async_batch)
+                cell.update_state(intxn_matrix, beta=beta, app_field=app_field,
+                                  app_field_strength=app_field_strength, async_batch=async_batch)
 
     if profile:
         end_inner = time.time()

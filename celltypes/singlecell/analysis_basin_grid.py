@@ -1,4 +1,4 @@
-import singlecell.init_multiprocessing  # import before numpy
+import utils.init_multiprocessing  # import before numpy
 import numpy as np
 import os
 import time

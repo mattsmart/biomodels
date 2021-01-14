@@ -1,6 +1,6 @@
 import os
 import sys
-import singlecell.init_multiprocessing
+import utils.init_multiprocessing
 
 # LIBRARY GLOBAL MODS
 CELLTYPES = os.path.dirname(os.path.dirname(__file__))

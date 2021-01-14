@@ -1,4 +1,4 @@
-import singlecell.init_multiprocessing  # BEFORE numpy
+import utils.init_multiprocessing  # BEFORE numpy
 import matplotlib.pyplot as plt
 import numpy as np
 

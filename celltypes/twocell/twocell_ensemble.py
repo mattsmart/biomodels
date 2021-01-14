@@ -1,10 +1,10 @@
-import singlecell.init_multiprocessing  # BEFORE numpy
+import utils.init_multiprocessing  # BEFORE numpy
 
 import numpy as np
 import os
 import matplotlib.pyplot as plt
 
-from twocell_simulate import twocell_sim_fast, twocell_sim_as_onelargemodel
+from twocell.twocell_simulate import twocell_sim_fast, twocell_sim_as_onelargemodel
 from multicell.multicell_class import SpatialCell
 from singlecell.singlecell_constants import MEMS_UNFOLD, BETA, RUNS_FOLDER
 from singlecell.singlecell_simsetup import singlecell_simsetup
@@ -37,9 +37,11 @@ def twocell_ensemble_stats(simsetup, steps, beta, gamma, ens=10, monolothic_flag
 
         # TODO replace with twocell_sim_as_onelargemodel (i.e. one big ising model)
         if monolothic_flag:
-            lattice = twocell_sim_as_onelargemodel(lattice, simsetup, steps, beta=beta, gamma=gamma, async=False)
+            lattice = twocell_sim_as_onelargemodel(
+                lattice, simsetup, steps, beta=beta, gamma=gamma, async_flag=False)
         else:
-            lattice = twocell_sim_fast(lattice, simsetup, steps, beta=beta, gamma=gamma, async=False)
+            lattice = twocell_sim_fast(
+                lattice, simsetup, steps, beta=beta, gamma=gamma, async_flag=False)
         cell_A_endstate = lattice[0][0].get_state_array()[:, -1]
         cell_B_endstate = lattice[0][1].get_state_array()[:, -1]
         cell_A_overlaps = np.dot(XI_scaled.T, cell_A_endstate)
@@ -130,7 +132,8 @@ def twocell_coarse_hamiltonian(simsetup, gamma, ens=10000):
 
         # anneal to reach the corners
         beta_schedule = beta_anneal(elem)
-        lattice = twocell_sim_as_onelargemodel(lattice, simsetup, steps, beta=beta_schedule, gamma=0.0, async=False)
+        lattice = twocell_sim_as_onelargemodel(
+            lattice, simsetup, steps, beta=beta_schedule, gamma=0.0, async_flag=False)
 
         cell_a = lattice[0][0].get_current_state()
         cell_b = lattice[0][1].get_current_state()
