@@ -2,7 +2,7 @@ import numpy as np
 import os
 
 from singlecell.singlecell_simsetup import singlecell_simsetup
-from singlecell.singlecell_constants import RUNS_FOLDER
+from utils.file_io import RUNS_FOLDER
 from utils.make_video import make_video_ffmpeg
 
 

@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from singlecell.singlecell_constants import RUNS_FOLDER
+from utils.file_io import RUNS_FOLDER
 
 
 def plot_proj_timeseries(proj_timeseries_array, num_steps, ensemble, memory_labels, savepath, highlights=None):

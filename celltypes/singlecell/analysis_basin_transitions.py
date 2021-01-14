@@ -6,10 +6,10 @@ from multiprocessing import Pool, cpu_count, current_process
 
 from singlecell.analysis_basin_plotting import plot_proj_timeseries, plot_basin_occupancy_timeseries, plot_basin_step
 from singlecell.singlecell_class import Cell
-from singlecell.singlecell_constants import RUNS_FOLDER, ASYNC_BATCH, FIELD_PROTOCOL
+from singlecell.singlecell_constants import ASYNC_BATCH, FIELD_PROTOCOL
 from singlecell.singlecell_fields import field_setup
 from singlecell.singlecell_simsetup import singlecell_simsetup, unpack_simsetup
-from utils.file_io import run_subdir_setup, runinfo_append
+from utils.file_io import run_subdir_setup, runinfo_append, RUNS_FOLDER
 
 # analysis settings
 ANALYSIS_SUBDIR = "basin_transitions"

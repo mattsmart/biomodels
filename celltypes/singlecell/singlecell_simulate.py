@@ -10,7 +10,6 @@ from utils.file_io import run_subdir_setup, runinfo_append
 """
 NOTES:
 - projection method seems to be behaving correctly
-- TODO: test vs Fig 1E Mehta 2014
 - in hopfield sim, at normal temps it jumps immediately to much more stable state and stays there
 """
 

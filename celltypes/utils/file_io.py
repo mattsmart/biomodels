@@ -1,8 +1,13 @@
 import datetime
 import numpy as np
 import os
+import sys
 
-from singlecell.singlecell_constants import RUNS_FOLDER, SETTINGS_FILE
+# LIBRARY GLOBAL MODS
+CELLTYPES = os.path.dirname(os.path.dirname(__file__))
+RUNS_FOLDER = CELLTYPES + os.sep + "runs"                      # store timestamped runs here
+sys.path.append(CELLTYPES)
+print("Appended to sys path", CELLTYPES)  # TODO can maybe move this too simetup fn call and call once somewhere else...
 
 
 def run_subdir_setup(run_subfolder=None):
@@ -32,9 +37,9 @@ def run_subdir_setup(run_subfolder=None):
                'latticedir': lattice_dir,
                'plotlatticedir': plot_lattice_dir,
                'simsetupdir': simsetup_dir,
-               'runinfo': current_run_dir + os.sep + SETTINGS_FILE}
+               'runinfo': current_run_dir + os.sep + 'run_info.txt'}
 
-    # make base settings file with first line as the base output dir
+    # make minimal run_info settings file with first line as the base output dir
     runinfo_append(io_dict, ('basedir', current_run_dir))
 
     return io_dict
@@ -57,16 +62,6 @@ def state_read(datapath, rowpath, colpath):
     row = np.loadtxt(rowpath, delimiter=",", dtype=float)
     col = np.loadtxt(colpath, delimiter=",", dtype=str)
     return state, row, col
-
-
-def runinfo_init(io_dict):
-    # TODO implement settings file initialization
-    """
-    info_list = ..........
-    with open(io_dict['runinfo'], 'a') as runinfo:
-        runinfo.write(','.join(str(s) for s in info_list) + '\n')
-    """
-    return
 
 
 def runinfo_append(io_dict, info_list, multi=False):

@@ -3,7 +3,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from singlecell.singlecell_constants import MEMS_MEHTA, MEMS_UNFOLD, DISTINCT_COLOURS, RUNS_FOLDER, HOLLOW_INTXN_MATRIX
+from singlecell.singlecell_constants import MEMS_MEHTA, MEMS_UNFOLD, DISTINCT_COLOURS, \
+    HOLLOW_INTXN_MATRIX
+from utils.file_io import RUNS_FOLDER
 from singlecell.singlecell_functions import hamiltonian, sorted_energies, label_to_state, get_all_fp, glauber_transition_matrix, partition_basins, reduce_hypercube_dim, state_to_label, spectral_custom
 from singlecell.singlecell_linalg import sorted_eig
 from singlecell.singlecell_simsetup import singlecell_simsetup # N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS, GENE_ID

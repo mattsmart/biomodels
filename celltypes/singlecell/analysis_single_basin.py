@@ -2,7 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from singlecell.singlecell_constants import RUNS_FOLDER, FLAG_PRUNE_INTXN_MATRIX, FLAG_BURST_ERRORS
+from singlecell.singlecell_constants import FLAG_PRUNE_INTXN_MATRIX, FLAG_BURST_ERRORS
+from utils.file_io import RUNS_FOLDER
 from singlecell.singlecell_functions import state_burst_errors, single_memory_projection_timeseries
 from singlecell.singlecell_simsetup import singlecell_simsetup
 from singlecell.singlecell_simulate import singlecell_sim

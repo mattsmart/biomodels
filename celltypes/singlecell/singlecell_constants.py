@@ -1,19 +1,12 @@
 import os
-import sys
-import utils.init_multiprocessing
 
-# LIBRARY GLOBAL MODS
-CELLTYPES = os.path.dirname(os.path.dirname(__file__))
-sys.path.append(CELLTYPES)
-print("Appended to sys path", CELLTYPES)  # TODO can maybe move this too simetup fn call and call once somewhere else...
+from utils.file_io import CELLTYPES
 
 # IO
 SINGLECELL = CELLTYPES + os.sep + "singlecell"
 DATADIR = CELLTYPES + os.sep + "input"
 MEMORIESDIR = DATADIR + os.sep + "memories"
 UNFOLDINGDIR = DATADIR + os.sep + "unfolding"
-RUNS_FOLDER = CELLTYPES + os.sep + "runs"                      # store timestamped runs here
-SETTINGS_FILE = "run_info.txt"
 
 # MAIN MEMORY FILES
 MEMS_MEHTA = MEMORIESDIR + os.sep + "2014_mehta_mems_genes_types_boolean_compressed_pruned_A.npz"
