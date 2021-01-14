@@ -3,11 +3,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from analysis_basin_plotting import plot_overlap_grid
-from singlecell_constants import DATADIR, MEMORIESDIR, RUNS_FOLDER
-from singlecell_simsetup import singlecell_simsetup
-from singlecell_simsetup_query import collect_mygene_hits, write_genelist_id_csv, read_gene_list_csv, check_target_in_gene_id_dict
-from singlecell_visualize import plot_as_radar, plot_as_bar
+from singlecell.analysis_basin_plotting import plot_overlap_grid
+from singlecell.singlecell_constants import DATADIR, MEMORIESDIR, RUNS_FOLDER
+from singlecell.singlecell_simsetup import singlecell_simsetup
+from singlecell.singlecell_simsetup_query import collect_mygene_hits, write_genelist_id_csv, read_gene_list_csv, check_target_in_gene_id_dict
+from singlecell.singlecell_visualize import plot_as_radar, plot_as_bar
 
 
 def write_celltype_csv(gene_labels, celltype_state, csvpath):

@@ -2,10 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from singlecell_constants import RUNS_FOLDER, FLAG_PRUNE_INTXN_MATRIX, FLAG_BURST_ERRORS
-from singlecell_functions import state_burst_errors, single_memory_projection_timeseries
-from singlecell_simsetup import singlecell_simsetup
-from singlecell_simulate import singlecell_sim
+from singlecell.singlecell_constants import RUNS_FOLDER, FLAG_PRUNE_INTXN_MATRIX, FLAG_BURST_ERRORS
+from singlecell.singlecell_functions import state_burst_errors, single_memory_projection_timeseries
+from singlecell.singlecell_simsetup import singlecell_simsetup
+from singlecell.singlecell_simulate import singlecell_sim
 
 
 def single_projection_timeseries_vary_basin_init(memory_label='esc', figname='mehta2014_Fig1E.png'):

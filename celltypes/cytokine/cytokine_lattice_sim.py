@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from cytokine_lattice_build import build_cytokine_lattice_mono
 from cytokine_settings import APP_FIELD_STRENGTH, RUNS_SUBDIR_CYTOKINES
 from singlecell.singlecell_functions import state_to_label
-from singlecell.singlecell_data_io import run_subdir_setup, runinfo_append
+from utils.file_io import run_subdir_setup, runinfo_append
 from multicell.multicell_lattice import get_cell_locations, write_state_all_cells, printer_labels
 
 

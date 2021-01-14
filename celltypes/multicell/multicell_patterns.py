@@ -7,7 +7,7 @@ from multicell.multicell_lattice import build_lattice_main, get_cell_locations, 
     write_grid_state_int, write_general_arr, read_general_arr
 from multicell.multicell_visualize import lattice_uniplotter, reference_overlap_plotter, lattice_projection_composite
 from singlecell.singlecell_class import Cell
-from singlecell.singlecell_data_io import run_subdir_setup, runinfo_append
+from utils.file_io import run_subdir_setup, runinfo_append
 from singlecell.singlecell_simsetup import singlecell_simsetup # N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS, GENE_ID
 from utils.make_video import make_video_ffmpeg
 from functools import reduce

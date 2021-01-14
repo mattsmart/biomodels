@@ -1,9 +1,9 @@
 import numpy as np
 import os
 
-from singlecell_constants import MEMORIESDIR
-from singlecell_linalg import memory_corr_matrix_and_inv, interaction_matrix, predictivity_matrix
-from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
+from singlecell.singlecell_constants import MEMORIESDIR
+from singlecell.singlecell_linalg import memory_corr_matrix_and_inv, interaction_matrix, predictivity_matrix
+from singlecell.singlecell_simsetup import singlecell_simsetup, unpack_simsetup
 
 
 if __name__ == '__main__':

@@ -41,7 +41,8 @@ def plot_as_radar(projection_vec, memory_labels, color='b', rotate_labels=True, 
     # Initialise the spider plot
     if fig is None:
         assert ax is None
-        fig, ax = plt.subplot(111, polar=True)
+        fig = plt.figure()
+        ax = plt.subplot(111, projection='polar') #'polar=True)
         fig.set_size_inches(9, 5)
     else:
         fig = plt.gcf()

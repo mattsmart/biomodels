@@ -7,8 +7,8 @@ from multiprocessing import Pool
 from multiprocessing import cpu_count
 from scipy.optimize import fsolve
 
-from singlecell_functions import label_to_state
-from singlecell_simsetup import singlecell_simsetup
+from singlecell.singlecell_functions import label_to_state
+from singlecell.singlecell_simsetup import singlecell_simsetup
 from twocell.twocell_analysis import build_twocell_J_h, refine_applied_field_twocell
 
 

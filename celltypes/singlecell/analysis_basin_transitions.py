@@ -1,15 +1,15 @@
 import os
-import init_multiprocessing  # import before numpy
+import singlecell.init_multiprocessing  # import before numpy
 import numpy as np
 import time
 from multiprocessing import Pool, cpu_count, current_process
 
-from analysis_basin_plotting import plot_proj_timeseries, plot_basin_occupancy_timeseries, plot_basin_step
-from singlecell_class import Cell
-from singlecell_constants import RUNS_FOLDER, ASYNC_BATCH, FIELD_PROTOCOL
-from singlecell_data_io import run_subdir_setup, runinfo_append
-from singlecell_fields import field_setup
-from singlecell_simsetup import singlecell_simsetup, unpack_simsetup
+from singlecell.analysis_basin_plotting import plot_proj_timeseries, plot_basin_occupancy_timeseries, plot_basin_step
+from singlecell.singlecell_class import Cell
+from singlecell.singlecell_constants import RUNS_FOLDER, ASYNC_BATCH, FIELD_PROTOCOL
+from singlecell.singlecell_fields import field_setup
+from singlecell.singlecell_simsetup import singlecell_simsetup, unpack_simsetup
+from utils.file_io import run_subdir_setup, runinfo_append
 
 # analysis settings
 ANALYSIS_SUBDIR = "basin_transitions"

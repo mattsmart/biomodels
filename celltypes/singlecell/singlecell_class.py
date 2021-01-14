@@ -1,7 +1,7 @@
 import numpy as np
 from random import shuffle, random
 
-from singlecell.singlecell_data_io import state_write
+from utils.file_io import state_write
 from singlecell.singlecell_constants import BETA, EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, ASYNC_BATCH
 from singlecell.singlecell_functions import glauber_dynamics_update, state_memory_projection, state_memory_overlap, \
     hamiltonian, state_burst_errors, state_to_label
@@ -74,6 +74,7 @@ class Cell(object):
         if proj is None:
             proj = self.get_memories_projection(a_inv, xi)
         if use_radar:
+            # TODO not working in python 3 swap
             fig, ax = plot_as_radar(proj, self.memories_list)
             if pltdir is not None:
                 save_manual(fig, pltdir, "state_%d_proj_radar_%s" % (self.steps, self.label))

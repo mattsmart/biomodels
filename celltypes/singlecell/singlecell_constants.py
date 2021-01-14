@@ -12,7 +12,7 @@ SINGLECELL = CELLTYPES + os.sep + "singlecell"
 DATADIR = CELLTYPES + os.sep + "input"
 MEMORIESDIR = DATADIR + os.sep + "memories"
 UNFOLDINGDIR = DATADIR + os.sep + "unfolding"
-RUNS_FOLDER = SINGLECELL + os.sep + "runs"                      # store timestamped runs here
+RUNS_FOLDER = CELLTYPES + os.sep + "runs"                      # store timestamped runs here
 SETTINGS_FILE = "run_info.txt"
 
 # MAIN MEMORY FILES

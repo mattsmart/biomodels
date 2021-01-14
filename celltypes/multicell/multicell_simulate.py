@@ -12,9 +12,9 @@ from multicell.multicell_lattice import build_lattice_main, get_cell_locations, 
 from multicell.multicell_metrics import calc_lattice_energy, calc_compression_ratio, get_state_of_lattice
 from multicell.multicell_visualize import lattice_uniplotter, reference_overlap_plotter, lattice_projection_composite
 from singlecell.singlecell_constants import EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, BETA
-from singlecell.singlecell_data_io import run_subdir_setup, runinfo_append
 from singlecell.singlecell_fields import construct_app_field_from_genes
 from singlecell.singlecell_simsetup import singlecell_simsetup  # N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS, GENE_ID
+from utils.file_io import run_subdir_setup, runinfo_append
 
 
 def run_mc_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_string=EXOSTRING,
@@ -298,7 +298,7 @@ def mc_sim_wrapper(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, bui
     assert 0.0 <= ext_field_strength < 10.0
 
     # setup io dict
-    io_dict = run_subdir_setup()
+    io_dict = run_subdir_setup(run_subfolder='multicell_sim')
     if meanfield:
         search_radius_txt = 'None'
     else:

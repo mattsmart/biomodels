@@ -1,17 +1,18 @@
-import init_multiprocessing  # import before numpy
+import singlecell.init_multiprocessing  # import before numpy
 import numpy as np
 import os
 import time
 from multiprocessing import cpu_count
 
-from analysis_basin_plotting import plot_basin_grid, grid_video, plot_overlap_grid
-from analysis_basin_transitions import ensemble_projection_timeseries, get_basin_stats, fast_basin_stats, get_init_info, \
-                                       ANNEAL_PROTOCOL, FIELD_PROTOCOL, ANALYSIS_SUBDIR, SPURIOUS_LIST, OCC_THRESHOLD, \
-                                       save_and_plot_basinstats, load_basinstats, fetch_from_run_info
-from singlecell_constants import RUNS_FOLDER, ASYNC_BATCH, MEMS_MEHTA, MEMS_SCMCA
-from singlecell_data_io import run_subdir_setup, runinfo_append
-from singlecell_functions import hamming
-from singlecell_simsetup import singlecell_simsetup
+from singlecell.analysis_basin_plotting import plot_basin_grid, grid_video, plot_overlap_grid
+from singlecell.analysis_basin_transitions import \
+    ensemble_projection_timeseries, get_basin_stats, fast_basin_stats, get_init_info, \
+    ANNEAL_PROTOCOL, FIELD_PROTOCOL, ANALYSIS_SUBDIR, SPURIOUS_LIST, OCC_THRESHOLD, \
+    save_and_plot_basinstats, load_basinstats, fetch_from_run_info
+from singlecell.singlecell_constants import RUNS_FOLDER, ASYNC_BATCH, MEMS_MEHTA, MEMS_SCMCA
+from singlecell.singlecell_functions import hamming
+from singlecell.singlecell_simsetup import singlecell_simsetup
+from utils.file_io import run_subdir_setup, runinfo_append
 
 
 def gen_basin_grid(ensemble, num_processes, simsetup=None, num_steps=100, anneal_protocol=ANNEAL_PROTOCOL,

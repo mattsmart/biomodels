@@ -3,8 +3,8 @@ import mygene
 import os
 import pandas as pd
 
-from singlecell_constants import DATADIR
-from singlecell_simsetup import singlecell_simsetup
+from singlecell.singlecell_constants import DATADIR
+from singlecell.singlecell_simsetup import singlecell_simsetup
 
 """
 use mygene package https://pypi.org/project/mygene/

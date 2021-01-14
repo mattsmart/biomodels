@@ -9,7 +9,7 @@ from multicell.multicell_class import SpatialCell
 from multicell.multicell_constants import VALID_EXOSOME_STRINGS
 from singlecell.singlecell_class import Cell
 from singlecell.singlecell_constants import MEMS_UNFOLD, BETA
-from singlecell.singlecell_data_io import run_subdir_setup, runinfo_append
+from utils.file_io import run_subdir_setup, runinfo_append
 from singlecell.singlecell_functions import single_memory_projection_timeseries, hamiltonian
 from singlecell.singlecell_simsetup import singlecell_simsetup
 
