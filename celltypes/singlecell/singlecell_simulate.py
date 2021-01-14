@@ -72,7 +72,7 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_FULL_STEPS, bet
         # TODO see if better speed to pass array of zeros and ditch all these if not None checks...
         if flag_write:
             if singlecell.steps % plot_period == 0:
-                use_radar = False
+                use_radar = True
                 fig, ax, proj = singlecell.plot_projection(
                     a_inv, xi, use_radar=use_radar, pltdir=io_dict['plotdatadir'])
                 fig, ax, proj = singlecell.plot_overlap(
@@ -98,6 +98,6 @@ if __name__ == '__main__':
     npzpath = MEMS_SCMCA
     simsetup = singlecell_simsetup(npzpath=npzpath)
     singlecell_sim(
-        init_id=b'Macrophage (A)', field_protocol='miR_21', field_level='level_3',
+        init_id='Macrophage (A)', field_protocol='miR_21', field_level='level_3',
         plot_period=10, iterations=50, simsetup=simsetup, flag_write=flag_write, beta=22.2)
     #singlecell_sim(init_id='mem_A', plot_period=10, iterations=50, simsetup=simsetup, flag_write=flag_write, beta=2.2)

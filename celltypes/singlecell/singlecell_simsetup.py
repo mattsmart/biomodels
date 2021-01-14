@@ -34,9 +34,14 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath
         assert npzpath != MEMS_UNFOLD
         xi, gene_labels, celltype_labels = load_npz_of_arr_genes_cells(npzpath, verbose=True)
         field_send = None
-    # store string arrays as lists
+    # store string arrays as lists (with python3 UTF-8 decoding of strings stored as bytes
     gene_labels = gene_labels.tolist()
     celltype_labels = celltype_labels.tolist()
+    if isinstance(gene_labels[0], bytes):
+        gene_labels = [a.decode("utf-8") for a in gene_labels]
+    if isinstance(celltype_labels[0], bytes):
+        celltype_labels = [a.decode("utf-8") for a in celltype_labels]
+
     if curated:
         print('CURATED selected, resetting simsetup vars')
         xi = CURATED_XI

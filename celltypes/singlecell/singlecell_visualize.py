@@ -49,7 +49,7 @@ def plot_as_radar(projection_vec, memory_labels, color='b', rotate_labels=True, 
         fig.set_size_inches(9, 5)
 
     # Draw one ax per variable + add labels
-    ax.set_xticks(angles)
+    ax.set_xticks(angles[:-1])
     ax.set_xticklabels(memory_labels)
 
     # Draw ylabels
