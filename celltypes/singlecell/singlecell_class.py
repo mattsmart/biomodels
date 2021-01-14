@@ -90,16 +90,18 @@ class Cell(object):
         self.state_array[:, -1] = burst_errors[:]
         return burst_errors
 
-    def update_state(self, intxn_matrix, beta=BETA, ext_field=None, ext_field_strength=EXT_FIELD_STRENGTH, app_field=None,
-                     app_field_strength=APP_FIELD_STRENGTH, async_batch=ASYNC_BATCH, async_flag=True):
+    def update_state(self, intxn_matrix, beta=BETA,
+                     field_signal=None, field_signal_strength=EXT_FIELD_STRENGTH,
+                     field_applied=None, field_applied_strength=APP_FIELD_STRENGTH,
+                     async_batch=ASYNC_BATCH, async_flag=True):
         """
         async_batch: if True, sample from 0 to N with replacement, else each step will be 'fully random'
                      i.e. can update same site twice in a row, vs time gap of at least N substeps
                      these produce different short term behaviour, but should reach same steady state
-        ext_field - N x 1 - field external to the cell in a signalling sense; exosome field in multicell sym
-        ext_field_strength  - scaling factor for ext_field
-        app_field - N x 1 - unnatural external field (e.g. force TF on for some time period experimentally)
-        app_field_strength - scaling factor for appt_field
+        field_signal - N x 1 - field external to the cell in signalling sense; multicell field
+        field_signal_strength  - scaling factor for field_signal
+        field_applied - N x 1 - unnatural external field (e.g. force TF on for some timesteps)
+        field_applied_strength - scaling factor for field_applied
         """
         if async_flag:
             sites = list(range(self.N))
@@ -116,9 +118,9 @@ class Cell(object):
             state_array_ext[:,-1] = self.state_array[:,-1]
             for idx, site in enumerate(sites):          # TODO: parallelize approximation
                 state_array_ext = glauber_dynamics_update(state_array_ext, site, self.steps + 1, intxn_matrix, rsamples[idx],
-                                                          beta=beta, ext_field=ext_field, app_field=app_field,
-                                                          ext_field_strength=ext_field_strength,
-                                                          app_field_strength=app_field_strength)
+                                                          beta=beta, field_signal=field_signal, field_applied=field_applied,
+                                                          field_signal_strength=field_signal_strength,
+                                                          field_applied_strength=field_applied_strength)
 
         else:
             #print "WARNING: experimental sync update (can use gpu)"
@@ -129,11 +131,11 @@ class Cell(object):
             total_field = np.zeros(self.N)
             internal_field = np.dot(intxn_matrix, state_array_ext[:, self.steps + 1])
             total_field += internal_field
-            if ext_field is not None:
-                ext_field_vec = ext_field_strength * ext_field
+            if field_signal is not None:
+                ext_field_vec = field_signal_strength * field_signal
                 total_field += ext_field_vec
-            if app_field is not None:
-                app_field_vec = app_field_strength * app_field
+            if field_applied is not None:
+                app_field_vec = field_applied_strength * field_applied
                 total_field += app_field_vec
             # probability that site i will be "up" after the timestep
             prob_on_after_timestep = 1 / (1 + np.exp(-2 * beta * total_field))

@@ -109,8 +109,8 @@ def sim_lattice_as_cell(simsetup, num_steps, beta, app_field, app_field_strength
     # simulate for t steps
     for turn in range(num_steps):
         print('step', turn)
-        lattice_as_cell.update_state(lattice_intxn_matrix, beta=beta, app_field=app_field_on_lattice,
-                                     app_field_strength=app_field_strength, async_batch=True)
+        lattice_as_cell.update_state(lattice_intxn_matrix, beta=beta, field_applied=app_field_on_lattice,
+                                     field_applied_strength=app_field_strength, async_batch=True)
         # fill in lattice info from update  # TODO convert to spatial cell method from explicit lattice vec?
         lattice_vec = lattice_as_cell.get_current_state()
         for i in range(sqrtM):

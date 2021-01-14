@@ -41,22 +41,23 @@ def internal_field(state, gene_idx, t, intxn_matrix):
     return internal_field
 
 
-def glauber_dynamics_update(state, gene_idx, t, intxn_matrix, unirand, beta=BETA, ext_field=None, app_field=None,
-                            ext_field_strength=EXT_FIELD_STRENGTH, app_field_strength=APP_FIELD_STRENGTH):
+def glauber_dynamics_update(state, gene_idx, t, intxn_matrix, unirand, beta=BETA,
+                            field_signal=None, field_signal_strength=EXT_FIELD_STRENGTH,
+                            field_applied=None, field_applied_strength=APP_FIELD_STRENGTH):
     """
     unirand: pass a uniform 0,1 random number
         - note previously unirand = random() OR unirand = np.random_intel.random() from intel python distribution
     See page 107-111 Amit for discussion on functional form
-    ext_field - N x 1 - field external to the cell in a signalling sense; exosome field in multicell sym
-    ext_field_strength  - scaling factor for ext_field
-    app_field - N x 1 - unnatural external field (e.g. force TF on for some time period experimentally)
-    app_field_strength - scaling factor for appt_field
+    field_signal - N x 1 - field external to the cell in a signalling sense; exosome field in multicell sym
+    field_signal_strength  - scaling factor for field_signal
+    field_applied - N x 1 - unnatural external field (e.g. force TF on for some time period experimentally)
+    field_applied_strength - scaling factor for appt_field
     """
     total_field = internal_field(state, gene_idx, t, intxn_matrix=intxn_matrix)
-    if ext_field is not None:
-        total_field += ext_field_strength * ext_field[gene_idx]
-    if app_field is not None:
-        total_field += app_field_strength * app_field[gene_idx]
+    if field_signal is not None:
+        total_field += field_signal_strength * field_signal[gene_idx]
+    if field_applied is not None:
+        total_field += field_applied_strength * field_applied[gene_idx]
     prob_on_after_timestep = 1 / (1 + np.exp(-2*beta*total_field))  # probability that site i will be "up" after the timestep
     if prob_on_after_timestep > unirand:
         state[gene_idx, t] = 1.0
@@ -194,7 +195,8 @@ def sorted_energies(intxn_matrix, field=None, fs=0.0, flag_sort=True):
 
 
 def get_all_fp(intxn_matrix, field=None, fs=0.0, statespace=None, energies=None, inspection=False):
-    # TODO 1 - is it possible to partition all 2^N into basins? are many of the points ambiguous where they wont roll into one basin but multiple?
+    # TODO 1 - is it possible to partition all 2^N into basins? are many of the points ambiguous
+    #  where they wont roll into one basin but multiple?
     N = intxn_matrix.shape[0]
     num_states = 2 ** N
 
@@ -209,8 +211,8 @@ def get_all_fp(intxn_matrix, field=None, fs=0.0, statespace=None, energies=None,
     maxima = []
     fp_annotation = {}
     for label in range(num_states):
-        is_fp, is_min = check_min_or_max(intxn_matrix, statespace[label,:], energy=energies[label], field=field, fs=fs,
-                                         inspection=inspection)
+        is_fp, is_min = check_min_or_max(intxn_matrix, statespace[label,:], energy=energies[label],
+                                         field=field, fs=fs, inspection=inspection)
         if is_fp:
             if is_min:
                 minima.append(label)
@@ -221,7 +223,8 @@ def get_all_fp(intxn_matrix, field=None, fs=0.0, statespace=None, energies=None,
                 nbr_state = np.copy(statespace[label, :])
                 nbr_state[idx] = -1 * nbr_state[idx]
                 nbr_label = state_to_label(nbr_state)
-                fp_info[idx] = energies[label] <= energies[nbr_label]  # higher or equal energy after flip -> True, else False (nbr is lower)
+                # higher or equal energy after flip -> True, else False (nbr is lower)
+                fp_info[idx] = energies[label] <= energies[nbr_label]
             fp_annotation[label] = fp_info
     return fp_annotation, minima, maxima
 
@@ -279,7 +282,8 @@ def check_min_or_max(intxn_matrix, state, energy=None, field=None, fs=0.0, inspe
             for idx in range(N):
                 state_perturb = np.zeros(state.shape)
                 state_perturb[:] = state[:]
-                state_perturb[idx] = -1 * state[idx]  # TODO this is very local perturbation -- just first spin... is it OK?
+                # TODO this is very local perturbation -- just first spin... is it OK?
+                state_perturb[idx] = -1 * state[idx]
                 energy_perturb = hamiltonian(state_perturb, intxn_matrix, field, fs)
                 if np.abs(energy - energy_perturb) < 1e-3:
                     utilvec[idx] = 0
@@ -299,7 +303,7 @@ def check_min_or_max(intxn_matrix, state, energy=None, field=None, fs=0.0, inspe
 def fp_of_state(intxn_matrix, state_start, app_field=0, dynamics='sync', zero_override=False):
     # TODO cycle support
     """
-    Given a state e.g. (1,1,1,1, ... 1) i.e. hypercube vertex, return the corresponding FP of specified dynamics
+    Given state e.g. (1, ... 1) i.e. hypercube vertex, return corresponding FP of specified dynamics
     """
     assert dynamics in ['sync', 'async_fixed', 'async_batch']
 
@@ -318,9 +322,10 @@ def fp_of_state(intxn_matrix, state_start, app_field=0, dynamics='sync', zero_ov
     state_current = np.zeros(state_start.shape)
     if zero_override:
         print('Warning fp_of_state() flag "zero override" can lead to bugs')
-        # TODO characterize this choice; affects basin characterization confirmed w memories in block form +--, -+-, ---
+        # TODO characterize this choice; affects basin characterization
+        #  confirmed w memories in block form +--, -+-, ---
         # TODO alternative override is to always flip the site if total field is zero
-        # When the internal field on a site is zero, it is naturally a coin flip whether to put that spin up or down.
+        # When internal field on site is zero, is coin flip whether to put that spin up or down.
         # We should not have FPs which have 0 total field on one of the spins
         override_sign = 1
         perturb_field = np.ones(intxn_matrix.shape[0]) * 1e-8 * override_sign

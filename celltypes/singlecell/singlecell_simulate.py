@@ -55,8 +55,8 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_FULL_STEPS, bet
     # Input checks
     field_dict = field_setup(simsetup, protocol=field_protocol, level=field_level)
     assert not field_dict['time_varying']  # TODO not yet supported
-    app_field = field_dict['app_field']
-    app_field_strength = field_dict['app_field_strength']
+    field_applied = field_dict['app_field']
+    field_applied_strength = field_dict['app_field_strength']
 
     # Simulate
     for step in range(iterations-1):
@@ -76,8 +76,9 @@ def singlecell_sim(init_state=None, init_id=None, iterations=NUM_FULL_STEPS, bet
                     a_inv, xi, use_radar=use_radar, pltdir=io_dict['plotdatadir'])
                 fig, ax, proj = singlecell.plot_overlap(
                     xi, use_radar=use_radar, pltdir=io_dict['plotdatadir'])
-        singlecell.update_state(intxn_matrix, beta=beta, app_field=app_field,
-                                app_field_strength=app_field_strength, async_batch=ASYNC_BATCH)
+        singlecell.update_state(
+            intxn_matrix, beta=beta, async_batch=ASYNC_BATCH,
+            field_applied=field_applied,field_applied_strength=field_applied_strength)
 
     # Write
     if verbose:

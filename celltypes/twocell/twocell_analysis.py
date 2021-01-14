@@ -12,7 +12,7 @@ from singlecell.singlecell_simsetup import singlecell_simsetup # N, P, XI, CELLT
 from singlecell.singlecell_visualize import plot_state_prob_map, hypercube_visualize
 
 
-def multicell_hamiltonian(simsetup, state, gamma=0.0, app_field=None, kappa=0.0):
+def multicell_hamiltonian(simsetup, state, gamma=0.0, field_applied=None, kappa=0.0):
     # TODO exosome
     # note state is a N * num_cells vector of gene expression
     N = simsetup['N']
@@ -22,9 +22,9 @@ def multicell_hamiltonian(simsetup, state, gamma=0.0, app_field=None, kappa=0.0)
     sc_energy_A = hamiltonian(cell_A, simsetup['J'], field=None, fs=0.0)
     sc_energy_B = hamiltonian(cell_B, simsetup['J'], field=None, fs=0.0)
     # (housekeeping) global applied field term
-    if app_field is None:
-        app_field = np.zeros(N)
-    app_field_term = - np.dot(cell_A + cell_B, app_field)
+    if field_applied is None:
+        field_applied = np.zeros(N)
+    field_applied_term = - np.dot(cell_A + cell_B, field_applied)
     # interaction terms and extra field
     W = simsetup['FIELD_SEND']
     WdotOne = np.dot(W, np.ones(simsetup['N']))
@@ -35,7 +35,7 @@ def multicell_hamiltonian(simsetup, state, gamma=0.0, app_field=None, kappa=0.0)
     #TODO make app field block form good size
     energy = sc_energy_A + sc_energy_B \
              + gamma * (intxn_term_1 + intxn_term_2) \
-             + kappa * app_field_term
+             + kappa * field_applied_term
     return energy
 
 

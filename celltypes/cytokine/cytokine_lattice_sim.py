@@ -61,8 +61,8 @@ def run_cytokine_network(lattice, num_lattice_steps, intxn_matrix, signal_matrix
             cell = lattice[loc[0]][loc[1]]
             cell.update_with_signal_field(lattice, SEARCH_RADIUS_CELL, n, beta=100.0, intxn_matrix=intxn_matrix,
                                           signal_matrix=signal_matrix, exosome_string="no_exo_field",
-                                          app_field=app_field_timestep, app_field_strength=app_field_strength,
-                                          ext_field_strength=1.0)
+                                          field_app=app_field_timestep, field_app_strength=app_field_strength,
+                                          field_signal_strength=1.0)
             #print "Cell at", loc, "is in state:", state_to_label(tuple(cell.get_current_state()))
 
             """

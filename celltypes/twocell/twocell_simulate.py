@@ -68,7 +68,7 @@ def twocell_sim_troubleshoot(beta=200.0, gamma=0.0, flag_01=False):
         return J_multicell, h_multicell, singlecell
 
     def step_monolithic(J_multicell, h_multicell, singlecell, async_flag=True):
-        singlecell.update_state(J_multicell, beta=beta, app_field=h_multicell, app_field_strength=1.0,
+        singlecell.update_state(J_multicell, beta=beta, field_applied=h_multicell, field_applied_strength=1.0,
                                 async_batch=True, async_flag=async_flag)
         return singlecell
 
@@ -84,7 +84,7 @@ def twocell_sim_troubleshoot(beta=200.0, gamma=0.0, flag_01=False):
         total_field_A = gamma * np.dot(simsetup['FIELD_SEND'], cell_B_01_init)
         print("total_field_A")
         print(total_field_A)
-        cell_A.update_state(simsetup['J'], beta=beta, ext_field_strength=1.0, ext_field=total_field_A,
+        cell_A.update_state(simsetup['J'], beta=beta, field_signal_strength=1.0, field_signal=total_field_A,
                             async_flag=async_flag)
 
         # update cell B -- first get nbr field
@@ -92,7 +92,7 @@ def twocell_sim_troubleshoot(beta=200.0, gamma=0.0, flag_01=False):
         total_field_B = gamma * np.dot(simsetup['FIELD_SEND'], cell_A_01_init)
         print("total_field_B")
         print(total_field_B)
-        cell_B.update_state(simsetup['J'], beta=beta, ext_field_strength=1.0, ext_field=total_field_B,
+        cell_B.update_state(simsetup['J'], beta=beta, field_signal_strength=1.0, field_signal=total_field_B,
                             async_flag=async_flag)
 
         return lattice
@@ -107,7 +107,8 @@ def twocell_sim_troubleshoot(beta=200.0, gamma=0.0, flag_01=False):
                     SpatialCell(cell_b_init, 'Cell B', [0, 1], simsetup)]]
         return lattice
 
-    simsetup = singlecell_simsetup(unfolding=True, random_mem=False, random_W=False, npzpath=MEMS_UNFOLD, curated=True)
+    simsetup = singlecell_simsetup(
+        unfolding=True, random_mem=False, random_W=False, npzpath=MEMS_UNFOLD, curated=True)
     lattice_staggered = random_twocell_lattice(simsetup)
     J_multicell, h_multicell, lattice_monolithic = prep_monolothic(lattice_staggered, simsetup)
     print("INIT COND")
@@ -155,8 +156,8 @@ def twocell_sim_troubleshoot(beta=200.0, gamma=0.0, flag_01=False):
     return
 
 
-def twocell_sim_as_onelargemodel(lattice, simsetup, num_steps, beta=BETA, gamma=1.0, async_flag=True,
-                                 flag_01=False):
+def twocell_sim_as_onelargemodel(lattice, simsetup, num_steps, beta=BETA, gamma=1.0,
+                                 async_flag=True, flag_01=False):
 
     J_singlecell = simsetup['J']
     W_matrix = simsetup['FIELD_SEND']
@@ -189,7 +190,7 @@ def twocell_sim_as_onelargemodel(lattice, simsetup, num_steps, beta=BETA, gamma=
 
     # simulate
     for step in range(num_steps):
-        singlecell.update_state(J_multicell, beta=beta, app_field=h_multicell, app_field_strength=1.0,
+        singlecell.update_state(J_multicell, beta=beta, field_applied=h_multicell, field_applied_strength=1.0,
                                 async_flag=async_flag)
 
     # repackage final state as multicell lattice
@@ -201,8 +202,8 @@ def twocell_sim_as_onelargemodel(lattice, simsetup, num_steps, beta=BETA, gamma=
     return lattice
 
 
-def twocell_sim_fast(lattice, simsetup, num_steps, beta=BETA, gamma=1.0, app_field=None,
-                     app_field_strength=0.0, async_flag=True, flag_01=False):
+def twocell_sim_fast(lattice, simsetup, num_steps, beta=BETA, gamma=1.0, field_applied=None,
+                     field_applied_strength=0.0, async_flag=True, flag_01=False):
     cell_A = lattice[0][0]
     cell_B = lattice[0][1]
     for step in range(num_steps):
@@ -214,8 +215,8 @@ def twocell_sim_fast(lattice, simsetup, num_steps, beta=BETA, gamma=1.0, app_fie
             else:
                 cell_B_sent_time_t = cell_B_time_t
             total_field_A = gamma * np.dot(simsetup['FIELD_SEND'], cell_B_sent_time_t)
-            cell_A.update_state(simsetup['J'], beta=beta, ext_field_strength=1.0, app_field=None,
-                                ext_field=total_field_A, async_flag=async_flag)
+            cell_A.update_state(simsetup['J'], beta=beta, field_signal_strength=1.0, field_applied=None,
+                                field_signal=total_field_A, async_flag=async_flag)
             # update cell B -- first get nbr field
             cell_A_time_t = cell_A.get_current_state()
             if flag_01:
@@ -223,8 +224,8 @@ def twocell_sim_fast(lattice, simsetup, num_steps, beta=BETA, gamma=1.0, app_fie
             else:
                 cell_A_sent_time_t = cell_A_time_t
             total_field_B = gamma * np.dot(simsetup['FIELD_SEND'], cell_A_sent_time_t)
-            cell_B.update_state(simsetup['J'], beta=beta, ext_field_strength=1.0, app_field=None,
-                                ext_field=total_field_B, async_flag=async_flag)
+            cell_B.update_state(simsetup['J'], beta=beta, field_signal_strength=1.0, field_applied=None,
+                                field_signal=total_field_B, async_flag=async_flag)
 
         else:
             cell_A_time_t = cell_A.get_current_state()
@@ -237,17 +238,20 @@ def twocell_sim_fast(lattice, simsetup, num_steps, beta=BETA, gamma=1.0, app_fie
                 cell_B_sent_time_t = cell_B_time_t
             # update cell A -- first get nbr field
             total_field_A = gamma * np.dot(simsetup['FIELD_SEND'], cell_B_sent_time_t)
-            cell_A.update_state(simsetup['J'], beta=beta, ext_field_strength=1.0, app_field=None,
-                                ext_field=total_field_A, async_flag=async_flag)
+            cell_A.update_state(
+                simsetup['J'], beta=beta, field_signal_strength=1.0, field_applied=None,
+                field_signal=total_field_A, async_flag=async_flag)
             # update cell B -- first get nbr field
             total_field_B = gamma * np.dot(simsetup['FIELD_SEND'], cell_A_sent_time_t)
-            cell_B.update_state(simsetup['J'], beta=beta, ext_field_strength=1.0, app_field=None,
-                                ext_field=total_field_B, async_flag=async_flag)
+            cell_B.update_state(
+                simsetup['J'], beta=beta, field_signal_strength=1.0, field_applied=None,
+                field_signal=total_field_B, async_flag=async_flag)
     return lattice
 
 
-def twocell_sim(lattice, simsetup, num_steps, data_dict, io_dict, beta=BETA, exostring=EXOSOME_STRING,
-                exoprune=EXOSOME_PRUNE, gamma=1.0, app_field=None, app_field_strength=0.0, ioflag=True):
+def twocell_sim(lattice, simsetup, num_steps, data_dict, io_dict, beta=BETA,
+                exostring=EXOSOME_STRING, exoprune=EXOSOME_PRUNE, gamma=1.0,
+                field_applied=None, field_applied_strength=0.0, ioflag=True):
 
     cell_A = lattice[0][0]
     cell_B = lattice[0][1]
@@ -259,29 +263,30 @@ def twocell_sim(lattice, simsetup, num_steps, data_dict, io_dict, beta=BETA, exo
         simple_vis(lattice, simsetup, io_dict['plotlatticedir'], 'Initial condition', savemod='_%d' % 0)
     for step in range(num_steps-1):
         # TODO could compare against whole model random update sequence instead of this block version
-        app_field_step = app_field  # TODO housekeeping applied field; N vs N+M
+        field_applied_step = field_applied  # TODO housekeeping applied field; N vs N+M
         # update cell A
-        total_field_A, _ = cell_A.get_local_exosome_field(lattice, None, None, exosome_string=exostring,
-                                                          ratio_to_remove=exoprune, neighbours=neighbours_A)
+        total_field_A, _ = cell_A.get_local_exosome_field(
+            lattice, None, None, exosome_string=exostring,
+            exosome_remove_ratio=exoprune, neighbours=neighbours_A)
         if simsetup['FIELD_SEND'] is not None:
             total_field_A += cell_A.get_local_paracrine_field(lattice, neighbours_A, simsetup)
         cell_A.update_state(simsetup['J'], beta=beta,
-                            ext_field=total_field_A,
-                            ext_field_strength=gamma,
-                            app_field=app_field_step,
-                            app_field_strength=app_field_strength)
+                            field_signal=total_field_A,
+                            field_signal_strength=gamma,
+                            field_applied=field_applied_step,
+                            field_applied_strength=field_applied_strength)
         if ioflag and num_steps % PLOT_PERIOD == 0:
             simple_vis(lattice, simsetup, io_dict['plotlatticedir'], 'Step %dA' % step, savemod='_%dA' % step)
         # update cell B
         total_field_B, _ = cell_B.get_local_exosome_field(lattice, None, None, exosome_string=exostring,
-                                                          ratio_to_remove=exoprune, neighbours=neighbours_B)
+                                                          exosome_remove_ratio=exoprune, neighbours=neighbours_B)
         if simsetup['FIELD_SEND'] is not None:
             total_field_B += cell_B.get_local_paracrine_field(lattice, neighbours_B, simsetup)
         cell_B.update_state(simsetup['J'], beta=beta,
-                            ext_field=total_field_B,
-                            ext_field_strength=gamma,
-                            app_field=app_field_step,
-                            app_field_strength=app_field_strength)
+                            field_signal=total_field_B,
+                            field_signal_strength=gamma,
+                            field_applied=field_applied_step,
+                            field_applied_strength=field_applied_strength)
         if ioflag and num_steps % PLOT_PERIOD == 0:
             simple_vis(lattice, simsetup, io_dict['plotlatticedir'], 'Step %dB' % step, savemod='_%dB' % step)
 
@@ -301,8 +306,8 @@ def twocell_sim(lattice, simsetup, num_steps, data_dict, io_dict, beta=BETA, exo
         print('TODO grid_state_int data fill in')
         #data_dict['grid_state_int'] = np.zeros((2, num_steps), dtype=int)
     if 'multi_hamiltonian' in list(data_dict.keys()):
-        data_dict['single_hamiltonians'][0, :] = [hamiltonian(cell_A.state_array[:, i], simsetup['J'], field=app_field, fs=app_field_strength) for i in range(num_steps)]
-        data_dict['single_hamiltonians'][1, :] = [hamiltonian(cell_B.state_array[:, i], simsetup['J'], field=app_field, fs=app_field_strength) for i in range(num_steps)]
+        data_dict['single_hamiltonians'][0, :] = [hamiltonian(cell_A.state_array[:, i], simsetup['J'], field=field_applied, fs=field_applied_strength) for i in range(num_steps)]
+        data_dict['single_hamiltonians'][1, :] = [hamiltonian(cell_B.state_array[:, i], simsetup['J'], field=field_applied, fs=field_applied_strength) for i in range(num_steps)]
         if simsetup['FIELD_SEND'] is not None:
             # TODO check the algebra here...
             W = simsetup['FIELD_SEND']
@@ -317,7 +322,7 @@ def twocell_sim(lattice, simsetup, num_steps, data_dict, io_dict, beta=BETA, exo
 
 
 def twocell_simprep(simsetup, num_steps, beta=BETA, exostring=EXOSOME_STRING, exoprune=EXOSOME_PRUNE, gamma=1.0,
-                    app_field=None, app_field_strength=0.0):
+                    field_applied=None, field_applied_strength=0.0):
     """
     Prep lattice (of two cells), fields, and IO
     """
@@ -333,14 +338,21 @@ def twocell_simprep(simsetup, num_steps, beta=BETA, exostring=EXOSOME_STRING, ex
                 SpatialCell(cell_b_init, 'Cell B', [0, 1], simsetup)]]  # list of list to conform to multicell slattice funtions
 
     # app fields initialization
-    app_field_step = None  # TODO housekeeping applied field; N vs N+M
+    field_applied_step = None  # TODO housekeeping applied field; N vs N+M
 
     # setup io dict
     io_dict = run_subdir_setup()
-    info_list = [['memories_path', simsetup['memories_path']], ['script', 'twocell_simulate.py'],
-                 ['num_steps', num_steps], ['fieldstring', exostring], ['field_remove_ratio', exoprune],
-                 ['app_field_strength', app_field_strength], ['ext_field_strength', gamma], ['app_field', app_field],
-                 ['beta', beta], ['random_mem', simsetup['random_mem']], ['random_W', simsetup['random_W']]]
+    info_list = [['memories_path', simsetup['memories_path']],
+                 ['script', 'twocell_simulate.py'],
+                 ['num_steps', num_steps],
+                 ['exosome_string', exostring],
+                 ['exosome_remove_ratio', exoprune],
+                 ['field_applied_strength', field_applied_strength],
+                 ['field_signal_strength', gamma],
+                 ['field_applied', field_applied],
+                 ['beta', beta],
+                 ['random_mem', simsetup['random_mem']],
+                 ['random_W', simsetup['random_W']]]
     runinfo_append(io_dict, info_list, multi=True)
     # conditionally store random mem and W
     np.savetxt(io_dict['simsetupdir'] + os.sep + 'simsetup_XI.txt', simsetup['XI'], delimiter=',', fmt='%d')
@@ -376,8 +388,9 @@ def twocell_simprep(simsetup, num_steps, beta=BETA, exostring=EXOSOME_STRING, ex
 
     # run the simulation
     lattice, data_dict, io_dict = \
-        twocell_sim(lattice, simsetup, num_steps, data_dict, io_dict, beta=beta, exostring=exostring, exoprune=exoprune,
-                    gamma=gamma, app_field=app_field, app_field_strength=app_field_strength)
+        twocell_sim(lattice, simsetup, num_steps, data_dict, io_dict, beta=beta,
+                    exostring=exostring, exoprune=exoprune, gamma=gamma,
+                    field_applied=field_applied, field_applied_strength=field_applied_strength)
 
     # check the data dict
     """

@@ -39,14 +39,14 @@ def calc_lattice_energy(lattice, simsetup, field, fs, gamma, search_radius, rati
             if meanfield:
                 nbr_states_sent, neighbours = cell.get_local_exosome_field(lattice, mf_search_radius, M1,
                                                                            exosome_string=exosome_string,
-                                                                           ratio_to_remove=ratio_to_remove,
+                                                                           exosome_remove_ratio=ratio_to_remove,
                                                                            neighbours=mf_neighbours)
                 if simsetup['FIELD_SEND'] is not None:
                     nbr_states_sent += cell.get_local_paracrine_field(lattice, neighbours, simsetup)
             else:
                 nbr_states_sent, neighbours = cell.get_local_exosome_field(lattice, search_radius, M1,
                                                                            exosome_string=exosome_string,
-                                                                           ratio_to_remove=ratio_to_remove,
+                                                                           exosome_remove_ratio=ratio_to_remove,
                                                                            neighbours=None)
                 if simsetup['FIELD_SEND'] is not None:
                     nbr_states_sent += cell.get_local_paracrine_field(lattice, neighbours, simsetup)

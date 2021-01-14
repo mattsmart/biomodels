@@ -230,8 +230,8 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, sims
             # main call to update
             if step < num_steps:
                 #cell.update_state(intxn_matrix, beta=beta, app_field=None, async_batch=async_batch)
-                cell.update_state(intxn_matrix, beta=beta, app_field=app_field,
-                                  app_field_strength=app_field_strength, async_batch=async_batch)
+                cell.update_state(intxn_matrix, beta=beta, field_applied=app_field,
+                                  field_applied_strength=app_field_strength, async_batch=async_batch)
 
     if profile:
         end_inner = time.time()

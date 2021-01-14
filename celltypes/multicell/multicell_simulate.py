@@ -18,7 +18,7 @@ from utils.file_io import run_subdir_setup, runinfo_append
 
 
 def run_mc_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_string=EXOSTRING,
-               field_remove_ratio=0.0, ext_field_strength=EXT_FIELD_STRENGTH, app_field=None,
+               exosome_remove_ratio=0.0, ext_field_strength=EXT_FIELD_STRENGTH, app_field=None,
                app_field_strength=APP_FIELD_STRENGTH, beta=BETA, plot_period=LATTICE_PLOT_PERIOD,
                flag_uniplots=False, state_int=False, meanfield=MEANFIELD):
     """
@@ -62,7 +62,7 @@ def run_mc_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome
     def update_datadict_timestep_global(lattice, timestep_idx):
         data_dict['lattice_energy'][timestep_idx, :] = calc_lattice_energy(
             lattice, simsetup, app_field_step, app_field_strength, ext_field_strength, SEARCH_RADIUS_CELL,
-            field_remove_ratio, exosome_string, meanfield)
+            exosome_remove_ratio, exosome_string, meanfield)
         data_dict['compressibility_full'][timestep_idx, :] = calc_compression_ratio(
             get_state_of_lattice(lattice, simsetup, datatype='full'),
             eta_0=None, datatype='full', elemtype=np.int, method='manual')
@@ -93,7 +93,7 @@ def run_mc_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome
         if exosome_string != 'no_exo_field':
             field_exo, _ = lattice[0][0].\
                 get_local_exosome_field(lattice, None, None, exosome_string=exosome_string,
-                                        ratio_to_remove=field_remove_ratio, neighbours=neighbours)
+                                        exosome_remove_ratio=exosome_remove_ratio, neighbours=neighbours)
             field_global += field_exo
         return field_global
 
@@ -243,7 +243,7 @@ def run_mc_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome
                     cellstate_pre = np.copy(cell.get_current_state())
                     cell.update_with_meanfield(
                         simsetup['J'], field_global, beta=beta, app_field=app_field_step,
-                        ext_field_strength=ext_field_strength, app_field_strength=app_field_strength)
+                        field_signal_strength=ext_field_strength, field_app_strength=app_field_strength)
                     # TODO update field_avg based on new state TODO test
                     state_total += (cell.get_current_state() - cellstate_pre)
                     state_total_01 = (state_total + num_cells) / 2
@@ -253,9 +253,9 @@ def run_mc_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome
                 else:
                     cell.update_with_signal_field(
                         lattice, SEARCH_RADIUS_CELL, n, simsetup['J'], simsetup, beta=beta,
-                        exosome_string=exosome_string, ratio_to_remove=field_remove_ratio,
-                        ext_field_strength=ext_field_strength, app_field=app_field_step,
-                        app_field_strength=app_field_strength)
+                        exosome_string=exosome_string, exosome_remove_ratio=exosome_remove_ratio,
+                        field_signal_strength=ext_field_strength, field_app=app_field_step,
+                        field_app_strength=app_field_strength)
 
                 # update cell specific datdict entries for the current timestep
                 cell_proj = update_datadict_timestep_cell(lattice, loc, memory_idx_list, turn)
@@ -283,10 +283,31 @@ def run_mc_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome
 
 
 def mc_sim_wrapper(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING,
-                   exosome_string=EXOSTRING, field_remove_ratio=FIELD_REMOVE_RATIO,
-                   ext_field_strength=EXT_FIELD_STRENGTH, app_field=None,
-                   app_field_strength=APP_FIELD_STRENGTH, beta=BETA, plot_period=LATTICE_PLOT_PERIOD,
-                   state_int=False, meanfield=MEANFIELD):
+                   field_signal_strength=EXT_FIELD_STRENGTH,
+                   exosome_string=EXOSTRING, exosome_remove_ratio=FIELD_REMOVE_RATIO,
+                   field_applied=None, field_applied_strength=APP_FIELD_STRENGTH,
+                   flag_housekeeping=False, field_housekeeping_strength=0.0,
+                   beta=BETA, meanfield=MEANFIELD,
+                   plot_period=LATTICE_PLOT_PERIOD, state_int=False):
+    """
+    :param simsetup:               simsetup with internal and external gene regulatory rules
+    :param gridsize:               (int) edge length of square multicell grid
+    :param num_steps:              (int) number of many lattice timesteps
+    :param buildstring:            (str) specifies init cond style of the lattice
+    :param exosome_string:         (str) see valid exosome strings; adds exosomes to field_signal
+    :param exosome_remove_ratio:   (float) if exosomes act, how much of the cell state to subsample?
+    :param field_signal_strength:  (float) the cell-cell signalling field strength
+    :param field_applied:          (None or array) the external/manual applied field
+    :param field_applied_strength: (float) the external/manual applied field strength
+    :param flag_housekeeping:      (bool) is there a housekeeping component to the manual field?
+    :param field_housekeeping_strength: (float)
+    :param beta:                   (float) inverse temperature
+    :param plot_period:            (int) lattice plot period
+    :param state_int:              (bool) track and plot the int rep of cell state (low N only)
+    :param meanfield:              ...
+    :return:
+        (lattice, data_dict, io_dict)
+    """
 
     # check args
     assert type(gridsize) is int
@@ -294,8 +315,8 @@ def mc_sim_wrapper(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, bui
     assert type(plot_period) is int
     assert buildstring in VALID_BUILDSTRINGS
     assert exosome_string in VALID_EXOSOME_STRINGS
-    assert 0.0 <= field_remove_ratio < 1.0
-    assert 0.0 <= ext_field_strength < 10.0
+    assert 0.0 <= exosome_remove_ratio < 1.0
+    assert 0.0 <= field_signal_strength < 10.0
 
     # setup io dict
     io_dict = run_subdir_setup(run_subfolder='multicell_sim')
@@ -303,14 +324,26 @@ def mc_sim_wrapper(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, bui
         search_radius_txt = 'None'
     else:
         search_radius_txt = SEARCH_RADIUS_CELL
-    info_list = [['memories_path', simsetup['memories_path']], ['script', 'multicell_simulate.py'],
-                 ['gridsize', gridsize], ['num_steps', num_steps], ['buildstring', buildstring],
-                 ['fieldstring', exosome_string], ['field_remove_ratio', field_remove_ratio],
-                 ['app_field_strength', app_field_strength], ['app_field', app_field], ['beta', beta],
-                 ['ext_field_strength', ext_field_strength], ['search_radius', search_radius_txt],
-                 ['random_mem', simsetup['random_mem']], ['random_W', simsetup['random_W']],
-                 ['meanfield', meanfield], ['housekeeping', simsetup['K']],
-                 ['dynamics_parallel', BLOCK_UPDATE_LATTICE], ['autocrine', AUTOCRINE]
+    info_list = [['memories_path', simsetup['memories_path']],
+                 ['script', 'multicell_simulate.py'],
+                 ['gridsize', gridsize],
+                 ['num_steps', num_steps],
+                 ['buildstring', buildstring],
+                 ['exosome_string', exosome_string],
+                 ['exosome_remove_ratio', exosome_remove_ratio],
+                 ['field_signal_strength', field_signal_strength],
+                 ['field_applied_strength', field_applied_strength],
+                 ['field_applied', field_applied],
+                 ['flag_housekeeping', flag_housekeeping],
+                 ['field_housekeeping_strength', field_housekeeping_strength],
+                 ['beta', beta],
+                 ['search_radius', search_radius_txt],
+                 ['random_mem', simsetup['random_mem']],
+                 ['random_W', simsetup['random_W']],
+                 ['meanfield', meanfield],
+                 ['housekeeping', simsetup['K']],
+                 ['dynamics_parallel', BLOCK_UPDATE_LATTICE],
+                 ['autocrine', AUTOCRINE]
                  ]
     runinfo_append(io_dict, info_list, multi=True)
     # conditionally store random mem and W
@@ -347,8 +380,8 @@ def mc_sim_wrapper(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, bui
     # run the simulation
     lattice, data_dict, io_dict = run_mc_sim(
         lattice, num_steps, data_dict, io_dict, simsetup, exosome_string=exosome_string,
-        field_remove_ratio=field_remove_ratio, ext_field_strength=ext_field_strength,
-        app_field=app_field, app_field_strength=app_field_strength, beta=beta, state_int=state_int,
+        exosome_remove_ratio=exosome_remove_ratio, ext_field_strength=field_signal_strength,
+        app_field=field_applied, app_field_strength=field_applied_strength, beta=beta, state_int=state_int,
         plot_period=plot_period, flag_uniplots=flag_uniplots, meanfield=meanfield)
 
     # check the data dict
@@ -359,7 +392,7 @@ def mc_sim_wrapper(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, bui
         plt.xlabel('Time (full lattice steps)')
         plt.savefig(io_dict['plotdatadir'] + os.sep + '%s_%s_n%d_t%d_proj%d_remove%.2f_exo%.2f.png' %
                     (exosome_string, buildstring, gridsize, num_steps, memory_idx,
-                     field_remove_ratio, ext_field_strength))
+                     exosome_remove_ratio, field_signal_strength))
         plt.clf()  #plt.show()
 
     # write and plot cell state timeseries
@@ -382,7 +415,7 @@ def mc_sim_wrapper(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, bui
         plt.legend()
         plt.savefig(
             io_dict['plotdatadir'] + os.sep + '%s_%s_n%d_t%d_hamiltonian_remove%.2f_exo%.2f.png' %
-            (exosome_string, buildstring, gridsize, num_steps, field_remove_ratio, ext_field_strength))
+            (exosome_string, buildstring, gridsize, num_steps, exosome_remove_ratio, field_signal_strength))
         # zoom on relevant part
         ylow = min(np.min(data_dict['lattice_energy'][:, [1,3]]),
                    np.min(data_dict['lattice_energy'][:, 0] - data_dict['lattice_energy'][:, 2]))
@@ -391,7 +424,7 @@ def mc_sim_wrapper(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, bui
         plt.ylim(ylow - 0.1, yhigh + 0.1)
         plt.savefig(
             io_dict['plotdatadir'] + os.sep + '%s_%s_n%d_t%d_hamiltonianZoom_remove%.2f_exo%.2f.png' %
-            (exosome_string, buildstring, gridsize, num_steps, field_remove_ratio, ext_field_strength))
+            (exosome_string, buildstring, gridsize, num_steps, exosome_remove_ratio, field_signal_strength))
         plt.clf()  # plt.show()
     if 'compressibility_full' in list(data_dict.keys()):
         write_general_arr(data_dict['compressibility_full'], io_dict['datadir'],
@@ -414,7 +447,7 @@ def mc_sim_wrapper(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, bui
         plt.ylim(-0.05, 1.01)
         plt.savefig(
             io_dict['plotdatadir'] + os.sep + '%s_%s_n%d_t%d_comp_remove%.2f_exo%.2f.png' %
-            (exosome_string, buildstring, gridsize, num_steps, field_remove_ratio, ext_field_strength))
+            (exosome_string, buildstring, gridsize, num_steps, exosome_remove_ratio, field_signal_strength))
         plt.clf()  # plt.show()
 
     print("\nMulticell simulation complete - output in %s" % io_dict['basedir'])
@@ -428,38 +461,57 @@ if __name__ == '__main__':
     simsetup = singlecell_simsetup(
         unfolding=True, random_mem=random_mem, random_W=random_W, curated=curated, housekeeping=0)
 
-    n = 6  # global GRIDSIZE
-    steps = 10  # global NUM_LATTICE_STEPS
-    buildstring = "mono"  # mono/dual/memory_sequence/random
-    fieldstring = "no_exo_field"  # on/off/all/no_exo_field; 'off' means send info only 'off' genes
-    meanfield = False  # True: infinite signal distance (no neighbor search; track mean field)
-    fieldprune = 0.0  # amount of external field idx to randomly prune from each cell
-    ext_field_strength = 90*0.1  #  / (n*n) * 8   # global GAMMA = EXT_FIELD_STRENGTH tunes exosomes AND sent field
-    #app_field = construct_app_field_from_genes(
-    #    IPSC_EXTENDED_GENES_EFFECTS, simsetup['GENE_ID'], num_steps=steps)  # size N x steps or None
-
-    app_field = None
-    # housekeeping genes block
-    KAPPA = 0.0
-    if KAPPA > 0:
-        # housekeeping auto (via model extension)
-        app_field = np.zeros(simsetup['N'])
-        if simsetup['K'] > 0:
-            app_field[-simsetup['K']:] = 1.0
-            print(app_field)
-        else:
-            print('Note gene 0 (on), 1 (on), 2 (on) are HK in A1 memories')
-            print('Note gene 4 (off), 5 (on) are HK in C1 memories')
-            app_field[4] = 1.0
-            app_field[5] = 1.0
-
+    # setup: lattice sim core parameters
+    n = 6                 # global GRIDSIZE
+    steps = 10            # global NUM_LATTICE_STEPS
+    buildstring = "mono"  # init condition: mono/dual/memory_sequence/random
+    meanfield = False     # True: infinite signal distance (no neighbor search; track mean field)
     plot_period = 1
     state_int = True
     beta = BETA  # 2.0
+
+    # setup: signalling field (exosomes + cell-cell signalling via W matrix)
+    exosome_string = "no_exo_field"   # on/off/all/no_exo_field; 'off' = send info only 'off' genes
+    fieldprune = 0.0                  # amount of exo field idx to randomly prune from each cell
+    field_signal_strength = 90 * 0.1  #  / (n*n) * 8   # global GAMMA = field_strength_signal tunes exosomes AND sent field
+
+    # setup: applied/manual field (part 1)
+    #field_applied = construct_app_field_from_genes(
+    #    IPSC_EXTENDED_GENES_EFFECTS, simsetup['GENE_ID'], num_steps=steps)  # size N x steps or None
+    field_applied = None
+    field_applied_strength = 1.0
+
+    # setup: applied/manual field (part 2) -- optionally add housekeeping field with strength Kappa
+    flag_housekeeping = False
+    field_housekeeping_strength = 0.0  # aka Kappa
+    assert not flag_housekeeping
+    if flag_housekeeping:
+        assert field_housekeeping_strength > 0
+        # housekeeping auto (via model extension)
+        field_housekeeping = np.zeros(simsetup['N'])
+        if simsetup['K'] > 0:
+            field_housekeeping[-simsetup['K']:] = 1.0
+            print(field_applied)
+        else:
+            print('Note gene 0 (on), 1 (on), 2 (on) are HK in A1 memories')
+            print('Note gene 4 (off), 5 (on) are HK in C1 memories')
+            field_housekeeping[4] = 1.0
+            field_housekeeping[5] = 1.0
+        if field_applied is not None:
+            field_applied += field_housekeeping_strength * field_housekeeping
+        else:
+            field_applied = field_housekeeping_strength * field_housekeeping
+    else:
+        field_housekeeping = None
+        field_housekeeping_strength = 0.0
+
     mc_sim_wrapper(
-        simsetup, gridsize=n, num_steps=steps, buildstring=buildstring, exosome_string=fieldstring,
-        field_remove_ratio=fieldprune, ext_field_strength=ext_field_strength, app_field=app_field,
-        app_field_strength=KAPPA, beta=beta, plot_period=plot_period, state_int=state_int,
+        simsetup, gridsize=n, num_steps=steps, buildstring=buildstring,
+        exosome_string=exosome_string, exosome_remove_ratio=fieldprune,
+        field_signal_strength=field_signal_strength,
+        field_applied=field_applied,  field_applied_strength=field_applied_strength,
+        flag_housekeeping=flag_housekeeping, field_housekeeping_strength=field_housekeeping_strength,
+        beta=beta, plot_period=plot_period, state_int=state_int,
         meanfield=meanfield)
     """
     for beta in [0.01, 0.1, 0.5, 1.0, 1.5, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0, 4.0, 5.0, 10.0, 100.0]:

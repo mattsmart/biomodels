@@ -207,14 +207,17 @@ if __name__ == '__main__':
         plt.axhline(y=1.0, linewidth=1, color='k', linestyle='--')
         plt.title('%s hetero_overlaps (unperturbed=%.2f)' % (plot_subtitle, 1.0))
         #plt.ylim(0.8 * np.min(self_overlaps), 1.01)
-        filepath = outdir + os.sep + 'mems_%s_hetero_overlaps_under_field_%s_%s' % (npz_type, field_type, field_level)
+        filepath = outdir + os.sep + 'mems_%s_hetero_overlaps_under_field_%s_%s' % \
+                   (npz_type, field_type, field_level)
         plt.savefig(filepath, bbox_inches='tight')
         plt.close()
         # compute grid under the field
         grid_data = np.dot(xi_under_field.T, xi_under_field) - np.dot(xi_orig.T, xi_orig)
-        plot_overlap_grid(grid_data, simsetup['CELLTYPE_LABELS'], outdir, ax=None, N=None, normalize=True, fs=9,
+        plot_overlap_grid(grid_data, simsetup['CELLTYPE_LABELS'], outdir,
+                          ax=None, N=None, normalize=True, fs=9,
                           relmax=True, extragrid=False, ext='.pdf', vforce=None,
-                          plotname='overlap_diff_under_field_%s_%s_%s' % (npz_type, field_type, field_level))
+                          plotname='overlap_diff_under_field_%s_%s_%s' %
+                                   (npz_type, field_type, field_level))
         return
 
     if plot_field_impact_all:
