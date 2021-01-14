@@ -17,8 +17,9 @@ Conventions follow from Lang & Mehta 2014, PLOS Comp. Bio
 """
 
 
-def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath=DEFAULT_MEMORIES_NPZPATH,
-                        unfolding=False, random_mem=False, random_W=False, housekeeping=0, curated=False):
+def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX,
+                        npzpath=DEFAULT_MEMORIES_NPZPATH, curated=False,
+                        unfolding=False, random_mem=False, random_W=False, housekeeping=0):
     """
     gene_labels, celltype_labels, xi = load_singlecell_data()
     """
@@ -29,7 +30,8 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath
     # unfolding block
     if unfolding:
         print("Using unfolding npz")
-        xi, gene_labels, celltype_labels, field_send = load_npz_of_arr_genes_cells_signals(npzpath, verbose=True)
+        xi, gene_labels, celltype_labels, field_send = \
+            load_npz_of_arr_genes_cells_signals(npzpath, verbose=True)
     else:
         assert npzpath != MEMS_UNFOLD
         xi, gene_labels, celltype_labels = load_npz_of_arr_genes_cells(npzpath, verbose=True)
@@ -84,7 +86,8 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX, npzpath
     # data processing into sim object
     xi = xi.astype(np.float64)
     a, a_inv = memory_corr_matrix_and_inv(xi)
-    j = interaction_matrix(xi, a_inv, method=NETWORK_METHOD, flag_prune_intxn_matrix=flag_prune_intxn_matrix)
+    j = interaction_matrix(xi, a_inv, method=NETWORK_METHOD,
+                           flag_prune_intxn_matrix=flag_prune_intxn_matrix)
     eta = predictivity_matrix(xi, a_inv)
     if NETWORK_METHOD == "hopfield":
         #a = np.eye(len(celltype_labels))      # identity p x p
@@ -138,7 +141,8 @@ if __name__ == '__main__':
     print_celltypes = True
     print_gene_expression_row = False
     npzpath_override = False
-    npzpath_alternate = MEMORIESDIR + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_pruned_A_TFonly.npz'
+    npzpath_alternate = MEMORIESDIR + os.sep + \
+                        '2018_scmca_mems_genes_types_boolean_compressed_pruned_A_TFonly.npz'
     unfolding = True
     # print block
     if npzpath_override:
@@ -163,8 +167,10 @@ if __name__ == '__main__':
     edit_npz = False
     # edit npz block
     if edit_npz:
-        npz_to_edit = MEMORIESDIR + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_pruned_AB.npz'
-        npz_outname = MEMORIESDIR + os.sep + '2018_scmca_mems_genes_types_boolean_compressed_pruned_AB_edit.npz'
+        npz_to_edit = MEMORIESDIR + os.sep + \
+                      '2018_scmca_mems_genes_types_boolean_compressed_pruned_AB.npz'
+        npz_outname = MEMORIESDIR + os.sep + \
+                      '2018_scmca_mems_genes_types_boolean_compressed_pruned_AB_edit.npz'
         xi, gene_labels, celltype_labels = load_npz_of_arr_genes_cells(npz_to_edit, verbose=True)
         # edits go here
         celltype_labels[58] = 'Mixed NK T cell'
