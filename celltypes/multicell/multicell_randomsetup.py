@@ -9,10 +9,10 @@ if __name__ == '__main__':
     buildstring = "dual"  # mono/dual/memory_sequence/
     fieldstring = "no_exo_field"  # on/off/all/no_exo_field, note e.g. 'off' means send info about 'off' genes only
     fieldprune = 0.0  # amount of external field idx to randomly prune from each cell
-    ext_field_strength = 0.15                                 # global EXT_FIELD_STRENGTH tunes exosomes AND sent field
+    ext_field_strength = 0.15                                 # global FIELD_SIGNAL_STRENGTH tunes exosomes AND sent field
     #app_field = construct_app_field_from_genes(IPSC_EXTENDED_GENES_EFFECTS, simsetup['GENE_ID'], num_steps=steps)        # size N x timesteps or None
     app_field = None
-    app_field_strength = 0.0  # 100.0 global APP_FIELD_STRENGTH
+    app_field_strength = 0.0  # 100.0 global FIELD_APPLIED_STRENGTH
     plot_period = 1
     state_int = True
 

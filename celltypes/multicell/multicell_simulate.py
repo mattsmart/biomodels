@@ -11,15 +11,15 @@ from multicell.multicell_lattice import build_lattice_main, get_cell_locations, 
     write_state_all_cells, write_grid_state_int, write_general_arr, read_general_arr
 from multicell.multicell_metrics import calc_lattice_energy, calc_compression_ratio, get_state_of_lattice
 from multicell.multicell_visualize import lattice_uniplotter, reference_overlap_plotter, lattice_projection_composite
-from singlecell.singlecell_constants import EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, BETA
+from singlecell.singlecell_constants import FIELD_SIGNAL_STRENGTH, FIELD_APPLIED_STRENGTH, BETA
 from singlecell.singlecell_fields import construct_app_field_from_genes
 from singlecell.singlecell_simsetup import singlecell_simsetup  # N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS, GENE_ID
 from utils.file_io import run_subdir_setup, runinfo_append
 
 
 def run_mc_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_string=EXOSTRING,
-               exosome_remove_ratio=0.0, ext_field_strength=EXT_FIELD_STRENGTH, app_field=None,
-               app_field_strength=APP_FIELD_STRENGTH, beta=BETA, plot_period=LATTICE_PLOT_PERIOD,
+               exosome_remove_ratio=0.0, ext_field_strength=FIELD_SIGNAL_STRENGTH, app_field=None,
+               app_field_strength=FIELD_APPLIED_STRENGTH, beta=BETA, plot_period=LATTICE_PLOT_PERIOD,
                flag_uniplots=False, state_int=False, meanfield=MEANFIELD):
     """
     Form of data_dict:
@@ -283,9 +283,9 @@ def run_mc_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome
 
 
 def mc_sim_wrapper(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING,
-                   field_signal_strength=EXT_FIELD_STRENGTH,
+                   field_signal_strength=FIELD_SIGNAL_STRENGTH,
                    exosome_string=EXOSTRING, exosome_remove_ratio=FIELD_REMOVE_RATIO,
-                   field_applied=None, field_applied_strength=APP_FIELD_STRENGTH,
+                   field_applied=None, field_applied_strength=FIELD_APPLIED_STRENGTH,
                    flag_housekeeping=False, field_housekeeping_strength=0.0,
                    beta=BETA, meanfield=MEANFIELD,
                    plot_period=LATTICE_PLOT_PERIOD, state_int=False):

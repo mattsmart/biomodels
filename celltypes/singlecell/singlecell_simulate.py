@@ -2,7 +2,7 @@ import numpy as np
 
 from singlecell.singlecell_class import Cell
 from singlecell.singlecell_constants import NUM_FULL_STEPS, BURST_ERROR_PERIOD, \
-    APP_FIELD_STRENGTH, BETA, ASYNC_BATCH, MEMS_MEHTA, MEMS_SCMCA
+    FIELD_APPLIED_STRENGTH, BETA, ASYNC_BATCH, MEMS_MEHTA, MEMS_SCMCA
 from singlecell.singlecell_fields import field_setup
 from singlecell.singlecell_simsetup import singlecell_simsetup, unpack_simsetup
 from utils.file_io import run_subdir_setup, runinfo_append

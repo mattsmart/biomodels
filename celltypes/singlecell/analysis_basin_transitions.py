@@ -6,7 +6,7 @@ from multiprocessing import Pool, cpu_count, current_process
 
 from singlecell.analysis_basin_plotting import plot_proj_timeseries, plot_basin_occupancy_timeseries, plot_basin_step
 from singlecell.singlecell_class import Cell
-from singlecell.singlecell_constants import ASYNC_BATCH, FIELD_PROTOCOL
+from singlecell.singlecell_constants import ASYNC_BATCH, FIELD_APPLIED_PROTOCOL
 from singlecell.singlecell_fields import field_setup
 from singlecell.singlecell_simsetup import singlecell_simsetup, unpack_simsetup
 from utils.file_io import run_subdir_setup, runinfo_append, RUNS_FOLDER
@@ -155,7 +155,7 @@ def wrapper_get_basin_stats(fn_args_dict):
 
 
 def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, simsetup, num_steps=100,
-                    anneal_protocol=ANNEAL_PROTOCOL, field_protocol=FIELD_PROTOCOL, occ_threshold=OCC_THRESHOLD,
+                    anneal_protocol=ANNEAL_PROTOCOL, field_protocol=FIELD_APPLIED_PROTOCOL, occ_threshold=OCC_THRESHOLD,
                     async_batch=ASYNC_BATCH, verbose=False, profile=False):
 
     if profile:
@@ -249,7 +249,7 @@ def get_basin_stats(init_cond, init_state, init_id, ensemble, ensemble_idx, sims
 
 
 def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, simsetup=None, num_steps=100,
-                     occ_threshold=OCC_THRESHOLD, anneal_protocol=ANNEAL_PROTOCOL, field_protocol=FIELD_PROTOCOL,
+                     occ_threshold=OCC_THRESHOLD, anneal_protocol=ANNEAL_PROTOCOL, field_protocol=FIELD_APPLIED_PROTOCOL,
                      async_batch=ASYNC_BATCH, verbose=False, profile=False):
     # simsetup unpack
     if simsetup is None:
@@ -303,7 +303,7 @@ def fast_basin_stats(init_cond, init_state, init_id, ensemble, num_processes, si
 
 def ensemble_projection_timeseries(init_cond, ensemble, num_processes, simsetup=None, num_steps=100,
                                    occ_threshold=OCC_THRESHOLD, anneal_protocol=ANNEAL_PROTOCOL,
-                                   field_protocol=FIELD_PROTOCOL, async_batch=ASYNC_BATCH, output=True, plot=True,
+                                   field_protocol=FIELD_APPLIED_PROTOCOL, async_batch=ASYNC_BATCH, output=True, plot=True,
                                    profile=False):
     """
     Args:

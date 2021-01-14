@@ -2,7 +2,7 @@ import numpy as np
 from random import shuffle, random
 
 from utils.file_io import state_write
-from singlecell.singlecell_constants import BETA, EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, ASYNC_BATCH
+from singlecell.singlecell_constants import BETA, FIELD_SIGNAL_STRENGTH, FIELD_APPLIED_STRENGTH, ASYNC_BATCH
 from singlecell.singlecell_functions import glauber_dynamics_update, state_memory_projection, state_memory_overlap, \
     hamiltonian, state_burst_errors, state_to_label
 from singlecell.singlecell_visualize import plot_as_bar, plot_as_radar, save_manual
@@ -91,8 +91,8 @@ class Cell(object):
         return burst_errors
 
     def update_state(self, intxn_matrix, beta=BETA,
-                     field_signal=None, field_signal_strength=EXT_FIELD_STRENGTH,
-                     field_applied=None, field_applied_strength=APP_FIELD_STRENGTH,
+                     field_signal=None, field_signal_strength=FIELD_SIGNAL_STRENGTH,
+                     field_applied=None, field_applied_strength=FIELD_APPLIED_STRENGTH,
                      async_batch=ASYNC_BATCH, async_flag=True):
         """
         async_batch: if True, sample from 0 to N with replacement, else each step will be 'fully random'

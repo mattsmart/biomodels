@@ -1,7 +1,7 @@
 import numpy as np
 from random import random, shuffle
 
-from singlecell.singlecell_constants import BETA, EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH, MEMS_UNFOLD
+from singlecell.singlecell_constants import BETA, FIELD_SIGNAL_STRENGTH, FIELD_APPLIED_STRENGTH, MEMS_UNFOLD
 from singlecell.singlecell_linalg import sorted_eig
 from singlecell.singlecell_simsetup import singlecell_simsetup, unpack_simsetup
 from functools import reduce
@@ -42,8 +42,8 @@ def internal_field(state, gene_idx, t, intxn_matrix):
 
 
 def glauber_dynamics_update(state, gene_idx, t, intxn_matrix, unirand, beta=BETA,
-                            field_signal=None, field_signal_strength=EXT_FIELD_STRENGTH,
-                            field_applied=None, field_applied_strength=APP_FIELD_STRENGTH):
+                            field_signal=None, field_signal_strength=FIELD_SIGNAL_STRENGTH,
+                            field_applied=None, field_applied_strength=FIELD_APPLIED_STRENGTH):
     """
     unirand: pass a uniform 0,1 random number
         - note previously unirand = random() OR unirand = np.random_intel.random() from intel python distribution

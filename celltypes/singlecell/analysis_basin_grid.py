@@ -7,7 +7,7 @@ from multiprocessing import cpu_count
 from singlecell.analysis_basin_plotting import plot_basin_grid, grid_video, plot_overlap_grid
 from singlecell.analysis_basin_transitions import \
     ensemble_projection_timeseries, get_basin_stats, fast_basin_stats, get_init_info, \
-    ANNEAL_PROTOCOL, FIELD_PROTOCOL, ANALYSIS_SUBDIR, SPURIOUS_LIST, OCC_THRESHOLD, \
+    ANNEAL_PROTOCOL, FIELD_APPLIED_PROTOCOL, ANALYSIS_SUBDIR, SPURIOUS_LIST, OCC_THRESHOLD, \
     save_and_plot_basinstats, load_basinstats, fetch_from_run_info
 from singlecell.singlecell_constants import ASYNC_BATCH, MEMS_MEHTA, MEMS_SCMCA
 from singlecell.singlecell_functions import hamming
@@ -16,7 +16,7 @@ from utils.file_io import run_subdir_setup, runinfo_append, RUNS_FOLDER
 
 
 def gen_basin_grid(ensemble, num_processes, simsetup=None, num_steps=100, anneal_protocol=ANNEAL_PROTOCOL,
-                   field_protocol=FIELD_PROTOCOL, occ_threshold=OCC_THRESHOLD, async_batch=ASYNC_BATCH, saveall=False,
+                   field_protocol=FIELD_APPLIED_PROTOCOL, occ_threshold=OCC_THRESHOLD, async_batch=ASYNC_BATCH, saveall=False,
                    save=True, plot=False, verbose=False, parallel=True):
     """
     generate matrix G_ij of size p x (p + k): grid of data between 0 and 1
@@ -169,7 +169,7 @@ if __name__ == '__main__':
     if run_basin_grid:
         ensemble = 1000
         timesteps = 500
-        field_protocol = FIELD_PROTOCOL
+        field_protocol = FIELD_APPLIED_PROTOCOL
         anneal_protocol = ANNEAL_PROTOCOL
         num_proc = cpu_count() / 2
         async_batch = True

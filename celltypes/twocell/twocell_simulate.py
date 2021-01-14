@@ -429,7 +429,7 @@ if __name__ == '__main__':
 
     exostring = "no_exo_field"  # on/off/all/no_exo_field, note e.g. 'off' means send info about 'off' genes only
     exoprune = 0.0              # amount of exosome field idx to randomly prune from each cell
-    gamma = 0.0                 # global EXT_FIELD_STRENGTH tunes exosomes AND sent field
+    gamma = 0.0                 # global FIELD_SIGNAL_STRENGTH tunes exosomes AND sent field
 
     app_field = None
     if KAPPA > 0 and HOUSEKEEPING > 0:

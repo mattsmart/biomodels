@@ -4,7 +4,7 @@ import os
 from random import random
 
 from singlecell.analysis_basin_plotting import plot_overlap_grid
-from singlecell.singlecell_constants import BETA, EXT_FIELD_STRENGTH, MEMS_MEHTA, MEMS_SCMCA, FIELD_PROTOCOL, MEMORIESDIR
+from singlecell.singlecell_constants import BETA, FIELD_SIGNAL_STRENGTH, MEMS_MEHTA, MEMS_SCMCA, FIELD_APPLIED_PROTOCOL, MEMORIESDIR
 from utils.file_io import RUNS_FOLDER
 from singlecell.singlecell_functions import hamiltonian
 from singlecell.singlecell_simsetup import singlecell_simsetup, unpack_simsetup
@@ -72,7 +72,7 @@ def construct_app_field_from_genes(gene_name_effect, gene_id, num_steps=0):
     return app_field
 
 
-def field_setup(simsetup, protocol=FIELD_PROTOCOL, level=None):
+def field_setup(simsetup, protocol=FIELD_APPLIED_PROTOCOL, level=None):
     """
     Construct applied field vector (either fixed or on varying under a field protocol) to bias the dynamics
     Notes on named fields

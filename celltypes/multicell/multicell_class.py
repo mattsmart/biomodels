@@ -1,7 +1,7 @@
 import numpy as np
 
 from multicell.multicell_constants import VALID_EXOSOME_STRINGS, EXOSTRING
-from singlecell.singlecell_constants import BETA, EXT_FIELD_STRENGTH, APP_FIELD_STRENGTH
+from singlecell.singlecell_constants import BETA, FIELD_SIGNAL_STRENGTH, FIELD_APPLIED_STRENGTH
 from singlecell.singlecell_class import Cell
 from singlecell.singlecell_functions import state_subsample, state_only_on, state_only_off
 
@@ -114,14 +114,14 @@ class SpatialCell(Cell):
     def update_with_signal_field(
             self, lattice, search_radius, gridsize, intxn_matrix, simsetup, beta=BETA,
             exosome_string=EXOSTRING, exosome_remove_ratio=0.0,
-            field_signal_strength=EXT_FIELD_STRENGTH,
-            field_app=None, field_app_strength=APP_FIELD_STRENGTH):
+            field_signal_strength=FIELD_SIGNAL_STRENGTH,
+            field_app=None, field_app_strength=FIELD_APPLIED_STRENGTH):
         ext_field, neighbours = self.get_local_exosome_field(lattice, search_radius, gridsize, exosome_string=exosome_string, exosome_remove_ratio=exosome_remove_ratio)
         if simsetup['FIELD_SEND'] is not None:
             ext_field += self.get_local_paracrine_field(lattice, neighbours, simsetup)
         self.update_state(beta=beta, intxn_matrix=intxn_matrix, field_signal=ext_field, field_signal_strength=field_signal_strength, field_applied=field_app, field_applied_strength=field_app_strength)
 
     def update_with_meanfield(self, intxn_matrix, field_signal_mean, beta=BETA, app_field=None,
-                              field_signal_strength=EXT_FIELD_STRENGTH,
-                              field_app_strength=APP_FIELD_STRENGTH):
+                              field_signal_strength=FIELD_SIGNAL_STRENGTH,
+                              field_app_strength=FIELD_APPLIED_STRENGTH):
         self.update_state(beta=beta, intxn_matrix=intxn_matrix, field_signal=field_signal_mean, field_signal_strength=field_signal_strength, field_applied=app_field, field_applied_strength=field_app_strength)
