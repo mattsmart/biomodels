@@ -4,16 +4,20 @@ import random
 import matplotlib.pyplot as plt
 
 from multicell.multicell_class import grid_int_to_loc
-from multicell.multicell_constants import GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS, \
-    VALID_BUILDSTRINGS, MEANFIELD, VALID_EXOSOME_STRINGS, EXOSTRING, BUILDSTRING, LATTICE_PLOT_PERIOD, \
-    FIELD_REMOVE_RATIO, BLOCK_UPDATE_LATTICE, AUTOCRINE
-from multicell.multicell_lattice import build_lattice_main, get_cell_locations, prep_lattice_data_dict, \
-    write_state_all_cells, write_grid_state_int, write_general_arr, read_general_arr
-from multicell.multicell_metrics import calc_lattice_energy, calc_compression_ratio, get_state_of_lattice
-from multicell.multicell_visualize import lattice_uniplotter, reference_overlap_plotter, lattice_projection_composite
+from multicell.multicell_constants import \
+    GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS, VALID_BUILDSTRINGS, VALID_EXOSOME_STRINGS, \
+    BUILDSTRING, EXOSTRING, LATTICE_PLOT_PERIOD, MEANFIELD, EXOSOME_REMOVE_RATIO, \
+    BLOCK_UPDATE_LATTICE, AUTOCRINE
+from multicell.multicell_lattice import \
+    build_lattice_main, get_cell_locations, prep_lattice_data_dict, write_state_all_cells, \
+    write_grid_state_int, write_general_arr, read_general_arr
+from multicell.multicell_metrics import \
+    calc_lattice_energy, calc_compression_ratio, get_state_of_lattice
+from multicell.multicell_visualize import \
+    lattice_uniplotter, reference_overlap_plotter, lattice_projection_composite
 from singlecell.singlecell_constants import FIELD_SIGNAL_STRENGTH, FIELD_APPLIED_STRENGTH, BETA
 from singlecell.singlecell_fields import construct_app_field_from_genes
-from singlecell.singlecell_simsetup import singlecell_simsetup  # N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS, GENE_ID
+from singlecell.singlecell_simsetup import singlecell_simsetup
 from utils.file_io import run_subdir_setup, runinfo_append
 
 
@@ -119,8 +123,8 @@ def run_mc_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome
                 s_block_current[idx] = -1.0
         return s_block_current
 
-    def build_block_matrices_from_search_radius(n, num_cells, search_radius, gamma, aotocrine=AUTOCRINE,
-                                                plot_adjacency=False):
+    def build_block_matrices_from_search_radius(n, num_cells, search_radius, gamma,
+                                                aotocrine=AUTOCRINE, plot_adjacency=False):
         W_scaled = gamma * simsetup['FIELD_SEND']
 
         # Term A: self interactions for each cell (diagonal blocks of multicell J_block)
@@ -284,7 +288,7 @@ def run_mc_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome
 
 def mc_sim_wrapper(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, buildstring=BUILDSTRING,
                    field_signal_strength=FIELD_SIGNAL_STRENGTH,
-                   exosome_string=EXOSTRING, exosome_remove_ratio=FIELD_REMOVE_RATIO,
+                   exosome_string=EXOSTRING, exosome_remove_ratio=EXOSOME_REMOVE_RATIO,
                    field_applied=None, field_applied_strength=FIELD_APPLIED_STRENGTH,
                    flag_housekeeping=False, field_housekeeping_strength=0.0,
                    beta=BETA, meanfield=MEANFIELD,

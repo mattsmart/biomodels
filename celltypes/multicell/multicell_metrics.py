@@ -4,11 +4,11 @@ import os
 from singlecell.singlecell_functions import hamiltonian
 
 
-def calc_lattice_energy(lattice, simsetup, field, fs, gamma, search_radius, ratio_to_remove, exosome_string, meanfield,
-                        norm=True):
+def calc_lattice_energy(lattice, simsetup, field, fs, gamma, search_radius, exosome_remove_ratio,
+                        exosome_string, meanfield, norm=True):
     """
     Lattice energy is the multicell hamiltonian
-        H_multi = [Sum (H_internal)] - gamma * [Sum (interactions)] - fs * [app_field dot Sum (state)]
+        H_multi = [Sum (H_internal)] - gamma * [Sum(interactions)] - fs * [app_field dot Sum(state)]
     Returns total energy and the two main terms
     """
     M1 = len(lattice)
@@ -30,24 +30,23 @@ def calc_lattice_energy(lattice, simsetup, field, fs, gamma, search_radius, rati
     # meanfield case
     if meanfield:
         mf_search_radius = None
-        mf_neighbours = [[a, b] for a in range(M2) for b in range(M1)]  # TODO ok that cell is neighbour with self as well? remove diag
+        # TODO ok that cell is neighbour with self as well? remove diag
+        mf_neighbours = [[a, b] for a in range(M2) for b in range(M1)]
     else:
         assert search_radius is not None
     for i in range(M1):
         for j in range(M2):
             cell = lattice[i][j]
             if meanfield:
-                nbr_states_sent, neighbours = cell.get_local_exosome_field(lattice, mf_search_radius, M1,
-                                                                           exosome_string=exosome_string,
-                                                                           exosome_remove_ratio=ratio_to_remove,
-                                                                           neighbours=mf_neighbours)
+                nbr_states_sent, neighbours = cell.get_local_exosome_field(
+                    lattice, mf_search_radius, M1, exosome_string=exosome_string,
+                    exosome_remove_ratio=exosome_remove_ratio, neighbours=mf_neighbours)
                 if simsetup['FIELD_SEND'] is not None:
                     nbr_states_sent += cell.get_local_paracrine_field(lattice, neighbours, simsetup)
             else:
-                nbr_states_sent, neighbours = cell.get_local_exosome_field(lattice, search_radius, M1,
-                                                                           exosome_string=exosome_string,
-                                                                           exosome_remove_ratio=ratio_to_remove,
-                                                                           neighbours=None)
+                nbr_states_sent, neighbours = cell.get_local_exosome_field(
+                    lattice, search_radius, M1, exosome_string=exosome_string,
+                    exosome_remove_ratio=exosome_remove_ratio, neighbours=None)
                 if simsetup['FIELD_SEND'] is not None:
                     nbr_states_sent += cell.get_local_paracrine_field(lattice, neighbours, simsetup)
             """
@@ -56,14 +55,15 @@ def calc_lattice_energy(lattice, simsetup, field, fs, gamma, search_radius, rati
 
             print 'Hpair:', i,j, 'adding', np.dot(field_neighbours, cell.get_current_state())
             print 'neighbours are', neighbours
-            print cell.get_current_label(), 'receiving from', [lattice[p[0]][p[1]].get_current_label() for p in neighbours]
+            print cell.get_current_label(), 'receiving from', \ 
+               [lattice[p[0]][p[1]].get_current_label() for p in neighbours]
             print 'cell state', cell.get_current_state()
             print 'nbr field', nbr_states_sent
             print 'nbr field 01', nbr_states_sent_01
             print 'field_neighbours', field_neighbours
             """
             H_pairwise += np.dot(nbr_states_sent, cell.get_current_state())
-    H_pairwise_scaled = - H_pairwise * gamma / 2  # divide by two because of double-counting neighbours
+    H_pairwise_scaled = - H_pairwise * gamma / 2  # divide by two because double-counting neighbours
     if norm:
         H_self = H_self / num_cells
         H_app = H_app / num_cells
@@ -142,9 +142,12 @@ def test_compression_ratio():
     x1 = np.ones(nn, dtype=np.int)  #[1, 1, 1, 1]
     x2 = np.zeros(nn, dtype=np.int) #[-1, -1, -1, -1]
     x3 = np.random.randint(0, high=2, size=nn)
-    eta_ratio_1, eta_1, eta_0_1 = calc_compression_ratio(x1, eta_0=None, datatype='custom', method='manual', elemtype=np.bool)
-    eta_ratio_2, eta_2, eta_0_2 = calc_compression_ratio(x2, eta_0=None, datatype='custom', method='manual', elemtype=np.bool)
-    eta_ratio_3, eta_3, eta_0_3 = calc_compression_ratio(x3, eta_0=None, datatype='custom', method='manual', elemtype=np.bool)
+    eta_ratio_1, eta_1, eta_0_1 = \
+        calc_compression_ratio(x1, eta_0=None, datatype='custom', method='manual', elemtype=np.bool)
+    eta_ratio_2, eta_2, eta_0_2 = \
+        calc_compression_ratio(x2, eta_0=None, datatype='custom', method='manual', elemtype=np.bool)
+    eta_ratio_3, eta_3, eta_0_3 = \
+        calc_compression_ratio(x3, eta_0=None, datatype='custom', method='manual', elemtype=np.bool)
     print('x1', 'gives', eta_ratio_1, eta_1, eta_0_1)
     print('x2', 'gives', eta_ratio_2, eta_2, eta_0_2)
     print('x3', 'gives', eta_ratio_3, eta_3, eta_0_3)
@@ -170,8 +173,8 @@ def test_compression_ratio():
     for idx in range(1, len(list(x_dict.keys()))+1):
         elem = x_dict[idx]['data']
         elemtype = x_dict[idx]['dtype']
-        eta_ratio, eta, eta_0 = calc_compression_ratio(elem, eta_0=None, datatype='custom', method='manual',
-                                                       elemtype=elemtype)
+        eta_ratio, eta, eta_0 = calc_compression_ratio(
+            elem, eta_0=None, datatype='custom', method='manual', elemtype=elemtype)
         print(x_dict[idx]['label'], 'gives', eta_ratio, eta, eta_0)
     return None
 

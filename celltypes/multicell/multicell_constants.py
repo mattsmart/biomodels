@@ -17,7 +17,7 @@ LATTICE_PLOT_PERIOD = 10
 # TODO: implement no_ext_field runtime savings
 VALID_EXOSOME_STRINGS = ["on", "off", "all", "no_exo_field"]
 EXOSTRING = "on"
-FIELD_REMOVE_RATIO = 0.0
+EXOSOME_REMOVE_RATIO = 0.0
 
 # global signal range, all-connected cell-cell neighbour graph (except self-interactions)
 MEANFIELD = False
