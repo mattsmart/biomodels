@@ -20,7 +20,7 @@ if __name__ == '__main__':
     ensemble = 1
     for i in range(num_runs):
         random_mem = False
-        random_W = True
+        random_W = False
         simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W)
         print("On run %d (%d total)" % (i, num_runs))
         mc_sim_wrapper(
