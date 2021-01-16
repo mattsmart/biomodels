@@ -1,24 +1,10 @@
 import numpy as np
 
+from multicell.graph_adjacency import lattice_square_loc_to_int
 from multicell.multicell_constants import VALID_EXOSOME_STRINGS, EXOSTRING
 from singlecell.singlecell_constants import BETA, FIELD_SIGNAL_STRENGTH, FIELD_APPLIED_STRENGTH
 from singlecell.singlecell_class import Cell
 from singlecell.singlecell_functions import state_subsample, state_only_on, state_only_off
-
-
-def grid_loc_to_int(loc, n):
-    # maps a two-tuple, for the location of a cell on square grid, to a unique integer
-    # n is sqrt(num_cells), the edge length of the lattice
-    x, y = loc[0], loc[1]
-    return x * n + y
-
-
-def grid_int_to_loc(grid_int, n):
-    # maps grid_int, the unique int rep of a cell location on the grid, to corresponding two-tuple
-    # n is sqrt(num_cells), the edge length of the lattice
-    y = grid_int % n              # remainder from the division mod n
-    x = int((grid_int - y) / n)   # solve for x
-    return x, y
 
 
 class SpatialCell(Cell):
@@ -30,7 +16,7 @@ class SpatialCell(Cell):
 
     def get_spatial_location_int(self, n):
         # n is sqrt(num_cells), the edge length of the lattice
-        return grid_loc_to_int(self.location, n)
+        return lattice_square_loc_to_int(self.location, n)
 
     def get_surroundings_square(self, search_radius, gridsize):
         """Specifies the location of the top left corner of the search square
