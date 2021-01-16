@@ -74,3 +74,36 @@ def runinfo_append(io_dict, info_list, multi=False):
         with open(io_dict['runinfo'], 'a') as runinfo:
             runinfo.write(','.join(str(s) for s in info_list) + '\n')
     return
+
+
+def write_general_arr(X, data_folder, fname, txt=True, compress=False):
+    """
+    Writes general data array (txt, npy, or compressed npz)
+    """
+    if txt:
+        assert not compress
+        fpath = data_folder + os.sep + fname + '.txt'
+        np.savetxt(fpath, X, delimiter=',')
+    else:
+        if compress:
+            fpath = data_folder + os.sep + fname + '.npy'
+            np.save(fpath, X)
+        else:
+            fpath = data_folder + os.sep + fname + '.npz'
+            np.savez(fpath, a=X)
+    return fpath
+
+
+def read_general_arr(fpath, txt=True, compress=False):
+    """
+    Reads general data array (txt, npy, or compressed npz)
+    """
+    if txt:
+        assert not compress
+        return np.loadtxt(fpath, delimiter=',')
+    else:
+        X = np.load(fpath)
+        if compress:
+            return X['a']
+        else:
+            return X

@@ -171,36 +171,3 @@ def read_grid_state_int(fname):
     Reads the n x n grid of integer states (for a single timestep)
     """
     return np.loadtxt(fname, dtype='int', delimiter=',')
-
-
-def write_general_arr(X, data_folder, fname, txt=True, compress=False):
-    """
-    Writes general data array (txt, npy, or compressed npz)
-    """
-    if txt:
-        assert not compress
-        fpath = data_folder + os.sep + fname + '.txt'
-        np.savetxt(fpath, X, delimiter=',')
-    else:
-        if compress:
-            fpath = data_folder + os.sep + fname + '.npy'
-            np.save(fpath, X)
-        else:
-            fpath = data_folder + os.sep + fname + '.npz'
-            np.savez(fpath, a=X)
-    return fpath
-
-
-def read_general_arr(fpath, txt=True, compress=False):
-    """
-    Reads general data array (txt, npy, or compressed npz)
-    """
-    if txt:
-        assert not compress
-        return np.loadtxt(fpath, delimiter=',')
-    else:
-        X = np.load(fpath)
-        if compress:
-            return X['a']
-        else:
-            return X

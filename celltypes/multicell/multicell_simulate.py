@@ -10,7 +10,7 @@ from multicell.multicell_constants import \
     BLOCK_UPDATE_LATTICE, AUTOCRINE
 from multicell.multicell_lattice import \
     build_lattice_main, get_cell_locations, prep_lattice_data_dict, write_state_all_cells, \
-    write_grid_state_int, write_general_arr, read_general_arr
+    write_grid_state_int
 from multicell.multicell_metrics import \
     calc_lattice_energy, calc_compression_ratio, get_state_of_lattice
 from multicell.multicell_visualize import \
@@ -18,7 +18,7 @@ from multicell.multicell_visualize import \
 from singlecell.singlecell_constants import FIELD_SIGNAL_STRENGTH, FIELD_APPLIED_STRENGTH, BETA
 from singlecell.singlecell_fields import construct_app_field_from_genes
 from singlecell.singlecell_simsetup import singlecell_simsetup
-from utils.file_io import run_subdir_setup, runinfo_append
+from utils.file_io import run_subdir_setup, runinfo_append, write_general_arr, read_general_arr
 
 
 def run_mc_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome_string=EXOSTRING,
