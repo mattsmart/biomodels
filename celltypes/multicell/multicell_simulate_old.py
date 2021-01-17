@@ -3,7 +3,8 @@ import os
 import random
 import matplotlib.pyplot as plt
 
-from multicell.multicell_class import grid_int_to_loc
+from multicell.graph_adjacency import \
+    lattice_square_int_to_loc
 from multicell.multicell_constants import \
     GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS, VALID_BUILDSTRINGS, VALID_EXOSOME_STRINGS, \
     BUILDSTRING, EXOSTRING, LATTICE_PLOT_PERIOD, MEANFIELD, EXOSOME_REMOVE_RATIO, \
@@ -137,14 +138,14 @@ def run_mc_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome
         adjacency_arr_uptri = np.zeros((num_cells, num_cells))
         # build only upper diagonal part of A
         for a in range(num_cells):
-            grid_loc_a = grid_int_to_loc(a, n)  # map cell a & b index to grid loc (i, j)
+            grid_loc_a = lattice_square_int_to_loc(a, n)  # map cell a & b index to grid loc (i, j)
             arow, acol = grid_loc_a[0], grid_loc_a[1]
             arow_low = arow - search_radius
             arow_high = arow + search_radius
             acol_low = acol - search_radius
             acol_high = acol + search_radius
             for b in range(a+1, num_cells):
-                grid_loc_b = grid_int_to_loc(b, n)  # map cell a & b index to grid loc (i, j)
+                grid_loc_b = lattice_square_int_to_loc(b, n)  # map cell a & b index to grid loc (i, j)
                 # is neighbor?
                 if (arow_low <= grid_loc_b[0] <= arow_high) and (acol_low <= grid_loc_b[1] <= acol_high):
                     adjacency_arr_uptri[a, b] = 1
@@ -169,7 +170,7 @@ def run_mc_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome
         total_spins = num_cells * N
         s_block = np.zeros(total_spins)
         for a in range(num_cells):
-            arow, acol = grid_int_to_loc(a, n)
+            arow, acol = lattice_square_int_to_loc(a, n)
             cellstate = np.copy(
                 lattice[arow][acol].get_current_state())
             s_block[a * N: (a+1) * N] = cellstate
@@ -179,7 +180,7 @@ def run_mc_sim(lattice, num_lattice_steps, data_dict, io_dict, simsetup, exosome
         N = simsetup['N']
         total_spins = num_cells * N
         for a in range(num_cells):
-            arow, acol = grid_int_to_loc(a, n)
+            arow, acol = lattice_square_int_to_loc(a, n)
             cell = lattice[arow][acol]
             cellstate = np.copy(s_block[a * N: (a + 1) * N])
             # update cell state specifically
@@ -320,7 +321,7 @@ def mc_sim_wrapper(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, bui
     assert buildstring in VALID_BUILDSTRINGS
     assert exosome_string in VALID_EXOSOME_STRINGS
     assert 0.0 <= exosome_remove_ratio < 1.0
-    assert 0.0 <= field_signal_strength < 10.0
+    assert 0.0 <= field_signal_strength < 100.0
 
     # setup io dict
     io_dict = run_subdir_setup(run_subfolder='multicell_sim')
@@ -459,31 +460,31 @@ def mc_sim_wrapper(simsetup, gridsize=GRIDSIZE, num_steps=NUM_LATTICE_STEPS, bui
 
 
 if __name__ == '__main__':
-    curated = True
+    curated = False
     random_mem = False
-    random_W = True
+    random_W = False
     simsetup = singlecell_simsetup(
         unfolding=True, random_mem=random_mem, random_W=random_W, curated=curated, housekeeping=0)
 
     # setup: lattice sim core parameters
-    n = 6                 # global GRIDSIZE
+    n = 20                # global GRIDSIZE
     steps = 10            # global NUM_LATTICE_STEPS
-    buildstring = "mono"  # init condition: mono/dual/memory_sequence/random
+    buildstring = "dual"  # init condition: mono/dual/memory_sequence/random
     meanfield = False     # True: infinite signal distance (no neighbor search; track mean field)
     plot_period = 1
     state_int = True
-    beta = BETA  # 2.0
+    beta = 2000.00        # 2.0
 
     # setup: signalling field (exosomes + cell-cell signalling via W matrix)
     exosome_string = "no_exo_field"   # on/off/all/no_exo_field; 'off' = send info only 'off' genes
     fieldprune = 0.0                  # amount of exo field idx to randomly prune from each cell
-    field_signal_strength = 90 * 0.1  #  / (n*n) * 8   # global GAMMA = field_strength_signal tunes exosomes AND sent field
+    field_signal_strength = 20.0      #  / (n*n) * 8   # global GAMMA = field_strength_signal tunes exosomes AND sent field
 
     # setup: applied/manual field (part 1)
     #field_applied = construct_app_field_from_genes(
     #    IPSC_EXTENDED_GENES_EFFECTS, simsetup['GENE_ID'], num_steps=steps)  # size N x steps or None
     field_applied = None
-    field_applied_strength = 1.0
+    field_applied_strength = 0.0
 
     # setup: applied/manual field (part 2) -- optionally add housekeeping field with strength Kappa
     flag_housekeeping = False
