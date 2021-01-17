@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 from multicell.multicell_lattice import build_lattice_main, get_cell_locations, prep_lattice_data_dict, write_state_all_cells, \
     write_grid_state_int
-from multicell.multicell_visualize import lattice_uniplotter, reference_overlap_plotter, lattice_projection_composite
+from multicell.multicell_visualize_old import lattice_uniplotter, reference_overlap_plotter, lattice_projection_composite
 from singlecell.singlecell_class import Cell
 from utils.file_io import run_subdir_setup, runinfo_append, write_general_arr, read_general_arr
 from singlecell.singlecell_simsetup import singlecell_simsetup # N, P, XI, CELLTYPE_ID, CELLTYPE_LABELS, GENE_ID

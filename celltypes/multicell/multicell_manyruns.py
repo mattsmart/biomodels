@@ -1,5 +1,5 @@
 from singlecell.singlecell_simsetup import singlecell_simsetup
-from multicell.multicell_simulate import mc_sim_wrapper
+from multicell.multicell_simulate_old import mc_sim_wrapper
 
 
 if __name__ == '__main__':
