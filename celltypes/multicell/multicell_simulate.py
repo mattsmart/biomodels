@@ -222,7 +222,7 @@ class Multicell:
                      ['initialization_style', self.initialization_style],
                      ['search_radius', self.graph_kwargs.get('search_radius', None)],
                      ['gamma', self.gamma],
-                     ['autocrine', AUTOCRINE],
+                     ['autocrine', self.autocrine],
                      ['exosome_string', self.exosome_string],
                      ['exosome_remove_ratio', self.exosome_remove_ratio],
                      ['kappa', self.kappa],
@@ -232,7 +232,7 @@ class Multicell:
                      ['beta', beta],
                      ['random_mem', self.simsetup['random_mem']],
                      ['random_W', self.simsetup['random_W']],
-                     ['dynamics_blockparallel', BLOCK_UPDATE_LATTICE],
+                     ['dynamics_blockparallel', self.dynamics_blockparallel],
                      ]
         runinfo_append(io_dict, info_list, multi=True)
         # conditionally store random mem and W
@@ -708,7 +708,7 @@ class Multicell:
 if __name__ == '__main__':
 
     # 1) create simsetup
-    curated = True
+    curated = False
     random_mem = False        # TODO incorporate seed in random XI
     random_W = False          # TODO incorporate seed in random W
     simsetup_main = singlecell_simsetup(
@@ -722,6 +722,7 @@ if __name__ == '__main__':
     total_steps = 10           # global NUM_LATTICE_STEPS
     plot_period = 1
     flag_state_int = True
+    flag_blockparallel = True
     beta = 2000.0
     gamma = 20.0               # i.e. field_signal_strength
     kappa = 0.0                # i.e. field_applied_strength
@@ -773,6 +774,7 @@ if __name__ == '__main__':
         'beta': beta,
         'total_steps': total_steps,
         'num_cells': num_cells,
+        'flag_blockparallel': flag_blockparallel,
         'graph_style': graph_style,
         'graph_kwargs': graph_kwargs,
         'autocrine': autocrine,
