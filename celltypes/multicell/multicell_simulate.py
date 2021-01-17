@@ -4,7 +4,7 @@ import random
 import matplotlib.pyplot as plt
 
 from multicell.graph_adjacency import \
-    lattice_square_int_to_loc, adjacency_lattice_square, adjacency_lattice_general
+    lattice_square_int_to_loc, adjacency_lattice_square, adjacency_general
 from multicell.multicell_constants import \
     GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS, VALID_BUILDSTRINGS, VALID_EXOSOME_STRINGS, \
     BUILDSTRING, EXOSTRING, LATTICE_PLOT_PERIOD, MEANFIELD, EXOSOME_REMOVE_RATIO, \
@@ -487,8 +487,9 @@ class Multicell:
         # TODO generalize to non-lattice
         assert self.graph_style == 'lattice_square'
         lattice = self.TEMP_lattice_from_graph_state()
-        app_field_step = self.field_applied[:, step]
-        ext_field_strength = self.gamma
+        field_applied_step = self.field_applied[:, step]
+        field_applied_strength = self.gamma
+        field_ext_strength = self.kappa
         search_radius_cell = self.graph_kwargs['search_radius']
         meanfield = False
 
@@ -505,8 +506,9 @@ class Multicell:
         else:
             self.data_dict['graph_energy'][step, :] = \
                 calc_lattice_energy(
-                    lattice, self.simsetup, app_field_step, app_field_strength, ext_field_strength,
-                    search_radius_cell, self.exosome_remove_ratio, self.exosome_string, meanfield)
+                    lattice, self.simsetup, field_applied_step, field_applied_strength,
+                    field_ext_strength, search_radius_cell, self.exosome_remove_ratio,
+                    self.exosome_string, meanfield)
 
         # 3) node-wise projection on the encoded singlecell types
         for i in range(self.num_cells):
@@ -519,7 +521,6 @@ class Multicell:
             # 4) node-wise storage of the integer representation of the state
             if self.flag_state_int:
                 self.data_dict['cell_state_int'][i, step] = state_to_label(tuple(cell_state))
-
         return
 
     # TODO implement: periodic saving to file (like step_state_visualize)
