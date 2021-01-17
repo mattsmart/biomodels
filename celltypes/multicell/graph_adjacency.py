@@ -1,5 +1,8 @@
 import numpy as np
 
+from multicell.multicell_constants import VALID_EXOSOME_STRINGS, EXOSTRING
+from singlecell.singlecell_functions import state_subsample, state_only_on, state_only_off
+
 
 def lattice_square_loc_to_int(loc, sidelength):
     # maps a two-tuple, for the location of a cell on square grid, to a unique integer
@@ -41,3 +44,72 @@ def adjacency_lattice_square(sidelength, num_cells, search_radius):
 def adjacency_general(num_cells):
     # TODO implement
     return None
+
+
+def general_paracrine_field(multicell, receiver_idx, flag_01=False, neighbours=None):
+    if neighbours is None:
+        graph_neighbours_col = multicell.matrix_A[:, receiver_idx]
+        neighbours = [idx for idx, i in enumerate(graph_neighbours_col) if i == 1]
+
+    sent_signals = np.zeros(multicell.num_genes)
+    for loc in neighbours:
+        nbr_cell_state = multicell.get_cell_state(loc)
+        if flag_01:
+            # convert to 0, 1 rep for biological dot product below
+            nbr_cell_state_sent = (nbr_cell_state + 1) / 2.0
+        else:
+            nbr_cell_state_sent = nbr_cell_state
+        sent_signals += np.dot(multicell.matrix_W, nbr_cell_state_sent)
+    return sent_signals
+
+
+def general_exosome_field(multicell, receiver_idx, exosome_string=EXOSTRING,
+                          exosome_remove_ratio=0.0, neighbours=None):
+    """
+    Generalization of `get_local_exosome_field(self, ...)` in multicell_class.py
+        A - sample from only 'on' genes (similar options of 'off', 'all')
+        B - 'no_exo_field' will return all np.zeros(num_genes) for the field
+    Returns:
+        (unscaled) exosome field, neighbours
+    """
+    if neighbours is None:
+        graph_neighbours_col = multicell.matrix_A[:, receiver_idx]
+        neighbours = [idx for idx, i in enumerate(graph_neighbours_col) if i == 1]
+
+    field_state = np.zeros(multicell.num_genes)
+    if exosome_string == "on":
+        for loc in neighbours:
+            nbr_cell_state = np.zeros(multicell.num_genes)
+            nbr_cell_state[:] = multicell.get_cell_state(loc)[:]
+            nbr_state_only_on = state_only_on(nbr_cell_state)
+            if exosome_remove_ratio == 0.0:
+                field_state += nbr_state_only_on
+            else:
+                nbr_state_only_on = state_subsample(
+                    nbr_state_only_on, ratio_to_remove=exosome_remove_ratio)
+                field_state += nbr_state_only_on
+    elif exosome_string == "all":
+        for loc in neighbours:
+            nbr_cell_state = np.zeros(multicell.num_genes)
+            nbr_cell_state[:] = multicell.get_cell_state(loc)[:]
+            if exosome_remove_ratio == 0.0:
+                field_state += nbr_cell_state
+            else:
+                nbr_state_subsample = state_subsample(
+                    nbr_cell_state, ratio_to_remove=exosome_remove_ratio)
+                field_state += nbr_state_subsample
+    elif exosome_string == "off":
+        for loc in neighbours:
+            nbr_cell_state = np.zeros(multicell.num_genes)
+            nbr_cell_state[:] = multicell.get_cell_state(loc)[:]
+            nbr_state_only_off = state_only_off(nbr_cell_state)
+            if exosome_remove_ratio == 0.0:
+                field_state += nbr_state_only_off
+            else:
+                nbr_state_only_off = state_subsample(
+                    nbr_state_only_off, ratio_to_remove=exosome_remove_ratio)
+                field_state += nbr_state_only_off
+    else:
+        if exosome_string != "no_exo_field":
+            raise ValueError("exosome_string arg invalid, must be one of %s" % VALID_EXOSOME_STRINGS)
+    return field_state, neighbours

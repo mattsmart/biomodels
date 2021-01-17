@@ -10,21 +10,17 @@ from multicell.multicell_constants import \
     BUILDSTRING, EXOSTRING, LATTICE_PLOT_PERIOD, MEANFIELD, EXOSOME_REMOVE_RATIO, \
     BLOCK_UPDATE_LATTICE, AUTOCRINE
 from multicell.multicell_lattice import \
-    build_lattice_main, get_cell_locations, prep_lattice_data_dict, write_state_all_cells, \
-    write_grid_state_int_alt
+    build_lattice_main, write_grid_state_int_alt
 from multicell.multicell_metrics import \
-    calc_lattice_energy, calc_compression_ratio, get_state_of_lattice
+    calc_compression_ratio, calc_graph_energy
 from multicell.multicell_visualize import \
     graph_lattice_uniplotter, graph_lattice_reference_overlap_plotter, graph_lattice_projection_composite
-from singlecell.singlecell_constants import FIELD_SIGNAL_STRENGTH, FIELD_APPLIED_STRENGTH, BETA
-from singlecell.singlecell_fields import construct_app_field_from_genes
 from singlecell.singlecell_functions import \
     state_memory_overlap_alt, state_memory_projection_alt, state_to_label
 from singlecell.singlecell_simsetup import singlecell_simsetup
-from utils.file_io import run_subdir_setup, runinfo_append, write_general_arr, read_general_arr
+from utils.file_io import run_subdir_setup, runinfo_append, write_general_arr
 
 
-# TODO indicate _private methods (vs non-private, like get_cell_state(idx))
 class Multicell:
     """
     Primary object for multicell simulations.
@@ -251,14 +247,14 @@ class Multicell:
         Currently has the core keys
             memory_proj_arr:           arr M x P x T
             memory_overlap_arr:        arr M x P x T
-            graph_energy:              arr T x 4
+            graph_energy:              arr T x 5
             compressibility_full:      arr T x 3
         Optional keys
             cell_state_int:            arr 1 x T
         """
         data_dict = {}
         # stores: H_multi, H_self, H_app, H_pairwise_scaled
-        data_dict['graph_energy'] = np.zeros((self.total_steps, 4))
+        data_dict['graph_energy'] = np.zeros((self.total_steps, 5))
         # stores: compressibility ratio, eta, eta0
         data_dict['compressibility_full'] = np.zeros((self.total_steps, 3))
         # stores: memory projection/overlap for each memory for each cell
@@ -380,34 +376,7 @@ class Multicell:
             self.graph_state = self.TEMP_graph_state_from_lattice(lattice, sidelength)
         return
 
-    # TODO remove
-    def TEMP_lattice_from_graph_state(self):
-
-        print('call to TEMP_lattice_from_graph_state() -- remove this function')
-        assert self.graph_style == 'lattice_square'
-        N = self.num_genes
-        sidelength = self.graph_kwargs['sidelength']
-
-        # make fake/placeholder lattice
-        lattice = build_lattice_main(sidelength, None, 'random', self.simsetup)
-
-        # now use code to update lattice from state
-        for a in range(self.num_cells):
-            arow, acol = lattice_square_int_to_loc(a, sidelength)
-            cell = lattice[arow][acol]
-            cellstate = np.copy(self.graph_state[a * N: (a + 1) * N])
-            # update cell state specifically
-            lattice[arow][acol].state = cellstate
-            # update whole cell state array (append new state for the current timepoint)
-            state_array_ext = np.zeros((N, np.shape(cell.state_array)[1] + 1))
-            state_array_ext[:, :-1] = cell.state_array  # TODO: make sure don't need array copy
-            state_array_ext[:,-1] = cellstate
-            cell.state_array = state_array_ext
-            # update steps attribute
-            cell.steps += 1
-        return lattice
-
-    # TODO remove
+    # TODO remove asap
     def TEMP_graph_state_from_lattice(self, lattice, sidelength):
         print('call to TEMP_graph_state_from_lattice() -- remove this function')
         assert self.graph_style == 'lattice_square'
@@ -479,41 +448,19 @@ class Multicell:
                                     use_radar=False, pltdir=io_dict['latticedir'])
         return
 
-    # TODO keep, improve
-    # TODO: blockparallel case for - self.data_dict['graph_energy'][step, :] = [0.0, 0.0, 0.0, 0.0]
-    # TODO: self.calc_lattice_energy       (see current in multicell_metrics.py)
-    # TODO: self.calc_compression_ratio    (see current in multicell_metrics.py)
     def step_datadict_update_global(self, step):
         """
         Following a simulation multicell step, update the data dict.
         See init_data_dict() for additional documentation.
         """
-        # TODO generalize to non-lattice
-        assert self.graph_style == 'lattice_square'
-        lattice = self.TEMP_lattice_from_graph_state()
-        field_applied_step = self.field_applied[:, step]
-        field_applied_strength = self.gamma
-        field_ext_strength = self.kappa
-        search_radius_cell = self.graph_kwargs['search_radius']
-        meanfield = False
-
         # 1) compressibility statistics
+        graph_state_01 = ((1 + self.graph_state)/2).astype(int)
         self.data_dict['compressibility_full'][step, :] = \
             calc_compression_ratio(
-                get_state_of_lattice(lattice, self.simsetup, datatype='full'),
-                eta_0=None, datatype='full', elemtype=np.int, method='manual')
-
+                graph_state_01, eta_0=None, datatype='full', elemtype=np.int, method='manual')
         # 2) energy statistics
-        if self.dynamics_blockparallel:
-
-            self.data_dict['graph_energy'][step, :] = [0.0, 0.0, 0.0, 0.0]
-        else:
-            self.data_dict['graph_energy'][step, :] = \
-                calc_lattice_energy(
-                    lattice, self.simsetup, field_applied_step, field_applied_strength,
-                    field_ext_strength, search_radius_cell, self.exosome_remove_ratio,
-                    self.exosome_string, meanfield)
-
+        energy_values = calc_graph_energy(multicell, step, norm=True)
+        self.data_dict['graph_energy'][step, :] = energy_values
         # 3) node-wise projection on the encoded singlecell types
         for i in range(self.num_cells):
             cell_state = self.get_cell_state(i)
@@ -525,7 +472,6 @@ class Multicell:
             # store the projections/overlaps
             self.data_dict['memory_overlap_arr'][i, :, step] = overlap_vec
             self.data_dict['memory_proj_arr'][i, :, step] = proj_vec
-
             # 4) node-wise storage of the integer representation of the state
             if self.flag_state_int:
                 self.data_dict['cell_state_int'][i, step] = state_to_label(tuple(cell_state))
@@ -622,6 +568,12 @@ class Multicell:
         b = self.num_genes * (cell_idx + 1)
         return self.graph_state[a:b]
 
+    def get_field_on_cell(self, cell_idx, step):
+        assert 0 <= cell_idx < self.num_cells  # TODO think this is not needed
+        a = self.num_genes * cell_idx
+        b = self.num_genes * (cell_idx + 1)
+        return self.field_applied[a:b, step]
+
     def cell_cell_overlap(self, idx_a, idx_b):
         s_a = self.get_cell_state(idx_a)
         s_b = self.get_cell_state(idx_b)
@@ -653,40 +605,40 @@ class Multicell:
     def mainloop_data_dict_write(self):
         if self.flag_state_int:
             write_grid_state_int_alt(self.data_dict['cell_state_int'], self.io_dict['datadir'])
-
-        if 'lattice_energy' in list(self.data_dict.keys()):
-            write_general_arr(self.data_dict['lattice_energy'], self.io_dict['datadir'],
-                              'lattice_energy', txt=True, compress=False)
-
+        if 'graph_energy' in list(self.data_dict.keys()):
+            write_general_arr(self.data_dict['graph_energy'], self.io_dict['datadir'],
+                              'graph_energy', txt=True, compress=False)
         if 'compressibility_full' in list(self.data_dict.keys()):
             write_general_arr(self.data_dict['compressibility_full'], self.io_dict['datadir'],
                               'compressibility_full', txt=True, compress=False)
 
     def mainloop_data_dict_plot(self):
-        if 'lattice_energy' in list(self.data_dict.keys()):
-            plt.plot(self.data_dict['lattice_energy'][:, 0], '--ok', label=r'$H_{\mathrm{total}}$')
-            plt.plot(self.data_dict['lattice_energy'][:, 1], '--b', alpha=0.7,
+        if 'graph_energy' in list(self.data_dict.keys()):
+            plt.plot(self.data_dict['graph_energy'][:, 0], '-ok', label=r'$H_{\mathrm{quad}}$',
+                     alpha=0.5)
+            plt.plot(self.data_dict['graph_energy'][:, 1], '--ok', label=r'$H_{\mathrm{total}}$')
+            plt.plot(self.data_dict['graph_energy'][:, 2], '--b', alpha=0.7,
                      label=r'$H_{\mathrm{self}}$')
-            plt.plot(self.data_dict['lattice_energy'][:, 2], '--g', alpha=0.7,
+            plt.plot(self.data_dict['graph_energy'][:, 3], '--g', alpha=0.7,
                      label=r'$H_{\mathrm{app}}$')
-            plt.plot(self.data_dict['lattice_energy'][:, 3], '--r', alpha=0.7,
+            plt.plot(self.data_dict['graph_energy'][:, 4], '--r', alpha=0.7,
                      label=r'$H_{\mathrm{pairwise}}$')
-            plt.plot(self.data_dict['lattice_energy'][:, 0] -
-                     self.data_dict['lattice_energy'][:, 2], '--o',
+            plt.plot(self.data_dict['graph_energy'][:, 1] -
+                     self.data_dict['graph_energy'][:, 3], '--o',
                      color='gray', label=r'$H_{\mathrm{total}} - H_{\mathrm{app}}$')
             plt.title(r'Multicell hamiltonian over time')
-            plt.ylabel(r'Lattice energy')
-            plt.xlabel(r'$t$ (lattice steps)')
+            plt.ylabel(r'Graph energy')
+            plt.xlabel(r'$t$ (graph steps)')
             plt.legend()
             plt.savefig(self.io_dict['plotdatadir'] + os.sep +'hamiltonian.png')
 
             # zoom on relevant part
-            ylow = min(np.min(self.data_dict['lattice_energy'][:, [1, 3]]),
-                       np.min(self.data_dict['lattice_energy'][:, 0] -
-                              self.data_dict['lattice_energy'][:, 2]))
-            yhigh = max(np.max(self.data_dict['lattice_energy'][:, [1, 3]]),
-                        np.max(self.data_dict['lattice_energy'][:, 0] -
-                               self.data_dict['lattice_energy'][:, 2]))
+            ylow = min(np.min(self.data_dict['graph_energy'][:, [2, 4]]),
+                       np.min(self.data_dict['graph_energy'][:, 1] -
+                              self.data_dict['graph_energy'][:, 3]))
+            yhigh = max(np.max(self.data_dict['graph_energy'][:, [2, 4]]),
+                        np.max(self.data_dict['graph_energy'][:, 1] -
+                               self.data_dict['graph_energy'][:, 3]))
             plt.ylim(ylow - 0.1, yhigh + 0.1)
             plt.savefig(self.io_dict['plotdatadir'] + os.sep + 'hamiltonianZoom.png')
             plt.clf()  # plt.show()

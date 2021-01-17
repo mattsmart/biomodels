@@ -2,6 +2,7 @@ import numpy as np
 import os
 
 from singlecell.singlecell_functions import hamiltonian
+from multicell.graph_adjacency import general_paracrine_field, general_exosome_field
 
 
 def calc_lattice_energy(lattice, simsetup, field, fs, gamma, search_radius, exosome_remove_ratio,
@@ -70,6 +71,66 @@ def calc_lattice_energy(lattice, simsetup, field, fs, gamma, search_radius, exos
         H_pairwise_scaled = H_pairwise_scaled / num_cells
     H_multi = H_self + H_app + H_pairwise_scaled
     return H_multi, H_self, H_app, H_pairwise_scaled
+
+
+def calc_graph_energy(multicell, step, norm=True):
+    """
+    Graph energy is the multicell hamiltonian
+        H_multi = [Sum (H_internal)] - gamma * [Sum(interactions)] - fs * [app_field dot Sum(state)]
+    - Only valid for symmetric J, W, A matrices
+    - Field should be 1D arr of size num_cells * num_genes, already scaled by field strength kappa
+    - Returns total energy and the three main terms
+         H_quadratic_form, H_multi, H_self, H_app, H_pairwise_scaled
+    - Expect H_quadratic_form to equal H_multi when no_exo_field is used
+    """
+    num_cells = multicell.num_cells
+    H_self = 0
+    H_pairwise = 0
+    H_app = 0
+
+    # TODO how to incorporate exosomes
+    H_quadratic_form = -0.5 * np.dot(np.dot(multicell.matrix_J_multicell, multicell.graph_state),
+                                     multicell.graph_state) \
+                       - np.dot(multicell.field_applied[:, step], multicell.graph_state)
+
+    for a in range(num_cells):
+        cell_state = multicell.get_cell_state(a)
+
+        # compute self energies and applied field contribution separately
+        H_self += hamiltonian(cell_state, multicell.matrix_J, field=None, fs=0.0)
+
+        # compute applied field term on that cell
+        field_on_cell = multicell.get_field_on_cell(a, step)
+        H_app -= np.dot(cell_state.T, field_on_cell)
+
+        # compute interactions  # TODO check validity
+        #  note that a cells neighboursa are the ones which 'send' to it
+        #  if A_ij = 1, then there is a connection from i to j
+        #  to get all the senders to cell i, we need to look at col i
+        graph_neighbours_col = multicell.matrix_A[:, a]
+        graph_neighbours = [idx for idx, i in enumerate(graph_neighbours_col) if i == 1]
+
+        field_signal_exo, _ = general_exosome_field(
+            multicell, a, neighbours=graph_neighbours, exosome_string=multicell.exosome_string,
+            exosome_remove_ratio=multicell.exosome_remove_ratio)
+
+        field_signal_W = general_paracrine_field(
+            multicell, a, flag_01=False, neighbours=graph_neighbours)
+
+        field_signal_unscaled = field_signal_exo + field_signal_W
+        H_pairwise -= np.dot(field_signal_unscaled, cell_state)
+
+    # divide by two because double-counting neighbours
+    H_pairwise_scaled = H_pairwise * multicell.gamma / 2
+
+    if norm:
+        H_quadratic_form = H_quadratic_form / num_cells
+        H_self = H_self / num_cells
+        H_app = H_app / num_cells
+        H_pairwise_scaled = H_pairwise_scaled / num_cells
+
+    H_multi = H_self + H_app + H_pairwise_scaled
+    return H_quadratic_form, H_multi, H_self, H_app, H_pairwise_scaled
 
 
 def get_state_of_lattice(lattice, simsetup, datatype='full'):
