@@ -63,8 +63,7 @@ def general_paracrine_field(multicell, receiver_idx, flag_01=False, neighbours=N
     return sent_signals
 
 
-def general_exosome_field(multicell, receiver_idx, exosome_string=EXOSTRING,
-                          exosome_remove_ratio=0.0, neighbours=None):
+def general_exosome_field(multicell, receiver_idx, neighbours=None):
     """
     Generalization of `get_local_exosome_field(self, ...)` in multicell_class.py
         A - sample from only 'on' genes (similar options of 'off', 'all')
@@ -72,6 +71,9 @@ def general_exosome_field(multicell, receiver_idx, exosome_string=EXOSTRING,
     Returns:
         (unscaled) exosome field, neighbours
     """
+    exosome_string = multicell.exosome_string
+    exosome_remove_ratio = multicell.exosome_remove_ratio
+
     if neighbours is None:
         graph_neighbours_col = multicell.matrix_A[:, receiver_idx]
         neighbours = [idx for idx, i in enumerate(graph_neighbours_col) if i == 1]

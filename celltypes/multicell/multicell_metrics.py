@@ -109,11 +109,7 @@ def calc_graph_energy(multicell, step, norm=True):
         #  to get all the senders to cell i, we need to look at col i
         graph_neighbours_col = multicell.matrix_A[:, a]
         graph_neighbours = [idx for idx, i in enumerate(graph_neighbours_col) if i == 1]
-
-        field_signal_exo, _ = general_exosome_field(
-            multicell, a, neighbours=graph_neighbours, exosome_string=multicell.exosome_string,
-            exosome_remove_ratio=multicell.exosome_remove_ratio)
-
+        field_signal_exo, _ = general_exosome_field(multicell, a, neighbours=graph_neighbours)
         field_signal_W = general_paracrine_field(
             multicell, a, flag_01=False, neighbours=graph_neighbours)
 

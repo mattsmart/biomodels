@@ -4,7 +4,8 @@ import random
 import matplotlib.pyplot as plt
 
 from multicell.graph_adjacency import \
-    lattice_square_int_to_loc, adjacency_lattice_square, adjacency_general
+    lattice_square_int_to_loc, adjacency_lattice_square, adjacency_general, general_exosome_field, \
+    general_paracrine_field
 from multicell.multicell_constants import \
     GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS, VALID_BUILDSTRINGS, VALID_EXOSOME_STRINGS, \
     BUILDSTRING, EXOSTRING, LATTICE_PLOT_PERIOD, MEANFIELD, EXOSOME_REMOVE_RATIO, \
@@ -15,6 +16,7 @@ from multicell.multicell_metrics import \
     calc_compression_ratio, calc_graph_energy
 from multicell.multicell_visualize import \
     graph_lattice_uniplotter, graph_lattice_reference_overlap_plotter, graph_lattice_projection_composite
+from singlecell.singlecell_class import Cell
 from singlecell.singlecell_functions import \
     state_memory_overlap_alt, state_memory_projection_alt, state_to_label
 from singlecell.singlecell_simsetup import singlecell_simsetup
@@ -411,41 +413,57 @@ class Multicell:
 
     # TODO how to support different graph types without using the SpatialCell class?
     #  currently all old code from multicell+simulate
-    def step_dynamics_async(self, applied_field, beta):
-        assert 1==2
+    # TODO Meanfield setting previously used for speedups, but removed now:
+    def step_dynamics_async(self, field_applied, beta):
 
-        cell_indices = random.shuffle(list(range(self.num_cells)))  # TODO random SEED
-        for idx, loc in enumerate(cell_indices):
-            cell = lattice[loc[0]][loc[1]]
+        cell_indices = list(range(self.num_cells))
+        random.seed(multicell.seed); random.shuffle(cell_indices)
 
-            if meanfield:
-                cellstate_pre = np.copy(cell.get_current_state())
-                cell.update_with_meanfield(
-                    simsetup['J'], field_global, beta=beta, app_field=app_field_step,
-                    field_signal_strength=ext_field_strength,
-                    field_app_strength=app_field_strength)
-                # TODO update field_avg based on new state TODO test
-                state_total += (cell.get_current_state() - cellstate_pre)
-                state_total_01 = (state_total + num_cells) / 2
-                field_global = np.dot(simsetup['FIELD_SEND'], state_total_01)
-                print(field_global)
-                print(state_total)
-            else:
-                cell.update_with_signal_field(
-                    lattice, SEARCH_RADIUS_CELL, n, simsetup['J'], simsetup, beta=beta,
-                    exosome_string=exosome_string,
-                    exosome_remove_ratio=exosome_remove_ratio,
-                    field_signal_strength=ext_field_strength, field_app=app_field_step,
-                    field_app_strength=app_field_strength)
+        for idx, node_idx in enumerate(cell_indices):
+            cell_state = self.get_cell_state(node_idx)
+            spin_idx_low = self.num_genes * node_idx
+            spin_idx_high = self.num_genes * (node_idx + 1)
 
-            # update cell specific datadict entries for the current timestep
-            cell_proj = update_datadict_timestep_cell(lattice, loc, memory_idx_list, turn)
+            # extract applied field specific to cell at given node
+            field_applied_on_cell = field_applied[spin_idx_low: spin_idx_high]
 
+            #  note that a cells neighboursa are the ones which 'send' to it
+            #  if A_ij = 1, then there is a connection from i to j
+            #  to get all the senders to cell i, we need to look at col i
+            graph_neighbours_col = multicell.matrix_A[:, node_idx]
+            graph_neighbours = [node for node, i in enumerate(graph_neighbours_col) if i == 1]
+
+            # signaling field part 1
+            field_signal_exo, _ = general_exosome_field(
+                multicell, node_idx, neighbours=graph_neighbours)
+            # signaling field part 2
+            field_signal_W = general_paracrine_field(
+                multicell, node_idx, flag_01=False, neighbours=graph_neighbours)
+            # sum the two field contributions
+            field_signal_unscaled = field_signal_exo + field_signal_W
+            field_signal = multicell.gamma * field_signal_unscaled
+
+            dummy_cell = Cell(np.copy(cell_state), 'fake_cell',
+                              multicell.simsetup['CELLTYPE_LABELS'],
+                              multicell.simsetup['GENE_LABELS'],
+                              state_array=None,
+                              steps=None)
+            # TODO pass seed to update call or pass to new attribute Cell
+            dummy_cell.update_state(
+                beta=beta,
+                intxn_matrix=multicell.matrix_J,
+                field_signal=field_signal,
+                field_signal_strength=1.0,
+                field_applied=field_applied_on_cell,
+                field_applied_strength=1.0)
+
+            multicell.graph_state[spin_idx_low : spin_idx_high] = dummy_cell.get_current_state()
+            """
             if turn % (
                     120 * plot_period) == 0:  # proj vis of each cell (slow; every k steps)
                 fig, ax, proj = cell. \
                     plot_projection(simsetup['A_INV'], simsetup['XI'], proj=cell_proj,
-                                    use_radar=False, pltdir=io_dict['latticedir'])
+                                    use_radar=False, pltdir=io_dict['latticedir'])"""
         return
 
     def step_datadict_update_global(self, step):
@@ -527,11 +545,9 @@ class Multicell:
             beta_step = self.beta[step]
 
             if self.dynamics_blockparallel:
-                self.step_dynamics_parallel(field_applied=field_applied_step, beta=beta_step)
+                self.step_dynamics_parallel(field_applied_step, beta_step)
             else:
-                # TODO applied field block ?
-                assert 1==2
-                self.dynamics_async()
+                self.step_dynamics_async(field_applied_step, beta_step)
 
             # compute lattice properties (assess global state)
             # TODO 1 - consider lattice energy at each cell update (not lattice update)
@@ -688,7 +704,7 @@ if __name__ == '__main__':
     total_steps = 40           # global NUM_LATTICE_STEPS
     plot_period = 1
     flag_state_int = True
-    flag_blockparallel = True
+    flag_blockparallel = False
     beta = 2000.0
     gamma = 20.0               # i.e. field_signal_strength
     kappa = 0.0                # i.e. field_applied_strength
