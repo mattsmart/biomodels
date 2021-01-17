@@ -344,8 +344,8 @@ class Multicell:
         Initialize the state of each cell in the Multicell dynamical system
         """
         assert self.graph_style == 'lattice_square' # TODO not this
-
         initialization_style = self.graph_kwargs['initialization_style']
+
         if self.graph_style == 'general':
             pass # TODO
         elif self.graph_style == 'meanfield':
@@ -353,6 +353,7 @@ class Multicell:
         else:
             assert self.graph_style == 'lattice_square'
             sidelength = self.graph_kwargs['sidelength']
+            buildstring = initialization_style
 
             # 1) use old lattice initializer
             if buildstring == "mono":
@@ -736,12 +737,12 @@ if __name__ == '__main__':
     print("simsetup['P'],", simsetup_main['P'])
 
     # setup 2.1) multicell sim core parameters
-    num_cells = 4**2      # global GRIDSIZE
-    total_steps = 10      # global NUM_LATTICE_STEPS
-    buildstring = "dual"  # init condition: mono/dual/memory_sequence/random
+    num_cells = 20**2              # global GRIDSIZE
+    total_steps = 10               # global NUM_LATTICE_STEPS
+    initialization_style = "dual"  # init condition: mono/dual/memory_sequence/random
     plot_period = 1
     flag_state_int = True
-    beta = BETA  # 2.0
+    beta = 2.0
 
     # setup 2.2) graph options
     autocrine = False
@@ -752,8 +753,8 @@ if __name__ == '__main__':
     # setup 2.3) signalling field (exosomes + cell-cell signalling via W matrix)
     # Note: consider rescale gamma as gamma / num_cells * num_plaquette
     # global gamma acts as field_strength_signal, it tunes exosomes AND sent field
-    gamma = 0.0
-    exosome_string = "no_exo_field"  # on/off/all/no_exo_field; 'off' = send info only 'off' genes
+    gamma = 1.0
+    exosome_string = "on"  # on/off/all/no_exo_field; 'off' = send info only 'off' genes
     exosome_remove_ratio = 0.0  # amount of exo field idx to randomly prune from each cell
 
     # setup 2.4) applied/manual field (part 1)
