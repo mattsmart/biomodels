@@ -8,11 +8,11 @@ def lattice_square_loc_to_int(loc, sidelength):
     return x * sidelength + y
 
 
-def lattice_square_int_to_loc(grid_int, sidelength):
-    # maps grid_int, the unique int rep of a cell location on the grid, to corresponding two-tuple
+def lattice_square_int_to_loc(node_idx, sidelength):
+    # maps node_idx, the unique int rep of a cell location on the grid, to corresponding two-tuple
     # sidelength is sqrt(num_cells), the edge length of the lattice
-    y = grid_int % sidelength              # remainder from the division mod n
-    x = int((grid_int - y) / sidelength)   # solve for x
+    y = node_idx % sidelength              # remainder from the division mod n
+    x = int((node_idx - y) / sidelength)   # solve for x
     return x, y
 
 
