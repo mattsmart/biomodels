@@ -47,8 +47,8 @@ def run_cytokine_network(lattice, num_lattice_steps, intxn_matrix, signal_matrix
     # initial condition plot
     printer_labels(lattice)
     """
-    lattice_projection_composite(lattice, 0, n, plot_lattice_folder)
-    reference_overlap_plotter(lattice, 0, n, plot_lattice_folder)
+    graph_lattice_projection_composite(lattice, 0, n, plot_lattice_folder)
+    graph_lattice_reference_overlap_plotter(lattice, 0, n, plot_lattice_folder)
     if flag_uniplots:
         for mem_idx in memory_idx_list:
             lattice_uniplotter(lattice, 0, n, plot_lattice_folder, mem_idx)
@@ -73,8 +73,8 @@ def run_cytokine_network(lattice, num_lattice_steps, intxn_matrix, signal_matrix
         printer_labels(lattice)
         """
         if turn % plot_period == 0:  # plot the lattice
-            lattice_projection_composite(lattice, turn, n, plot_lattice_folder)
-            reference_overlap_plotter(lattice, turn, n, plot_lattice_folder)
+            graph_lattice_projection_composite(lattice, turn, n, plot_lattice_folder)
+            graph_lattice_reference_overlap_plotter(lattice, turn, n, plot_lattice_folder)
             if flag_uniplots:
                 for mem_idx in memory_idx_list:
                     lattice_uniplotter(lattice, turn, n, plot_lattice_folder, mem_idx)

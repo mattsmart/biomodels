@@ -123,7 +123,7 @@ def replot(filename, simsetup):
 
     """
     if state_int:
-        state_ints = get_lattice_state_ints(lattice, n)
+        state_ints = get_graph_lattice_state_ints(lattice, n)
         for (j, i), label in np.ndenumerate(state_ints):
             plt.gca().text(i, j, label, color='black', ha='center', va='center')
     """

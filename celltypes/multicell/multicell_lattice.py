@@ -155,7 +155,7 @@ def write_state_all_cells(lattice, data_folder):
             lattice[i][j].write_state(data_folder)
     print("Done")
 
-
+# TODO remove and fix load fn doc
 def write_grid_state_int(grid_state_int, data_folder):
     """
     For each timestep, writes the n x n grid of integer states
@@ -164,6 +164,16 @@ def write_grid_state_int(grid_state_int, data_folder):
     for i in range (num_steps):
         filename = data_folder + os.sep + 'grid_state_int_at_step_%d.txt' % i
         np.savetxt(filename, grid_state_int[:, :, i], fmt='%d', delimiter=',')
+
+
+def write_grid_state_int_alt(cell_state_int, data_folder):
+    """
+    For each timestep, writes the n x n grid of integer states
+    """
+    num_steps = cell_state_int.shape[-1]
+    for i in range(num_steps):
+        filename = data_folder + os.sep + 'cell_state_int_at_step_%d.txt' % i
+        np.savetxt(filename, cell_state_int[:, i], fmt='%d', delimiter=',')
 
 
 def read_grid_state_int(fname):

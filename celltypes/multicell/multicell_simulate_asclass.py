@@ -11,13 +11,14 @@ from multicell.multicell_constants import \
     BLOCK_UPDATE_LATTICE, AUTOCRINE
 from multicell.multicell_lattice import \
     build_lattice_main, get_cell_locations, prep_lattice_data_dict, write_state_all_cells, \
-    write_grid_state_int
+    write_grid_state_int_alt
 from multicell.multicell_metrics import \
     calc_lattice_energy, calc_compression_ratio, get_state_of_lattice
-from multicell.multicell_visualize import \
-    lattice_uniplotter, reference_overlap_plotter, lattice_projection_composite
+from multicell.multicell_visualize_asclass import \
+    graph_lattice_uniplotter, graph_lattice_reference_overlap_plotter, graph_lattice_projection_composite
 from singlecell.singlecell_constants import FIELD_SIGNAL_STRENGTH, FIELD_APPLIED_STRENGTH, BETA
 from singlecell.singlecell_fields import construct_app_field_from_genes
+from singlecell.singlecell_functions import state_memory_projection_alt, state_to_label
 from singlecell.singlecell_simsetup import singlecell_simsetup
 from utils.file_io import run_subdir_setup, runinfo_append, write_general_arr, read_general_arr
 
@@ -152,12 +153,6 @@ class Multicell:
     # TODO cleanup
     def init_assert_and_sanitize(self):
 
-        # beta check
-        if isinstance(self.beta, np.ndarray):
-            assert self.beta.shape == (self.total_steps,)
-        else:
-            assert isinstance(self.beta, float)
-
         # field signal
         assert self.exosome_string in VALID_EXOSOME_STRINGS
         assert 0.0 <= self.exosome_remove_ratio < 1.0
@@ -195,22 +190,22 @@ class Multicell:
             self.field_applied = np.zeros((self.total_spins, self.total_steps))
         print('field_applied.shape:', self.field_applied.shape)         # TODO remove?
 
-        # temperature
+        # beta (temperature) check
         if isinstance(self.beta, np.ndarray):
-            assert self.beta.shape == self.total_steps
+            assert self.beta.shape == (self.total_steps,)
         else:
             assert isinstance(self.beta, float)
-            self.beta = np.array([beta for _ in range(self.total_steps)])
+            self.beta = np.array([self.beta for _ in range(self.total_steps)])
 
         # TODO other checks to reimplement
         # misc checks
-        assert type(self.num_steps) is int
+        assert type(self.total_steps) is int
         assert type(self.plot_period) is int
 
         # graph = lattice square case
         if self.graph_style == 'lattice_square':
             self.graph_kwargs['sidelength'] = int(np.sqrt(self.num_cells) + 0.5)
-            assert self.graph_kwargs['search_radius'] < 0.5 * self.graph_kwargs['sidelength']
+            assert self.graph_kwargs['search_radius'] <= 0.5 * self.graph_kwargs['sidelength']
             assert self.graph_kwargs['initialization_style'] in VALID_BUILDSTRINGS
 
         assert self.graph_style in ['general', 'meanfield', 'lattice_square']
@@ -235,8 +230,8 @@ class Multicell:
                      ['flag_housekeeping', self.flag_housekeeping],
                      ['num_housekeeping', self.num_housekeeping],
                      ['beta', beta],
-                     ['random_mem', simsetup['random_mem']],
-                     ['random_W', simsetup['random_W']],
+                     ['random_mem', self.simsetup['random_mem']],
+                     ['random_W', self.simsetup['random_W']],
                      ['dynamics_blockparallel', BLOCK_UPDATE_LATTICE],
                      ]
         runinfo_append(io_dict, info_list, multi=True)
@@ -251,24 +246,28 @@ class Multicell:
     # TODO this can be achieved by hiding the grid aspect of cells -- just use their graph node index
     #  and convert to loc i, j on the fly (or as cell class attribute...)
     def init_data_dict(self):
-        # currently has keys like
         """
-        data_dict['memory_proj_arr']
-        data_dict['grid_state_int']
-        data_dict['lattice_energy']
-        data_dict['compressibility_full']
-        data_dict['memory_proj_arr'][idx] = np.zeros((n * n, duration))"""
+        Currently has the core keys
+            memory_proj_arr:           arr M x P x T
+            graph_energy:              arr T x 4
+            compressibility_full:      arr T x 3
+        Optional keys
+            cell_state_int:            arr 1 x T
+        """
         data_dict = {}
-
-        # TODO
-        data_dict = prep_lattice_data_dict(
-            gridsize, num_steps, list_of_type_idx, buildstring, data_dict)
-        # TODO
+        # stores: H_multi, H_self, H_app, H_pairwise_scaled
+        data_dict['graph_energy'] = np.zeros((self.total_steps, 4))
+        # stores: compressibility ratio, eta, eta0
+        data_dict['compressibility_full'] = np.zeros((self.total_steps, 3))
+        # stores: memory projection for each memory for each cell
+        data_dict['memory_proj_arr'] = np.zeros(
+            (self.num_cells, self.simsetup['P'], self.total_steps))
+        # stores: memory projection for each memory for each cell
         if self.flag_state_int:
-            data_dict['state_int'] = np.zeros((self.num_cells, self.num_steps), dtype=int)
+            data_dict['cell_state_int'] = np.zeros((self.num_cells, self.total_steps), dtype=int)
         return data_dict
 
-    def build_adjacency(self, plot=True):
+    def build_adjacency(self, plot=False):
         """
         Builds node adjacency matrix arr_A based on graph style and hyperparameters
         Supported graph styles
@@ -310,17 +309,16 @@ class Multicell:
 
         return arr_A
 
-    # TODO test for small num_cell cases e.g. 1 cell, 2 cells up tri lowtri may fail
-    def build_J_multicell(self, plot=True):
+    def build_J_multicell(self, plot=False):
 
         W_scaled = self.gamma * self.matrix_W
         W_scaled_sym = 0.5 * (W_scaled + W_scaled.T)
 
         # Term A: self interactions for each cell (diagonal blocks of multicell J_block)
         if self.autocrine:
-            J_diag_blocks = np.kron(np.eye(self.num_cells), simsetup['J'] + W_scaled_sym)
+            J_diag_blocks = np.kron(np.eye(self.num_cells), self.simsetup['J'] + W_scaled_sym)
         else:
-            J_diag_blocks = np.kron(np.eye(self.num_cells), simsetup['J'])
+            J_diag_blocks = np.kron(np.eye(self.num_cells), self.simsetup['J'])
 
         # Term B of J_multicell (cell-cell interactions)
         # TODO what about exosomes?
@@ -365,10 +363,10 @@ class Multicell:
                 type_2_idx = 1
                 list_of_type_idx = [type_1_idx, type_2_idx]
             if buildstring == "memory_sequence":
-                list_of_type_idx = list(range(simsetup['P']))
+                list_of_type_idx = list(range(self.simsetup['P']))
                 # random.shuffle(list_of_type_idx)  # TODO shuffle or not?
             if buildstring == "random":
-                list_of_type_idx = list(range(simsetup['P']))
+                list_of_type_idx = list(range(self.simsetup['P']))
             lattice = build_lattice_main(
                 sidelength, list_of_type_idx, initialization_style, self.simsetup)
             # print list_of_type_idx
@@ -381,7 +379,7 @@ class Multicell:
     def TEMP_lattice_from_graph_state(self):
 
         print('call to TEMP_lattice_from_graph_state() -- remove this function')
-        assert self.graph_style == 'lattice_sqyare'
+        assert self.graph_style == 'lattice_square'
         N = self.num_genes
         sidelength = self.graph_kwargs['sidelength']
         buildstring = self.graph_kwargs['initialization_style']
@@ -395,10 +393,10 @@ class Multicell:
             type_2_idx = 1
             list_of_type_idx = [type_1_idx, type_2_idx]
         if buildstring == "memory_sequence":
-            list_of_type_idx = list(range(simsetup['P']))
+            list_of_type_idx = list(range(self.simsetup['P']))
             # random.shuffle(list_of_type_idx)  # TODO shuffle or not?
         if buildstring == "random":
-            list_of_type_idx = list(range(simsetup['P']))
+            list_of_type_idx = list(range(self.simsetup['P']))
         lattice = build_lattice_main(sidelength, list_of_type_idx, buildstring, self.simsetup)
 
         # now use code to update lattice from state
@@ -496,7 +494,8 @@ class Multicell:
     # TODO: self.calc_compression_ratio    (see current in multicell_metrics.py)
     def step_datadict_update_global(self, step):
         """
-        Following a simulation multicell step, update the data dict
+        Following a simulation multicell step, update the data dict.
+        See init_data_dict() for additional documentation.
         """
         # TODO generalize to non-lattice
         assert self.graph_style == 'lattice_square'
@@ -507,14 +506,34 @@ class Multicell:
         search_radius_cell = self.graph_kwargs['search_radius']
         meanfield = False
 
-        self.data_dict['lattice_energy'][step, :] = \
-            calc_lattice_energy(
-                lattice, simsetup, app_field_step, app_field_strength, ext_field_strength,
-                search_radius_cell, self.exosome_remove_ratio, self.exosome_string, meanfield)
+        # 1) compressibility statistics
         self.data_dict['compressibility_full'][step, :] = \
             calc_compression_ratio(
-                get_state_of_lattice(lattice, simsetup, datatype='full'),
+                get_state_of_lattice(lattice, self.simsetup, datatype='full'),
                 eta_0=None, datatype='full', elemtype=np.int, method='manual')
+
+        # 2) energy statistics
+        if self.dynamics_blockparallel:
+            # TODO
+            self.data_dict['graph_energy'][step, :] = [0.0, 0.0, 0.0, 0.0]
+        else:
+            self.data_dict['graph_energy'][step, :] = \
+                calc_lattice_energy(
+                    lattice, self.simsetup, app_field_step, app_field_strength, ext_field_strength,
+                    search_radius_cell, self.exosome_remove_ratio, self.exosome_string, meanfield)
+
+        # 3) node-wise projection on the encoded singlecell types
+        for i in range(self.num_cells):
+            cell_state = self.get_cell_state(i)
+            # get the projections
+            proj_vec = state_memory_projection_alt(
+                cell_state, self.simsetup['A_INV'], self.num_genes, self.simsetup['XI'])
+            # store the projections
+            self.data_dict['memory_proj_arr'][i, :, step] = proj_vec
+            # 4) node-wise storage of the integer representation of the state
+            if self.flag_state_int:
+                self.data_dict['cell_state_int'][i, step] = state_to_label(tuple(cell_state))
+
         return
 
     # TODO implement: periodic saving to file (like step_state_visualize)
@@ -523,18 +542,18 @@ class Multicell:
 
     # TODO want: periodic plot to file
     # TODO remove lattice square assert (generalize)
-    def step_state_visualize(self, step, memory_idx_list, flag_uniplots=False):
+    def step_state_visualize(self, step, flag_uniplots=False):
         assert self.graph_style == 'lattice_square'
-        lattice = self.TEMP_lattice_from_graph_state()
-        n = self.graph_kwargs['sidelength']
+        nn = self.graph_kwargs['sidelength']
 
-        lattice_projection_composite(
-            lattice, step, n, self.io_dict['latticedir'], self.simsetup, state_int=self.flag_state_int)
-        reference_overlap_plotter(
-            lattice, step, n, self.io_dict['latticedir'], self.simsetup, state_int=self.flag_state_int)
+        # plot type A
+        graph_lattice_projection_composite(multicell, step)
+        # plot type B
+        graph_lattice_reference_overlap_plotter(multicell, step)
+        # plot type C
         if flag_uniplots:
-            for mem_idx in memory_idx_list:
-                lattice_uniplotter(lattice, step, n, self.io_dict['latticedir'], mem_idx, self.simsetup)
+            for mu in range(self.simsetup['P']):
+                graph_lattice_uniplotter(multicell, step, nn, self.io_dict['latticedir'], mu)
         return
 
     # TODO total_steps handles cases of parallel and async
@@ -554,34 +573,22 @@ class Multicell:
         #  - cell_locations = get_cell_locations(lattice, n)
         #  - for loc in cell_locations:
         #        update_datadict_timestep_cell(lattice, loc, memory_idx_list, 0)
-
-        # TODO what to do?
-        def update_datadict_timestep_cell(lattice, loc, memory_idx_list, timestep_idx):
-            assert 1==2
-            cell = lattice[loc[0]][loc[1]]
-            # store the projections
-            proj = cell.get_memories_projection(simsetup['A_INV'], simsetup['XI'])
-            for mem_idx in memory_idx_list:
-                data_dict['memory_proj_arr'][mem_idx][loc_to_idx[loc], timestep_idx] = proj[mem_idx]
-            # store the integer representation of the state
-            if state_int:
-                data_dict['grid_state_int'][loc[0], loc[1], timestep_idx] = cell.get_current_label()
-            return proj
+        #  - cell specific datastorage call
 
         # 1) input processing
-        memory_idx_list = list(self.data_dict['memory_proj_arr'].keys())  # TODO what is this
+        memory_idx_list = list(range(self.simsetup['P']))
 
         # 2) initial data storage and plotting
         self.step_datadict_update_global(0)  # measure initial state
-        self.step_state_visualize(0, memory_idx_list)
+        self.step_state_visualize(0)
 
         # 3) main loop
         for step in range(1, self.total_steps):
-            print('Dynamics step: ', self.current_step + 1)
+            print('Dynamics step: ', step)
 
             # applied field and beta schedule
             field_applied_step = self.field_applied[:, step]
-            beta_step = beta[step]
+            beta_step = self.beta[step]
 
             if self.dynamics_blockparallel:
                 self.step_dynamics_parallel(field_applied=field_applied_step, beta=beta_step)
@@ -597,13 +604,12 @@ class Multicell:
 
             # periodic plotting call
             if step % self.plot_period == 0:  # plot the lattice
-                self.step_state_visualize(step, memory_idx_list)
+                self.step_state_visualize(step)
                 # TODO call to save
                 #self.step_state_save(step, memory_idx_list)
 
             # update class attributes TODO any others?
             self.current_step += 1
-
 
     def standard_simulation(self):
         # run the simulation
@@ -621,20 +627,25 @@ class Multicell:
         return
 
     def get_cell_state(self, cell_idx):
-        assert 0 < cell_idx < self.num_cells
+        assert 0 <= cell_idx < self.num_cells  # TODO think this is not needed
         a = self.num_genes * cell_idx
         b = self.num_genes * (cell_idx + 1)
         return self.graph_state[a:b]
 
+    def cell_cell_overlap(self, idx_a, idx_b):
+        s_a = self.get_cell_state(idx_a)
+        s_b = self.get_cell_state(idx_b)
+        return np.dot(s_a.T, s_b) / self.num_genes
+
     def plot_datadict_memory_proj(self):
         # check the data dict
-        for data_idx, memory_idx in enumerate(self.data_dict['memory_proj_arr'].keys()):
-            print(self.data_dict['memory_proj_arr'][memory_idx])
-            plt.plot(self.data_dict['memory_proj_arr'][memory_idx].T)
+        for mu in range(self.simsetup['P']):
+            print(self.data_dict['memory_proj_arr'][:, mu, :])
+            plt.plot(self.data_dict['memory_proj_arr'][:, mu, :].T)
             plt.ylabel('Projection of all cells onto type: %s' %
-                       self.simsetup['CELLTYPE_LABELS'][memory_idx])
+                       self.simsetup['CELLTYPE_LABELS'][mu])
             plt.xlabel('Time (full lattice steps)')
-            plt.savefig(self.io_dict['plotdatadir'] + os.sep + 'proj%d.png' % (memory_idx))
+            plt.savefig(self.io_dict['plotdatadir'] + os.sep + 'proj%d.png' % (mu))
             plt.clf()  # plt.show()
         return
 
@@ -645,7 +656,7 @@ class Multicell:
      self.exosome_remove_ratio, field_signal_strength)"""
     def mainloop_data_dict_write(self):
         if self.flag_state_int:
-            write_grid_state_int(self.data_dict['grid_state_int'], self.io_dict['datadir'])
+            write_grid_state_int_alt(self.data_dict['cell_state_int'], self.io_dict['datadir'])
 
         if 'lattice_energy' in list(self.data_dict.keys()):
             write_general_arr(self.data_dict['lattice_energy'], self.io_dict['datadir'],
@@ -684,9 +695,11 @@ class Multicell:
             plt.savefig(self.io_dict['plotdatadir'] + os.sep + 'hamiltonianZoom.png')
             plt.clf()  # plt.show()
 
+        # TODO check validity or remove
         if 'compressibility_full' in list(self.data_dict.keys()):
-            assert 1==2
-            # TODO non lattice
+
+            assert self.graph_style == 'lattice_square'
+            nn = self.graph_kwargs['sidelength']
 
             plt.plot(self.data_dict['compressibility_full'][:, 0], '--o', color='orange')
             plt.title(r'File compressibility ratio of the full lattice spin state')
@@ -694,13 +707,13 @@ class Multicell:
             plt.axhline(y=1.0, ls='--', color='k')
 
             ref_0 = calc_compression_ratio(
-                x=np.zeros((len(lattice), len(lattice[0]), simsetup['N']), dtype=int),
+                x=np.zeros((nn, nn, self.simsetup['N']), dtype=int),
                 method='manual',
-                eta_0=data_dict['compressibility_full'][0, 2], datatype='full', elemtype=np.int)
+                eta_0=self.data_dict['compressibility_full'][0, 2], datatype='full', elemtype=np.int)
             ref_1 = calc_compression_ratio(
-                x=np.ones((len(lattice), len(lattice[0]), simsetup['N']), dtype=int),
+                x=np.ones((nn, nn, self.simsetup['N']), dtype=int),
                 method='manual',
-                eta_0=data_dict['compressibility_full'][0, 2], datatype='full', elemtype=np.int)
+                eta_0=self.data_dict['compressibility_full'][0, 2], datatype='full', elemtype=np.int)
             plt.axhline(y=ref_0[0], ls='-.', color='gray')
             plt.axhline(y=ref_1[0], ls='-.', color='blue')
             print(ref_0, ref_0, ref_0, ref_0, 'is', ref_0, 'vs', ref_1)
@@ -714,17 +727,16 @@ if __name__ == '__main__':
 
     # 1) create simsetup
     curated = True
-    random_mem = False
-    random_W = True
-    simsetup = singlecell_simsetup(
+    random_mem = False        # TODO incorporate seed in random XI
+    random_W = False          # TODO incorporate seed in random W
+    simsetup_main = singlecell_simsetup(
         unfolding=True, random_mem=random_mem, random_W=random_W, curated=curated, housekeeping=0)
     print("simsetup checks:")
-    print("simsetup['N'],", simsetup['N'])
-    print("simsetup['P'],", simsetup['P'])
-
+    print("simsetup['N'],", simsetup_main['N'])
+    print("simsetup['P'],", simsetup_main['P'])
 
     # setup 2.1) multicell sim core parameters
-    num_cells = 4         # global GRIDSIZE
+    num_cells = 4**2      # global GRIDSIZE
     total_steps = 10      # global NUM_LATTICE_STEPS
     buildstring = "dual"  # init condition: mono/dual/memory_sequence/random
     plot_period = 1
@@ -740,7 +752,7 @@ if __name__ == '__main__':
     # setup 2.3) signalling field (exosomes + cell-cell signalling via W matrix)
     # Note: consider rescale gamma as gamma / num_cells * num_plaquette
     # global gamma acts as field_strength_signal, it tunes exosomes AND sent field
-    gamma = 0.1
+    gamma = 0.0
     exosome_string = "no_exo_field"  # on/off/all/no_exo_field; 'off' = send info only 'off' genes
     exosome_remove_ratio = 0.0  # amount of exo field idx to randomly prune from each cell
 
@@ -758,9 +770,9 @@ if __name__ == '__main__':
     if flag_housekeeping:
         assert field_housekeeping_strength > 0
         # housekeeping auto (via model extension)
-        field_housekeeping = np.zeros(simsetup['N'])
-        if simsetup['K'] > 0:
-            field_housekeeping[-simsetup['K']:] = 1.0
+        field_housekeeping = np.zeros(simsetup_main['N'])
+        if simsetup_main['K'] > 0:
+            field_housekeeping[-simsetup_main['K']:] = 1.0
             print(field_applied)
         else:
             print('Note gene 0 (on), 1 (on), 2 (on) are HK in A1 memories')
@@ -794,7 +806,7 @@ if __name__ == '__main__':
     }
 
     # 3) instantiate
-    multicell = Multicell(simsetup, verbose=True, **multicell_kwargs)
+    multicell = Multicell(simsetup_main, verbose=True, **multicell_kwargs)
 
     # 4) run sim
     multicell.standard_simulation()
