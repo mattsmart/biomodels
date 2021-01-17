@@ -156,7 +156,7 @@ class Multicell:
         # field signal
         assert self.exosome_string in VALID_EXOSOME_STRINGS
         assert 0.0 <= self.exosome_remove_ratio < 1.0
-        assert 0.0 <= self.gamma < 10.0
+        assert 0.0 <= self.gamma <= 100.0
 
         # field applied (not it has length NM
         if self.num_housekeeping > 0:
@@ -284,7 +284,7 @@ class Multicell:
         elif self.graph_style == 'general':
             arr_A = self.graph_kwargs.get('prebuilt_adjacency', None)
             if arr_A is None:
-                arr_A = adjacency_lattice_general(self.num_cells)
+                arr_A = adjacency_general(self.num_cells)
 
         else:
             assert self.graph_style == 'lattice_square'
@@ -383,25 +383,11 @@ class Multicell:
         assert self.graph_style == 'lattice_square'
         N = self.num_genes
         sidelength = self.graph_kwargs['sidelength']
-        buildstring = self.graph_kwargs['initialization_style']
 
-        # remake lattice IC
-        if buildstring == "mono":
-            type_1_idx = 0
-            list_of_type_idx = [type_1_idx]
-        if buildstring == "dual":
-            type_1_idx = 0
-            type_2_idx = 1
-            list_of_type_idx = [type_1_idx, type_2_idx]
-        if buildstring == "memory_sequence":
-            list_of_type_idx = list(range(self.simsetup['P']))
-            # random.shuffle(list_of_type_idx)  # TODO shuffle or not?
-        if buildstring == "random":
-            list_of_type_idx = list(range(self.simsetup['P']))
-        lattice = build_lattice_main(sidelength, list_of_type_idx, buildstring, self.simsetup)
+        # make fake/placeholder lattice
+        lattice = build_lattice_main(sidelength, None, 'random', self.simsetup)
 
         # now use code to update lattice from state
-        total_spins = self.total_spins
         for a in range(self.num_cells):
             arow, acol = lattice_square_int_to_loc(a, sidelength)
             cell = lattice[arow][acol]
@@ -487,10 +473,10 @@ class Multicell:
                 fig, ax, proj = cell. \
                     plot_projection(simsetup['A_INV'], simsetup['XI'], proj=cell_proj,
                                     use_radar=False, pltdir=io_dict['latticedir'])
-
         return
 
     # TODO keep, improve
+    # TODO: blockparallel case for - self.data_dict['graph_energy'][step, :] = [0.0, 0.0, 0.0, 0.0]
     # TODO: self.calc_lattice_energy       (see current in multicell_metrics.py)
     # TODO: self.calc_compression_ratio    (see current in multicell_metrics.py)
     def step_datadict_update_global(self, step):
@@ -502,7 +488,6 @@ class Multicell:
         assert self.graph_style == 'lattice_square'
         lattice = self.TEMP_lattice_from_graph_state()
         app_field_step = self.field_applied[:, step]
-        app_field_strength = 1.0
         ext_field_strength = self.gamma
         search_radius_cell = self.graph_kwargs['search_radius']
         meanfield = False
@@ -515,7 +500,7 @@ class Multicell:
 
         # 2) energy statistics
         if self.dynamics_blockparallel:
-            # TODO
+
             self.data_dict['graph_energy'][step, :] = [0.0, 0.0, 0.0, 0.0]
         else:
             self.data_dict['graph_energy'][step, :] = \
@@ -541,7 +526,6 @@ class Multicell:
     def step_state_save(self):
         return
 
-    # TODO want: periodic plot to file
     # TODO remove lattice square assert (generalize)
     def step_state_visualize(self, step, flag_uniplots=False):
         assert self.graph_style == 'lattice_square'
@@ -557,7 +541,7 @@ class Multicell:
                 graph_lattice_uniplotter(multicell, step, nn, self.io_dict['latticedir'], mu)
         return
 
-    # TODO total_steps handles cases of parallel and async
+    # TODO handle case of dynamics_async
     def dynamics_full(self):
         """
         Form of data_dict:
@@ -576,14 +560,11 @@ class Multicell:
         #        update_datadict_timestep_cell(lattice, loc, memory_idx_list, 0)
         #  - cell specific datastorage call
 
-        # 1) input processing
-        memory_idx_list = list(range(self.simsetup['P']))
-
-        # 2) initial data storage and plotting
+        # 1) initial data storage and plotting
         self.step_datadict_update_global(0)  # measure initial state
         self.step_state_visualize(0)
 
-        # 3) main loop
+        # 2) main loop
         for step in range(1, self.total_steps):
             print('Dynamics step: ', step)
 
@@ -594,7 +575,7 @@ class Multicell:
             if self.dynamics_blockparallel:
                 self.step_dynamics_parallel(field_applied=field_applied_step, beta=beta_step)
             else:
-                # TODO applied field block
+                # TODO applied field block ?
                 assert 1==2
                 self.dynamics_async()
 
@@ -606,10 +587,9 @@ class Multicell:
             # periodic plotting call
             if step % self.plot_period == 0:  # plot the lattice
                 self.step_state_visualize(step)
-                # TODO call to save
-                #self.step_state_save(step, memory_idx_list)
+                #self.step_state_save(step, memory_idx_list)  # TODO call to save
 
-            # update class attributes TODO any others?
+            # update class attributes TODO any others to increment?
             self.current_step += 1
 
     def standard_simulation(self):
@@ -737,12 +717,13 @@ if __name__ == '__main__':
     print("simsetup['P'],", simsetup_main['P'])
 
     # setup 2.1) multicell sim core parameters
-    num_cells = 20**2              # global GRIDSIZE
-    total_steps = 10               # global NUM_LATTICE_STEPS
-    initialization_style = "dual"  # init condition: mono/dual/memory_sequence/random
+    num_cells = 20**2          # global GRIDSIZE
+    total_steps = 10           # global NUM_LATTICE_STEPS
     plot_period = 1
     flag_state_int = True
-    beta = 2.0
+    beta = 2000.0
+    gamma = 20.0               # i.e. field_signal_strength
+    kappa = 0.0                # i.e. field_applied_strength
 
     # setup 2.2) graph options
     autocrine = False
@@ -753,15 +734,14 @@ if __name__ == '__main__':
     # setup 2.3) signalling field (exosomes + cell-cell signalling via W matrix)
     # Note: consider rescale gamma as gamma / num_cells * num_plaquette
     # global gamma acts as field_strength_signal, it tunes exosomes AND sent field
-    gamma = 1.0
-    exosome_string = "on"  # on/off/all/no_exo_field; 'off' = send info only 'off' genes
-    exosome_remove_ratio = 0.0  # amount of exo field idx to randomly prune from each cell
+    # TODO implement exosomes for dynamics_blockparallel case
+    exosome_string = "no_exo_field"  # on/off/all/no_exo_field; 'off' = send info only 'off' genes
+    exosome_remove_ratio = 0.0       # amount of exo field idx to randomly prune from each cell
 
     # setup 2.4) applied/manual field (part 1)
     # size [N x steps] or size [NM x steps] or None
     # field_applied = construct_app_field_from_genes(
     #    IPSC_EXTENDED_GENES_EFFECTS, simsetup['GENE_ID'], num_steps=steps)
-    kappa = 1.0                # i.e. field_applied_strength
     field_applied = None
 
     # setup 2.5) applied/manual field (part 2) add housekeeping field with strength kappa

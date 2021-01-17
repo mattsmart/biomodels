@@ -38,6 +38,6 @@ def adjacency_lattice_square(sidelength, num_cells, search_radius):
     return adjacency_arr
 
 
-def adjacency_lattice_general(num_cells):
+def adjacency_general(num_cells):
     # TODO implement
     return None
