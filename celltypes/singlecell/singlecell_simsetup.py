@@ -187,3 +187,13 @@ if __name__ == '__main__':
             print('Celltypes:')
             for idx, label in enumerate(celltype_labels):
                 print(idx, label)
+
+    projection_check = True
+    if projection_check:
+        N = simsetup['N']
+        P = simsetup['P']
+        state_check = np.array([-1,-1,-1, 1,1,1, -1,-1,-1])
+        overlaps = np.dot(simsetup['XI'].T, state_check) / N
+        print('overlaps', overlaps)
+        proj = np.dot(simsetup['A_INV'], overlaps)
+        print('proj', proj)

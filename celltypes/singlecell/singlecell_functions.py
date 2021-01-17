@@ -111,12 +111,15 @@ def state_memory_overlap(state_arr, time, N, xi):
 def state_memory_projection(state_arr, time, a_inv, N, xi):
     return np.dot(a_inv, state_memory_overlap(state_arr, time, N, xi))
 
+
 def state_memory_overlap_alt(state, N, xi):
     return np.dot(xi.T, state) / N
 
 
-def state_memory_projection_alt(state, a_inv, N, xi):
-    return np.dot(a_inv, state_memory_overlap_alt(state, N, xi))
+def state_memory_projection_alt(state, a_inv, N, xi, overlap_vec=None):
+    if overlap_vec is None:
+        overlap_vec = state_memory_overlap_alt(state, N, xi)
+    return np.dot(a_inv, overlap_vec)
 
 
 def single_memory_projection(state_arr, time, memory_idx, eta):

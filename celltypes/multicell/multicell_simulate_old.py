@@ -467,8 +467,8 @@ if __name__ == '__main__':
         unfolding=True, random_mem=random_mem, random_W=random_W, curated=curated, housekeeping=0)
 
     # setup: lattice sim core parameters
-    n = 20                # global GRIDSIZE
-    steps = 10            # global NUM_LATTICE_STEPS
+    n = 10                # global GRIDSIZE
+    steps = 40            # global NUM_LATTICE_STEPS
     buildstring = "dual"  # init condition: mono/dual/memory_sequence/random
     meanfield = False     # True: infinite signal distance (no neighbor search; track mean field)
     plot_period = 1

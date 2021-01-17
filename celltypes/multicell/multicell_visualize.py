@@ -29,18 +29,25 @@ fast_flag = False  # True - fast / simple plotting
 
 
 # TODO inefficient to loop over lattice each time?
-def get_graph_lattice_uniproj(multicell, step, mu):
+def get_graph_lattice_uniproj(multicell, step, mu, use_proj=True):
     """ Builds nn x nn array of projections onto memory mu (uses multicell.data_dict)
     multicell - Multicell class object
     mu - memory to get the projection for
+    use_proj - if False, use overlap instead of projection
     """
     assert multicell.graph_style == 'lattice_square'
     nn = multicell.graph_kwargs['sidelength']
+
+    if use_proj:
+        datakey = 'memory_proj_arr'
+    else:
+        datakey = 'memory_overlap_arr'
+
     # used to plot the lattice according to projection on one memory
     lattice_of_proj_vals = np.zeros((nn, nn))
     for a in range(multicell.num_cells):
         i, j = lattice_square_int_to_loc(a, nn)
-        lattice_of_proj_vals[i, j] = multicell.data_dict['memory_proj_arr'][a, mu, step]
+        lattice_of_proj_vals[i, j] = multicell.data_dict[datakey][a, mu, step]
     return lattice_of_proj_vals
 
 
@@ -76,34 +83,46 @@ def get_graph_lattice_overlaps(multicell, ref_node=0):
     return lattice_of_overlaps
 
 
-def graph_lattice_uniplotter(multicell, step, n, lattice_plot_dir, mu):
+def graph_lattice_uniplotter(multicell, step, n, lattice_plot_dir, mu, use_proj=True):
     """ Plots nn x nn array of projections onto memory mu (uses multicell.data_dict)
     mu - singlecell memory to produce the plot for
+    use_proj - if False, use overlap instead of projection
     """
+    if use_proj:
+        datatitle = 'projection'
+    else:
+        datatitle = 'overlap'
+
     simsetup = multicell.simsetup
     # generate figure data
-    proj_vals = get_graph_lattice_uniproj(multicell, step, mu)
+    proj_vals = get_graph_lattice_uniproj(multicell, step, mu, use_proj=use_proj)
     # plot projection
     colourmap = plt.get_cmap('PiYG')
     plt.imshow(proj_vals, cmap=colourmap, vmin=-1, vmax=1)
     plt.colorbar()
-    plt.title('Lattice site-wise projection onto memory %d (%s) (Step=%d)' %
-              (mu, simsetup['CELLTYPE_LABELS'][mu], step))
+    plt.title('Lattice site-wise %s onto memory %d (%s) (Step=%d)' %
+              (datatitle, mu, simsetup['CELLTYPE_LABELS'][mu], step))
     # draw gridlines
     ax = plt.gca()
     ax.grid(which='major', axis='both', linestyle='-', color='k', linewidth=1)
     ax.set_xticks(np.arange(-.5, n, 1))
     ax.set_yticks(np.arange(-.5, n, 1))
     # save figure
-    plt.savefig(os.path.join(lattice_plot_dir, 'proj%d_lattice_step%d.png' % (mu, step)),
+    plt.savefig(os.path.join(lattice_plot_dir, '%s%d_lattice_step%d.png' % (datatitle, mu, step)),
                 dpi=max(80.0, n / 2.0))
     plt.close()
     return
 
 
-def graph_lattice_projection_composite(multicell, step, cmap_vary=False):
+def graph_lattice_projection_composite(multicell, step, cmap_vary=False, use_proj=True):
     """ Creates grid of lattice projections onto each memory mu (grid is ~ sqrt(P) x sqrt(P))
+    use_proj - if False, use overlap instead of projection
     """
+    if use_proj:
+        datatitle = 'projection'
+    else:
+        datatitle = 'overlap'
+
     simsetup = multicell.simsetup
     state_int = multicell.flag_state_int
     lattice_plot_dir = multicell.io_dict['latticedir']
@@ -124,8 +143,8 @@ def graph_lattice_projection_composite(multicell, step, cmap_vary=False):
     fig, ax = plt.subplots(nrow, ncol, squeeze=False)
     fig.set_size_inches(16, 16)
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
-    fig.suptitle('Lattice projection onto p=%d memories (Step=%d)' %
-                 (simsetup['P'], step), fontsize=20)
+    fig.suptitle('Lattice %s onto p=%d memories (Step=%d)' %
+                 (datatitle, simsetup['P'], step), fontsize=20)
 
     def get_colourmap(mem_idx):
         if cmap_vary:
@@ -145,7 +164,8 @@ def graph_lattice_projection_composite(multicell, step, cmap_vary=False):
                 colourmap = get_colourmap(mu)
                 subax = ax[row][col]
                 # plot data
-                proj_vals = get_graph_lattice_uniproj(multicell, step, mu)
+                proj_vals = get_graph_lattice_uniproj(multicell, step, mu, use_proj=use_proj)
+
                 im = subax.imshow(proj_vals, cmap=colourmap, vmin=-1, vmax=1)
                 if state_int:
                     state_ints = get_graph_lattice_state_ints(multicell, step)
@@ -183,7 +203,8 @@ def graph_lattice_projection_composite(multicell, step, cmap_vary=False):
                             orientation='horizontal', fraction=0.046, pad=0.04)
         cbar.ax.tick_params(labelsize=16)
     # save figure
-    plt.savefig(os.path.join(lattice_plot_dir, 'composite_lattice_step%d.png' % step),
+    plt.savefig(os.path.join(lattice_plot_dir, 'composite_%s_lattice_step%d.png' %
+                             (datatitle, step)),
                 dpi=max(120.0, nn / 2.0))
     plt.close()
     return

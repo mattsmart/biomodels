@@ -18,7 +18,8 @@ from multicell.multicell_visualize import \
     graph_lattice_uniplotter, graph_lattice_reference_overlap_plotter, graph_lattice_projection_composite
 from singlecell.singlecell_constants import FIELD_SIGNAL_STRENGTH, FIELD_APPLIED_STRENGTH, BETA
 from singlecell.singlecell_fields import construct_app_field_from_genes
-from singlecell.singlecell_functions import state_memory_projection_alt, state_to_label
+from singlecell.singlecell_functions import \
+    state_memory_overlap_alt, state_memory_projection_alt, state_to_label
 from singlecell.singlecell_simsetup import singlecell_simsetup
 from utils.file_io import run_subdir_setup, runinfo_append, write_general_arr, read_general_arr
 
@@ -249,6 +250,7 @@ class Multicell:
         """
         Currently has the core keys
             memory_proj_arr:           arr M x P x T
+            memory_overlap_arr:        arr M x P x T
             graph_energy:              arr T x 4
             compressibility_full:      arr T x 3
         Optional keys
@@ -259,8 +261,10 @@ class Multicell:
         data_dict['graph_energy'] = np.zeros((self.total_steps, 4))
         # stores: compressibility ratio, eta, eta0
         data_dict['compressibility_full'] = np.zeros((self.total_steps, 3))
-        # stores: memory projection for each memory for each cell
+        # stores: memory projection/overlap for each memory for each cell
         data_dict['memory_proj_arr'] = np.zeros(
+            (self.num_cells, self.simsetup['P'], self.total_steps))
+        data_dict['memory_overlap_arr'] = np.zeros(
             (self.num_cells, self.simsetup['P'], self.total_steps))
         # stores: memory projection for each memory for each cell
         if self.flag_state_int:
@@ -513,11 +517,15 @@ class Multicell:
         # 3) node-wise projection on the encoded singlecell types
         for i in range(self.num_cells):
             cell_state = self.get_cell_state(i)
-            # get the projections
+            # get the projections/overlaps
+            overlap_vec = state_memory_overlap_alt(cell_state, self.num_genes, self.simsetup['XI'])
             proj_vec = state_memory_projection_alt(
-                cell_state, self.simsetup['A_INV'], self.num_genes, self.simsetup['XI'])
-            # store the projections
+                cell_state, self.simsetup['A_INV'], self.num_genes, self.simsetup['XI'],
+                overlap_vec=overlap_vec)
+            # store the projections/overlaps
+            self.data_dict['memory_overlap_arr'][i, :, step] = overlap_vec
             self.data_dict['memory_proj_arr'][i, :, step] = proj_vec
+
             # 4) node-wise storage of the integer representation of the state
             if self.flag_state_int:
                 self.data_dict['cell_state_int'][i, step] = state_to_label(tuple(cell_state))
@@ -533,23 +541,22 @@ class Multicell:
         nn = self.graph_kwargs['sidelength']
 
         # plot type A
-        graph_lattice_projection_composite(multicell, step)
+        graph_lattice_projection_composite(multicell, step, use_proj=False)
+        graph_lattice_projection_composite(multicell, step, use_proj=True)
         # plot type B
         graph_lattice_reference_overlap_plotter(multicell, step)
         # plot type C
         if flag_uniplots:
             for mu in range(self.simsetup['P']):
-                graph_lattice_uniplotter(multicell, step, nn, self.io_dict['latticedir'], mu)
+                graph_lattice_uniplotter(multicell, step, nn, self.io_dict['latticedir'],
+                                         mu, use_proj=False)
+                graph_lattice_uniplotter(multicell, step, nn, self.io_dict['latticedir'],
+                                         mu, use_proj=True)
         return
 
     # TODO handle case of dynamics_async
     def dynamics_full(self):
         """
-        Form of data_dict:
-            {'memory_proj_arr':
-                {memory_idx: np array [N x num_steps] of projection each grid cell onto memory idx}
-             'grid_state_int': n x n x num_steps of int at each site
-               (int is inverse of binary string from state)
         Notes:
             -can replace update_with_signal_field with update_state to simulate ensemble
             of non-interacting n**2 cells
@@ -598,7 +605,8 @@ class Multicell:
         self.dynamics_full()
 
         # """check the data dict"""
-        self.plot_datadict_memory_proj()
+        self.plot_datadict_memory(use_proj=False)
+        self.plot_datadict_memory(use_proj=True)
 
         # """write and plot cell state timeseries"""
         # write_state_all_cells(lattice, io_dict['datadir'])
@@ -619,15 +627,21 @@ class Multicell:
         s_b = self.get_cell_state(idx_b)
         return np.dot(s_a.T, s_b) / self.num_genes
 
-    def plot_datadict_memory_proj(self):
+    def plot_datadict_memory(self, use_proj=True):
+        if use_proj:
+            datakey = 'memory_proj_arr'
+            datatitle = 'projection'
+        else:
+            datakey = 'memory_overlap_arr'
+            datatitle = 'overlap'
         # check the data dict
         for mu in range(self.simsetup['P']):
-            print(self.data_dict['memory_proj_arr'][:, mu, :])
-            plt.plot(self.data_dict['memory_proj_arr'][:, mu, :].T)
-            plt.ylabel('Projection of all cells onto type: %s' %
-                       self.simsetup['CELLTYPE_LABELS'][mu])
+            print(self.data_dict[datakey][:, mu, :])
+            plt.plot(self.data_dict[datakey][:, mu, :].T)
+            plt.ylabel('%s of all cells onto type: %s' %
+                       (datatitle, self.simsetup['CELLTYPE_LABELS'][mu]))
             plt.xlabel('Time (full lattice steps)')
-            plt.savefig(self.io_dict['plotdatadir'] + os.sep + 'proj%d.png' % (mu))
+            plt.savefig(self.io_dict['plotdatadir'] + os.sep + '%s%d.png' % (datatitle, mu))
             plt.clf()  # plt.show()
         return
 
@@ -718,8 +732,8 @@ if __name__ == '__main__':
     print("simsetup['P'],", simsetup_main['P'])
 
     # setup 2.1) multicell sim core parameters
-    num_cells = 20**2          # global GRIDSIZE
-    total_steps = 10           # global NUM_LATTICE_STEPS
+    num_cells = 10**2          # global GRIDSIZE
+    total_steps = 40           # global NUM_LATTICE_STEPS
     plot_period = 1
     flag_state_int = True
     flag_blockparallel = True
