@@ -16,6 +16,8 @@ Conventions follow from Lang & Mehta 2014, PLOS Comp. Bio
 - note the memory matrix is transposed throughout here (dim N x p instead of dim p x N)
 """
 
+REQUIRE_W_SYMMETRY = False
+
 
 def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX,
                         npzpath=DEFAULT_MEMORIES_NPZPATH, curated=False,
@@ -80,9 +82,14 @@ def singlecell_simsetup(flag_prune_intxn_matrix=FLAG_PRUNE_INTXN_MATRIX,
         cols_to_remove = np.random.choice(N, int(N*0.67), replace=False)
         field_send[:, cols_to_remove] = 0
         """
-    # currently require symmewtry of cell-cell signal matrix W
+    # currently require symmetry of cell-cell signal matrix W
     if field_send is not None:
-        assert np.all(np.abs(field_send - field_send.T) < 1e-8)
+        W_is_symmetric = np.all(np.abs(field_send - field_send.T) < 1e-8)
+        if REQUIRE_W_SYMMETRY:
+            assert W_is_symmetric
+        else:
+            if not W_is_symmetric:
+                print('Warning, W_is_symmetric is False in simsetup')
     # data processing into sim object
     xi = xi.astype(np.float64)
     a, a_inv = memory_corr_matrix_and_inv(xi)
