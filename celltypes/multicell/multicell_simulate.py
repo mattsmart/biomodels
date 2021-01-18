@@ -690,14 +690,15 @@ class Multicell:
 if __name__ == '__main__':
 
     # 1) create simsetup
+    main_seed = 12410
     curated = False
     random_mem = False        # TODO incorporate seed in random XI
     random_W = False          # TODO incorporate seed in random W
     simsetup_main = singlecell_simsetup(
         unfolding=True, random_mem=random_mem, random_W=random_W, curated=curated, housekeeping=0)
     print("simsetup checks:")
-    print("simsetup['N'],", simsetup_main['N'])
-    print("simsetup['P'],", simsetup_main['P'])
+    print("\tsimsetup['N'],", simsetup_main['N'])
+    print("\tsimsetup['P'],", simsetup_main['P'])
 
     # setup 2.1) multicell sim core parameters
     num_cells = 10**2          # global GRIDSIZE
@@ -768,7 +769,7 @@ if __name__ == '__main__':
         'flag_housekeeping': flag_housekeeping,
         'flag_state_int': flag_state_int,
         'plot_period': plot_period,
-        'seed': 0,
+        'seed': main_seed,
     }
 
     # 3) instantiate
