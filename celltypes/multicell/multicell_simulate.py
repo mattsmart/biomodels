@@ -26,7 +26,7 @@ class Multicell:
     """
     Primary object for multicell simulations.
     Current state of the graph is tracked using attribute: graph_state
-     - graph_state is an N*M long 1D array
+     - graph_state_arr is an [N*M x T] 2D array
      - get state of a specific cell using get_cell_state(idx)
 
     simsetup: dictionary created using singlecell_simsetup() in singlecell_simsetup.py
@@ -123,22 +123,23 @@ class Multicell:
         self.kappa = kwargs.get('kappa', 0.0)
         self.flag_housekeeping = kwargs['flag_housekeeping']
         self.num_housekeeping = self.simsetup['K']
-        # graph initialization
-        # TODO replace lattice by graph everywhere?
-        self.graph_kwargs = kwargs.get('graph_kwargs', {})
-        self.initialization_style = self.graph_kwargs.get('initialization_style', None)
-        self.matrix_A = self.build_adjacency()
-        self.init_graph_state()  # initializes the core attribute: self.graph_state
-        # initialize matrix_J_multicell (used explicitly for parallel dynamics)
-        self.matrix_J_multicell = self.build_J_multicell()
         # simulation/dynamics properties
         self.beta = kwargs['beta']
         self.current_step = 0
         self.total_steps = kwargs['total_steps']
         self.plot_period = kwargs['plot_period']
-        self.dynamics_blockparallel = kwargs.get('flag_blockparallel', BLOCK_UPDATE_LATTICE)    # bool: can use GPU
+        self.dynamics_blockparallel = kwargs.get('flag_blockparallel', BLOCK_UPDATE_LATTICE)  # GPU
         # bool: speedup dynamics (check vs graph attributes) TODO reimplement?
         #self.dynamics_meanfield = ...
+        # graph initialization
+        # TODO replace lattice by graph everywhere?
+        self.graph_kwargs = kwargs.get('graph_kwargs', {})
+        self.initialization_style = self.graph_kwargs.get('initialization_style', None)
+        self.matrix_A = self.build_adjacency()
+        self.graph_state_arr = np.zeros((self.total_spins, self.total_steps), dtype=int)
+        self.graph_state_arr[:, 0] = self.init_graph_state()
+        # initialize matrix_J_multicell (used explicitly for parallel dynamics)
+        self.matrix_J_multicell = self.build_J_multicell()
         # metadata
         self.flag_state_int = kwargs.get('flag_state_int', False)
         self.io_dict = self.init_io_dict()      # TODO
@@ -375,8 +376,9 @@ class Multicell:
             # print list_of_type_idx
 
             # 2) now convert the lattice to a graph state (tall NM vector)
-            self.graph_state = self.TEMP_graph_state_from_lattice(lattice, sidelength)
-        return
+            graph_state = self.TEMP_graph_state_from_lattice(lattice, sidelength)
+
+        return graph_state
 
     # TODO remove asap
     def TEMP_graph_state_from_lattice(self, lattice, sidelength):
@@ -391,13 +393,13 @@ class Multicell:
             s_block[a * N: (a+1) * N] = cellstate
         return s_block
 
-    def step_dynamics_parallel(self, field_applied, beta):
+    def step_dynamics_parallel(self, next_step, field_applied, beta):
         """
         Performs one "graph step": each cell has an opportunity to update its state
-        Returns None (operates directly on self.graph_state)
+        Returns None (operates directly on self.graph_state_arr)
         """
         total_field = np.zeros(self.total_spins)
-        internal_field = np.dot(self.matrix_J_multicell, self.graph_state)
+        internal_field = np.dot(self.matrix_J_multicell, self.graph_state_arr[:, next_step - 1])
         total_field += internal_field
         total_field += field_applied
 
@@ -406,21 +408,24 @@ class Multicell:
         np.random.seed(self.seed); rsamples = np.random.rand(self.total_spins)
         for idx in range(self.total_spins):
             if prob_on_after_timestep[idx] > rsamples[idx]:
-                self.graph_state[idx] = 1.0
+                self.graph_state_arr[idx, next_step] = 1.0
             else:
-                self.graph_state[idx] = -1.0
+                self.graph_state_arr[idx, next_step] = -1.0
         return
 
     # TODO how to support different graph types without using the SpatialCell class?
     #  currently all old code from multicell+simulate
     # TODO Meanfield setting previously used for speedups, but removed now:
-    def step_dynamics_async(self, field_applied, beta):
+    def step_dynamics_async(self, next_step, field_applied, beta):
 
         cell_indices = list(range(self.num_cells))
         random.seed(self.seed); random.shuffle(cell_indices)
 
+        # need to move current state to next step index, then operate on that column 'in place'
+        self.graph_state_arr[:, next_step] = np.copy(self.graph_state_arr[:, next_step - 1])
+
         for idx, node_idx in enumerate(cell_indices):
-            cell_state = self.get_cell_state(node_idx)
+            cell_state = self.get_cell_state(node_idx, next_step)
             spin_idx_low = self.num_genes * node_idx
             spin_idx_high = self.num_genes * (node_idx + 1)
 
@@ -435,10 +440,10 @@ class Multicell:
 
             # signaling field part 1
             field_signal_exo, _ = general_exosome_field(
-                self, node_idx, neighbours=graph_neighbours)
+                self, node_idx, next_step, neighbours=graph_neighbours)
             # signaling field part 2
             field_signal_W = general_paracrine_field(
-                self, node_idx, flag_01=False, neighbours=graph_neighbours)
+                self, node_idx, next_step, flag_01=False, neighbours=graph_neighbours)
             # sum the two field contributions
             field_signal_unscaled = field_signal_exo + field_signal_W
             field_signal = self.gamma * field_signal_unscaled
@@ -458,7 +463,8 @@ class Multicell:
                 field_applied_strength=1.0,
                 seed=self.seed)
 
-            self.graph_state[spin_idx_low : spin_idx_high] = dummy_cell.get_current_state()
+            self.graph_state_arr[spin_idx_low:spin_idx_high, next_step] = \
+                dummy_cell.get_current_state()
             """
             if turn % (
                     120 * plot_period) == 0:  # proj vis of each cell (slow; every k steps)
@@ -478,7 +484,7 @@ class Multicell:
         else:
             step_indices = step
         # 1) compressibility statistics
-        graph_state_01 = ((1 + self.graph_state)/2).astype(int)
+        graph_state_01 = ((1 + self.graph_state_arr[:, step])/2).astype(int)
         comp_ratio = calc_compression_ratio(
             graph_state_01, eta_0=None, datatype='full', elemtype=np.int, method='manual')
         self.data_dict['compressibility_full'][step_indices, :] = comp_ratio
@@ -487,7 +493,7 @@ class Multicell:
         self.data_dict['graph_energy'][step_indices, :] = energy_values
         # 3) node-wise projection on the encoded singlecell types
         for i in range(self.num_cells):
-            cell_state = self.get_cell_state(i)
+            cell_state = self.get_cell_state(i, step)
             # get the projections/overlaps
             overlap_vec = state_memory_overlap_alt(cell_state, self.num_genes, self.simsetup['XI'])
             proj_vec = state_memory_projection_alt(
@@ -524,13 +530,12 @@ class Multicell:
                                          mu, use_proj=True)
         return
 
-    def check_if_fixed_point(self, state_to_compare, msg=None):
+    def check_if_fixed_point(self, state_to_compare, step, msg=None):
         """
-        TODO caution two-state flicker with parallel dynamics
         :param state_to_compare: to check array equality with current graph state
         :return: bool
         """
-        if np.all(self.graph_state == state_to_compare):  # TODO faster array equal check?
+        if np.all(self.graph_state_arr[:, step] == state_to_compare):
             if msg is not None:
                 print(msg)
             return True
@@ -560,32 +565,18 @@ class Multicell:
         if flag_visualize:
             self.step_state_visualize(0)
 
-        # storage of previous state to detect when fixed point (fp) is reached
-        # this step is only necessary if parallel mode
-        if end_at_fp:
-            # TODO care save two back in parallel dynamics case
-            # TODO speed check? may be slow to copy
-            state_Tminus1 = np.copy(self.graph_state)
-
         # 2) main loop
         for step in range(1, self.total_steps):
             print('Dynamics step: ', step)
 
             # applied field and beta schedule
-            field_applied_step = self.field_applied[:, step]
-            beta_step = self.beta[step]
-
-            # storage of previous two states to detect when fixed point (fp) or 2-cycle is reached
-            if end_at_fp:
-                # TODO care save two back in parallel dynamics case
-                # TODO speed check? may be slow to copy
-                state_Tminus2 = np.copy(state_Tminus1)      # only necessary if parallel mode
-                state_Tminus1 = np.copy(self.graph_state)
+            field_applied_step = self.field_applied[:, step - 1]
+            beta_step = self.beta[step - 1]
 
             if self.dynamics_blockparallel:
-                self.step_dynamics_parallel(field_applied_step, beta_step)
+                self.step_dynamics_parallel(step, field_applied_step, beta_step)
             else:
-                self.step_dynamics_async(field_applied_step, beta_step)
+                self.step_dynamics_async(step, field_applied_step, beta_step)
 
             # compute lattice properties (assess global state)
             # TODO 1 - consider lattice energy at each cell update (not lattice update)
@@ -605,9 +596,10 @@ class Multicell:
             if end_at_fp:
                 fp_msg = 'FP reached early (step %d of %d), terminating dynamics' % \
                          (step, self.total_steps)
-                fp_flicker_msg = 'Flicker (2-state) ' + fp_msg
-                fp_reached = self.check_if_fixed_point(state_Tminus1, msg=fp_msg)
-                fp_reached_flicker = self.check_if_fixed_point(state_Tminus2, msg=fp_flicker_msg)
+                fp_reached = self.check_if_fixed_point(
+                    self.graph_state_arr[:, step - 1], step, msg=fp_msg)
+                fp_reached_flicker = self.check_if_fixed_point(
+                    self.graph_state_arr[:, step - 2], step, msg='Flicker (2-state) ' + fp_msg)
                 if fp_reached or fp_reached_flicker:
                     break
 
@@ -637,10 +629,11 @@ class Multicell:
         # run the simulation
         self.dynamics_full(flag_visualize=False, flag_datastore=False, end_at_fp=True)
 
-        # """get data dict from final state"""
-        # TODO in flicker case should analyze & plot the final two states
-        self.step_datadict_update_global(self.current_step, fill_to_end=True)  # measure final state
-        self.step_state_visualize(self.current_step)                         # visualize final state
+        # """get data dict from final two states"""
+        self.step_datadict_update_global(self.current_step - 1, fill_to_end=True)  # measure
+        self.step_state_visualize(self.current_step - 1)                           # visualize
+        self.step_datadict_update_global(self.current_step, fill_to_end=True)      # measure
+        self.step_state_visualize(self.current_step)                               # visualize
 
         # """check the data dict"""
         self.plot_datadict_memory(use_proj=False)
@@ -654,11 +647,11 @@ class Multicell:
         print("\nMulticell simulation complete - output in %s" % self.io_dict['basedir'])
         return
 
-    def get_cell_state(self, cell_idx):
+    def get_cell_state(self, cell_idx, step):
         assert 0 <= cell_idx < self.num_cells  # TODO think this is not needed
         a = self.num_genes * cell_idx
         b = self.num_genes * (cell_idx + 1)
-        return self.graph_state[a:b]
+        return self.graph_state_arr[a:b, step]
 
     def get_field_on_cell(self, cell_idx, step):
         assert 0 <= cell_idx < self.num_cells  # TODO think this is not needed
@@ -666,9 +659,9 @@ class Multicell:
         b = self.num_genes * (cell_idx + 1)
         return self.field_applied[a:b, step]
 
-    def cell_cell_overlap(self, idx_a, idx_b):
-        s_a = self.get_cell_state(idx_a)
-        s_b = self.get_cell_state(idx_b)
+    def cell_cell_overlap(self, idx_a, idx_b, step):
+        s_a = self.get_cell_state(idx_a, step)
+        s_b = self.get_cell_state(idx_b, step)
         return np.dot(s_a.T, s_b) / self.num_genes
 
     def plot_datadict_memory(self, use_proj=True):

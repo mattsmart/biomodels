@@ -89,12 +89,13 @@ def calc_graph_energy(multicell, step, norm=True):
     H_app = 0
 
     # TODO how to incorporate exosomes
-    H_quadratic_form = -0.5 * np.dot(np.dot(multicell.matrix_J_multicell, multicell.graph_state),
-                                     multicell.graph_state) \
-                       - np.dot(multicell.field_applied[:, step], multicell.graph_state)
+    H_quadratic_form = -0.5 * np.dot(np.dot(multicell.matrix_J_multicell,
+                                            multicell.graph_state_arr[:, step]),
+                                     multicell.graph_state_arr[:, step]) \
+                       - np.dot(multicell.field_applied[:, step], multicell.graph_state_arr[:, step])
 
     for a in range(num_cells):
-        cell_state = multicell.get_cell_state(a)
+        cell_state = multicell.get_cell_state(a, step)
 
         # compute self energies and applied field contribution separately
         H_self += hamiltonian(cell_state, multicell.matrix_J, field=None, fs=0.0)
@@ -109,9 +110,9 @@ def calc_graph_energy(multicell, step, norm=True):
         #  to get all the senders to cell i, we need to look at col i
         graph_neighbours_col = multicell.matrix_A[:, a]
         graph_neighbours = [idx for idx, i in enumerate(graph_neighbours_col) if i == 1]
-        field_signal_exo, _ = general_exosome_field(multicell, a, neighbours=graph_neighbours)
+        field_signal_exo, _ = general_exosome_field(multicell, a, step, neighbours=graph_neighbours)
         field_signal_W = general_paracrine_field(
-            multicell, a, flag_01=False, neighbours=graph_neighbours)
+            multicell, a, step, flag_01=False, neighbours=graph_neighbours)
 
         field_signal_unscaled = field_signal_exo + field_signal_W
         H_pairwise -= np.dot(field_signal_unscaled, cell_state)

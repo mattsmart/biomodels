@@ -46,14 +46,14 @@ def adjacency_general(num_cells):
     return None
 
 
-def general_paracrine_field(multicell, receiver_idx, flag_01=False, neighbours=None):
+def general_paracrine_field(multicell, receiver_idx, step, flag_01=False, neighbours=None):
     if neighbours is None:
         graph_neighbours_col = multicell.matrix_A[:, receiver_idx]
         neighbours = [idx for idx, i in enumerate(graph_neighbours_col) if i == 1]
 
     sent_signals = np.zeros(multicell.num_genes)
     for loc in neighbours:
-        nbr_cell_state = multicell.get_cell_state(loc)
+        nbr_cell_state = multicell.get_cell_state(loc, step)
         if flag_01:
             # convert to 0, 1 rep for biological dot product below
             nbr_cell_state_sent = (nbr_cell_state + 1) / 2.0
@@ -63,7 +63,7 @@ def general_paracrine_field(multicell, receiver_idx, flag_01=False, neighbours=N
     return sent_signals
 
 
-def general_exosome_field(multicell, receiver_idx, neighbours=None):
+def general_exosome_field(multicell, receiver_idx, step, neighbours=None):
     """
     Generalization of `get_local_exosome_field(self, ...)` in multicell_class.py
         A - sample from only 'on' genes (similar options of 'off', 'all')
@@ -82,7 +82,7 @@ def general_exosome_field(multicell, receiver_idx, neighbours=None):
     if exosome_string == "on":
         for loc in neighbours:
             nbr_cell_state = np.zeros(multicell.num_genes)
-            nbr_cell_state[:] = multicell.get_cell_state(loc)[:]
+            nbr_cell_state[:] = multicell.get_cell_state(loc, step)[:]
             nbr_state_only_on = state_only_on(nbr_cell_state)
             if exosome_remove_ratio == 0.0:
                 field_state += nbr_state_only_on
@@ -93,7 +93,7 @@ def general_exosome_field(multicell, receiver_idx, neighbours=None):
     elif exosome_string == "all":
         for loc in neighbours:
             nbr_cell_state = np.zeros(multicell.num_genes)
-            nbr_cell_state[:] = multicell.get_cell_state(loc)[:]
+            nbr_cell_state[:] = multicell.get_cell_state(loc, step)[:]
             if exosome_remove_ratio == 0.0:
                 field_state += nbr_cell_state
             else:
@@ -103,7 +103,7 @@ def general_exosome_field(multicell, receiver_idx, neighbours=None):
     elif exosome_string == "off":
         for loc in neighbours:
             nbr_cell_state = np.zeros(multicell.num_genes)
-            nbr_cell_state[:] = multicell.get_cell_state(loc)[:]
+            nbr_cell_state[:] = multicell.get_cell_state(loc, step)[:]
             nbr_state_only_off = state_only_off(nbr_cell_state)
             if exosome_remove_ratio == 0.0:
                 field_state += nbr_state_only_off

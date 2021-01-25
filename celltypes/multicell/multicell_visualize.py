@@ -68,7 +68,7 @@ def get_graph_lattice_state_ints(multicell, step):
 
 
 # TODO inefficient to loop over lattice each time?
-def get_graph_lattice_overlaps(multicell, ref_node=0):
+def get_graph_lattice_overlaps(multicell, step, ref_node=0):
     """ Builds nn x nn array of overlaps between all cells and a reference cell
     multicell - Multicell class object
     """
@@ -79,7 +79,7 @@ def get_graph_lattice_overlaps(multicell, ref_node=0):
     lattice_of_overlaps = np.zeros((nn, nn))
     for b in range(multicell.num_cells):
         i, j = lattice_square_int_to_loc(b, nn)
-        lattice_of_overlaps[i, j] = multicell.cell_cell_overlap(ref_node, b)
+        lattice_of_overlaps[i, j] = multicell.cell_cell_overlap(ref_node, b, step)
     return lattice_of_overlaps
 
 
@@ -221,7 +221,7 @@ def graph_lattice_reference_overlap_plotter(multicell, step, ref_node=0):
     ref_site = lattice_square_int_to_loc(ref_node, nn)
 
     # get lattice size array of overlaps
-    overlaps = get_graph_lattice_overlaps(multicell, ref_node=ref_node)
+    overlaps = get_graph_lattice_overlaps(multicell, step, ref_node=ref_node)
 
     # plot
     fig = plt.figure(figsize=(12, 12))
