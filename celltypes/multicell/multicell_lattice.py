@@ -51,7 +51,8 @@ def build_lattice_memory_sequence(n, mem_list, simsetup):
     return lattice
 
 
-def build_lattice_random(n, simsetup):
+def build_lattice_random(n, simsetup, seed=0):
+    np.random.seed(seed)
     lattice = [[0 for _ in range(n)] for _ in range(n)]  # TODO: this can be made faster as np array
     idx = 0
     for i in range(n):
@@ -77,7 +78,7 @@ def build_lattice_explicit(n, simsetup, state=None):
     return lattice
 
 
-def build_lattice_main(n, list_of_celltype_idx, buildstring, simsetup, state=None):
+def build_lattice_main(n, list_of_celltype_idx, buildstring, simsetup, state=None, seed=0):
     print("Building %s lattice with types %s" % (buildstring, list_of_celltype_idx))
     if buildstring == "mono":
         assert len(list_of_celltype_idx) == 1
@@ -88,7 +89,7 @@ def build_lattice_main(n, list_of_celltype_idx, buildstring, simsetup, state=Non
     elif buildstring == "memory_sequence":
         return build_lattice_memory_sequence(n, list_of_celltype_idx, simsetup)
     elif buildstring == "random":
-        return build_lattice_random(n, simsetup)
+        return build_lattice_random(n, simsetup, seed=seed)
     elif buildstring == "explicit":
         return build_lattice_explicit(n, simsetup, state=state)
     else:

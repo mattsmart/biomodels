@@ -93,7 +93,7 @@ class Cell(object):
     def update_state(self, intxn_matrix, beta=BETA,
                      field_signal=None, field_signal_strength=FIELD_SIGNAL_STRENGTH,
                      field_applied=None, field_applied_strength=FIELD_APPLIED_STRENGTH,
-                     async_batch=ASYNC_BATCH, async_flag=True):
+                     async_batch=ASYNC_BATCH, async_flag=True, seed=0):
         """
         async_batch: if True, sample from 0 to N with replacement, else each step will be 'fully random'
                      i.e. can update same site twice in a row, vs time gap of at least N substeps
@@ -105,22 +105,25 @@ class Cell(object):
         """
         if async_flag:
             sites = list(range(self.N))
+            np.random.seed(seed)
             rsamples = np.random.rand(self.N)  # optimized: pass one to each of the N single spin update calls  TODO: benchmark vs intels
             if async_batch:
                 shuffle(sites)  # randomize site ordering each timestep updates
             else:
                 #sites = np.random.choice(self.N, self.N, replace=True)
                 #sites = [int(self.N*np.random.random()) for _ in xrange(self.N)]  # this should be same and faster
+                np.random.seed(seed)
                 sites = [int(self.N * u) for u in np.random.rand(self.N)]  # this should be 5-10% percent faster
 
             state_array_ext = np.zeros((self.N, np.shape(self.state_array)[1] + 1))
             state_array_ext[:, :-1] = self.state_array  # TODO: make sure don't need array copy
-            state_array_ext[:,-1] = self.state_array[:,-1]
-            for idx, site in enumerate(sites):          # TODO: parallelize approximation
-                state_array_ext = glauber_dynamics_update(state_array_ext, site, self.steps + 1, intxn_matrix, rsamples[idx],
-                                                          beta=beta, field_signal=field_signal, field_applied=field_applied,
-                                                          field_signal_strength=field_signal_strength,
-                                                          field_applied_strength=field_applied_strength)
+            state_array_ext[:, -1] = self.state_array[:,-1]
+            for idx, site in enumerate(sites):
+                state_array_ext = glauber_dynamics_update(
+                    state_array_ext, site, self.steps + 1, intxn_matrix, rsamples[idx],
+                    beta=beta, field_signal=field_signal, field_applied=field_applied,
+                    field_signal_strength=field_signal_strength,
+                    field_applied_strength=field_applied_strength)
 
         else:
             #print "WARNING: experimental sync update (can use gpu)"
@@ -139,6 +142,7 @@ class Cell(object):
                 total_field += app_field_vec
             # probability that site i will be "up" after the timestep
             prob_on_after_timestep = 1 / (1 + np.exp(-2 * beta * total_field))
+            np.random.seed(seed)
             rsamples = np.random.rand(self.N)  # optimized: pass one to each of the N single spin update calls  TODO: benchmark vs intels
             for idx in range(self.N):
                 if prob_on_after_timestep[idx] > rsamples[idx]:

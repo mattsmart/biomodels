@@ -7,8 +7,7 @@ from multicell.graph_adjacency import \
     lattice_square_int_to_loc, adjacency_lattice_square, adjacency_general, general_exosome_field, \
     general_paracrine_field
 from multicell.multicell_constants import \
-    GRIDSIZE, SEARCH_RADIUS_CELL, NUM_LATTICE_STEPS, VALID_BUILDSTRINGS, VALID_EXOSOME_STRINGS, \
-    BUILDSTRING, EXOSTRING, LATTICE_PLOT_PERIOD, MEANFIELD, EXOSOME_REMOVE_RATIO, \
+    VALID_BUILDSTRINGS, VALID_EXOSOME_STRINGS, EXOSTRING, EXOSOME_REMOVE_RATIO, \
     BLOCK_UPDATE_LATTICE, AUTOCRINE
 from multicell.multicell_lattice import \
     build_lattice_main, write_grid_state_int_alt
@@ -213,7 +212,8 @@ class Multicell:
     # TODO cleanup
     def init_io_dict(self):
         io_dict = run_subdir_setup(run_subfolder='multicell_sim')
-        info_list = [['memories_path', self.simsetup['memories_path']],
+        info_list = [['seed', self.seed],
+                     ['memories_path', self.simsetup['memories_path']],
                      ['script', 'multicell_simulate_old.py'],
                      ['num_cells', self.num_cells],
                      ['total_steps', self.total_steps],
@@ -371,7 +371,7 @@ class Multicell:
             if buildstring == "random":
                 list_of_type_idx = list(range(self.simsetup['P']))
             lattice = build_lattice_main(
-                sidelength, list_of_type_idx, initialization_style, self.simsetup)
+                sidelength, list_of_type_idx, initialization_style, self.simsetup, seed=self.seed)
             # print list_of_type_idx
 
             # 2) now convert the lattice to a graph state (tall NM vector)
@@ -403,7 +403,7 @@ class Multicell:
 
         # probability that site i will be "up" after the timestep
         prob_on_after_timestep = 1 / (1 + np.exp(-2 * beta * total_field))
-        rsamples = np.random.rand(self.total_spins)
+        np.random.seed(self.seed); rsamples = np.random.rand(self.total_spins)
         for idx in range(self.total_spins):
             if prob_on_after_timestep[idx] > rsamples[idx]:
                 self.graph_state[idx] = 1.0
@@ -417,7 +417,7 @@ class Multicell:
     def step_dynamics_async(self, field_applied, beta):
 
         cell_indices = list(range(self.num_cells))
-        random.seed(multicell.seed); random.shuffle(cell_indices)
+        random.seed(self.seed); random.shuffle(cell_indices)
 
         for idx, node_idx in enumerate(cell_indices):
             cell_state = self.get_cell_state(node_idx)
@@ -430,34 +430,35 @@ class Multicell:
             #  note that a cells neighboursa are the ones which 'send' to it
             #  if A_ij = 1, then there is a connection from i to j
             #  to get all the senders to cell i, we need to look at col i
-            graph_neighbours_col = multicell.matrix_A[:, node_idx]
+            graph_neighbours_col = self.matrix_A[:, node_idx]
             graph_neighbours = [node for node, i in enumerate(graph_neighbours_col) if i == 1]
 
             # signaling field part 1
             field_signal_exo, _ = general_exosome_field(
-                multicell, node_idx, neighbours=graph_neighbours)
+                self, node_idx, neighbours=graph_neighbours)
             # signaling field part 2
             field_signal_W = general_paracrine_field(
-                multicell, node_idx, flag_01=False, neighbours=graph_neighbours)
+                self, node_idx, flag_01=False, neighbours=graph_neighbours)
             # sum the two field contributions
             field_signal_unscaled = field_signal_exo + field_signal_W
-            field_signal = multicell.gamma * field_signal_unscaled
+            field_signal = self.gamma * field_signal_unscaled
 
             dummy_cell = Cell(np.copy(cell_state), 'fake_cell',
-                              multicell.simsetup['CELLTYPE_LABELS'],
-                              multicell.simsetup['GENE_LABELS'],
+                              self.simsetup['CELLTYPE_LABELS'],
+                              self.simsetup['GENE_LABELS'],
                               state_array=None,
                               steps=None)
             # TODO pass seed to update call or pass to new attribute Cell
             dummy_cell.update_state(
                 beta=beta,
-                intxn_matrix=multicell.matrix_J,
+                intxn_matrix=self.matrix_J,
                 field_signal=field_signal,
                 field_signal_strength=1.0,
                 field_applied=field_applied_on_cell,
-                field_applied_strength=1.0)
+                field_applied_strength=1.0,
+                seed=self.seed)
 
-            multicell.graph_state[spin_idx_low : spin_idx_high] = dummy_cell.get_current_state()
+            self.graph_state[spin_idx_low : spin_idx_high] = dummy_cell.get_current_state()
             """
             if turn % (
                     120 * plot_period) == 0:  # proj vis of each cell (slow; every k steps)
@@ -466,19 +467,24 @@ class Multicell:
                                     use_radar=False, pltdir=io_dict['latticedir'])"""
         return
 
-    def step_datadict_update_global(self, step):
+    def step_datadict_update_global(self, step, fill_to_end=False):
         """
         Following a simulation multicell step, update the data dict.
+          fill_to_end: if True, fill all steps after 'step' with the calculated value (for early FP)
         See init_data_dict() for additional documentation.
         """
+        if fill_to_end:
+            step_indices = range(step, self.total_steps)
+        else:
+            step_indices = step
         # 1) compressibility statistics
         graph_state_01 = ((1 + self.graph_state)/2).astype(int)
-        self.data_dict['compressibility_full'][step, :] = \
-            calc_compression_ratio(
-                graph_state_01, eta_0=None, datatype='full', elemtype=np.int, method='manual')
+        comp_ratio = calc_compression_ratio(
+            graph_state_01, eta_0=None, datatype='full', elemtype=np.int, method='manual')
+        self.data_dict['compressibility_full'][step_indices, :] = comp_ratio
         # 2) energy statistics
-        energy_values = calc_graph_energy(multicell, step, norm=True)
-        self.data_dict['graph_energy'][step, :] = energy_values
+        energy_values = calc_graph_energy(self, step, norm=True)
+        self.data_dict['graph_energy'][step_indices, :] = energy_values
         # 3) node-wise projection on the encoded singlecell types
         for i in range(self.num_cells):
             cell_state = self.get_cell_state(i)
@@ -488,11 +494,11 @@ class Multicell:
                 cell_state, self.simsetup['A_INV'], self.num_genes, self.simsetup['XI'],
                 overlap_vec=overlap_vec)
             # store the projections/overlaps
-            self.data_dict['memory_overlap_arr'][i, :, step] = overlap_vec
-            self.data_dict['memory_proj_arr'][i, :, step] = proj_vec
+            self.data_dict['memory_overlap_arr'][i, :, step_indices] = overlap_vec
+            self.data_dict['memory_proj_arr'][i, :, step_indices] = proj_vec
             # 4) node-wise storage of the integer representation of the state
             if self.flag_state_int:
-                self.data_dict['cell_state_int'][i, step] = state_to_label(tuple(cell_state))
+                self.data_dict['cell_state_int'][i, step_indices] = state_to_label(tuple(cell_state))
         return
 
     # TODO implement: periodic saving to file (like step_state_visualize)
@@ -505,22 +511,38 @@ class Multicell:
         nn = self.graph_kwargs['sidelength']
 
         # plot type A
-        graph_lattice_projection_composite(multicell, step, use_proj=False)
-        graph_lattice_projection_composite(multicell, step, use_proj=True)
+        graph_lattice_projection_composite(self, step, use_proj=False)
+        graph_lattice_projection_composite(self, step, use_proj=True)
         # plot type B
-        graph_lattice_reference_overlap_plotter(multicell, step)
+        graph_lattice_reference_overlap_plotter(self, step)
         # plot type C
         if flag_uniplots:
             for mu in range(self.simsetup['P']):
-                graph_lattice_uniplotter(multicell, step, nn, self.io_dict['latticedir'],
+                graph_lattice_uniplotter(self, step, nn, self.io_dict['latticedir'],
                                          mu, use_proj=False)
-                graph_lattice_uniplotter(multicell, step, nn, self.io_dict['latticedir'],
+                graph_lattice_uniplotter(self, step, nn, self.io_dict['latticedir'],
                                          mu, use_proj=True)
         return
 
-    # TODO handle case of dynamics_async
-    def dynamics_full(self):
+    def check_if_fixed_point(self, state_to_compare, msg=None):
         """
+        TODO caution two-state flicker with parallel dynamics
+        :param state_to_compare: to check array equality with current graph state
+        :return: bool
+        """
+        if np.all(self.graph_state == state_to_compare):  # TODO faster array equal check?
+            if msg is not None:
+                print(msg)
+            return True
+        else:
+            return False
+
+    # TODO handle case of dynamics_async
+    def dynamics_full(self, flag_visualize=True, flag_datastore=True, end_at_fp=True):
+        """
+            flag_visualize: optionally force off datadict updates (speedup)
+            flag_datastore: optionally force off calls to step_state_visualize updates (speedup)
+            end_at_fp:      terminate before self.total_steps if a fixed point is reached
         Notes:
             -can replace update_with_signal_field with update_state to simulate ensemble
             of non-interacting n**2 cells
@@ -533,8 +555,17 @@ class Multicell:
         #  - cell specific datastorage call
 
         # 1) initial data storage and plotting
-        self.step_datadict_update_global(0)  # measure initial state
-        self.step_state_visualize(0)
+        if flag_datastore:
+            self.step_datadict_update_global(0)  # measure initial state
+        if flag_visualize:
+            self.step_state_visualize(0)
+
+        # storage of previous state to detect when fixed point (fp) is reached
+        # this step is only necessary if parallel mode
+        if end_at_fp:
+            # TODO care save two back in parallel dynamics case
+            # TODO speed check? may be slow to copy
+            state_Tminus1 = np.copy(self.graph_state)
 
         # 2) main loop
         for step in range(1, self.total_steps):
@@ -544,6 +575,13 @@ class Multicell:
             field_applied_step = self.field_applied[:, step]
             beta_step = self.beta[step]
 
+            # storage of previous two states to detect when fixed point (fp) or 2-cycle is reached
+            if end_at_fp:
+                # TODO care save two back in parallel dynamics case
+                # TODO speed check? may be slow to copy
+                state_Tminus2 = np.copy(state_Tminus1)      # only necessary if parallel mode
+                state_Tminus1 = np.copy(self.graph_state)
+
             if self.dynamics_blockparallel:
                 self.step_dynamics_parallel(field_applied_step, beta_step)
             else:
@@ -552,19 +590,57 @@ class Multicell:
             # compute lattice properties (assess global state)
             # TODO 1 - consider lattice energy at each cell update (not lattice update)
             # TODO 2 - speedup lattice energy calc by using info from state update calls...
-            self.step_datadict_update_global(step)
+            if flag_datastore:
+                self.step_datadict_update_global(step)
 
             # periodic plotting call
-            if step % self.plot_period == 0:  # plot the lattice
+            if flag_visualize and step % self.plot_period == 0:  # plot the lattice
                 self.step_state_visualize(step)
                 #self.step_state_save(step, memory_idx_list)  # TODO call to save
 
             # update class attributes TODO any others to increment?
             self.current_step += 1
 
-    def standard_simulation(self):
+            # (optional) simulation termination condition: fixed point reached
+            if end_at_fp:
+                fp_msg = 'FP reached early (step %d of %d), terminating dynamics' % \
+                         (step, self.total_steps)
+                fp_flicker_msg = 'Flicker (2-state) ' + fp_msg
+                fp_reached = self.check_if_fixed_point(state_Tminus1, msg=fp_msg)
+                fp_reached_flicker = self.check_if_fixed_point(state_Tminus2, msg=fp_flicker_msg)
+                if fp_reached or fp_reached_flicker:
+                    break
+
+    def simulation_standard(self):
         # run the simulation
         self.dynamics_full()
+
+        # """check the data dict"""
+        self.plot_datadict_memory(use_proj=False)
+        self.plot_datadict_memory(use_proj=True)
+
+        # """write and plot cell state timeseries"""
+        # write_state_all_cells(lattice, io_dict['datadir'])
+        self.mainloop_data_dict_write()
+        self.mainloop_data_dict_plot()
+
+        print("\nMulticell simulation complete - output in %s" % self.io_dict['basedir'])
+        return
+
+    def simulation_fast_to_fp(self):
+
+        # """get data dict from initial state"""
+        # TODO in flicker case should analyze & plot the final two states
+        self.step_datadict_update_global(0, fill_to_end=False)    # measure initial state
+        self.step_state_visualize(0)                            # visualize initial state
+
+        # run the simulation
+        self.dynamics_full(flag_visualize=False, flag_datastore=False, end_at_fp=True)
+
+        # """get data dict from final state"""
+        # TODO in flicker case should analyze & plot the final two states
+        self.step_datadict_update_global(self.current_step, fill_to_end=True)  # measure final state
+        self.step_state_visualize(self.current_step)                         # visualize final state
 
         # """check the data dict"""
         self.plot_datadict_memory(use_proj=False)
@@ -604,7 +680,7 @@ class Multicell:
             datatitle = 'overlap'
         # check the data dict
         for mu in range(self.simsetup['P']):
-            print(self.data_dict[datakey][:, mu, :])
+            #print(self.data_dict[datakey][:, mu, :])
             plt.plot(self.data_dict[datakey][:, mu, :].T)
             plt.ylabel('%s of all cells onto type: %s' %
                        (datatitle, self.simsetup['CELLTYPE_LABELS'][mu]))
@@ -680,7 +756,7 @@ class Multicell:
                 eta_0=self.data_dict['compressibility_full'][0, 2], datatype='full', elemtype=np.int)
             plt.axhline(y=ref_0[0], ls='-.', color='gray')
             plt.axhline(y=ref_1[0], ls='-.', color='blue')
-            print(ref_0, ref_0, ref_0, ref_0, 'is', ref_0, 'vs', ref_1)
+            #print(ref_0, ref_0, ref_0, ref_0, 'is', ref_0, 'vs', ref_1)
             plt.xlabel(r'$t$ (lattice steps)')
             plt.ylim(-0.05, 1.01)
             plt.savefig(self.io_dict['plotdatadir'] + os.sep + 'compresibility.png')
@@ -705,7 +781,7 @@ if __name__ == '__main__':
     total_steps = 40           # global NUM_LATTICE_STEPS
     plot_period = 1
     flag_state_int = True
-    flag_blockparallel = False
+    flag_blockparallel = True
     beta = 2000.0
     gamma = 20.0               # i.e. field_signal_strength
     kappa = 0.0                # i.e. field_applied_strength
@@ -714,7 +790,7 @@ if __name__ == '__main__':
     autocrine = False
     graph_style = 'lattice_square'
     graph_kwargs = {'search_radius': 1,
-                    'initialization_style': 'dual'}
+                    'initialization_style': 'random'}
 
     # setup 2.3) signalling field (exosomes + cell-cell signalling via W matrix)
     # Note: consider rescale gamma as gamma / num_cells * num_plaquette
@@ -776,4 +852,5 @@ if __name__ == '__main__':
     multicell = Multicell(simsetup_main, verbose=True, **multicell_kwargs)
 
     # 4) run sim
-    multicell.standard_simulation()
+    #multicell.simulation_standard()
+    multicell.simulation_fast_to_fp()
