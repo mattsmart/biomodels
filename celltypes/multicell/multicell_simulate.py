@@ -86,6 +86,7 @@ class Multicell:
 
 
     Data storage attributes
+        run_label:       (str) override the datetime format for multicell_sim sub-directories
         flag_state_int:  (bool) track and plot the int rep of cell state (asserts low N)
         io_dict:         (dict) stores output file paths according to utils.file_io
         data_dict:       (dict) live data storage for graph state and computed properties
@@ -142,6 +143,7 @@ class Multicell:
         # initialize matrix_J_multicell (used explicitly for parallel dynamics)
         self.matrix_J_multicell = self.build_J_multicell()
         # metadata
+        self.run_label = kwargs.get('run_label', None)
         self.flag_state_int = kwargs.get('flag_state_int', False)
         self.io_dict = self.init_io_dict()      # TODO
         self.data_dict = self.init_data_dict()  # TODO
@@ -213,7 +215,7 @@ class Multicell:
 
     # TODO cleanup
     def init_io_dict(self):
-        io_dict = run_subdir_setup(run_subfolder='multicell_sim')
+        io_dict = run_subdir_setup(run_subfolder='multicell_sim', timedir_override=self.run_label)
         info_list = [['seed', self.seed],
                      ['memories_path', self.simsetup['memories_path']],
                      ['script', 'multicell_simulate_old.py'],
@@ -866,6 +868,7 @@ if __name__ == '__main__':
         'flag_state_int': flag_state_int,
         'plot_period': plot_period,
         'seed': main_seed,
+        'run_label': 's%d' % main_seed
     }
 
     # 3) instantiate

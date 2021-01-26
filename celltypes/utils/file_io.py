@@ -10,10 +10,13 @@ sys.path.append(CELLTYPES)
 print("Appended to sys path", CELLTYPES)  # TODO can maybe move this too simetup fn call and call once somewhere else...
 
 
-def run_subdir_setup(run_subfolder=None):
-    current_time = datetime.datetime.now().strftime("%Y-%m-%d %I.%M.%S%p")
+def run_subdir_setup(run_subfolder=None, timedir_override=None):
+    current_time = datetime.datetime.now().strftime("%Y-%m-%d_%I.%M.%S%p")
     experiment_dir = RUNS_FOLDER
-    time_folder = current_time
+    if timedir_override is not None:
+        time_folder = timedir_override
+    else:
+        time_folder = current_time
     if run_subfolder is None:
         current_run_dir = experiment_dir + os.sep + time_folder
     else:
