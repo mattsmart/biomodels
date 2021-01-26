@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def step_state_load(fpath, cells_as_cols=True, num_genes=None, num_cells=None):
+def state_load(fpath, cells_as_cols=True, num_genes=None, num_cells=None):
     """
     Loads the data from a state save file which is int text file
         num_genes x num_cells, or

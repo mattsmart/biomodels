@@ -77,6 +77,13 @@ if __name__ == '__main__':
     else:
         field_housekeeping = None
 
+    # setup 2.6) optionally load an initial state for the lattice
+    load_manual_init = True
+    init_state_path = None
+    if load_manual_init:
+        init_state_path = INPUT_FOLDER + os.sep + 'manual_graphstate' + os.sep + 'X_7.txt'
+        print('Note: in main, loading init graph state from file...')
+
     # 2) prep args for Multicell class instantiation
     multicell_kwargs_base = {
         'run_basedir': 'multicell_manyruns',
@@ -95,6 +102,7 @@ if __name__ == '__main__':
         'flag_housekeeping': flag_housekeeping,
         'flag_state_int': flag_state_int,
         'plot_period': plot_period,
+        'init_state_path': init_state_path,
     }
 
     num_runs = 10

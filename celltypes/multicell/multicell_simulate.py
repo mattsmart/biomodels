@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from multicell.graph_adjacency import \
     lattice_square_int_to_loc, adjacency_lattice_square, adjacency_general, general_exosome_field, \
     general_paracrine_field
+from multicell.graph_helper import state_load
 from multicell.multicell_constants import \
     VALID_BUILDSTRINGS, VALID_EXOSOME_STRINGS, EXOSTRING, EXOSOME_REMOVE_RATIO, \
     BLOCK_UPDATE_LATTICE, AUTOCRINE
@@ -50,6 +51,7 @@ class Multicell:
         kappa
         flag_state_int
         seed
+        init_state_path
 
     Attributes
         simsetup:          (dict) simsetup with internal and external gene regulatory rules
@@ -77,13 +79,13 @@ class Multicell:
         seed:              (int) controls all random calls
 
     Attributes specific to graph state and its dynamics
+        init_state_path: (None, arr) arr storing init state of the multicell graph
         graph_kwargs:    (dict) see above
         beta:            (float or arr T) inverse temperature for dynamics
         total_steps:     (int) aka T - total 'lattice steps' to simulate
         current_step:    (int) step counter
         dynamics_blockparallel: (bool) synchronized lattice updates (can use GPU when True)
         plot_period:     (int) lattice plot period
-
 
     Data storage attributes
         run_basedir:      (str) dir below runs folder, defaults to 'multicell_sim'
@@ -125,7 +127,7 @@ class Multicell:
         self.current_step = 0
         self.total_steps = kwargs['total_steps']
         self.plot_period = kwargs['plot_period']
-        self.dynamics_blockparallel = kwargs.get('flag_blockparallel', BLOCK_UPDATE_LATTICE)  # GPU
+        self.dynamics_blockparallel = kwargs.get('flag_blockparallel', BLOCK_UPDATE_LATTICE)  # GPU?
         # bool: speedup dynamics (check vs graph attributes)
         # self.dynamics_meanfield = ...  # TODO reimplement?
         # graph initialization
@@ -134,15 +136,21 @@ class Multicell:
         self.initialization_style = self.graph_kwargs.get('initialization_style', None)
         self.matrix_A = self.build_adjacency()
         self.graph_state_arr = np.zeros((self.total_spins, self.total_steps), dtype=int)
-        self.graph_state_arr[:, 0] = self.init_graph_state()
+        self.init_state_path = kwargs.get('init_state_path', None)
+        if self.init_state_path is not None:
+            manual_init_state = state_load(self.init_state_path, cells_as_cols=False,
+                                           num_genes=self.num_genes, num_cells=self.num_cells)
+            self.graph_state_arr[:, 0] = manual_init_state
+        else:
+            self.graph_state_arr[:, 0] = self.init_graph_state()
         # initialize matrix_J_multicell (used explicitly for parallel dynamics)
         self.matrix_J_multicell = self.build_J_multicell()
         # metadata
         self.run_basedir = kwargs.get('run_basedir', 'multicell_sim')
         self.run_subdir = kwargs.get('run_subdir', None)
         self.flag_state_int = kwargs.get('flag_state_int', False)
-        self.io_dict = self.init_io_dict()      # TODO
-        self.data_dict = self.init_data_dict()  # TODO
+        self.io_dict = self.init_io_dict()
+        self.data_dict = self.init_data_dict()
         # final assertion of attributes
         self.init_assert_and_sanitize()         # TODO
         if verbose:
@@ -233,6 +241,7 @@ class Multicell:
                      ['random_mem', self.simsetup['random_mem']],
                      ['random_W', self.simsetup['random_W']],
                      ['dynamics_blockparallel', self.dynamics_blockparallel],
+                     ['init_state_path', self.init_state_path],
                      ]
         runinfo_append(io_dict, info_list, multi=True)
         # conditionally store random mem and W
@@ -853,7 +862,14 @@ if __name__ == '__main__':
     else:
         field_housekeeping = None
 
-    # 2) prep args for Multicell class instantiation
+    # setup 2.6) optionally load an initial state for the lattice
+    load_manual_init = True
+    init_state_path = None
+    if load_manual_init:
+        init_state_path = INPUT_FOLDER + os.sep + 'manual_graphstate' + os.sep + 'X_7.txt'
+        print('Note: in main, loading init graph state from file...')
+
+    # 3) prep args for Multicell class instantiation
     multicell_kwargs = {
         'beta': beta,
         'total_steps': total_steps,
@@ -870,6 +886,7 @@ if __name__ == '__main__':
         'flag_housekeeping': flag_housekeeping,
         'flag_state_int': flag_state_int,
         'plot_period': plot_period,
+        'init_state_path': init_state_path,
         'seed': main_seed,
         'run_subdir': None  #'s%d' % main_seed
     }
