@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import random
+import shutil
 import matplotlib.pyplot as plt
 
 from multicell.graph_adjacency import \
@@ -507,9 +508,24 @@ class Multicell:
                 self.data_dict['cell_state_int'][i, step_indices] = state_to_label(tuple(cell_state))
         return
 
-    # TODO implement: periodic saving to file (like step_state_visualize)
-    def step_state_save(self):
-        return
+    def step_state_save(self, step, prefix='X', suffix='', cells_as_cols=True):
+        """
+        Saves graph state at timestep as a txt file
+            cells_as_cols: reshape to 2D arr so each column reps a cell
+        To load:
+            X = np.loadtxt(fpath)
+            num_genes, num_cells = X.shape
+            X = X.reshape((num_genes*num_cells), order='F')
+        """
+        outdir = self.io_dict['statesdir']
+        X = self.graph_state_arr[:, step]
+        fpath = outdir + os.sep + '%s_%d%s.txt' % (prefix, step, suffix)
+        fmt = '%d'
+        if cells_as_cols:
+            np.savetxt(fpath, X.reshape((self.num_genes, self.num_cells), order='F'), fmt=fmt)
+        else:
+            np.savetxt(fpath, X, fmt=fmt)
+        return fpath
 
     # TODO remove lattice square assert (generalize)
     def step_state_visualize(self, step, flag_uniplots=False):
@@ -560,6 +576,7 @@ class Multicell:
         #  - cell specific datastorage call
 
         # 1) initial data storage and plotting
+        self.step_state_save(0)
         if flag_datastore:
             self.step_datadict_update_global(0)  # measure initial state
         if flag_visualize:
@@ -581,6 +598,7 @@ class Multicell:
             # compute lattice properties (assess global state)
             # TODO 1 - consider lattice energy at each cell update (not lattice update)
             # TODO 2 - speedup lattice energy calc by using info from state update calls...
+            self.step_state_save(step)
             if flag_datastore:
                 self.step_datadict_update_global(step)
 
@@ -634,6 +652,15 @@ class Multicell:
         self.step_state_visualize(self.current_step - 1)                           # visualize
         self.step_datadict_update_global(self.current_step, fill_to_end=True)      # measure
         self.step_state_visualize(self.current_step)                               # visualize
+
+        # """make copies of relevant save states"""
+        sdir = self.io_dict['statesdir']
+        # copy final - 1 to X_secondlast.txt
+        shutil.copyfile(sdir + os.sep + 'X_%d.txt' % (self.current_step - 1),
+                        sdir + os.sep + 'X_secondlast.txt')
+        # copy final to X_last.txt
+        shutil.copyfile(sdir + os.sep + 'X_%d.txt' % (self.current_step),
+                        sdir + os.sep + 'X_last.txt')
 
         # """check the data dict"""
         self.plot_datadict_memory(use_proj=False)
