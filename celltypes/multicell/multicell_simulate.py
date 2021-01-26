@@ -647,10 +647,11 @@ class Multicell:
         self.dynamics_full(flag_visualize=False, flag_datastore=False, end_at_fp=True)
 
         # """get data dict from final two states"""
-        self.step_datadict_update_global(self.current_step - 1, fill_to_end=True)  # measure
-        self.step_state_visualize(self.current_step - 1)                           # visualize
-        self.step_datadict_update_global(self.current_step, fill_to_end=True)      # measure
-        self.step_state_visualize(self.current_step)                               # visualize
+        # Note: if two-state limit cycle, the 'fill to end' is misleading
+        self.step_datadict_update_global(self.current_step - 1, fill_to_end=False)  # measure
+        self.step_state_visualize(self.current_step - 1)                            # visualize
+        self.step_datadict_update_global(self.current_step, fill_to_end=False)      # measure
+        self.step_state_visualize(self.current_step)                                # visualize
 
         # """make copies of relevant save states"""
         sdir = self.io_dict['statesdir']
@@ -802,7 +803,7 @@ if __name__ == '__main__':
 
     # setup 2.1) multicell sim core parameters
     num_cells = 10**2          # global GRIDSIZE
-    total_steps = 40           # global NUM_LATTICE_STEPS
+    total_steps = 10           # global NUM_LATTICE_STEPS
     plot_period = 1
     flag_state_int = True
     flag_blockparallel = True
@@ -814,7 +815,7 @@ if __name__ == '__main__':
     autocrine = False
     graph_style = 'lattice_square'
     graph_kwargs = {'search_radius': 1,
-                    'initialization_style': 'random'}
+                    'initialization_style': 'dual'}
 
     # setup 2.3) signalling field (exosomes + cell-cell signalling via W matrix)
     # Note: consider rescale gamma as gamma / num_cells * num_plaquette
@@ -870,12 +871,12 @@ if __name__ == '__main__':
         'flag_state_int': flag_state_int,
         'plot_period': plot_period,
         'seed': main_seed,
-        'run_subdir': 's%d' % main_seed
+        'run_subdir': None  #'s%d' % main_seed
     }
 
     # 3) instantiate
     multicell = Multicell(simsetup_main, verbose=True, **multicell_kwargs)
 
     # 4) run sim
-    #multicell.simulation_standard()
-    multicell.simulation_fast_to_fp()
+    multicell.simulation_standard()
+    #multicell.simulation_fast_to_fp()
