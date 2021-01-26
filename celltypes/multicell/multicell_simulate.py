@@ -567,7 +567,7 @@ class Multicell:
             return False
 
     # TODO handle case of dynamics_async
-    def dynamics_full(self, flag_visualize=True, flag_datastore=True, end_at_fp=True):
+    def dynamics_full(self, flag_visualize=True, flag_datastore=True, end_at_fp=False):
         """
             flag_visualize: optionally force off datadict updates (speedup)
             flag_datastore: optionally force off calls to step_state_visualize updates (speedup)
@@ -812,7 +812,7 @@ if __name__ == '__main__':
 
     # setup 2.1) multicell sim core parameters
     num_cells = 10**2          # global GRIDSIZE
-    total_steps = 10           # global NUM_LATTICE_STEPS
+    total_steps = 20           # global NUM_LATTICE_STEPS
     plot_period = 1
     flag_state_int = True
     flag_blockparallel = True
@@ -863,7 +863,7 @@ if __name__ == '__main__':
         field_housekeeping = None
 
     # setup 2.6) optionally load an initial state for the lattice
-    load_manual_init = True
+    load_manual_init = False
     init_state_path = None
     if load_manual_init:
         init_state_path = INPUT_FOLDER + os.sep + 'manual_graphstate' + os.sep + 'X_7.txt'
