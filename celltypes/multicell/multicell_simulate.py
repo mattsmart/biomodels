@@ -20,7 +20,7 @@ from singlecell.singlecell_class import Cell
 from singlecell.singlecell_functions import \
     state_memory_overlap_alt, state_memory_projection_alt, state_to_label
 from singlecell.singlecell_simsetup import singlecell_simsetup
-from utils.file_io import run_subdir_setup, runinfo_append, write_general_arr
+from utils.file_io import run_subdir_setup, runinfo_append, write_general_arr, INPUT_FOLDER
 
 
 class Multicell:
@@ -86,16 +86,11 @@ class Multicell:
 
 
     Data storage attributes
-        run_label:       (str) override the datetime format for multicell_sim sub-directories
+        run_basedir:      (str) dir below runs folder, defaults to 'multicell_sim'
+        run_subdir:       (str) override the datetime format for multicell_sim sub-dirs
         flag_state_int:  (bool) track and plot the int rep of cell state (asserts low N)
         io_dict:         (dict) stores output file paths according to utils.file_io
         data_dict:       (dict) live data storage for graph state and computed properties
-            ...
-            ...
-            ...TODO
-
-    External methods
-        TODO docs
 
     # TODO what if applied field is different on different nodes? (e.g. top half of lattice?)
     """
@@ -131,8 +126,8 @@ class Multicell:
         self.total_steps = kwargs['total_steps']
         self.plot_period = kwargs['plot_period']
         self.dynamics_blockparallel = kwargs.get('flag_blockparallel', BLOCK_UPDATE_LATTICE)  # GPU
-        # bool: speedup dynamics (check vs graph attributes) TODO reimplement?
-        #self.dynamics_meanfield = ...
+        # bool: speedup dynamics (check vs graph attributes)
+        # self.dynamics_meanfield = ...  # TODO reimplement?
         # graph initialization
         # TODO replace lattice by graph everywhere?
         self.graph_kwargs = kwargs.get('graph_kwargs', {})
@@ -143,7 +138,8 @@ class Multicell:
         # initialize matrix_J_multicell (used explicitly for parallel dynamics)
         self.matrix_J_multicell = self.build_J_multicell()
         # metadata
-        self.run_label = kwargs.get('run_label', None)
+        self.run_basedir = kwargs.get('run_basedir', 'multicell_sim')
+        self.run_subdir = kwargs.get('run_subdir', None)
         self.flag_state_int = kwargs.get('flag_state_int', False)
         self.io_dict = self.init_io_dict()      # TODO
         self.data_dict = self.init_data_dict()  # TODO
@@ -215,7 +211,8 @@ class Multicell:
 
     # TODO cleanup
     def init_io_dict(self):
-        io_dict = run_subdir_setup(run_subfolder='multicell_sim', timedir_override=self.run_label)
+        io_dict = run_subdir_setup(run_subfolder=self.run_basedir,
+                                   timedir_override=self.run_subdir)
         info_list = [['seed', self.seed],
                      ['memories_path', self.simsetup['memories_path']],
                      ['script', 'multicell_simulate_old.py'],
@@ -229,10 +226,10 @@ class Multicell:
                      ['exosome_string', self.exosome_string],
                      ['exosome_remove_ratio', self.exosome_remove_ratio],
                      ['kappa', self.kappa],
-                     ['field_applied', field_applied],
+                     ['field_applied', self.field_applied],
                      ['flag_housekeeping', self.flag_housekeeping],
                      ['num_housekeeping', self.num_housekeeping],
-                     ['beta', beta],
+                     ['beta', self.beta],
                      ['random_mem', self.simsetup['random_mem']],
                      ['random_W', self.simsetup['random_W']],
                      ['dynamics_blockparallel', self.dynamics_blockparallel],
@@ -790,10 +787,15 @@ if __name__ == '__main__':
     # 1) create simsetup
     main_seed = 12410
     curated = False
-    random_mem = False        # TODO incorporate seed in random XI
-    random_W = False          # TODO incorporate seed in random W
+    random_mem = False        # TODO incorporate seed in random XI in simsetup/curated
+    random_W = False          # TODO incorporate seed in random W in simsetup/curated
+    W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_maze.txt'
     simsetup_main = singlecell_simsetup(
         unfolding=True, random_mem=random_mem, random_W=random_W, curated=curated, housekeeping=0)
+    if W_override_path is not None:
+        print('Note: in main, overriding W from file...')
+        explicit_W = np.loadtxt(W_override_path, delimiter=',')
+        simsetup_main['FIELD_SEND'] = explicit_W
     print("simsetup checks:")
     print("\tsimsetup['N'],", simsetup_main['N'])
     print("\tsimsetup['P'],", simsetup_main['P'])
@@ -868,7 +870,7 @@ if __name__ == '__main__':
         'flag_state_int': flag_state_int,
         'plot_period': plot_period,
         'seed': main_seed,
-        'run_label': 's%d' % main_seed
+        'run_subdir': 's%d' % main_seed
     }
 
     # 3) instantiate
