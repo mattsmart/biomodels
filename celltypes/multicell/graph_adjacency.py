@@ -19,7 +19,11 @@ def lattice_square_int_to_loc(node_idx, sidelength):
     return x, y
 
 
-def adjacency_lattice_square(sidelength, num_cells, search_radius):
+def adjacency_lattice_square(sidelength, num_cells, search_radius, periodic_bc=False):
+    """
+    periodic_bc: wrap around boundary condition (False default, not implemented)
+    """
+    assert not periodic_bc  # TODO implement periodic boundary conditions
     assert num_cells == sidelength ** 2
     adjacency_arr_uptri = np.zeros((num_cells, num_cells))
     # build only upper diagonal part of A
