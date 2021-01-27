@@ -645,22 +645,27 @@ class Multicell:
         print("\nMulticell simulation complete - output in %s" % self.io_dict['basedir'])
         return
 
-    def simulation_fast_to_fp(self):
+    def simulation_fast_to_fp(self, no_datatdict=False, no_visualize=False):
+        if no_datatdict: assert no_visualize
 
         # """get data dict from initial state"""
         # TODO in flicker case should analyze & plot the final two states
-        self.step_datadict_update_global(0, fill_to_end=False)    # measure initial state
-        self.step_state_visualize(0)                            # visualize initial state
+        if not no_datatdict:
+            self.step_datadict_update_global(0, fill_to_end=False)    # measure initial state
+        if not no_visualize:
+            self.step_state_visualize(0)                            # visualize initial state
 
         # run the simulation
         self.dynamics_full(flag_visualize=False, flag_datastore=False, end_at_fp=True)
 
         # """get data dict from final two states"""
         # Note: if two-state limit cycle, the 'fill to end' is misleading
-        self.step_datadict_update_global(self.current_step - 1, fill_to_end=False)  # measure
-        self.step_state_visualize(self.current_step - 1)                            # visualize
-        self.step_datadict_update_global(self.current_step, fill_to_end=False)      # measure
-        self.step_state_visualize(self.current_step)                                # visualize
+        if not no_datatdict:
+            self.step_datadict_update_global(self.current_step - 1, fill_to_end=False)  # measure
+            self.step_datadict_update_global(self.current_step, fill_to_end=False)      # measure
+        if not no_visualize:
+            self.step_state_visualize(self.current_step - 1)                            # visualize
+            self.step_state_visualize(self.current_step)                                # visualize
 
         # """make copies of relevant save states"""
         sdir = self.io_dict['statesdir']
@@ -672,13 +677,15 @@ class Multicell:
                         sdir + os.sep + 'X_last.txt')
 
         # """check the data dict"""
-        self.plot_datadict_memory(use_proj=False)
-        self.plot_datadict_memory(use_proj=True)
+        if not no_visualize:
+            self.plot_datadict_memory(use_proj=False)
+            self.plot_datadict_memory(use_proj=True)
 
         # """write and plot cell state timeseries"""
         # write_state_all_cells(lattice, io_dict['datadir'])
-        self.mainloop_data_dict_write()
-        self.mainloop_data_dict_plot()
+        if not no_visualize:
+            self.mainloop_data_dict_write()
+            self.mainloop_data_dict_plot()
 
         print("\nMulticell simulation complete - output in %s" % self.io_dict['basedir'])
         return
