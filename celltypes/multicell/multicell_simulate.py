@@ -365,20 +365,19 @@ class Multicell:
         else:
             assert self.graph_style == 'lattice_square'
             sidelength = self.graph_kwargs['sidelength']
-            buildstring = initialization_style
 
             # 1) use old lattice initializer
-            if buildstring == "mono":
+            if initialization_style == "mono":
                 type_1_idx = 0
                 list_of_type_idx = [type_1_idx]
-            if buildstring == "dual":
+            if initialization_style == "dual":
                 type_1_idx = 0
                 type_2_idx = 1
                 list_of_type_idx = [type_1_idx, type_2_idx]
-            if buildstring == "memory_sequence":
+            if initialization_style == "memory_sequence":
                 list_of_type_idx = list(range(self.simsetup['P']))
                 # random.shuffle(list_of_type_idx)  # TODO shuffle or not?
-            if buildstring == "random":
+            if initialization_style == "random":
                 list_of_type_idx = list(range(self.simsetup['P']))
             lattice = build_lattice_main(
                 sidelength, list_of_type_idx, initialization_style, self.simsetup, seed=self.seed)

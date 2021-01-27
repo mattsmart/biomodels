@@ -124,7 +124,7 @@ if __name__ == '__main__':
         # 1) modify multicell kwargs for each run
         # (A) local seed
         seed = i
-        multicell_kwargs_local['seed'] = i
+        multicell_kwargs_local['seed'] = seed
         # (B) local run_label
         multicell_kwargs_local['run_subdir'] = 's%d' % seed
 
