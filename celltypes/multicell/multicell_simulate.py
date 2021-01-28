@@ -526,12 +526,12 @@ class Multicell:
         """
         outdir = self.io_dict['statesdir']
         X = self.graph_state_arr[:, step]
-        fpath = outdir + os.sep + '%s_%d%s.txt' % (prefix, step, suffix)
+        fpath = outdir + os.sep + '%s_%d%s.npz' % (prefix, step, suffix)
         fmt = '%d'
         if cells_as_cols:
-            np.savetxt(fpath, X.reshape((self.num_genes, self.num_cells), order='F'), fmt=fmt)
+            np.savez_compressed(fpath, X.reshape((self.num_genes, self.num_cells), order='F'), fmt=fmt)
         else:
-            np.savetxt(fpath, X, fmt=fmt)
+            np.savez_compressed(fpath, X, fmt=fmt)
         return fpath
 
     # TODO remove lattice square assert (generalize)
@@ -668,12 +668,12 @@ class Multicell:
 
         # """make copies of relevant save states"""
         sdir = self.io_dict['statesdir']
-        # copy final - 1 to X_secondlast.txt
-        shutil.copyfile(sdir + os.sep + 'X_%d.txt' % (self.current_step - 1),
-                        sdir + os.sep + 'X_secondlast.txt')
-        # copy final to X_last.txt
-        shutil.copyfile(sdir + os.sep + 'X_%d.txt' % (self.current_step),
-                        sdir + os.sep + 'X_last.txt')
+        # copy final - 1 to X_secondlast.npz
+        shutil.copyfile(sdir + os.sep + 'X_%d.npz' % (self.current_step - 1),
+                        sdir + os.sep + 'X_secondlast.npz')
+        # copy final to X_last.npz
+        shutil.copyfile(sdir + os.sep + 'X_%d.npz' % (self.current_step),
+                        sdir + os.sep + 'X_last.npz')
 
         # """check the data dict"""
         if not no_visualize:
@@ -801,7 +801,7 @@ class Multicell:
 if __name__ == '__main__':
 
     # 1) create simsetup
-    main_seed = 12410
+    main_seed = 7
     curated = False
     random_mem = False        # TODO incorporate seed in random XI in simsetup/curated
     random_W = False          # TODO incorporate seed in random W in simsetup/curated
@@ -817,13 +817,13 @@ if __name__ == '__main__':
     print("\tsimsetup['P'],", simsetup_main['P'])
 
     # setup 2.1) multicell sim core parameters
-    num_cells = 10**2          # global GRIDSIZE
-    total_steps = 20           # global NUM_LATTICE_STEPS
+    num_cells = 2**2           # global GRIDSIZE
+    total_steps = 10           # global NUM_LATTICE_STEPS
     plot_period = 1
     flag_state_int = True
-    flag_blockparallel = True
+    flag_blockparallel = False
     beta = 2000.0
-    gamma = 20.0               # i.e. field_signal_strength
+    gamma = 0.0               # i.e. field_signal_strength
     kappa = 0.0                # i.e. field_applied_strength
 
     # setup 2.2) graph options
