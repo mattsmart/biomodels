@@ -10,7 +10,10 @@ from singlecell.singlecell_simsetup import singlecell_simsetup
 from utils.file_io import RUNS_FOLDER, INPUT_FOLDER
 
 
-def aggregate_manyruns(runs_basedir, agg_subdir='aggregate', localplot=True):
+def aggregate_manyruns(runs_basedir, agg_subdir='aggregate',
+                       agg_states=True,
+                       agg_energy=True,
+                       agg_plot=True):
     agg_dir = runs_basedir + os.sep + agg_subdir
     if not os.path.exists(agg_dir):
         os.mkdir(agg_dir)
@@ -38,21 +41,25 @@ def aggregate_manyruns(runs_basedir, agg_subdir='aggregate', localplot=True):
     for i, run_dir in enumerate(run_dirs):
         print(i, run_dir)
         fpath = run_dir + os.sep + 'states' + os.sep + 'X_last.npz'
-        # 2.1) get final state
         X = state_load(fpath, cells_as_cols=False, num_genes=num_genes,
                        num_cells=num_cells, txt=False)
-        fixedpoints_ensemble[:, i] = X
-
-        # 2.2) get state energy for bokeh
         step_hack = 0  # TODO care this will break if class has time-varying applied field
         multicell_template.graph_state_arr[:, step_hack] = X[:]
         assert np.array_equal(multicell_template.field_applied,
                               np.zeros((total_spins, multicell_template.total_steps)))
-        state_energy = calc_graph_energy(multicell_template, step_hack, norm=True)
-        print(state_energy)
-        energies[:, i] = state_energy
+
+        # 2.1) get final state
+        if agg_states:
+            fixedpoints_ensemble[:, i] = X
+
+        # 2.2) get state energy for bokeh
+        if agg_energy:
+            state_energy = calc_graph_energy(multicell_template, step_hack, norm=True)
+            print(state_energy)
+            energies[:, i] = state_energy
+
         # 2.3) get state image for bokeh
-        if localplot:
+        if agg_plot:
             fpaths = [runs_basedir + os.sep + 'aggregate' + os.sep + a for a in
                       ['agg%d_compOverlap.png' % i,
                        'agg%d_compProj.png' % i,
@@ -61,17 +68,22 @@ def aggregate_manyruns(runs_basedir, agg_subdir='aggregate', localplot=True):
             multicell_template.step_datadict_update_global(step_hack, fill_to_end=False)
             multicell_template.step_state_visualize(step_hack, fpaths=fpaths)  # visualize
 
-    np.savez_compressed(agg_dir + os.sep + 'X_aggregate', fixedpoints_ensemble)
-    np.savez_compressed(agg_dir + os.sep + 'X_energy', energies)
+    if agg_states:
+        np.savez_compressed(agg_dir + os.sep + 'X_aggregate', fixedpoints_ensemble)
+    if agg_energy:
+        np.savez_compressed(agg_dir + os.sep + 'X_energy', energies)
 
 
 if __name__ == '__main__':
 
     generate_data = True
     aggregate_data = True
+    agg_states = True  # setting used with aggregate_data
+    agg_energy = True  # setting used with aggregate_data
+    agg_plot = False   # setting used with aggregate_data
 
     # place to generate many runs
-    multirun_name = 'multicell_manyruns_gamma0.05e'
+    multirun_name = 'multicell_manyruns_gamma0e_10k'
     multirun_path = RUNS_FOLDER + os.sep + multirun_name
 
     if generate_data:
@@ -99,15 +111,15 @@ if __name__ == '__main__':
 
         # setup 2.1) multicell sim core parameters
         num_cells = 10**2          # global GRIDSIZE
-        total_steps = 100           # global NUM_LATTICE_STEPS
+        total_steps = 100          # global NUM_LATTICE_STEPS
         plot_period = 1
         flag_state_int = True
         flag_blockparallel = False
         if aggregate_data:
             assert not flag_blockparallel
         beta = 2000.0
-        gamma = 20.0               # i.e. field_signal_strength
-        kappa = 0.0                # i.e. field_applied_strength
+        gamma = 0.0               # i.e. field_signal_strength
+        kappa = 0.0               # i.e. field_applied_strength
 
         # setup 2.2) graph options
         autocrine = False
@@ -179,7 +191,7 @@ if __name__ == '__main__':
             'init_state_path': init_state_path,
         }
 
-        num_runs = 1000
+        num_runs = 1000 * 10
         ensemble = 1  # currently un-used
         run_dirs = [''] * num_runs
 
@@ -211,4 +223,5 @@ if __name__ == '__main__':
     # aggregate data from multiple runs
     if aggregate_data:
         print('Aggregating data in %s' % multirun_path)
-        aggregate_manyruns(multirun_path)
+        aggregate_manyruns(
+            multirun_path, agg_states=agg_states, agg_energy=agg_energy, agg_plot=agg_plot)
