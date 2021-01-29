@@ -10,7 +10,7 @@ from singlecell.singlecell_simsetup import singlecell_simsetup
 from utils.file_io import RUNS_FOLDER, INPUT_FOLDER
 
 
-def aggregate_manyruns(runs_basedir, agg_subdir='aggregate', fastplot=True):
+def aggregate_manyruns(runs_basedir, agg_subdir='aggregate', localplot=True):
     agg_dir = runs_basedir + os.sep + agg_subdir
     if not os.path.exists(agg_dir):
         os.mkdir(agg_dir)
@@ -32,6 +32,7 @@ def aggregate_manyruns(runs_basedir, agg_subdir='aggregate', fastplot=True):
     # X_aggregate.npz -- 2D, total_spins x num_runs, full state of each FP
     # X_energies.npz  -- 2D,           5 x num_runs, energy tuple of each FP
     # if fastplot, produce plot of each state
+    num_runs = len(run_dirs)
     fixedpoints_ensemble = np.zeros((total_spins, num_runs), dtype=int)
     energies = np.zeros((5, num_runs), dtype=float)
     for i, run_dir in enumerate(run_dirs):
@@ -51,25 +52,26 @@ def aggregate_manyruns(runs_basedir, agg_subdir='aggregate', fastplot=True):
         print(state_energy)
         energies[:, i] = state_energy
         # 2.3) get state image for bokeh
-        if fastplot:
-            plot_state_simple(X)  # TODO
+        if localplot:
+            fpaths = [runs_basedir + os.sep + 'aggregate' + os.sep + a for a in
+                      ['agg%d_compOverlap.png' % i,
+                       'agg%d_compProj.png' % i,
+                       'agg%d_ref0_overlap.png' % i]
+                      ]
+            multicell_template.step_datadict_update_global(step_hack, fill_to_end=False)
+            multicell_template.step_state_visualize(step_hack, fpaths=fpaths)  # visualize
 
     np.savez_compressed(agg_dir + os.sep + 'X_aggregate', fixedpoints_ensemble)
     np.savez_compressed(agg_dir + os.sep + 'X_energy', energies)
 
 
-def plot_state_simple(X):
-    print('TODO plot')
-    return
-
-
 if __name__ == '__main__':
 
-    generate_data = False
+    generate_data = True
     aggregate_data = True
 
     # place to generate many runs
-    multirun_name = 'multicell_manyruns'
+    multirun_name = 'multicell_manyruns_gamma0.05e'
     multirun_path = RUNS_FOLDER + os.sep + multirun_name
 
     if generate_data:

@@ -114,7 +114,7 @@ def graph_lattice_uniplotter(multicell, step, n, lattice_plot_dir, mu, use_proj=
     return
 
 
-def graph_lattice_projection_composite(multicell, step, cmap_vary=False, use_proj=True):
+def graph_lattice_projection_composite(multicell, step, cmap_vary=False, use_proj=True, fpath=None):
     """ Creates grid of lattice projections onto each memory mu (grid is ~ sqrt(P) x sqrt(P))
     use_proj - if False, use overlap instead of projection
     """
@@ -125,7 +125,6 @@ def graph_lattice_projection_composite(multicell, step, cmap_vary=False, use_pro
 
     simsetup = multicell.simsetup
     state_int = multicell.flag_state_int
-    lattice_plot_dir = multicell.io_dict['latticedir']
     assert multicell.graph_style == 'lattice_square'
     nn = multicell.graph_kwargs['sidelength']
 
@@ -203,19 +202,22 @@ def graph_lattice_projection_composite(multicell, step, cmap_vary=False, use_pro
                             orientation='horizontal', fraction=0.046, pad=0.04)
         cbar.ax.tick_params(labelsize=16)
     # save figure
-    plt.savefig(os.path.join(lattice_plot_dir, 'composite_%s_lattice_step%d.png' %
-                             (datatitle, step)),
-                dpi=max(120.0, nn / 2.0))
+    # save figure
+    if fpath is None:
+        lattice_plot_dir = multicell.io_dict['latticedir']
+        fpath = os.path.join(lattice_plot_dir, 'composite_%s_lattice_step%d.png' %
+                             (datatitle, step))
+    plt.savefig(fpath, dpi=max(120.0, nn / 2.0))
     plt.close()
     return
 
 
-def graph_lattice_reference_overlap_plotter(multicell, step, ref_node=0):
+def graph_lattice_reference_overlap_plotter(multicell, step, ref_node=0, fpath=None):
     """
     - ref_node: the cell to which all other cells will be overlap compared
     """
     state_int = multicell.flag_state_int
-    lattice_plot_dir = multicell.io_dict['latticedir']
+
     assert multicell.graph_style == 'lattice_square'
     nn = multicell.graph_kwargs['sidelength']
     ref_site = lattice_square_int_to_loc(ref_node, nn)
@@ -245,10 +247,13 @@ def graph_lattice_reference_overlap_plotter(multicell, step, ref_node=0):
     # mark reference
     ax.plot(ref_site[0], ref_site[1], marker='*', c='gold')
     # save figure
-    overlapname = 'overlapRef_%d_%d' % (ref_site[0], ref_site[1])
-    if not os.path.exists(os.path.join(lattice_plot_dir, overlapname)):
-        os.makedirs(os.path.join(lattice_plot_dir, overlapname))
-    plt.savefig(os.path.join(lattice_plot_dir, overlapname, 'lattice_%s_step%d.png' %
-                             (overlapname, step)), dpi=max(80.0, nn / 2.0))
+    if fpath is None:
+        lattice_plot_dir = multicell.io_dict['latticedir']
+        overlapname = 'overlapRef_%d_%d' % (ref_site[0], ref_site[1])
+        if not os.path.exists(os.path.join(lattice_plot_dir, overlapname)):
+            os.makedirs(os.path.join(lattice_plot_dir, overlapname))
+        fpath = os.path.join(lattice_plot_dir, overlapname, 'lattice_%s_step%d.png' %
+                             (overlapname, step))
+    plt.savefig(fpath, dpi=max(80.0, nn / 2.0))
     plt.close()
     return

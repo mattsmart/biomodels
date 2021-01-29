@@ -535,15 +535,17 @@ class Multicell:
         return fpath
 
     # TODO remove lattice square assert (generalize)
-    def step_state_visualize(self, step, flag_uniplots=False):
+    def step_state_visualize(self, step, flag_uniplots=False, fpaths=None):
         assert self.graph_style == 'lattice_square'
         nn = self.graph_kwargs['sidelength']
+        if fpaths is None:
+            fpaths = [None, None, None]
 
         # plot type A
-        graph_lattice_projection_composite(self, step, use_proj=False)
-        graph_lattice_projection_composite(self, step, use_proj=True)
+        graph_lattice_projection_composite(self, step, use_proj=False, fpath=fpaths[0])
+        graph_lattice_projection_composite(self, step, use_proj=True, fpath=fpaths[1])
         # plot type B
-        graph_lattice_reference_overlap_plotter(self, step)
+        graph_lattice_reference_overlap_plotter(self, step, fpath=fpaths[2])
         # plot type C
         if flag_uniplots:
             for mu in range(self.simsetup['P']):
