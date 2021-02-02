@@ -83,8 +83,9 @@ if __name__ == '__main__':
     agg_plot = False   # setting used with aggregate_data
 
     # place to generate many runs
-    multirun_name = 'multicell_manyruns_gamma0e_10k'
-    multirun_path = RUNS_FOLDER + os.sep + multirun_name
+    gamma_main = 20.0
+    multirun_name = 'gamma%.2fe_autocrine' % gamma_main
+    multirun_path = RUNS_FOLDER + os.sep + 'multicell_manyruns' + os.sep + multirun_name
 
     if generate_data:
 
