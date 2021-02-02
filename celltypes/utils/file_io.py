@@ -21,7 +21,10 @@ def run_subdir_setup(run_subfolder=None, timedir_override=None):
     if run_subfolder is None:
         current_run_dir = experiment_dir + os.sep + time_folder
     else:
-        current_run_dir = experiment_dir + os.sep + run_subfolder + os.sep + time_folder
+        if os.path.isabs(run_subfolder):
+            current_run_dir = run_subfolder + os.sep + time_folder
+        else:
+            current_run_dir = experiment_dir + os.sep + run_subfolder + os.sep + time_folder
 
     # make subfolders in the timestamped run directory:
     data_dir = os.path.join(current_run_dir, "data")

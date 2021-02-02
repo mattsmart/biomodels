@@ -84,14 +84,11 @@ if __name__ == '__main__':
 
     # place to generate many runs
     gamma_main = 20.0
-    multirun_name = 'gamma%.2fe_autocrine' % gamma_main
+    multirun_name = 'gamma%.2f_autocrine' % gamma_main
     multirun_path = RUNS_FOLDER + os.sep + 'multicell_manyruns' + os.sep + multirun_name
 
     if generate_data:
-
         assert not os.path.exists(multirun_path)
-        #if os.path.exists(multirun_path):
-        #    shutil.rmtree(multirun_path)
 
         # 1) create simsetup
         simsetup_seed = 0
@@ -112,18 +109,18 @@ if __name__ == '__main__':
 
         # setup 2.1) multicell sim core parameters
         num_cells = 10**2          # global GRIDSIZE
-        total_steps = 100          # global NUM_LATTICE_STEPS
+        total_steps = 500          # global NUM_LATTICE_STEPS
         plot_period = 1
         flag_state_int = True
         flag_blockparallel = False
         if aggregate_data:
             assert not flag_blockparallel
         beta = 2000.0
-        gamma = 0.0               # i.e. field_signal_strength
+        gamma = gamma_main         # i.e. field_signal_strength
         kappa = 0.0               # i.e. field_applied_strength
 
         # setup 2.2) graph options
-        autocrine = False
+        autocrine = True
         graph_style = 'lattice_square'
         graph_kwargs = {'search_radius': 1,
                         'initialization_style': 'random'}
@@ -171,9 +168,9 @@ if __name__ == '__main__':
             init_state_path = INPUT_FOLDER + os.sep + 'manual_graphstate' + os.sep + 'X_8.txt'
             print('Note: in main, loading init graph state from file...')
 
-        # 2) prep args for Multicell class instantiation
+        # 3) prep args for Multicell class instantiation
         multicell_kwargs_base = {
-            'run_basedir': multirun_name,
+            'run_basedir': multirun_path,
             'beta': beta,
             'total_steps': total_steps,
             'num_cells': num_cells,
@@ -192,7 +189,7 @@ if __name__ == '__main__':
             'init_state_path': init_state_path,
         }
 
-        num_runs = 1000 * 10
+        num_runs = 1000
         ensemble = 1  # currently un-used
         run_dirs = [''] * num_runs
 
@@ -214,6 +211,8 @@ if __name__ == '__main__':
 
             # 2.1) save full state to file for the first run (place in parent dir)
             if i == 0:
+                if not os.path.exists(multirun_path):
+                    os.mkdir(multirun_path)
                 ppath = multirun_path + os.sep + 'multicell_template.pkl'
                 with open(ppath, 'wb') as fp:
                     pickle.dump(multicell, fp)

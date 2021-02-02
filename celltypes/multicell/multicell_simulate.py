@@ -244,11 +244,20 @@ class Multicell:
                      ['init_state_path', self.init_state_path],
                      ]
         runinfo_append(io_dict, info_list, multi=True)
-        # conditionally store random mem and W
-        np.savetxt(io_dict['simsetupdir'] + os.sep + 'simsetup_XI.txt',
+        # conditionally store random mem XI, signalling W, and adjacency A
+        np.savetxt(io_dict['simsetupdir'] + os.sep + 'matrix_XI.txt',
                    self.simsetup['XI'], delimiter=',', fmt='%d')
-        np.savetxt(io_dict['simsetupdir'] + os.sep + 'simsetup_W.txt',
+        np.savetxt(io_dict['simsetupdir'] + os.sep + 'matrix_W.txt',
                    self.matrix_W, delimiter=',', fmt='%.4f')
+        # save matrix 'A' to file
+        np.savetxt(io_dict['simsetupdir'] + os.sep + 'matrix_A.txt',
+                   self.matrix_A, fmt='%.4f')
+        # save matrix 'J' (single cell) to file
+        np.savetxt(io_dict['simsetupdir'] + os.sep + 'matrix_J.txt',
+                   self.simsetup['J'], fmt='%.4f')
+        # save matrix 'J_multicell' to file
+        np.savez_compressed(io_dict['simsetupdir'] + os.sep + 'matrix_J_multicell.npz',
+                            self.matrix_J_multicell)
         return io_dict
 
     # TODO full + support for non lattice too
@@ -310,7 +319,7 @@ class Multicell:
         # autocrine loop before returning adjacency matrix (set all diags to 1 or 0)
         # note this will override 'prebuilt_adjacency' in case of self.graph_style == 'general'
         if self.autocrine:
-            np.fill_diagonal(arr_A, 1)
+            np.fill_diagonal(arr_A, 2)
         else:
             np.fill_diagonal(arr_A, 0)
 
