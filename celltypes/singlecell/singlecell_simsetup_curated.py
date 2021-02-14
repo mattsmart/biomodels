@@ -2,10 +2,11 @@ import numpy as np
 
 
 # Constants for the curation dict of presets
-MULTICELL_PRESET = '3MemCorr'
-N_FERRO = 6
-REFINE_W = False
-RANDOM_W = True  # TODO care how this interacts with random W in singlecell_simsetup
+MULTICELL_PRESET = '3MemSym'  # ferro
+N_FERRO = 9
+REFINE_W = True
+DIAG_W = True
+RANDOM_W = False  # TODO care how this interacts with random W in singlecell_simsetup
 
 curated = {
     'mutual_inhibition':
@@ -56,6 +57,14 @@ curated = {
          'celltype_labels': [r'$\xi_A$', r'$\xi_B$', r'$\xi_C$'],
          'gene_labels': ['gene_%d' % idx for idx in range(12)],
          },
+    '3MemSym':
+        {'XI': np.array([[1, 1, 1, -1, -1, -1, -1, -1, -1],
+                         [-1, -1, -1, 1, 1, 1, -1, -1, -1],
+                         [-1, -1, -1, -1, -1, -1, 1, 1, 1]]).T,
+         'W': np.zeros((9, 9)),
+         'celltype_labels': [r'$\xi_A$', r'$\xi_B$', r'$\xi_C$'],
+         'gene_labels': ['gene_%d' % idx for idx in range(9)],
+         },
     '3MemCorrPerturb':
         {'XI': np.array([[2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
                          [4, 1, 1, 1, 1, 1, 1, 1, -1, -1, -1, -1],
@@ -72,10 +81,13 @@ if REFINE_W:
     # manually refine the W matrix of the chosen scheme
     Ntot = curated[MULTICELL_PRESET]['XI'].shape[0]
     if RANDOM_W:
+        assert not DIAG_W
         W_0 = np.random.rand(Ntot, Ntot) * 2 - 1  # scale to Uniform [-1, 1]
         W_lower = np.tril(W_0, k=-1)
         W_diag = np.diag(np.diag(W_0))
         curated[MULTICELL_PRESET]['W'] = (W_lower + W_lower.T + W_diag) / Ntot
+    elif DIAG_W:
+        curated[MULTICELL_PRESET]['W'] = np.eye(Ntot)
     else:
         curated[MULTICELL_PRESET]['W'][1, 1] = 10.0 / Ntot
         curated[MULTICELL_PRESET]['W'][2, 3] = -10.0 / Ntot
