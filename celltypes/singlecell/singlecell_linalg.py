@@ -34,7 +34,7 @@ def predictivity_matrix(xi, corr_inv):
     return np.dot(corr_inv, xi.T) / float(xi.shape[0])  # eta_ij is the "predictivity" of TF i in cell fate j
 
 
-def sorted_eig(arr, take_real=True):
+def sorted_eig(arr, take_real=True, big_to_small=False):
     # TODO care with the real, assert matrix symmetric for now?
     E_unsorted, V_unsorted = np.linalg.eig(arr)
     if take_real:
@@ -43,4 +43,7 @@ def sorted_eig(arr, take_real=True):
     sortlist = np.argsort(E_unsorted)
     evals = E_unsorted[sortlist]
     evecs = V_unsorted[:, sortlist]
+    if big_to_small:
+        evals = evals[::-1]
+        evecs = evecs[:, ::-1]
     return evals, evecs
