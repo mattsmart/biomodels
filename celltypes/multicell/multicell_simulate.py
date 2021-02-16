@@ -330,9 +330,12 @@ class Multicell:
 
         return arr_A
 
-    def build_J_multicell(self, plot=False):
+    def build_J_multicell(self, gamma=None, plot=False):
 
-        W_scaled = self.gamma * self.matrix_W
+        if gamma is None:
+            gamma = self.gamma
+
+        W_scaled = gamma * self.matrix_W
         W_scaled_sym = 0.5 * (W_scaled + W_scaled.T)
 
         # Term A: self interactions for each cell (diagonal blocks of multicell J_block)
