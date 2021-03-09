@@ -644,7 +644,7 @@ def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, use_proj=False,
 
 
 if __name__ == '__main__':
-    simsetup = singlecell_simsetup(unfolding=True, npzpath=MEMS_UNFOLD)
+    simsetup = singlecell_simsetup(unfolding=True, npzpath=MEMS_UNFOLD, curated=True)
     M = glauber_transition_matrix(simsetup['J'], field=None, fs=0.0, beta=None, override=0.0)
     print(M)
     E, V = np.linalg.eig(M)
@@ -663,5 +663,7 @@ if __name__ == '__main__':
         print(am)
     print()
     for i in range(3):
-        print(state_to_label(simsetup['XI'][:, i]))
-        print(state_to_label(simsetup['XI'][:, i]*-1))
+        print(i)
+        pattern = simsetup['XI'][:, i]
+        print(pattern)
+        print(state_to_label(pattern), state_to_label(pattern*-1))
