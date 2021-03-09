@@ -13,7 +13,8 @@ from utils.file_io import RUNS_FOLDER, INPUT_FOLDER
 def aggregate_manyruns(runs_basedir, agg_subdir='aggregate',
                        agg_states=True,
                        agg_energy=True,
-                       agg_plot=True):
+                       agg_plot=True,
+                       only_last=True):
     agg_dir = runs_basedir + os.sep + agg_subdir
     if not os.path.exists(agg_dir):
         os.mkdir(agg_dir)
@@ -38,40 +39,48 @@ def aggregate_manyruns(runs_basedir, agg_subdir='aggregate',
     num_runs = len(run_dirs)
     fixedpoints_ensemble = np.zeros((total_spins, num_runs), dtype=int)
     energies = np.zeros((5, num_runs), dtype=float)
-    for i, run_dir in enumerate(run_dirs):
-        print(i, run_dir)
-        fpath = run_dir + os.sep + 'states' + os.sep + 'X_last.npz'
-        X = state_load(fpath, cells_as_cols=False, num_genes=num_genes,
-                       num_cells=num_cells, txt=False)
-        step_hack = 0  # TODO care this will break if class has time-varying applied field
-        multicell_template.graph_state_arr[:, step_hack] = X[:]
-        assert np.array_equal(multicell_template.field_applied,
-                              np.zeros((total_spins, multicell_template.total_steps)))
 
-        # 2.1) get final state
+    if only_last:
+        X_labels = ['last']
+    else:
+        X_labels = ['%d' % idx for idx in range(multicell_template.total_steps)]
+
+    for label in X_labels:
+        for i, run_dir in enumerate(run_dirs):
+            if i % 200 == 0:
+                print(i, run_dir)
+            fpath = run_dir + os.sep + 'states' + os.sep + 'X_%s.npz' % label
+            X = state_load(fpath, cells_as_cols=False, num_genes=num_genes,
+                           num_cells=num_cells, txt=False)
+            step_hack = 0  # TODO care this will break if class has time-varying applied field
+            multicell_template.graph_state_arr[:, step_hack] = X[:]
+            assert np.array_equal(multicell_template.field_applied,
+                                  np.zeros((total_spins, multicell_template.total_steps)))
+
+            # 2.1) get final state
+            if agg_states:
+                fixedpoints_ensemble[:, i] = X
+
+            # 2.2) get state energy for bokeh
+            if agg_energy:
+                state_energy = calc_graph_energy(multicell_template, step_hack, norm=True)
+                energies[:, i] = state_energy
+
+            # 2.3) get state image for bokeh
+            if agg_plot:
+                fpaths = [runs_basedir + os.sep + 'aggregate' + os.sep + a for a in
+                          ['agg_%s_%d_compOverlap.png' % (label, i),
+                           'agg_%s_%d_compProj.png' % (label, i),
+                           'agg_%s_%d_ref0_overlap.png' % (label, i)]
+                          ]
+                multicell_template.step_datadict_update_global(step_hack, fill_to_end=False)
+                multicell_template.step_state_visualize(step_hack, fpaths=fpaths)  # visualize
+
         if agg_states:
-            fixedpoints_ensemble[:, i] = X
+            np.savez_compressed(agg_dir + os.sep + 'X_aggregate_%s' % label, fixedpoints_ensemble)
 
-        # 2.2) get state energy for bokeh
         if agg_energy:
-            state_energy = calc_graph_energy(multicell_template, step_hack, norm=True)
-            print(state_energy)
-            energies[:, i] = state_energy
-
-        # 2.3) get state image for bokeh
-        if agg_plot:
-            fpaths = [runs_basedir + os.sep + 'aggregate' + os.sep + a for a in
-                      ['agg%d_compOverlap.png' % i,
-                       'agg%d_compProj.png' % i,
-                       'agg%d_ref0_overlap.png' % i]
-                      ]
-            multicell_template.step_datadict_update_global(step_hack, fill_to_end=False)
-            multicell_template.step_state_visualize(step_hack, fpaths=fpaths)  # visualize
-
-    if agg_states:
-        np.savez_compressed(agg_dir + os.sep + 'X_aggregate', fixedpoints_ensemble)
-    if agg_energy:
-        np.savez_compressed(agg_dir + os.sep + 'X_energy', energies)
+            np.savez_compressed(agg_dir + os.sep + 'X_energy_%s' % label, energies)
 
 
 if __name__ == '__main__':
@@ -82,10 +91,27 @@ if __name__ == '__main__':
     agg_energy = True  # setting used with aggregate_data
     agg_plot = False   # setting used with aggregate_data
 
+    # key runtime settings
+    num_cells = 10 ** 2  # global GRIDSIZE
+    total_steps = 500     # global NUM_LATTICE_STEPS
+    num_runs = int(1e4)  # int(1e4)
+
     # place to generate many runs
-    gamma_list = [0.05, 0.1, 0.2, 1.0, 2.0, 20.0]
+    #gamma_list = [0.0, 0.2]  #, 0.05, 0.1, 0.2, 1.0, 2.0, 20.0]
+    #[0.06, 0.07, 0.08, 0.09, 0.15, 0.4, 0.6, 0.8]
+    gamma_list = [0.08, 0.09]
+    beta_main = 2000.0   # 2000.0
+    if beta_main == 2000.0:
+        agg_only_last = True
+        end_at_fp = True
+        beta_str = ''
+    else:
+        agg_only_last = False
+        end_at_fp = False
+        beta_str = 'beta%.2f_' % beta_main
+
     for gamma_main in gamma_list:
-        multirun_name = 'gamma%.2f_10k_fixedorder' % gamma_main
+        multirun_name = '%sWrandom0_gamma%.2f_10k_periodic_fixedorderV3_p3_M100' % (beta_str, gamma_main)
         multirun_path = RUNS_FOLDER + os.sep + 'multicell_manyruns' + os.sep + multirun_name
 
         if generate_data:
@@ -93,12 +119,16 @@ if __name__ == '__main__':
 
             # 1) create simsetup
             simsetup_seed = 0
-            curated = False
+            curated = True
             random_mem = False        # TODO incorporate seed in random XI
             random_W = False          # TODO incorporate seed in random W
+            #W_override_path = None
             W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_maze.txt'
+            #W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_random1.txt'
+
             simsetup_main = singlecell_simsetup(
                 unfolding=True, random_mem=random_mem, random_W=random_W, curated=curated, housekeeping=0)
+
             if W_override_path is not None:
                 print('Note: in main, overriding W from file...')
                 explicit_W = np.loadtxt(W_override_path, delimiter=',')
@@ -109,14 +139,11 @@ if __name__ == '__main__':
             print("\tsimsetup['P'],", simsetup_main['P'])
 
             # setup 2.1) multicell sim core parameters
-            num_cells = 10**2          # global GRIDSIZE
-            total_steps = 500          # global NUM_LATTICE_STEPS
             plot_period = 1
             flag_state_int = True
             flag_blockparallel = False
             if aggregate_data:
                 assert not flag_blockparallel
-            beta = 2000.0
             gamma = gamma_main         # i.e. field_signal_strength
             kappa = 0.0               # i.e. field_applied_strength
 
@@ -124,6 +151,7 @@ if __name__ == '__main__':
             autocrine = False
             graph_style = 'lattice_square'
             graph_kwargs = {'search_radius': 1,
+                            'periodic': True,
                             'initialization_style': 'random'}
 
             # setup 2.3) signalling field (exosomes + cell-cell signalling via W matrix)
@@ -172,7 +200,7 @@ if __name__ == '__main__':
             # 3) prep args for Multicell class instantiation
             multicell_kwargs_base = {
                 'run_basedir': multirun_path,
-                'beta': beta,
+                'beta': beta_main,
                 'total_steps': total_steps,
                 'num_cells': num_cells,
                 'flag_blockparallel': flag_blockparallel,
@@ -190,13 +218,13 @@ if __name__ == '__main__':
                 'init_state_path': init_state_path,
             }
 
-            num_runs = 10000
             ensemble = 1  # currently not used
             run_dirs = [''] * num_runs
 
             # note we pickle the first runs instance for later loading
             for i in range(num_runs):
-                print("On run %d (%d total)" % (i, num_runs))
+                if i % 200 == 0:
+                    print("On run %d (%d total)" % (i, num_runs))
                 multicell_kwargs_local = multicell_kwargs_base.copy()
 
                 # 1) modify multicell kwargs for each run
@@ -207,7 +235,7 @@ if __name__ == '__main__':
                 multicell_kwargs_local['run_subdir'] = 's%d' % seed
 
                 # 2) instantiate
-                multicell = Multicell(simsetup_main, verbose=True, **multicell_kwargs_local)
+                multicell = Multicell(simsetup_main, verbose=False, **multicell_kwargs_local)
                 run_dirs[i] = multicell.io_dict['basedir']
 
                 # 2.1) save full state to file for the first run (place in parent dir)
@@ -219,10 +247,12 @@ if __name__ == '__main__':
                         pickle.dump(multicell, fp)
 
                 # 3) run sim
-                multicell.simulation_fast_to_fp(no_datatdict=True, no_visualize=True)
+                multicell.simulation_fast(no_datatdict=True, no_visualize=True, end_at_fp=end_at_fp,
+                                          verbose=False)
 
         # aggregate data from multiple runs
         if aggregate_data:
             print('Aggregating data in %s' % multirun_path)
             aggregate_manyruns(
-                multirun_path, agg_states=agg_states, agg_energy=agg_energy, agg_plot=agg_plot)
+                multirun_path, agg_states=agg_states, agg_energy=agg_energy, agg_plot=agg_plot,
+                only_last=agg_only_last)
