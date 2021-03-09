@@ -86,7 +86,8 @@ def make_video_ffmpeg(source_dir, outpath, fps=5, fhead='lattice_at_time_', fmod
             if out == '' and sp.poll() != None:
                 break
             if out != '':
-                sys.stdout.write(out)
+                print(out)
+                #sys.stdout.write(out)
                 sys.stdout.flush()
     out, err = sp.communicate()
     print(out, err, sp.returncode)
