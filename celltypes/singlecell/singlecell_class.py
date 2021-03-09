@@ -1,5 +1,5 @@
 import numpy as np
-from random import shuffle, random
+import random
 
 from utils.file_io import state_write
 from singlecell.singlecell_constants import BETA, FIELD_SIGNAL_STRENGTH, FIELD_APPLIED_STRENGTH, ASYNC_BATCH
@@ -105,13 +105,15 @@ class Cell(object):
         """
         if async_flag:
             sites = list(range(self.N))
-            np.random.seed(seed)
+            # np.random.seed(seed)  # TODO must be disabled, finite temp acts wrong otherwise
             rsamples = np.random.rand(self.N)  # optimized: pass one to each of the N single spin update calls  TODO: benchmark vs intels
             if async_batch:
-                shuffle(sites)  # randomize site ordering each timestep updates
+                random.seed(seed)
+                random.shuffle(sites)  # randomize site ordering each timestep updates
             else:
                 #sites = np.random.choice(self.N, self.N, replace=True)
                 #sites = [int(self.N*np.random.random()) for _ in xrange(self.N)]  # this should be same and faster
+
                 np.random.seed(seed)
                 sites = [int(self.N * u) for u in np.random.rand(self.N)]  # this should be 5-10% percent faster
 
@@ -142,7 +144,7 @@ class Cell(object):
                 total_field += app_field_vec
             # probability that site i will be "up" after the timestep
             prob_on_after_timestep = 1 / (1 + np.exp(-2 * beta * total_field))
-            np.random.seed(seed)
+            #np.random.seed(seed)  # TODO must be disabled, finite temp acts wrong otherwise
             rsamples = np.random.rand(self.N)  # optimized: pass one to each of the N single spin update calls  TODO: benchmark vs intels
             for idx in range(self.N):
                 if prob_on_after_timestep[idx] > rsamples[idx]:
