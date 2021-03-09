@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 
 from multicell.multicell_constants import VALID_EXOSOME_STRINGS, EXOSTRING
@@ -7,6 +8,8 @@ from singlecell.singlecell_functions import state_subsample, state_only_on, stat
 def lattice_square_loc_to_int(loc, sidelength):
     # maps a two-tuple, for the location of a cell on square grid, to a unique integer
     # sidelength is sqrt(num_cells), the edge length of the lattice
+    assert 0 <= loc[0] < sidelength
+    assert 0 <= loc[1] < sidelength
     x, y = loc[0], loc[1]
     return x * sidelength + y
 
@@ -21,9 +24,8 @@ def lattice_square_int_to_loc(node_idx, sidelength):
 
 def adjacency_lattice_square(sidelength, num_cells, search_radius, periodic_bc=False):
     """
-    periodic_bc: wrap around boundary condition (False default, not implemented)
+    periodic_bc: wrap around boundary condition (False default)
     """
-    assert not periodic_bc  # TODO implement periodic boundary conditions
     assert num_cells == sidelength ** 2
     adjacency_arr_uptri = np.zeros((num_cells, num_cells))
     # build only upper diagonal part of A
@@ -40,6 +42,30 @@ def adjacency_lattice_square(sidelength, num_cells, search_radius, periodic_bc=F
             if (arow_low <= grid_loc_b[0] <= arow_high) and \
                     (acol_low <= grid_loc_b[1] <= acol_high):
                 adjacency_arr_uptri[a, b] = 1
+
+    if periodic_bc:
+
+        def build_nbr_ints(arow, acol):
+            nbr_locs = []
+            search_ints = range(-search_radius, search_radius + 1)
+            for i in search_ints:
+                x = (arow + i) % sidelength
+                for j in search_ints:
+                    y = (acol + j) % sidelength
+                    if not (i == 0 and j == 0):
+                        loc = (x, y)
+                        grid_int = lattice_square_loc_to_int(loc, sidelength)
+                        nbr_locs.append(grid_int)
+            return nbr_locs
+
+        for a in range(num_cells):
+            grid_loc_a = lattice_square_int_to_loc(a, sidelength)  # map cell id to grid loc (i, j)
+            arow, acol = grid_loc_a[0], grid_loc_a[1]
+            nbr_ints = build_nbr_ints(arow, acol)
+            for b in range(a + 1, num_cells):
+                if b in nbr_ints:
+                    adjacency_arr_uptri[a, b] = 1
+
     adjacency_arr_lowtri = adjacency_arr_uptri.T
     adjacency_arr = adjacency_arr_lowtri + adjacency_arr_uptri
     return adjacency_arr
@@ -119,3 +145,29 @@ def general_exosome_field(multicell, receiver_idx, step, neighbours=None):
         if exosome_string != "no_exo_field":
             raise ValueError("exosome_string arg invalid, must be one of %s" % VALID_EXOSOME_STRINGS)
     return field_state, neighbours
+
+
+if __name__ == '__main__':
+    sidelength = 10
+    num_cells = sidelength ** 2
+    search_radius = 1
+    A = adjacency_lattice_square(sidelength, num_cells, search_radius, periodic_bc=True)
+    plt.imshow(A)
+    plt.show()
+    for i in range(num_cells):
+        print(np.sum(A[i,:]))
+
+        nbr_grid = np.ones((sidelength, sidelength)) - 2
+        ax, ay = lattice_square_int_to_loc(i, sidelength)
+        print(ax, ay)
+        for j in range(num_cells):
+            bx, by = lattice_square_int_to_loc(j, sidelength)
+            nbr_grid[bx, by] = A[i, j]
+        nbr_grid[ax, ay] = -1
+
+        plt.imshow(nbr_grid)
+        plt.colorbar()
+        plt.show()
+
+
+
