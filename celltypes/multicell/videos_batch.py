@@ -7,19 +7,19 @@ from utils.make_video import make_video_ffmpeg
 
 
 if __name__ == '__main__':
-    make_single_video = False
+    make_single_video = True
     batch_make_videos = False  # make videos in all runs subdirs
 
     if make_single_video:
-        basedir = RUNS_FOLDER + os.sep + "expC1_fsHigh_beta1.0_radius1"
-        source_dir = "lattice" + os.sep + "overlapRef_0_0"
+        basedir = RUNS_FOLDER + os.sep + "explore" + os.sep + 'replot'
+        source_dir = "slide4vidB"
         #fhead = "composite_lattice_step"
-        fhead = "lattice_overlapRef_0_0_step"
-        ftype = ".png"
+        fhead = "ref0_X_"
+        ftype = ".jpg"
         nmax = 100
         fps = 2
         sourcepath = basedir + os.sep + source_dir
-        outpath = basedir + os.sep + 'movie2_expC1_fsHigh_beta1.mp4'
+        outpath = basedir + os.sep + 'movie_slide4.mp4'
         make_video_ffmpeg(sourcepath, outpath, fps=1, fhead=fhead, ftype=ftype, nmax=nmax)
 
     if batch_make_videos:
