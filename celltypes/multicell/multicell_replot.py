@@ -1,10 +1,16 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import pickle
 
 from multicell.multicell_lattice import read_grid_state_int
-from singlecell.singlecell_functions import label_to_state
+from multicell.multicell_visualize import graph_lattice_reference_overlap_plotter
+from singlecell.singlecell_functions import label_to_state, state_to_label
 from singlecell.singlecell_simsetup import singlecell_simsetup
+from multicell.graph_helper import state_load
+from multicell.graph_adjacency import lattice_square_loc_to_int, lattice_square_int_to_loc
+from utils.file_io import run_subdir_setup, RUNS_FOLDER, INPUT_FOLDER
+
 
 turquoise = [30, 223, 214]
 
@@ -31,22 +37,33 @@ sharp_green = [142, 200, 50]
 
 soft_purple = [177, 156, 217]
 
-color_anchor = np.array(beige) / 255.0
-color_A_pos = np.array(soft_blue_alt1) / 255.0
+soft_grey_norm = np.array(soft_grey) / 255.0
+
+color_anchor_beige = np.array(beige) / 255.0
+color_anchor_white = np.array(white) / 255.0
+color_anchor = color_anchor_white
+
+
+color_A_pos = np.array(soft_blue) / 255.0
+#color_A_pos = np.array(soft_blue_alt1) / 255.0
 color_A_neg = np.array(soft_orange) / 255.0
 
 color_B_pos = np.array(soft_red) / 255.0
 color_B_neg = np.array(soft_green) / 255.0
 
-color_C_pos = np.array(soft_green) / 255.0
+color_C_pos = np.array(soft_yellow) / 255.0
 color_C_neg = np.array(soft_purple) / 255.0
+
+color_AB = np.array(soft_purple) / 255.0
+color_AC = np.array(soft_green) / 255.0
+color_BC = np.array(soft_orange) / 255.0
 
 
 def state_int_to_colour(state_int, simsetup, proj=True, noanti=True):
 
     def linear_interpolate(val, c2, c1=color_anchor):
         assert 0.0 <= val <= 1.0
-        return c1 + val * (c2 - c1)
+        return cout
 
     # gewt similarities i.e. proj or overlap with all cell types
     state = label_to_state(state_int, simsetup['N'], use_neg=True)
@@ -74,17 +91,6 @@ def state_int_to_colour(state_int, simsetup, proj=True, noanti=True):
     colour_mix = [(max(0, similarities[0])*colour_a[i] + max(0, similarities[1])*colour_b[i] + max(0, similarities[2])*colour_c[i]) /(max(0, similarities[0])+max(0, similarities[1])+max(0, similarities[2])) for i in range(3)]
     return colour_mix
     #return colour_a, colour_b, colour_c, idx_max
-
-
-def reference_overlap_plotter(lattice_ints, n, lattice_plot_dir, simsetup, ref_site=(0,0), state_int=False):
-    # get lattice size array of overlaps
-    celltype_overlaps = np.zeros((n, n, 3))
-    lattice_colours = np.zeros((n, n, 3))
-    for i in range(n):
-        for j in range(n):
-            #cell = lattice[i][j]
-            state_int = lattice_ints[i, j]
-            lattice_colours[i, j, :] = state_int_to_colour(state_int)
 
 
 def replot(filename, simsetup):
@@ -176,28 +182,434 @@ def replot_overlap(filename, simsetup, ref_site=(0,0), state_int=False):
     return
 
 
+def replot_modern(lattice_state, simsetup, sidelength, outpath, version='2', fmod='', state_int=False):
+    """
+    Works well for 3 celltypes, visualizing 'positive' lattice states
+    Anti-minima are set to white in the latest version (v2)
+    """
+
+    def state_to_colour_modern_v0(state, proj=True, noanti=True):
+
+        def linear_interpolate(val, c2, c1=color_anchor):
+            eps = 1e-4
+            assert 0.0 <= val <= 1.0 + eps
+            return c1 + val * (c2 - c1)
+
+        # gewt similarities i.e. proj or overlap with all cell types
+        similarities = np.dot(simsetup['XI'].T, state) / simsetup['N']
+        if proj:
+            similarities = np.dot(simsetup['A_INV'], similarities)
+
+        # convert similarities to colours as rgb
+        assert simsetup['P'] == 3
+        if noanti:
+            colour_a = linear_interpolate(max(0, similarities[0]), color_A_pos)
+            colour_b = linear_interpolate(max(0, similarities[1]), color_B_pos)
+            colour_c = linear_interpolate(max(0, similarities[2]), color_C_pos)
+            idx_max = np.argmax(similarities)
+        else:
+            colour_a = linear_interpolate(np.abs(similarities[0]),
+                                          [color_A_pos, color_A_neg][similarities[0] < 0])
+            colour_b = linear_interpolate(np.abs(similarities[1]),
+                                          [color_B_pos, color_B_neg][similarities[0] < 0])
+            colour_c = linear_interpolate(np.abs(similarities[2]),
+                                          [color_C_pos, color_C_neg][similarities[0] < 0])
+            idx_max = np.argmax(np.abs(similarities))
+        # rgb = color_a + colk  # TODO decide if want to avg the 3 colours in this fn or use all 3 with some alpha?
+        # print colour_a, colour_b, colour_c
+        # print proj, similarities, colour_a, colour_b, colour_c, idx_max
+
+        sa = np
+        colour_mix = \
+            [(max(0, similarities[0]) * colour_a[i] +
+              max(0, similarities[1]) * colour_b[i] +
+              max(0, similarities[2]) * colour_c[i])
+             / (max(0, similarities[0]) + max(0, similarities[1]) + max(0,similarities[2]))
+             for i in range(3)]
+        return colour_mix
+        # return colour_a, colour_b, colour_c, idx_max
+
+    def state_to_colour_modern_v1(state, proj=True, noanti=False):
+        # plot colour of max abs val for similarities
+
+        def linear_interpolate(val, c2, c1=color_anchor):
+            eps = 1e-4
+            assert 0.0 <= val <= 1.0 + eps
+            return c1 + val * (c2 - c1)
+
+        # gewt similarities i.e. proj or overlap with all cell types
+        similarities = np.dot(simsetup['XI'].T, state) / simsetup['N']
+        if proj:
+            similarities = np.dot(simsetup['A_INV'], similarities)
+
+        # convert similarities to colours as rgb
+        assert simsetup['P'] == 3
+
+        if noanti:
+            colour_a = linear_interpolate(max(0, similarities[0]), color_A_pos)
+            colour_b = linear_interpolate(max(0, similarities[1]), color_B_pos)
+            colour_c = linear_interpolate(max(0, similarities[2]), color_C_pos)
+            idx_max = np.argmax(similarities)
+        else:
+            colour_a = linear_interpolate(
+                np.abs(similarities[0]),
+                [color_A_pos, color_A_neg][similarities[0] < 0])
+            colour_b = linear_interpolate(
+                np.abs(similarities[1]),
+                [color_B_pos, color_B_neg][similarities[0] < 0])
+            colour_c = linear_interpolate(
+                np.abs(similarities[2]),
+                [color_C_pos, color_C_neg][similarities[0] < 0])
+            idx_max = np.argmax(np.abs(similarities))
+        # rgb = color_a + colk  # TODO decide if want to avg the 3 colours in this fn or use all 3 with some alpha?
+        # print colour_a, colour_b, colour_c
+        # print proj, similarities, colour_a, colour_b, colour_c, idx_max
+
+        colour_max = [colour_a, colour_b, colour_c][idx_max]
+
+        colour_mix = colour_max
+        return colour_mix
+        # return colour_a, colour_b, colour_c, idx_max
+
+    def state_to_colour_modern_v2(state, proj=True, noanti=True):
+        # plot colour of max abs val for similarities -- preset colours if some are equal
+        assert noanti  # TODO determine how to blend mixtures of + and - states
+
+        def linear_interpolate(val, c2, c1=color_anchor):
+            eps = 1e-4
+            if not(0.0 <= val <= 1.0 + eps):
+                print('WARNING')
+                print(val)
+            assert 0.0 <= val <= 1.0 + eps
+            cout = c1 + val * (c2 - c1)
+            return cout
+
+        # gewt similarities i.e. proj or overlap with all cell types
+        similarities = np.dot(simsetup['XI'].T, state) / simsetup['N']
+        if proj:
+            similarities = np.dot(simsetup['A_INV'], similarities)
+
+        maxval = np.max(np.abs(similarities))
+
+        #winners = np.argwhere(np.abs(similarities) == maxval).flatten()
+        winners_check = np.isclose(np.abs(similarities), maxval).flatten()
+        winners = [i for i,val in enumerate(winners_check) if val]
+        #print(winners, winners2)
+
+        #print('any1', similarities, maxval, winners)
+
+        # convert similarities to colours as rgb
+        assert simsetup['P'] == 3
+
+        if noanti:
+            colour_a = linear_interpolate(max(0, similarities[0]), color_A_pos)
+            colour_b = linear_interpolate(max(0, similarities[1]), color_B_pos)
+            colour_c = linear_interpolate(max(0, similarities[2]), color_C_pos)
+        else:
+            colour_a = linear_interpolate(
+                np.abs(similarities[0]),
+                [color_A_pos, color_A_neg][similarities[0] < 0])
+            colour_b = linear_interpolate(
+                np.abs(similarities[1]),
+                [color_B_pos, color_B_neg][similarities[0] < 0])
+            colour_c = linear_interpolate(
+                np.abs(similarities[2]),
+                [color_C_pos, color_C_neg][similarities[0] < 0])
+        # rgb = color_a + colk  # TODO decide if want to avg the 3 colours in this fn or use all 3 with some alpha?
+        # print colour_a, colour_b, colour_c
+        # print proj, similarities, colour_a, colour_b, colour_c, idx_max
+
+        colour_options = [colour_a, colour_b, colour_c]
+        winners = np.sort(winners)
+        winners_pruned = [r for r in winners if similarities[r] > 0]
+
+        if len(winners_pruned) == 0:
+            # in this case all the overlaps are negative -- set it to white
+            colour_mix = color_anchor_white
+        elif len(winners_pruned) == 1:
+            colour_mix = colour_options[winners_pruned[0]]
+        elif len(winners_pruned) == 2:
+            #magnitude = 0.5
+            magnitude = similarities[winners_pruned[0]]
+            #magnitude = np.sqrt(similarities[winners[0]])
+            if winners_pruned[0] == 0 and winners_pruned[1] == 1:
+                colour_mix = linear_interpolate(magnitude, color_AB, c1=color_anchor_white)
+            elif winners_pruned[0] == 0 and winners_pruned[1] == 2:
+                colour_mix = linear_interpolate(magnitude, color_AC, c1=color_anchor_white)
+            else:
+                colour_mix = linear_interpolate(magnitude, color_BC, c1=color_anchor_white)
+        else:
+            assert len(winners_pruned) == 3
+            val = similarities[winners_pruned[0]]
+            morph_val = max(0, val)
+            morph_val = morph_val ** (0.33)
+            colour_mix = linear_interpolate(morph_val, soft_grey_norm, c1=color_anchor_white)
+
+        #for idx, mu_idx in enumerate(winners):
+        #    colour = colour_options[mu_idx]
+        #    colour_mix += colour
+        #colour_mix = colour_mix / num_winners
+
+        return colour_mix
+        # return colour_a, colour_b, colour_c, idx_max
+
+    if version == '0':
+        state_to_colour_modern = state_to_colour_modern_v0
+        fmod += '_v0'
+    elif version == '1':
+        state_to_colour_modern = state_to_colour_modern_v1
+        fmod += '_v1'
+    else:
+        assert version == '2'
+        fmod += '_v2'
+        state_to_colour_modern = state_to_colour_modern_v2
+
+    n = sidelength
+    imshowcolours_TOP = np.zeros((n, n, 3))
+    for i in range(n):
+        for j in range(n):
+            grid_loc_to_idx = lattice_square_loc_to_int((i,j), sidelength)
+            cellstate = lattice_state[:, grid_loc_to_idx]
+            imshowcolours_TOP[i, j] = state_to_colour_modern(cellstate, simsetup)
+    # plot
+    fig = plt.figure(figsize=(12, 12))
+    #fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.imshow(imshowcolours_TOP)
+
+    if state_int:
+        num_cells = lattice_state.shape[1]
+        for k in range(num_cells):
+            cellstate = lattice_state[:, k]
+            label = state_to_label(cellstate)
+            i, j = lattice_square_int_to_loc(k, n)
+            plt.gca().text(j, i, label, color='black', ha='center', va='center')
+
+    #plt.title('Lattice site-wise overlap with ref site %d,%d (Step=%d)' % (ref_site[0], ref_site[1], time))
+    # draw gridlines
+    ax = plt.gca()
+    #plt.axis('off')  @ no grid can look nice
+    ax.grid(which='major', axis='both', linestyle='-', color='k', linewidth=2)
+    #ax.set_xticks([], [])
+    #ax.set_yticks([], [])
+    xticks = np.arange(-.5, n, 1)
+    yticks = np.arange(-.5, n, 1)
+    ax.set_xticks(xticks)
+    ax.set_yticks(yticks)
+    ax.xaxis.set_ticklabels(['' for _ in xticks])
+    ax.yaxis.set_ticklabels(['' for _ in yticks])
+
+    # save figure
+    outpath = outpath + fmod + '.jpg'
+    plt.savefig(outpath, bbox_inches='tight')
+    plt.close()
+    return
+
+
+def replot_graph_lattice_reference_overlap_plotter(X, sidelength, outpath, fmod='', ref_node=0,
+                                                   state_int=False):
+    """
+    - ref_node: the cell to which all other cells will be overlap compared
+    """
+    nn = sidelength
+
+    num_cells = X.shape[1]
+    assert nn**2 == num_cells
+    ref_site = lattice_square_int_to_loc(ref_node, nn)
+
+    # get lattice size array of overlaps
+    ref_state = X[:, ref_node]
+    ref_overlaps = np.dot(X.T, ref_state) / X.shape[0]
+    overlaps_grid = np.zeros((nn,nn))
+    for i in range(nn):
+        for j in range(nn):
+            node_idx = lattice_square_loc_to_int((i,j), nn)
+            overlaps_grid[i,j] = ref_overlaps[node_idx]
+
+    # plot
+    fig = plt.figure(figsize=(12, 12))
+    #fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+    # see https://matplotlib.org/examples/color/colormaps_reference.html... used 'PiYG',
+    cmap = 'Spectral'  # Spectral RdYlBu
+    fmod += '_%s' % cmap
+    colourmap = plt.get_cmap(cmap)
+
+    #plt.colorbar()
+    #plt.title('Lattice site-wise overlap with ref site %d,%d (Step=%d)' %
+    #          (ref_site[0], ref_site[1], step))
+
+    # draw gridlines
+    ax = plt.gca()
+    ax.grid(which='major', axis='both', linestyle='-', color='k', linewidth=2)
+    xticks = np.arange(-.5, nn, 1)
+    yticks = np.arange(-.5, nn, 1)
+    ax.set_xticks(xticks)
+    ax.set_yticks(yticks)
+    ax.xaxis.set_ticklabels(['' for _ in xticks])
+    ax.yaxis.set_ticklabels(['' for _ in yticks])
+
+    # mark reference
+    ax.plot(ref_site[0], ref_site[1], marker='*', c='gold', markersize=28)
+    plt.imshow(overlaps_grid, cmap=colourmap, vmin=-1,vmax=1)
+
+    # mark reference
+    ax.plot(ref_site[0], ref_site[1], marker='*', c='gold')
+
+    if state_int:
+        num_cells = X.shape[1]
+        for k in range(num_cells):
+            cellstate = X[:, k]
+            label = state_to_label(cellstate)
+            i, j = lattice_square_int_to_loc(k, nn)
+            plt.gca().text(j, i, label, color='black', ha='center', va='center')
+
+    # save figure
+    outpath = outpath + fmod + '.jpg'
+    plt.savefig(outpath, dpi=max(80.0, nn / 2.0), bbox_inches='tight')
+    plt.close()
+    return
+
+
+def translate_lattice_state(X, sidelength, down=0, right=0):
+    nn = sidelength
+    num_cells = X.shape[1]
+    X_translated = np.zeros_like(X)
+    for k in range(num_cells):
+        loc_orig = lattice_square_int_to_loc(k, nn)
+        loc_new = [(loc_orig[0] + down) % nn,
+                   (loc_orig[1] + right) % nn]
+        k_new = lattice_square_loc_to_int(loc_new, nn)
+        X_translated[:, k_new] = X[:, k]
+
+    return X_translated
+
+
 if __name__ == '__main__':
 
-    # load simsetup
-    random_mem = False
-    random_W = False
-    simsetup = singlecell_simsetup(unfolding=True, random_mem=random_mem, random_W=random_W)
+    label = 'specific'  # 'slide5', 'slide6', 'specific'
 
-    # load data
-    basedir = 'runs' + os.sep + 'poster_results'
-    files = [basedir + os.sep + 'initcond.txt',
-             basedir + os.sep + 'radius1.txt',
-             basedir + os.sep + 'radius2.txt',
-             basedir + os.sep + 'radius4.txt',
-             basedir + os.sep + 'W1.txt',
-             basedir + os.sep + 'W2.txt',
-             basedir + os.sep + 'W3.txt',
-             basedir + os.sep + 'W4.txt',
-             basedir + os.sep + 'W5.txt',
-             basedir + os.sep + 'W6.txt',
-             basedir + os.sep + 'W7.txt',
-             basedir + os.sep + 'W8.txt'
-             ]
-    for f in files:
-        #replot(f, simsetup)
-        replot_overlap(f, simsetup)
+    version = '2'
+    state_int = False
+    fmod = '_int%d' % state_int
+    # fmod = '_beige'
+
+    sidelength = 10
+    num_cells = sidelength ** 2
+    curated = True
+    random_mem = False  # TODO incorporate seed in random XI in simsetup/curated
+    random_W = False  # TODO incorporate seed in random W in simsetup/curated
+    W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_maze.txt'
+    simsetup_main = singlecell_simsetup(
+        unfolding=True, random_mem=random_mem, random_W=random_W, curated=curated, housekeeping=0)
+    if W_override_path is not None:
+        print('Note: in main, overriding W from file...')
+        explicit_W = np.loadtxt(W_override_path, delimiter=',')
+        simsetup_main['FIELD_SEND'] = explicit_W
+    print("simsetup checks:")
+    print("\tsimsetup['N'],", simsetup_main['N'])
+    print("\tsimsetup['P'],", simsetup_main['P'])
+
+    # choices:
+    replot_dir = RUNS_FOLDER + os.sep + 'explore' + os.sep + 'replot'
+    if label == 'slide5':
+        replot_dir = replot_dir + os.sep + 'slide5_gamma1'
+
+        for k in range(1, 16):
+            source_dir = replot_dir + os.sep + 'W%d' % k
+            source_dir += os.sep + 'states'
+
+            # 2) state to load
+            #fnames = [a for a in os.listdir(source_dir) if a[-4:] == '.npz']
+
+            fnames = ['X_30.npz']
+            fpaths = [source_dir + os.sep + a for a in fnames]
+            print(fpaths)
+
+            qmod = fmod + '_W%d' % k
+
+            # 3) plot each file
+            for idx, fpath in enumerate(fpaths):
+
+                fname = fnames[idx]
+                #replot_overlap()
+                X = state_load(fpath, cells_as_cols=True, num_genes=None, num_cells=None, txt=False)
+
+
+                X = translate_lattice_state(X, sidelength, down=1, right=0)
+
+                outpath = replot_dir + os.sep + fname[:-4]
+                replot_modern(X, simsetup_main, sidelength, outpath, version=version, fmod=qmod,
+                              state_int=state_int)
+                outpath_ref = replot_dir + os.sep + 'ref0_' + fname[:-4]
+                replot_graph_lattice_reference_overlap_plotter(X, sidelength, outpath_ref,
+                                                               fmod=qmod, ref_node=0)
+    elif label == 'slide6':
+        replot_dir = replot_dir + os.sep + 'slide6'
+        source_dir = replot_dir
+
+        # 2) state to load
+        fnames = [a for a in os.listdir(source_dir) if a[-4:] == '.npz']
+        fpaths = [source_dir + os.sep + a for a in fnames]
+
+        # 3) plot each file
+        for idx, fpath in enumerate(fpaths):
+            fname = fnames[idx]
+            # replot_overlap()
+            X = state_load(fpath, cells_as_cols=True, num_genes=None, num_cells=None, txt=False)
+            outpath = replot_dir + os.sep + fname[:-4]
+            replot_modern(X, simsetup_main, sidelength, outpath, version=version, fmod=fmod,
+                          state_int=state_int)
+            outpath_ref = replot_dir + os.sep + 'ref0_' + fname[:-4]
+            replot_graph_lattice_reference_overlap_plotter(X, sidelength, outpath_ref,
+                                                           fmod=fmod, ref_node=0)
+    else:
+
+        replot_dir = replot_dir + os.sep + 'plot_specific_points'
+
+        from multicell.unsupervised_helper import plot_given_multicell
+
+        agg_indices = [2602, 3952]
+        #outdir = RUNS_FOLDER + os.sep + 'explore' + os.sep + 'plot_specific_points'
+
+        # where is the data?
+        step = None
+        # dirname = 'Wrandom0_gamma0.20_10k_periodic_fixedorderV3_p3_M100'
+        dirname = 'Wrandom0_gamma1.00_10k_periodic_fixedorderV3_p3_M100'
+
+        # step = 14
+        # dirname = 'beta2.05_Wrandom0_gamma0.20_10k_periodic_fixedorderV3_p3_M100'
+
+        manyruns_path = RUNS_FOLDER + os.sep + 'multicell_manyruns' + os.sep + dirname
+        fpath_pickle = manyruns_path + os.sep + 'multicell_template.pkl'
+        with open(fpath_pickle, 'rb') as pickle_file:
+            multicell = pickle.load(pickle_file)  # unpickling multicell object
+
+        for agg_index in agg_indices:
+            # smod = ''
+            smod = '_last'
+            if step is not None:
+                smod = '_%d' % step
+
+            agg_dir = manyruns_path + os.sep + 'aggregate'
+            fpath_state = agg_dir + os.sep + 'X_aggregate%s.npz' % smod
+            fpath_energy = agg_dir + os.sep + 'X_energy%s.npz' % smod
+            fpath_pickle = manyruns_path + os.sep + 'multicell_template.pkl'
+            print(fpath_state)
+            X = np.load(fpath_state)['arr_0'].T  # umap wants transpose
+            X_state = X[agg_index, :]
+            print(X_state.shape)
+
+            # plot option 1)
+            #step_hack = 0  # TODO care this will break if class has time-varying applied field
+            #multicell.graph_state_arr[:, step_hack] = X_state[:]
+            # assert np.array_equal(multicell_template.field_applied, np.zeros((total_spins, multicell_template.total_steps)))
+            #plot_given_multicell(multicell, step_hack, agg_index, replot_dir)
+
+            # plot option 2) using replot
+            X_state = X_state.reshape(num_cells, simsetup_main['N'])
+            outpath_ref = replot_dir + os.sep + 'agg%d_ref0' % agg_index
+            replot_graph_lattice_reference_overlap_plotter(
+                X_state.T, sidelength, outpath_ref, fmod=fmod, ref_node=0)
+
+            outpath = replot_dir + os.sep + 'agg%d_modern' % agg_index
+            replot_modern(X_state.T, simsetup_main, sidelength, outpath,
+                          version=version, fmod=fmod, state_int=state_int)
