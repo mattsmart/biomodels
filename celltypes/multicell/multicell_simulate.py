@@ -24,6 +24,11 @@ from singlecell.singlecell_simsetup import singlecell_simsetup
 from utils.file_io import run_subdir_setup, runinfo_append, write_general_arr, INPUT_FOLDER
 
 
+# TODO convert to main attribute of class, passable (defaults to False?)
+DYNAMICS_FIXED_UPDATE_ORDER = True
+print('DYNAMICS_FIXED_UPDATE_ORDER:', DYNAMICS_FIXED_UPDATE_ORDER)
+
+
 class Multicell:
     """
     Primary object for multicell simulations.
@@ -68,7 +73,7 @@ class Multicell:
         graph_kwargs:      (dict) optional kwargs for call to self.build_adjacency(...)
             Case: meanfield:       N/A
             Case: general:         expects 'prebuilt_adjacency'
-            Case: lattice_square:  expects 'initialization_style', 'search_radius'
+            Case: lattice_square:  expects 'initialization_style', 'search_radius', 'periodic'
         autocrine:         (bool) do cells signal/interact with themselves?
         gamma:             (float) cell-cell signalling field strength
         exosome_string:    (str) see valid exosome strings; adds exosomes to field_signal
@@ -211,6 +216,7 @@ class Multicell:
         # graph = lattice square case
         if self.graph_style == 'lattice_square':
             self.graph_kwargs['sidelength'] = int(np.sqrt(self.num_cells) + 0.5)
+            assert 'periodic' in self.graph_kwargs.keys()
             assert self.graph_kwargs['search_radius'] <= 0.5 * self.graph_kwargs['sidelength']
             assert self.graph_kwargs['initialization_style'] in VALID_BUILDSTRINGS
 
@@ -311,10 +317,11 @@ class Multicell:
             assert self.graph_style == 'lattice_square'
             # check the number is a perfect square
             sidelength = int(np.sqrt(self.num_cells) + 0.5)
-            self.graph_kwargs['sidelength'] = sidelength
             assert sidelength ** 2 == self.num_cells
+            self.graph_kwargs['sidelength'] = sidelength
             search_radius = self.graph_kwargs['search_radius']
-            arr_A = adjacency_lattice_square(sidelength, self.num_cells, search_radius)
+            arr_A = adjacency_lattice_square(sidelength, self.num_cells, search_radius,
+                                             periodic_bc=self.graph_kwargs['periodic'])
 
         # autocrine loop before returning adjacency matrix (set all diags to 1 or 0)
         # note this will override 'prebuilt_adjacency' in case of self.graph_style == 'general'
@@ -438,8 +445,13 @@ class Multicell:
     # TODO Meanfield setting previously used for speedups, but removed now:
     def step_dynamics_async(self, next_step, field_applied, beta):
 
+        if DYNAMICS_FIXED_UPDATE_ORDER:
+            seed_local = 0
+        else:
+            seed_local = self.seed
+
         cell_indices = list(range(self.num_cells))
-        random.seed(self.seed); random.shuffle(cell_indices)
+        random.seed(seed_local); random.shuffle(cell_indices)
 
         # need to move current state to next step index, then operate on that column 'in place'
         self.graph_state_arr[:, next_step] = np.copy(self.graph_state_arr[:, next_step - 1])
@@ -453,12 +465,15 @@ class Multicell:
             field_applied_on_cell = field_applied[spin_idx_low: spin_idx_high]
 
             #  note that a cells neighboursa are the ones which 'send' to it
-            #  if A_ij = 1, then there is a connection from i to j
+            #  if A_ij != 0, then there is a connection from i to j
             #  to get all the senders to cell i, we need to look at col i
             graph_neighbours_col = self.matrix_A[:, node_idx]
-            graph_neighbours = [node for node, i in enumerate(graph_neighbours_col) if i == 1]
+            graph_neighbours = [node for node, i in enumerate(graph_neighbours_col) if i != 0]
+
+            # TODO (?) scale field contributions by A_ij value (to account for A_ii = 1)
 
             # signaling field part 1
+            # TODO pass seed_local to state_subsample in exo field
             field_signal_exo, _ = general_exosome_field(
                 self, node_idx, next_step, neighbours=graph_neighbours)
             # signaling field part 2
@@ -473,7 +488,7 @@ class Multicell:
                               self.simsetup['GENE_LABELS'],
                               state_array=None,
                               steps=None)
-            # TODO pass seed to update call or pass to new attribute Cell
+
             dummy_cell.update_state(
                 beta=beta,
                 intxn_matrix=self.matrix_J,
@@ -481,7 +496,7 @@ class Multicell:
                 field_signal_strength=1.0,
                 field_applied=field_applied_on_cell,
                 field_applied_strength=1.0,
-                seed=self.seed)
+                seed=seed_local)
 
             self.graph_state_arr[spin_idx_low:spin_idx_high, next_step] = \
                 dummy_cell.get_current_state()
@@ -567,6 +582,26 @@ class Multicell:
                                          mu, use_proj=True)
         return
 
+    def step_state_visualize_alt(self, step, flag_uniplots=False, fpaths=None):
+        assert self.graph_style == 'lattice_square'
+        nn = self.graph_kwargs['sidelength']
+        if fpaths is None:
+            fpaths = [None, None, None]
+
+        # plot type A
+        graph_lattice_projection_composite(self, step, use_proj=False, fpath=fpaths[0])
+        graph_lattice_projection_composite(self, step, use_proj=True, fpath=fpaths[1])
+        # plot type B
+        graph_lattice_reference_overlap_plotter(self, step, fpath=fpaths[2])
+        # plot type C
+        if flag_uniplots:
+            for mu in range(self.simsetup['P']):
+                graph_lattice_uniplotter(self, step, nn, self.io_dict['latticedir'],
+                                         mu, use_proj=False)
+                graph_lattice_uniplotter(self, step, nn, self.io_dict['latticedir'],
+                                         mu, use_proj=True)
+        return
+
     def check_if_fixed_point(self, state_to_compare, step, msg=None):
         """
         :param state_to_compare: to check array equality with current graph state
@@ -580,7 +615,7 @@ class Multicell:
             return False
 
     # TODO handle case of dynamics_async
-    def dynamics_full(self, flag_visualize=True, flag_datastore=True, end_at_fp=False):
+    def dynamics_full(self, flag_visualize=True, flag_datastore=True, end_at_fp=False, verbose=False):
         """
             flag_visualize: optionally force off datadict updates (speedup)
             flag_datastore: optionally force off calls to step_state_visualize updates (speedup)
@@ -605,7 +640,8 @@ class Multicell:
 
         # 2) main loop
         for step in range(1, self.total_steps):
-            print('Dynamics step: ', step)
+            if verbose:
+                print('Dynamics step: ', step)
 
             # applied field and beta schedule
             field_applied_step = self.field_applied[:, step - 1]
@@ -658,7 +694,7 @@ class Multicell:
         print("\nMulticell simulation complete - output in %s" % self.io_dict['basedir'])
         return
 
-    def simulation_fast_to_fp(self, no_datatdict=False, no_visualize=False):
+    def simulation_fast(self, no_datatdict=False, no_visualize=False, end_at_fp=True, verbose=True):
         if no_datatdict: assert no_visualize
 
         # """get data dict from initial state"""
@@ -669,7 +705,8 @@ class Multicell:
             self.step_state_visualize(0)                            # visualize initial state
 
         # run the simulation
-        self.dynamics_full(flag_visualize=False, flag_datastore=False, end_at_fp=True)
+        self.dynamics_full(flag_visualize=False, flag_datastore=False, end_at_fp=end_at_fp,
+                           verbose=verbose)
 
         # """get data dict from final two states"""
         # Note: if two-state limit cycle, the 'fill to end' is misleading
@@ -700,7 +737,8 @@ class Multicell:
             self.mainloop_data_dict_write()
             self.mainloop_data_dict_plot()
 
-        print("\nMulticell simulation complete - output in %s" % self.io_dict['basedir'])
+        if verbose:
+            print("\nMulticell simulation complete - output in %s" % self.io_dict['basedir'])
         return
 
     def get_cell_state(self, cell_idx, step):
@@ -814,12 +852,17 @@ class Multicell:
 
 if __name__ == '__main__':
 
+
     # 1) create simsetup
-    main_seed = 7
-    curated = False
+    main_seed = 0 #np.random.randint(1e6)
+    curated = True
     random_mem = False        # TODO incorporate seed in random XI in simsetup/curated
-    random_W = False          # TODO incorporate seed in random W in simsetup/curated
+    random_W = True          # TODO incorporate seed in random W in simsetup/curated
+
+    #W_override_path = None
+    #W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_maze.txt'
     W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_maze.txt'
+
     simsetup_main = singlecell_simsetup(
         unfolding=True, random_mem=random_mem, random_W=random_W, curated=curated, housekeeping=0)
     if W_override_path is not None:
@@ -831,19 +874,21 @@ if __name__ == '__main__':
     print("\tsimsetup['P'],", simsetup_main['P'])
 
     # setup 2.1) multicell sim core parameters
-    num_cells = 2**2           # global GRIDSIZE
-    total_steps = 10           # global NUM_LATTICE_STEPS
-    plot_period = 1
+    search_radius = 1
+    num_cells = 20**2           # global GRIDSIZE
+    total_steps = 31            # global NUM_LATTICE_STEPS
+    plot_period = 10
     flag_state_int = True
     flag_blockparallel = False
     beta = 2000.0
-    gamma = 0.0               # i.e. field_signal_strength
+    gamma = 0.05 #1.0               # i.e. field_signal_strength
     kappa = 0.0                # i.e. field_applied_strength
 
     # setup 2.2) graph options
     autocrine = False
     graph_style = 'lattice_square'
-    graph_kwargs = {'search_radius': 1,
+    graph_kwargs = {'search_radius': search_radius,
+                    'periodic': True,
                     'initialization_style': 'dual'}
 
     # setup 2.3) signalling field (exosomes + cell-cell signalling via W matrix)
@@ -916,4 +961,4 @@ if __name__ == '__main__':
 
     # 4) run sim
     multicell.simulation_standard()
-    #multicell.simulation_fast_to_fp()
+    #multicell.simulation_fast()
