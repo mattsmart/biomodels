@@ -1,4 +1,9 @@
+import proplot as proplot
+#proplot.use_style('default')
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+plt.rcdefaults()
+
 import numpy as np
 import os
 import pickle
@@ -57,6 +62,65 @@ color_C_neg = np.array(soft_purple) / 255.0
 color_AB = np.array(soft_purple) / 255.0
 color_AC = np.array(soft_green) / 255.0
 color_BC = np.array(soft_orange) / 255.0
+
+
+# building library of 2**N random colours
+def fixed_state_to_colour_map(N, show=True, num_cmaps=4, shuffle=False):
+    """
+    # maps each state integer to a unique colour
+    """
+    assert N == 9  # untested otherwise, inappropriate for large N > 14 or so
+    num_states = 2 ** N
+
+    # choose a colourmap to slice (note lut = lookuptable size)
+    #cmap_list = ['Spectral', 'hsv', 'nipy_spectral']
+    cmap_list = ['Spectral', 'PRGn', 'Spectral']
+    #cmap_list = ['Spectral']
+
+    # Version 1: matplotlib
+    # cmaps = [mpl.cm.get_cmap(cmap_list[i], lut=num_states) for i in range(num_cmaps)]
+
+    # Version 2: proplot
+    # docs: https://proplot.readthedocs.io/en/latest/api/proplot.constructor.Colormap.html
+    #cmaps = [proplot.Colormap(cmap_list[i], samples=num_states) for i in range(num_cmaps)]
+
+    # Version 3: manual proplot of one cmap shifted
+    deg = 66
+    cstring_a = 'Spectral'  # Spectral acton
+    cstring_b = 'Spectral'  # Spectral Sunset
+    cmaps = [proplot.Colormap(cstring_a, samples=num_states, shift=0),
+             proplot.Colormap(cstring_b, samples=num_states, shift=1*deg),
+             proplot.Colormap(cstring_a, samples=num_states, shift=2*deg),
+             proplot.Colormap(cstring_b, samples=num_states, shift=3*deg)]
+
+
+
+    # build cmap, with each consecutive integer alternating amongst the num_cmaps
+    colour_map = {}
+    state_labels = list(range(num_states))
+    if shuffle:
+        np.random.seed(0)
+        np.random.shuffle(state_labels)
+    for idx, label in enumerate(state_labels):
+        cmap_choice = idx % num_cmaps
+        print(idx,label, cmap_choice)
+        colour_map[label] = cmaps[cmap_choice](idx)
+
+    custom_mpl_cmap = mpl.colors.ListedColormap([colour_map[i] for i in np.arange(num_states)])
+    if show:
+        x = np.arange(num_states)
+        y = np.arange(num_states)
+        fig, ax = plt.subplots()
+        sc = plt.scatter(x, y, c=y, cmap=custom_mpl_cmap)
+        plt.title('fixed_state_to_colour_map() sample plot')
+        plt.colorbar(ax=ax, mappable=sc)
+        plt.show()
+    return colour_map
+
+
+# fixed global colourmap for v3 of replot_modern
+N = 9
+FIXED_COLOURMAP = fixed_state_to_colour_map(N, show=True)
 
 
 def state_int_to_colour(state_int, simsetup, proj=True, noanti=True):
@@ -185,7 +249,8 @@ def replot_overlap(filename, simsetup, ref_site=(0,0), state_int=False):
 def replot_modern(lattice_state, simsetup, sidelength, outpath, version='2', fmod='', state_int=False):
     """
     Works well for 3 celltypes, visualizing 'positive' lattice states
-    Anti-minima are set to white in the latest version (v2)
+    v2: sum ocerlaps + anti-minima are set to white in this version
+    v3: 512 unique colours -- fixed
     """
 
     def state_to_colour_modern_v0(state, proj=True, noanti=True):
@@ -353,16 +418,25 @@ def replot_modern(lattice_state, simsetup, sidelength, outpath, version='2', fmo
         return colour_mix
         # return colour_a, colour_b, colour_c, idx_max
 
+    def state_to_colour_modern_v3(state, proj=None, noanti=None):
+        # assign a unique colour to each state based on a colourmap
+        label = state_to_label(cellstate)
+        unique_colour = FIXED_COLOURMAP[label]
+        return unique_colour[0:3]
+
     if version == '0':
         state_to_colour_modern = state_to_colour_modern_v0
         fmod += '_v0'
     elif version == '1':
         state_to_colour_modern = state_to_colour_modern_v1
         fmod += '_v1'
-    else:
-        assert version == '2'
-        fmod += '_v2'
+    elif version == '2':
         state_to_colour_modern = state_to_colour_modern_v2
+        fmod += '_v2'
+    else:
+        assert version == '3'
+        fmod += '_v3'
+        state_to_colour_modern = state_to_colour_modern_v3
 
     n = sidelength
     imshowcolours_TOP = np.zeros((n, n, 3))
@@ -374,7 +448,7 @@ def replot_modern(lattice_state, simsetup, sidelength, outpath, version='2', fmo
     # plot
     fig = plt.figure(figsize=(12, 12))
     #fig.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.imshow(imshowcolours_TOP)
+    plt.imshow(imshowcolours_TOP, alpha=1.0)
 
     if state_int:
         num_cells = lattice_state.shape[1]
@@ -469,6 +543,99 @@ def replot_graph_lattice_reference_overlap_plotter(X, sidelength, outpath, fmod=
     return
 
 
+def replot_scatter(lattice_state, simsetup, sidelength, outpath, version='2', fmod='', state_int=False):
+    """
+    Works well for 3 celltypes, visualizing 'positive' lattice states
+    v2: sum ocerlaps + anti-minima are set to white in this version
+    v3: 512 unique colours -- fixed
+    """
+
+    def state_to_colour_and_morphology(state, simsetup):
+        # assign a unique colour to each state based on a colourmap
+        label = state_to_label(cellstate)
+        unique_colour = FIXED_COLOURMAP[label]
+        return unique_colour[0:3]
+
+    n = sidelength
+    x = np.zeros(n ** 2)
+    y = np.zeros(n ** 2)
+    colors = np.zeros((n**2, 3))
+    markers = [0] * (n**2)
+    for i in range(n):
+        for j in range(n):
+            grid_loc_to_idx = lattice_square_loc_to_int((i,j), sidelength)
+            cellstate = lattice_state[:, grid_loc_to_idx]
+            colors[grid_loc_to_idx, :] = state_to_colour_and_morphology(cellstate, simsetup)
+            x[grid_loc_to_idx] = j
+            y[grid_loc_to_idx] = n - i
+            markers[grid_loc_to_idx] = ['s']
+
+    # plot
+    fig = plt.figure(figsize=(12, 12))
+    #fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+
+    """unique_markers = np.unique(markers)
+    for um in unique_markers:
+        mask = markers == um
+        plt.scatter(x[mask], y[mask], marker=um, c=colors[mask], alpha=1.0, s=10)"""
+
+    def get_cell_mask(gene_idx):
+        mask = lattice_state[gene_idx, :] == 1
+        return mask
+
+    eps = 0.33
+    plt.scatter(x, y, marker='s', c=colors, alpha=1.0, s=100, ec='k')
+    # gene 0, 1 mask for celltype A: up/down appendage
+    mask0 = get_cell_mask(0)
+    mask1 = get_cell_mask(1)
+    plt.scatter(x[mask0], y[mask0] + eps, marker='^', c=colors[mask0], alpha=1.0, s=100, ec='k')
+    plt.scatter(x[mask1], y[mask1] - eps, marker='v', c=colors[mask1], alpha=1.0, s=100, ec='k')
+    # gene 3, 4 mask for celltype B: left/right appendage
+    mask3 = get_cell_mask(3)
+    mask4 = get_cell_mask(4)
+    plt.scatter(x[mask3] - eps, y[mask3], marker='<', c=colors[mask3], alpha=1.0, s=100, ec='k')
+    plt.scatter(x[mask4] + eps, y[mask4], marker='>', c=colors[mask4], alpha=1.0, s=100, ec='k')
+    # gene 6, 7 mask for celltype C: membrane/circle interior
+    mask6 = get_cell_mask(6)
+    mask7 = get_cell_mask(7)
+    #plt.scatter(x[mask6], y[mask6], marker='o', c=None, alpha=1.0, s=15, ec='k', facecolor='none')
+    ##plt.scatter(x[mask7], y[mask7], marker='s', c=None, alpha=1.0, s=50, ec='k', facecolor='none')
+    #plt.scatter(x[mask7], y[mask7], marker='x', c=None, alpha=1.0, s=100, ec='k', facecolor='none')
+
+    plt.scatter(x[mask6], y[mask6], marker='|', c=None, alpha=1.0, s=100, ec='k', facecolor='none')
+    plt.scatter(x[mask7], y[mask7], marker='_', c=None, alpha=1.0, s=100, ec='k', facecolor='none')
+
+    if state_int:
+        assert 1==2
+        num_cells = lattice_state.shape[1]
+        for k in range(num_cells):
+            cellstate = lattice_state[:, k]
+            label = state_to_label(cellstate)
+            i, j = lattice_square_int_to_loc(k, n)
+            plt.gca().text(j, i, label, color='black', ha='center', va='center')
+
+    #plt.title('Lattice site-wise overlap with ref site %d,%d (Step=%d)' % (ref_site[0], ref_site[1], time))
+    # draw gridlines
+    ax = plt.gca()
+    #plt.axis('off')  @ no grid can look nice
+    #ax.grid(which='major', axis='both', linestyle='-', color='k', linewidth=2)
+
+    #ax.set_xticks([], [])
+    #ax.set_yticks([], [])
+    xticks = np.arange(-.5, n, 1)
+    yticks = np.arange(-.5, n, 1)
+    ax.set_xticks(xticks)
+    ax.set_yticks(yticks)
+    ax.xaxis.set_ticklabels(['' for _ in xticks])
+    ax.yaxis.set_ticklabels(['' for _ in yticks])
+
+    # save figure
+    plt.savefig(outpath + fmod + '.jpg', bbox_inches='tight')
+    plt.savefig(outpath + fmod + '.pdf', bbox_inches='tight')
+    plt.close()
+    return
+
+
 def translate_lattice_state(X, sidelength, down=0, right=0):
     nn = sidelength
     num_cells = X.shape[1]
@@ -485,14 +652,14 @@ def translate_lattice_state(X, sidelength, down=0, right=0):
 
 if __name__ == '__main__':
 
-    label = 'specific'  # 'slide5', 'slide6', 'specific'
+    label = 'slide5'  # 'slide5', 'slide6', 'specific'
 
     version = '2'
     state_int = False
     fmod = '_int%d' % state_int
     # fmod = '_beige'
 
-    sidelength = 10
+    sidelength = 20
     num_cells = sidelength ** 2
     curated = True
     random_mem = False  # TODO incorporate seed in random XI in simsetup/curated
@@ -532,16 +699,28 @@ if __name__ == '__main__':
                 fname = fnames[idx]
                 #replot_overlap()
                 X = state_load(fpath, cells_as_cols=True, num_genes=None, num_cells=None, txt=False)
+                X = translate_lattice_state(X, sidelength, down=0, right=0)
 
-
-                X = translate_lattice_state(X, sidelength, down=1, right=0)
 
                 outpath = replot_dir + os.sep + fname[:-4]
-                replot_modern(X, simsetup_main, sidelength, outpath, version=version, fmod=qmod,
-                              state_int=state_int)
                 outpath_ref = replot_dir + os.sep + 'ref0_' + fname[:-4]
-                replot_graph_lattice_reference_overlap_plotter(X, sidelength, outpath_ref,
-                                                               fmod=qmod, ref_node=0)
+                outpath_uniquecolours = replot_dir + os.sep + 'uniques_' + fname[:-4]
+                outpath_scatter = replot_dir + os.sep + 'scatter_' + fname[:-4]
+
+                """
+                replot_modern(
+                    X, simsetup_main, sidelength, outpath, version=version, fmod=qmod,
+                    state_int=state_int)
+                replot_graph_lattice_reference_overlap_plotter(
+                    X, sidelength, outpath_ref, fmod=qmod, ref_node=0)"""
+                """replot_modern(
+                    X, simsetup_main, sidelength, outpath_uniquecolours, version='3', fmod=qmod,
+                    state_int=state_int)"""
+                replot_scatter(
+                    X, simsetup_main, sidelength, outpath_scatter, fmod=qmod,
+                    state_int=state_int)
+
+
     elif label == 'slide6':
         replot_dir = replot_dir + os.sep + 'slide6'
         source_dir = replot_dir
