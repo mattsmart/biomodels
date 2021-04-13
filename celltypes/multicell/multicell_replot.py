@@ -69,7 +69,7 @@ def fixed_state_to_colour_map(N, show=True, num_cmaps=4, shuffle=False):
     """
     # maps each state integer to a unique colour
     """
-    assert N == 9  # untested otherwise, inappropriate for large N > 14 or so
+    #assert N == 9  # untested otherwise, inappropriate for large N > 14 or so
     num_states = 2 ** N
 
     # choose a colourmap to slice (note lut = lookuptable size)
@@ -85,15 +85,13 @@ def fixed_state_to_colour_map(N, show=True, num_cmaps=4, shuffle=False):
     #cmaps = [proplot.Colormap(cmap_list[i], samples=num_states) for i in range(num_cmaps)]
 
     # Version 3: manual proplot of one cmap shifted
-    deg = 66
-    cstring_a = 'Spectral'  # Spectral acton
-    cstring_b = 'Spectral'  # Spectral Sunset
+    deg = 66  # 66 for acton, 30 or 66 for spectral
+    cstring_a = 'spectral'  # Spectral acton
+    cstring_b = 'spectral'  # Spectral Sunset
     cmaps = [proplot.Colormap(cstring_a, samples=num_states, shift=0),
              proplot.Colormap(cstring_b, samples=num_states, shift=1*deg),
              proplot.Colormap(cstring_a, samples=num_states, shift=2*deg),
              proplot.Colormap(cstring_b, samples=num_states, shift=3*deg)]
-
-
 
     # build cmap, with each consecutive integer alternating amongst the num_cmaps
     colour_map = {}
@@ -120,7 +118,7 @@ def fixed_state_to_colour_map(N, show=True, num_cmaps=4, shuffle=False):
 
 # fixed global colourmap for v3 of replot_modern
 N = 9
-FIXED_COLOURMAP = fixed_state_to_colour_map(N, show=True)
+FIXED_COLOURMAP = fixed_state_to_colour_map(N, show=False)
 
 
 def state_int_to_colour(state_int, simsetup, proj=True, noanti=True):
@@ -543,20 +541,39 @@ def replot_graph_lattice_reference_overlap_plotter(X, sidelength, outpath, fmod=
     return
 
 
-def replot_scatter(lattice_state, simsetup, sidelength, outpath, version='2', fmod='', state_int=False):
+def replot_scatter_circle(lattice_state, simsetup, sidelength, outpath, fmod='', state_int=False):
     """
-    Works well for 3 celltypes, visualizing 'positive' lattice states
-    v2: sum ocerlaps + anti-minima are set to white in this version
-    v3: 512 unique colours -- fixed
+    Full info morphology plot with grid of 9 genes as cilia on circle
     """
 
     def state_to_colour_and_morphology(state, simsetup):
+        """
         # assign a unique colour to each state based on a colourmap
-        label = state_to_label(cellstate)
+        cellstate_01 = ((cellstate + 1) / 2).astype(int)
+        cellstate_brief = str(cellstate_01[2]) + str(cellstate_01[5]) + str(cellstate_01[8])
+
+        # eight handpicked colours based on combinations of encoded celltypes
+        color_dict_brief = {
+            '000': soft_grey_norm,        # grey (all off)
+            '100': color_A_pos,           # type A - blue
+            '010': color_B_pos,           # type B - red
+            '001': color_C_pos,           # type C - yellow
+            '101': color_AC,              # type A+C - green
+            '011': color_BC,              # type B+C - orange
+            '110': color_AB,              # type A+B - purple
+            '111': color_anchor_white,    # white (all on)
+        }
+
+        unique_colour = color_dict_brief[cellstate_brief]
+        """
+        genes = [0,1,2, 3,4,5, 6,7,8]
+        cellstate_brief = state[genes]
+        label = state_to_label(cellstate_brief)
         unique_colour = FIXED_COLOURMAP[label]
         return unique_colour[0:3]
 
     n = sidelength
+    assert n == 20  # redo params for n 10 visualization
     x = np.zeros(n ** 2)
     y = np.zeros(n ** 2)
     colors = np.zeros((n**2, 3))
@@ -568,42 +585,38 @@ def replot_scatter(lattice_state, simsetup, sidelength, outpath, version='2', fm
             colors[grid_loc_to_idx, :] = state_to_colour_and_morphology(cellstate, simsetup)
             x[grid_loc_to_idx] = j
             y[grid_loc_to_idx] = n - i
-            markers[grid_loc_to_idx] = ['s']
 
     # plot
     fig = plt.figure(figsize=(12, 12))
     #fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 
-    """unique_markers = np.unique(markers)
-    for um in unique_markers:
-        mask = markers == um
-        plt.scatter(x[mask], y[mask], marker=um, c=colors[mask], alpha=1.0, s=10)"""
-
     def get_cell_mask(gene_idx):
         mask = lattice_state[gene_idx, :] == 1
         return mask
 
-    eps = 0.33
-    plt.scatter(x, y, marker='s', c=colors, alpha=1.0, s=100, ec='k')
-    # gene 0, 1 mask for celltype A: up/down appendage
-    mask0 = get_cell_mask(0)
-    mask1 = get_cell_mask(1)
-    plt.scatter(x[mask0], y[mask0] + eps, marker='^', c=colors[mask0], alpha=1.0, s=100, ec='k')
-    plt.scatter(x[mask1], y[mask1] - eps, marker='v', c=colors[mask1], alpha=1.0, s=100, ec='k')
-    # gene 3, 4 mask for celltype B: left/right appendage
-    mask3 = get_cell_mask(3)
-    mask4 = get_cell_mask(4)
-    plt.scatter(x[mask3] - eps, y[mask3], marker='<', c=colors[mask3], alpha=1.0, s=100, ec='k')
-    plt.scatter(x[mask4] + eps, y[mask4], marker='>', c=colors[mask4], alpha=1.0, s=100, ec='k')
-    # gene 6, 7 mask for celltype C: membrane/circle interior
-    mask6 = get_cell_mask(6)
-    mask7 = get_cell_mask(7)
-    #plt.scatter(x[mask6], y[mask6], marker='o', c=None, alpha=1.0, s=15, ec='k', facecolor='none')
-    ##plt.scatter(x[mask7], y[mask7], marker='s', c=None, alpha=1.0, s=50, ec='k', facecolor='none')
-    #plt.scatter(x[mask7], y[mask7], marker='x', c=None, alpha=1.0, s=100, ec='k', facecolor='none')
+    eps = 0.3
+    lw = 2.5
+    boxsize = 850   # 600, 750, 850
+    mainsize = 350  # 350
+    trisize = 225   # 225
+    appendage_style = 2  # 1
+    appendage_z = 2
+    t_series = [0] * 9
+    angles = [40, 0, -40, -80, -120, -160, -200, -240, -280]
+    for idx in range(9):
+        t_mod = mpl.markers.MarkerStyle(marker=appendage_style)
+        t_mod._transform = t_mod.get_transform().rotate_deg(angles[idx])
+        t_series[idx] = t_mod
 
-    plt.scatter(x[mask6], y[mask6], marker='|', c=None, alpha=1.0, s=100, ec='k', facecolor='none')
-    plt.scatter(x[mask7], y[mask7], marker='_', c=None, alpha=1.0, s=100, ec='k', facecolor='none')
+    # center circle each cell
+    plt.scatter(x, y, marker='o', c=colors, alpha=1.0, s=mainsize, ec='k', zorder=5)
+    # outer square with alpha
+    plt.scatter(x, y, marker='s', c=colors, alpha=0.4, s=boxsize, ec='k', zorder=1)
+    # gene 0, 1 mask for celltype A: up/down appendage
+    for g in range(simsetup['N']):
+        maskg = get_cell_mask(g)
+        plt.scatter(x[maskg], y[maskg], marker=t_series[g], c=colors[maskg], alpha=1.0,
+                    s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
 
     if state_int:
         assert 1==2
@@ -614,10 +627,9 @@ def replot_scatter(lattice_state, simsetup, sidelength, outpath, version='2', fm
             i, j = lattice_square_int_to_loc(k, n)
             plt.gca().text(j, i, label, color='black', ha='center', va='center')
 
-    #plt.title('Lattice site-wise overlap with ref site %d,%d (Step=%d)' % (ref_site[0], ref_site[1], time))
     # draw gridlines
     ax = plt.gca()
-    #plt.axis('off')  @ no grid can look nice
+    plt.axis('off')  # no grid can look nice
     #ax.grid(which='major', axis='both', linestyle='-', color='k', linewidth=2)
 
     #ax.set_xticks([], [])
@@ -632,6 +644,302 @@ def replot_scatter(lattice_state, simsetup, sidelength, outpath, version='2', fm
     # save figure
     plt.savefig(outpath + fmod + '.jpg', bbox_inches='tight')
     plt.savefig(outpath + fmod + '.pdf', bbox_inches='tight')
+    plt.close()
+    return
+
+
+def replot_scatter_tri(lattice_state, simsetup, sidelength, outpath, fmod='', state_int=False):
+    """
+Full info morphology plot with 9 genes as triangle cilia
+    """
+
+    def state_to_colour_and_morphology(state, simsetup):
+        """
+        # assign a unique colour to each state based on a colourmap
+        cellstate_01 = ((cellstate + 1) / 2).astype(int)
+        cellstate_brief = str(cellstate_01[2]) + str(cellstate_01[5]) + str(cellstate_01[8])
+
+        # eight handpicked colours based on combinations of encoded celltypes
+        color_dict_brief = {
+            '000': soft_grey_norm,        # grey (all off)
+            '100': color_A_pos,           # type A - blue
+            '010': color_B_pos,           # type B - red
+            '001': color_C_pos,           # type C - yellow
+            '101': color_AC,              # type A+C - green
+            '011': color_BC,              # type B+C - orange
+            '110': color_AB,              # type A+B - purple
+            '111': color_anchor_white,    # white (all on)
+        }
+
+        unique_colour = color_dict_brief[cellstate_brief]
+        """
+        genes = [0,1,2, 3,4,5, 6,7,8]
+        cellstate_brief = state[genes]
+        label = state_to_label(cellstate_brief)
+        unique_colour = FIXED_COLOURMAP[label]
+        return unique_colour[0:3]
+
+    n = sidelength
+    assert n == 20  # redo params for n 10 visualization
+    x = np.zeros(n ** 2)
+    y = np.zeros(n ** 2)
+    colors = np.zeros((n**2, 3))
+    markers = [0] * (n**2)
+    for i in range(n):
+        for j in range(n):
+            grid_loc_to_idx = lattice_square_loc_to_int((i,j), sidelength)
+            cellstate = lattice_state[:, grid_loc_to_idx]
+            colors[grid_loc_to_idx, :] = state_to_colour_and_morphology(cellstate, simsetup)
+            x[grid_loc_to_idx] = j
+            y[grid_loc_to_idx] = n - i
+
+    # plot
+    fig = plt.figure(figsize=(12, 12))
+    #fig.tight_layout(rect=[0, 0.03, 1, 0.95])
+
+    """unique_markers = np.unique(markers)
+    for um in unique_markers:
+        mask = markers == um
+        plt.scatter(x[mask], y[mask], marker=um, c=colors[mask], alpha=1.0, s=10)"""
+
+    def get_cell_mask(gene_idx):
+        mask = lattice_state[gene_idx, :] == 1
+        return mask
+
+    eps = 0.1
+    lw = 2.5
+    boxsize = 990   # 600, 750, 850, at 990 it forms grey grid
+    mainsize = 300  # 350
+    trisize = 100   # 225
+    appendage_style = 2  # 1
+    appendage_z = 2
+    t_series = [0] * 9
+    angles = [60, 60, 60, -60, -60, -60, -180, -180, -180]
+    for idx in range(9):
+        t_mod = mpl.markers.MarkerStyle(marker=appendage_style)
+        t_mod._transform = t_mod.get_transform().rotate_deg(angles[idx])
+        t_series[idx] = t_mod
+
+
+    # center circle each cell
+    plt.scatter(x, y, marker='^', c=colors, alpha=1.0, s=mainsize, ec='k', zorder=5)
+    # outer square with alpha
+    plt.scatter(x, y, marker='s', c=colors, alpha=0.4, s=boxsize, ec='k', zorder=1)
+    # gene 0, 1 mask for celltype A: up/down appendage
+    mask0 = get_cell_mask(0)
+    mask1 = get_cell_mask(1)
+    mask2 = get_cell_mask(2)
+    x0, x1, x2 = -0.15, -0.08, 0
+    y0, y1, y2 = -0.2, -0.05, +0.1
+    plt.scatter(x[mask0]+x0, y[mask0]+y0, marker=t_series[0], c=colors[mask0], alpha=1.0,
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
+    plt.scatter(x[mask1]+x1, y[mask1]+y1, marker=t_series[1], c=colors[mask1], alpha=1.0,
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
+    plt.scatter(x[mask2]+x2, y[mask2]+y2, marker=t_series[2], c=colors[mask2], alpha=1.0,
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
+    # gene 3, 4 mask for celltype B: left/right appendage
+    mask3 = get_cell_mask(3)
+    mask4 = get_cell_mask(4)
+    mask5 = get_cell_mask(5)
+    x3, x4, x5 = -x2, -x1, -x0
+    y3, y4, y5 = y2, y1, y0
+    plt.scatter(x[mask3]+x3, y[mask3]+y3, marker=t_series[3], c=colors[mask3], alpha=1.0,
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
+    plt.scatter(x[mask4]+x4, y[mask4]+y4, marker=t_series[4], c=colors[mask4], alpha=1.0,
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
+    plt.scatter(x[mask5]+x5, y[mask5]+y5, marker=t_series[5], c=colors[mask5], alpha=1.0,
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
+    # gene 6, 7 mask for celltype C: membrane/circle interior
+    mask6 = get_cell_mask(6)
+    mask7 = get_cell_mask(7)
+    mask8 = get_cell_mask(8)
+    x6, x7, x8 = +0.16, -0, -0.16
+    y6, y7, y8 = -0.2, -0.2, -0.2
+    plt.scatter(x[mask6]+x6, y[mask6]+y6, marker=t_series[6], c=colors[mask6], alpha=1.0,
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
+    plt.scatter(x[mask7]+x7, y[mask7]+y7, marker=t_series[7], c=colors[mask7], alpha=1.0,
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
+    plt.scatter(x[mask8]+x8, y[mask8]+y8, marker=t_series[8], c=colors[mask8], alpha=1.0,
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
+
+    if state_int:
+        assert 1==2
+        num_cells = lattice_state.shape[1]
+        for k in range(num_cells):
+            cellstate = lattice_state[:, k]
+            label = state_to_label(cellstate)
+            i, j = lattice_square_int_to_loc(k, n)
+            plt.gca().text(j, i, label, color='black', ha='center', va='center')
+
+    #plt.title('Lattice site-wise overlap with ref site %d,%d (Step=%d)' % (ref_site[0], ref_site[1], time))
+    # draw gridlines
+    ax = plt.gca()
+    plt.axis('off')  # no grid can look nice
+    #ax.grid(which='major', axis='both', linestyle='-', color='k', linewidth=2)
+
+    #ax.set_xticks([], [])
+    #ax.set_yticks([], [])
+    xticks = np.arange(-.5, n, 1)
+    yticks = np.arange(-.5, n, 1)
+    ax.set_xticks(xticks)
+    ax.set_yticks(yticks)
+    ax.xaxis.set_ticklabels(['' for _ in xticks])
+    ax.yaxis.set_ticklabels(['' for _ in yticks])
+
+    # save figure
+    plt.savefig(outpath + fmod + '.jpg', bbox_inches='tight')
+    plt.savefig(outpath + fmod + '.pdf', bbox_inches='tight')
+    plt.close()
+    return
+
+
+def replot_scatter_dots(lattice_state, simsetup, sidelength, outpath, fmod='', state_int=False):
+    """
+    Full info morphology plot with grid of 9 genes as dots
+    """
+
+    def state_to_colour_and_morphology(state, simsetup):
+        """
+        # assign a unique colour to each state based on a colourmap
+        cellstate_01 = ((cellstate + 1) / 2).astype(int)
+        cellstate_brief = str(cellstate_01[2]) + str(cellstate_01[5]) + str(cellstate_01[8])
+
+        # eight handpicked colours based on combinations of encoded celltypes
+        color_dict_brief = {
+            '000': soft_grey_norm,        # grey (all off)
+            '100': color_A_pos,           # type A - blue
+            '010': color_B_pos,           # type B - red
+            '001': color_C_pos,           # type C - yellow
+            '101': color_AC,              # type A+C - green
+            '011': color_BC,              # type B+C - orange
+            '110': color_AB,              # type A+B - purple
+            '111': color_anchor_white,    # white (all on)
+        }
+
+        unique_colour = color_dict_brief[cellstate_brief]
+        """
+        genes = [0,1,2, 3,4,5, 6,7,8]
+        cellstate_brief = state[genes]
+        #cellstate_brief = [1,1,1, -1, -1, -1, -1, -1, -1]
+        #cellstate_brief = [-1,-1,-1, 1, 1, 1, -1, -1, -1]
+        #cellstate_brief = [-1,-1,-1, -1, -1, -1, 1, 1, 1]
+
+        label = state_to_label(cellstate_brief)
+        unique_colour = FIXED_COLOURMAP[label]
+        return unique_colour[0:3]
+
+    n = sidelength
+    assert n == 20  # redo params for n 10 visualization
+    x = np.zeros(n ** 2)
+    y = np.zeros(n ** 2)
+    colors = np.zeros((n**2, 3))
+    for i in range(n):
+        for j in range(n):
+            grid_loc_to_idx = lattice_square_loc_to_int((i,j), sidelength)
+            cellstate = lattice_state[:, grid_loc_to_idx]
+            colors[grid_loc_to_idx, :] = state_to_colour_and_morphology(cellstate, simsetup)
+            x[grid_loc_to_idx] = j
+            y[grid_loc_to_idx] = n - i
+
+    # plot
+    #fig = plt.figure(figsize=(12, 12))
+    #fig, ax = plt.subplots(figsize=(12, 12), dpi=100)
+    #ax = fig.add_axes([0, 0, 1, 1])  # position: left, bottom, width, height
+    #ax.set_axis_off()
+    fig, ax = plt.subplots(figsize=(12, 12))
+    ax.set_axis_off()
+
+    def get_cell_mask(gene_idx):
+        mask = lattice_state[gene_idx, :] == 1
+        return mask
+
+    eps = 0.25
+    lw = 2
+    boxsize = 1800   # 600, 750, 850, at 990 it forms grey grid
+    mainsize = 300  # 350
+    trisize = 50   # 225
+    appendage_style = 'o'  # 1
+    appendage_z = 2
+    t_series = [0] * 9
+    #angles = [60, 60, 60, -60, -60, -60, -180, -180, -180]
+    for idx in range(9):
+        t_mod = mpl.markers.MarkerStyle(marker=appendage_style)
+        t_series[idx] = t_mod
+
+
+    # center circle each cell (OMIT)
+    # plt.scatter(x, y, marker='^', c=colors, alpha=1.0, s=mainsize, ec='k', zorder=5)
+    # outer square with alpha (orig 0.4 alpha)
+    plt.scatter(x, y, marker='s', c=colors, alpha=1.0, s=boxsize, ec='k', zorder=1, lw=1.5)
+    # gene 0, 1 mask for celltype A: up/down appendage
+    mask0 = get_cell_mask(0)
+    mask1 = get_cell_mask(1)
+    mask2 = get_cell_mask(2)
+    x0, x1, x2 = -eps, 0, +eps
+    y0, y1, y2 = +eps, +eps, +eps
+    plt.scatter(x[mask0]+x0, y[mask0]+y0, marker=t_series[0], c='white', alpha=1.0,
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
+    plt.scatter(x[mask1]+x1, y[mask1]+y1, marker=t_series[1], c='white', alpha=1.0,
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
+    plt.scatter(x[mask2]+x2, y[mask2]+y2, marker=t_series[2], c='white', alpha=1.0,
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
+    # gene 3, 4 mask for celltype B: left/right appendage
+    mask3 = get_cell_mask(3)
+    mask4 = get_cell_mask(4)
+    mask5 = get_cell_mask(5)
+    x3, x4, x5 = x0, x1, x2
+    y3, y4, y5 = 0, 0, 0
+    plt.scatter(x[mask3]+x3, y[mask3]+y3, marker=t_series[3], c='white', alpha=1.0,
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
+    plt.scatter(x[mask4]+x4, y[mask4]+y4, marker=t_series[4], c='white', alpha=1.0,
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
+    plt.scatter(x[mask5]+x5, y[mask5]+y5, marker=t_series[5], c='white', alpha=1.0,
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
+    # gene 6, 7 mask for celltype C: membrane/circle interior
+    mask6 = get_cell_mask(6)
+    mask7 = get_cell_mask(7)
+    mask8 = get_cell_mask(8)
+    x6, x7, x8 = x0, x1, x2
+    y6, y7, y8 = -eps, -eps, -eps
+    plt.scatter(x[mask6]+x6, y[mask6]+y6, marker=t_series[6], c='white', alpha=1.0,
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
+    plt.scatter(x[mask7]+x7, y[mask7]+y7, marker=t_series[7], c='white', alpha=1.0,
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
+    plt.scatter(x[mask8]+x8, y[mask8]+y8, marker=t_series[8], c='white', alpha=1.0,
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
+
+    if state_int:
+        assert 1==2
+        num_cells = lattice_state.shape[1]
+        for k in range(num_cells):
+            cellstate = lattice_state[:, k]
+            label = state_to_label(cellstate)
+            i, j = lattice_square_int_to_loc(k, n)
+            plt.gca().text(j, i, label, color='black', ha='center', va='center')
+
+    #plt.title('Lattice site-wise overlap with ref site %d,%d (Step=%d)' % (ref_site[0], ref_site[1], time))
+    # draw gridlines
+    ax = plt.gca()
+    plt.axis('off')  # no grid can look nice
+    #ax.grid(which='major', axis='both', linestyle='-', color='k', linewidth=2)
+
+    #ax.set_xticks([], [])
+    #ax.set_yticks([], [])
+    xticks = np.arange(-.5, n, 1)
+    yticks = np.arange(-.5, n, 1)
+    ax.set_xticks(xticks)
+    ax.set_yticks(yticks)
+    ax.xaxis.set_ticklabels(['' for _ in xticks])
+    ax.yaxis.set_ticklabels(['' for _ in yticks])
+
+    # this crops border
+    lw_eps = 0.05
+    plt.xlim(-0.5 - lw_eps, n - 0.5 + lw_eps)
+    plt.ylim( 0.5 - lw_eps, n + 0.5 + lw_eps)
+    fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)  # unsure
+    # save figure
+    plt.savefig(outpath + fmod + '.jpg')#, bbox_inches='tight')
+    plt.savefig(outpath + fmod + '.pdf')#, bbox_inches='tight')
     plt.close()
     return
 
@@ -699,8 +1007,7 @@ if __name__ == '__main__':
                 fname = fnames[idx]
                 #replot_overlap()
                 X = state_load(fpath, cells_as_cols=True, num_genes=None, num_cells=None, txt=False)
-                X = translate_lattice_state(X, sidelength, down=0, right=0)
-
+                X = translate_lattice_state(X, sidelength, down=0, right=0)  # down 8
 
                 outpath = replot_dir + os.sep + fname[:-4]
                 outpath_ref = replot_dir + os.sep + 'ref0_' + fname[:-4]
@@ -716,10 +1023,9 @@ if __name__ == '__main__':
                 """replot_modern(
                     X, simsetup_main, sidelength, outpath_uniquecolours, version='3', fmod=qmod,
                     state_int=state_int)"""
-                replot_scatter(
+                replot_scatter_dots(
                     X, simsetup_main, sidelength, outpath_scatter, fmod=qmod,
                     state_int=state_int)
-
 
     elif label == 'slide6':
         replot_dir = replot_dir + os.sep + 'slide6'
