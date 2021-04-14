@@ -1,4 +1,4 @@
-import proplot as proplot
+import proplot
 #proplot.use_style('default')
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -65,40 +65,99 @@ color_BC = np.array(soft_orange) / 255.0
 
 
 # building library of 2**N random colours
-def fixed_state_to_colour_map(N, show=True, num_cmaps=4, shuffle=False):
+def fixed_state_to_colour_map(N, show=True, shuffle=False):
     """
     # maps each state integer to a unique colour
     """
     #assert N == 9  # untested otherwise, inappropriate for large N > 14 or so
     num_states = 2 ** N
 
+    def shift_cmap(cmap, frac):
+        """Shifts a colormap by a certain fraction.
+
+        Keyword arguments:
+        cmap -- the colormap to be shifted. Can be a colormap name or a Colormap object
+        frac -- the fraction of the colorbar by which to shift (must be between 0 and 1)
+        """
+        N = 512
+        if isinstance(cmap, str):
+            cmap = plt.get_cmap(cmap)
+        n = cmap.name
+        x = np.linspace(0, 1, N)
+        out = np.roll(x, int(N * frac))
+        new_cmap = mpl.colors.LinearSegmentedColormap.from_list(f'{n}_s', cmap(out))
+        return new_cmap
+
+
+    def shuffle_state_space(seed=16):
+        """
+        Default seed is zero. Previously used seeds for 'multi-W' slides:
+        - 3,
+        """
+        state_labels_shuffled = np.arange(num_states)
+        np.random.seed(seed)
+        np.random.shuffle(state_labels_shuffled)
+        return state_labels_shuffled
+
     # choose a colourmap to slice (note lut = lookuptable size)
     #cmap_list = ['Spectral', 'hsv', 'nipy_spectral']
-    cmap_list = ['Spectral', 'PRGn', 'Spectral']
-    #cmap_list = ['Spectral']
+    #cmap_list = ['Spectral', 'PRGn', 'Spectral']
+    cmap_list = ['YlGnBu']
 
     # Version 1: matplotlib
-    # cmaps = [mpl.cm.get_cmap(cmap_list[i], lut=num_states) for i in range(num_cmaps)]
+    #cmaps = [mpl.cm.get_cmap(cmap_list[i], lut=num_states) for i in range(num_cmaps)]
 
     # Version 2: proplot
     # docs: https://proplot.readthedocs.io/en/latest/api/proplot.constructor.Colormap.html
-    #cmaps = [proplot.Colormap(cmap_list[i], samples=num_states) for i in range(num_cmaps)]
+    #cmaps = [proplot.Colormap('Spectral', samples=num_states, shift=0, left=0.05, right=1)]
+    """data1 = {
+        'hue': [[0, 'red', 'red'], [1, 'blue', 'blue']],
+        'saturation': [[0, 100, 100], [1, 100, 100]],
+        'luminance': [[0, 100, 100], [1, 20, 20]],
+    }
+    #cmaps = [proplot.PerceptuallyUniformColormap(data1)]
+    cmaps = [
+        proplot.Colormap(
+        {
+            'hue': ['red', 'red-720'],
+            'saturation': [80, 20],
+            'luminance': [20, 100]
+        },
+        name='custom_cmap',
+        space='hsl',
+        samples=num_states,
+    )
+    ]"""
 
     # Version 3: manual proplot of one cmap shifted
-    deg = 66  # 66 for acton, 30 or 66 for spectral
-    cstring_a = 'spectral'  # Spectral acton
-    cstring_b = 'spectral'  # Spectral Sunset
+    """
+    deg = 33  # 66 for acton, 30 or 66 for spectral
+    cstring_a = 'acton'  # Spectral acton
+    cstring_b = 'Sunset'  # Spectral Sunset
     cmaps = [proplot.Colormap(cstring_a, samples=num_states, shift=0),
              proplot.Colormap(cstring_b, samples=num_states, shift=1*deg),
              proplot.Colormap(cstring_a, samples=num_states, shift=2*deg),
-             proplot.Colormap(cstring_b, samples=num_states, shift=3*deg)]
+             proplot.Colormap(cstring_b, samples=num_states, shift=3*deg)]"""
+
+    # Version 4: manual matplotlib to not import proplot
+    deg = -24  # 66 for acton, 30 or 66 for spectral
+    cstring_a = 'acton'  # Spectral acton
+    cstring_b = 'Sunrise'  # Spectral Sunset
+    cstring_c = 'Sunset'  # Spectral Sunset
+    cmaps = [proplot.Colormap(cstring_a, samples=num_states, shift=0, left=0.10, right=1),
+             proplot.Colormap(cstring_b, samples=num_states, shift=0, left=0.00, right=0.9),
+             proplot.Colormap(cstring_c, samples=num_states, shift=0, left=0.00, right=0.9),
+             proplot.Colormap(cstring_a, samples=num_states, shift=1*deg, left=0.10, right=1),
+             proplot.Colormap(cstring_b, samples=num_states, shift=1*deg, left=0.00, right=0.9),
+             proplot.Colormap(cstring_c, samples=num_states, shift=1*deg, left=0.00, right=0.9)]
 
     # build cmap, with each consecutive integer alternating amongst the num_cmaps
     colour_map = {}
     state_labels = list(range(num_states))
     if shuffle:
-        np.random.seed(0)
-        np.random.shuffle(state_labels)
+        state_labels = shuffle_state_space()
+    num_cmaps = len(cmaps)
+    print('num cmaps:', len(cmaps))
     for idx, label in enumerate(state_labels):
         cmap_choice = idx % num_cmaps
         print(idx,label, cmap_choice)
@@ -116,9 +175,91 @@ def fixed_state_to_colour_map(N, show=True, num_cmaps=4, shuffle=False):
     return colour_map
 
 
+def construct_cmap_from_ranked_states(state_data, N, show=True):
+    """
+    Converts list of state data arrays to "ranked_states"
+    Ranked states is a list of integer state labels
+    """
+    assert N == 9
+
+    def rank_states():
+        # states and counts dict
+        state_counts = {}
+
+        for idx, X in enumerate(state_data):
+
+            assert X.shape[0] == N
+            X_as_statelabels = np.zeros(X.shape[1])
+            for c in range(X.shape[1]):
+                X_as_statelabels[c] = state_to_label(X[:, c])
+
+            unique, unique_counts = np.unique(X_as_statelabels, return_counts=True)
+            for idx, elem in enumerate(unique):
+                if elem in state_counts.keys():
+                    state_counts[elem] += unique_counts[idx]
+                else:
+                    state_counts[elem] = unique_counts[idx]
+
+        # now need to create sorted list
+        from operator import itemgetter
+        i = 0
+        ranked_states = [0] * len(list(state_counts.keys()))
+        for key, value in sorted(state_counts.items(), key=itemgetter(1), reverse=True):
+            ranked_states[i] = int(key)
+            i += 1
+        print(ranked_states)
+        return ranked_states
+
+    ranked_states = rank_states()
+    num_states = len(ranked_states)
+
+    # Version 1: manual proplot of one cmap shifted
+    #cmaps = [proplot.Colormap('acton', samples=num_states, shift=0, left=0.00, right=1, reverse=True)]
+
+    # Version 2: manual proplot of one cmap shifted
+    """deg = 0  # 66 for acton, 30 or 66 for spectral
+    cstring_a = 'acton'  # Spectral acton
+    cstring_b = 'Sunset'  # Spectral Sunset
+    cmaps = [proplot.Colormap(cstring_a, samples=num_states, shift=0),
+             proplot.Colormap(cstring_b, samples=num_states, shift=1*deg),
+             proplot.Colormap(cstring_a, samples=num_states, shift=2*deg),
+             proplot.Colormap(cstring_b, samples=num_states, shift=3*deg)]"""
+
+    # Version 3: manual matplotlib to not import proplot
+    deg = 33  # 66 for acton, 30 or 66 for spectral
+    cstring_a = 'acton'  # Spectral acton
+    cstring_b = 'Sunset'  # Spectral Sunset
+    cstring_c = 'Sunrise'  # Spectral Sunset
+    cmaps = [proplot.Colormap(cstring_a, samples=num_states, shift=0, left=0.10, right=1),
+             proplot.Colormap(cstring_b, samples=num_states, shift=0, left=0.00, right=0.9),
+             proplot.Colormap(cstring_c, samples=num_states, shift=0, left=0.00, right=0.9),
+             proplot.Colormap(cstring_a, samples=num_states, shift=1*deg, left=0.10, right=1),
+             proplot.Colormap(cstring_b, samples=num_states, shift=1*deg, left=0.00, right=0.9),
+             proplot.Colormap(cstring_c, samples=num_states, shift=1*deg, left=0.00, right=0.9)]
+
+    # build cmap
+    colour_map = {}
+    num_cmaps = len(cmaps)
+    for idx, label in enumerate(ranked_states):
+        cmap_choice = idx % num_cmaps
+        colour_map[label] = cmaps[cmap_choice](idx)
+    custom_mpl_cmap = mpl.colors.ListedColormap([colour_map[ranked_states[i]]
+                                                 for i in np.arange(num_states)])
+
+    if show:
+        x = np.arange(num_states)
+        y = np.arange(num_states)
+        fig, ax = plt.subplots()
+        sc = plt.scatter(x, y, c=y, cmap=custom_mpl_cmap)
+        plt.title('fixed_state_to_colour_map() sample plot')
+        plt.colorbar(ax=ax, mappable=sc)
+        plt.show()
+    return colour_map
+
+
 # fixed global colourmap for v3 of replot_modern
 N = 9
-FIXED_COLOURMAP = fixed_state_to_colour_map(N, show=False)
+FIXED_COLOURMAP = fixed_state_to_colour_map(N, show=False, shuffle=False)
 
 
 def state_int_to_colour(state_int, simsetup, proj=True, noanti=True):
@@ -793,10 +934,14 @@ Full info morphology plot with 9 genes as triangle cilia
     return
 
 
-def replot_scatter_dots(lattice_state, simsetup, sidelength, outpath, fmod='', state_int=False):
+def replot_scatter_dots(lattice_state, simsetup, sidelength, outpath, fmod='', state_int=False,
+                        cmap=None):
     """
     Full info morphology plot with grid of 9 genes as dots
     """
+
+    if cmap is None:
+        cmap = FIXED_COLOURMAP
 
     def state_to_colour_and_morphology(state, simsetup):
         """
@@ -825,11 +970,10 @@ def replot_scatter_dots(lattice_state, simsetup, sidelength, outpath, fmod='', s
         #cellstate_brief = [-1,-1,-1, -1, -1, -1, 1, 1, 1]
 
         label = state_to_label(cellstate_brief)
-        unique_colour = FIXED_COLOURMAP[label]
+        unique_colour = cmap[label]
         return unique_colour[0:3]
 
     n = sidelength
-    assert n == 20  # redo params for n 10 visualization
     x = np.zeros(n ** 2)
     y = np.zeros(n ** 2)
     colors = np.zeros((n**2, 3))
@@ -853,24 +997,34 @@ def replot_scatter_dots(lattice_state, simsetup, sidelength, outpath, fmod='', s
         mask = lattice_state[gene_idx, :] == 1
         return mask
 
-    eps = 0.25
-    lw = 2
-    boxsize = 1800   # 600, 750, 850, at 990 it forms grey grid
-    mainsize = 300  # 350
-    trisize = 50   # 225
+    # plot - detailed settings
+    assert n in [10, 20]
+    if n == 10:
+        box_lw = 2*1.5
+        eps = 0.25
+        lw = 2*2
+        boxsize = 4*1800  # 600, 750, 850, at 990 it forms grey grid
+        trisize = 4*50  # 225
+        lw_eps = 0.05
+
+    else:
+        box_lw = 1.5
+        eps = 0.25
+        lw = 2
+        boxsize = 1800   # 600, 750, 850, at 990 it forms grey grid
+        trisize = 50   # 225
+        lw_eps = 0.05
+
+    # create gene markers
     appendage_style = 'o'  # 1
     appendage_z = 2
     t_series = [0] * 9
-    #angles = [60, 60, 60, -60, -60, -60, -180, -180, -180]
     for idx in range(9):
         t_mod = mpl.markers.MarkerStyle(marker=appendage_style)
         t_series[idx] = t_mod
 
-
-    # center circle each cell (OMIT)
-    # plt.scatter(x, y, marker='^', c=colors, alpha=1.0, s=mainsize, ec='k', zorder=5)
     # outer square with alpha (orig 0.4 alpha)
-    plt.scatter(x, y, marker='s', c=colors, alpha=1.0, s=boxsize, ec='k', zorder=1, lw=1.5)
+    plt.scatter(x, y, marker='s', c=colors, alpha=1.0, s=boxsize, ec='k', zorder=1, lw=box_lw)
     # gene 0, 1 mask for celltype A: up/down appendage
     mask0 = get_cell_mask(0)
     mask1 = get_cell_mask(1)
@@ -909,7 +1063,6 @@ def replot_scatter_dots(lattice_state, simsetup, sidelength, outpath, fmod='', s
                 s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
 
     if state_int:
-        assert 1==2
         num_cells = lattice_state.shape[1]
         for k in range(num_cells):
             cellstate = lattice_state[:, k]
@@ -933,13 +1086,12 @@ def replot_scatter_dots(lattice_state, simsetup, sidelength, outpath, fmod='', s
     ax.yaxis.set_ticklabels(['' for _ in yticks])
 
     # this crops border
-    lw_eps = 0.05
     plt.xlim(-0.5 - lw_eps, n - 0.5 + lw_eps)
     plt.ylim( 0.5 - lw_eps, n + 0.5 + lw_eps)
     fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)  # unsure
     # save figure
     plt.savefig(outpath + fmod + '.jpg')#, bbox_inches='tight')
-    plt.savefig(outpath + fmod + '.pdf')#, bbox_inches='tight')
+    #plt.savefig(outpath + fmod + '.pdf')#, bbox_inches='tight')
     plt.close()
     return
 
@@ -960,14 +1112,14 @@ def translate_lattice_state(X, sidelength, down=0, right=0):
 
 if __name__ == '__main__':
 
-    label = 'slide5'  # 'slide5', 'slide6', 'specific'
+    label = 'specific'  # 'slide4', 'slide5', 'slide6', 'specific'
 
     version = '2'
     state_int = False
     fmod = '_int%d' % state_int
     # fmod = '_beige'
 
-    sidelength = 20
+    sidelength = 10 #20
     num_cells = sidelength ** 2
     curated = True
     random_mem = False  # TODO incorporate seed in random XI in simsetup/curated
@@ -985,10 +1137,60 @@ if __name__ == '__main__':
 
     # choices:
     replot_dir = RUNS_FOLDER + os.sep + 'explore' + os.sep + 'replot'
-    if label == 'slide5':
+    if label == 'slide4':
+        replot_dir = replot_dir + os.sep + 'slide4asW1'
+
+        for k in range(0, 30):
+            fname = 'X_%d.npz' % k
+            fpath = replot_dir + os.sep + fname
+
+            # 2) state to load
+            #fnames = [a for a in os.listdir(source_dir) if a[-4:] == '.npz']
+            qmod = fmod + '%d' % k
+
+            #replot_overlap()
+            X = state_load(fpath, cells_as_cols=True, num_genes=None, num_cells=None, txt=False)
+            X = translate_lattice_state(X, sidelength, down=0, right=0)  # down 8
+
+            outpath = replot_dir + os.sep + fname[:-4]
+            outpath_ref = replot_dir + os.sep + 'ref0_' + fname[:-4]
+            outpath_uniquecolours = replot_dir + os.sep + 'uniques_' + fname[:-4]
+            outpath_scatter = replot_dir + os.sep + 'scatter_' + fname[:-4]
+
+            replot_modern(
+                X, simsetup_main, sidelength, outpath, version=version, fmod=qmod,
+                state_int=state_int)
+            replot_graph_lattice_reference_overlap_plotter(
+                X, sidelength, outpath_ref, fmod=qmod, ref_node=0)
+            replot_modern(
+                X, simsetup_main, sidelength, outpath_uniquecolours, version='3', fmod=qmod,
+                state_int=state_int)
+            replot_scatter_dots(
+                X, simsetup_main, sidelength, outpath_scatter, fmod=qmod,
+                state_int=state_int)
+
+    elif label == 'slide5':
         replot_dir = replot_dir + os.sep + 'slide5_gamma1'
 
-        for k in range(1, 16):
+        #k_choice = np.arange(17)
+        k_choice = [1,2,4,5,7,10,13,14,17]
+        flag_ranked_cmap = False
+
+        # build ranked colourmap first
+        if flag_ranked_cmap:
+            state_data = []
+            for k in k_choice:
+                source_dir = replot_dir + os.sep + 'W%d' % k
+                source_dir += os.sep + 'states'
+                fpath = source_dir + os.sep + 'X_30.npz'
+                X = state_load(fpath, cells_as_cols=True, num_genes=None, num_cells=None, txt=False)
+                state_data.append(X)
+            ranked_cmap = construct_cmap_from_ranked_states(state_data, simsetup_main['N'], show=True)
+        else:
+            ranked_cmap = None
+
+        # plot data using custom colourmap
+        for k in k_choice:
             source_dir = replot_dir + os.sep + 'W%d' % k
             source_dir += os.sep + 'states'
 
@@ -1025,7 +1227,7 @@ if __name__ == '__main__':
                     state_int=state_int)"""
                 replot_scatter_dots(
                     X, simsetup_main, sidelength, outpath_scatter, fmod=qmod,
-                    state_int=state_int)
+                    state_int=state_int, cmap=ranked_cmap)
 
     elif label == 'slide6':
         replot_dir = replot_dir + os.sep + 'slide6'
@@ -1043,16 +1245,34 @@ if __name__ == '__main__':
             outpath = replot_dir + os.sep + fname[:-4]
             replot_modern(X, simsetup_main, sidelength, outpath, version=version, fmod=fmod,
                           state_int=state_int)
-            outpath_ref = replot_dir + os.sep + 'ref0_' + fname[:-4]
-            replot_graph_lattice_reference_overlap_plotter(X, sidelength, outpath_ref,
-                                                           fmod=fmod, ref_node=0)
+            outpath_scatter = replot_dir + os.sep + 'scatter_' + fname[:-4]
+            #replot_graph_lattice_reference_overlap_plotter(X, sidelength, outpath_ref,
+            #                                               fmod=fmod, ref_node=0)
+            replot_scatter_dots(
+                X, simsetup_main, sidelength, outpath_scatter, fmod=fmod, state_int=state_int)
     else:
 
         replot_dir = replot_dir + os.sep + 'plot_specific_points'
 
         from multicell.unsupervised_helper import plot_given_multicell
 
-        agg_indices = [2602, 3952]
+        agg_indices = [
+            1395, 2904,        # bottom left: bottom left corner
+            919, 771,          # bottom left: bottom right corner
+            2325, 193,         # bottom left: top left corner
+            3685, 556,         # bottom left: top right corner
+            3717, 2652,        # bottom left: interior, left edge
+            2357,                                    # top left: bottom left corner
+            2847, 3563, 1334, 683, 2941, 728, 3995,  # top left: left interior edge
+            1919,                                    # top left: top left corner
+            74, 636,           # upper homogeneous tip
+            1904, 454, 2656, 1569, 3277, 3473, 3034, 961, 186,  # upper cluster 2-phase
+            345, 1089, 1252, 3964, 1765, 1497, 1252,      # right donut (upper): upper-right edge A
+            2101, 347, 1135, 148,  # right donut (upper): upper-right edge B
+            65, 2989, 1585,        # right donut (upper): left edge
+            1467, 1262, 2345,  # right donut (lower): right edge A
+            2602, 3952,        # right donut (lower): right edge B
+        ]
         #outdir = RUNS_FOLDER + os.sep + 'explore' + os.sep + 'plot_specific_points'
 
         # where is the data?
@@ -1098,3 +1318,7 @@ if __name__ == '__main__':
             outpath = replot_dir + os.sep + 'agg%d_modern' % agg_index
             replot_modern(X_state.T, simsetup_main, sidelength, outpath,
                           version=version, fmod=fmod, state_int=state_int)
+
+            outpath = replot_dir + os.sep + 'agg%d_scatter' % agg_index
+            replot_scatter_dots(X_state.T, simsetup_main, sidelength, outpath,
+                                fmod=fmod, state_int=state_int)
