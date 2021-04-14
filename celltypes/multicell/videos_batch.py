@@ -12,9 +12,9 @@ if __name__ == '__main__':
 
     if make_single_video:
         basedir = RUNS_FOLDER + os.sep + "explore" + os.sep + 'replot'
-        source_dir = "slide4vidB"
+        source_dir = "vidW1"
         #fhead = "composite_lattice_step"
-        fhead = "ref0_X_"
+        fhead = "scatter_X_"
         ftype = ".jpg"
         nmax = 100
         fps = 2

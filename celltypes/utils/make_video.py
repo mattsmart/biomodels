@@ -83,9 +83,9 @@ def make_video_ffmpeg(source_dir, outpath, fps=5, fhead='lattice_at_time_', fmod
         sp = subprocess.Popen(command_line, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
         while True:
             out = sp.stderr.read(1)
-            if out == '' and sp.poll() != None:
+            if out == b'' and sp.poll() != None:
                 break
-            if out != '':
+            if out != b'':
                 print(out)
                 #sys.stdout.write(out)
                 sys.stdout.flush()

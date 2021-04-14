@@ -3,6 +3,7 @@ import os
 import random
 import shutil
 import matplotlib.pyplot as plt
+plt.rcdefaults()
 
 from multicell.graph_adjacency import \
     lattice_square_int_to_loc, adjacency_lattice_square, adjacency_general, general_exosome_field, \
@@ -17,6 +18,7 @@ from multicell.multicell_metrics import \
     calc_compression_ratio, calc_graph_energy
 from multicell.multicell_visualize import \
     graph_lattice_uniplotter, graph_lattice_reference_overlap_plotter, graph_lattice_projection_composite
+from multicell.multicell_replot import replot_scatter_dots
 from singlecell.singlecell_class import Cell
 from singlecell.singlecell_functions import \
     state_memory_overlap_alt, state_memory_projection_alt, state_to_label
@@ -566,7 +568,7 @@ class Multicell:
         assert self.graph_style == 'lattice_square'
         nn = self.graph_kwargs['sidelength']
         if fpaths is None:
-            fpaths = [None, None, None]
+            fpaths = [None, None, None, None]
 
         # plot type A
         graph_lattice_projection_composite(self, step, use_proj=False, fpath=fpaths[0])
@@ -580,6 +582,16 @@ class Multicell:
                                          mu, use_proj=False)
                 graph_lattice_uniplotter(self, step, nn, self.io_dict['latticedir'],
                                          mu, use_proj=True)
+        # plot type D
+        if self.num_genes == 9 and self.graph_style == 'lattice_square':
+            nn = self.graph_kwargs['sidelength']
+            outpath = fpaths[3]
+            if outpath is None:
+                outpath = self.io_dict['latticedir'] + os.sep + 'dots_%d' % step
+            X = self.graph_state_arr[:, step]
+            X = X.reshape((self.num_genes, self.num_cells), order='F')  # reshape as 2D arr
+            replot_scatter_dots(X, self.simsetup, nn, outpath,
+                                state_int=self.flag_state_int)
         return
 
     def step_state_visualize_alt(self, step, flag_uniplots=False, fpaths=None):
@@ -854,14 +866,15 @@ if __name__ == '__main__':
 
 
     # 1) create simsetup
-    main_seed = 0 #np.random.randint(1e6)
+    main_seed = 0  #np.random.randint(1e6)
     curated = True
     random_mem = False        # TODO incorporate seed in random XI in simsetup/curated
     random_W = True          # TODO incorporate seed in random W in simsetup/curated
 
     #W_override_path = None
-    #W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_maze.txt'
     W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_maze.txt'
+    #W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'matrix_W_9_W15maze.txt'
+    #W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'matrix_W_9_W7maze.txt'
 
     simsetup_main = singlecell_simsetup(
         unfolding=True, random_mem=random_mem, random_W=random_W, curated=curated, housekeeping=0)

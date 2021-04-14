@@ -1,5 +1,6 @@
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import numpy as np
 import os
 from matplotlib.patches import Rectangle
@@ -97,7 +98,9 @@ def graph_lattice_uniplotter(multicell, step, n, lattice_plot_dir, mu, use_proj=
     # generate figure data
     proj_vals = get_graph_lattice_uniproj(multicell, step, mu, use_proj=use_proj)
     # plot projection
-    colourmap = plt.get_cmap('PiYG')
+    #colourmap = plt.get_cmap('PiYG')
+    colourmap = mpl.cm.get_cmap('PiYG')  # 'PiYG' or 'Spectral'
+
     plt.imshow(proj_vals, cmap=colourmap, vmin=-1, vmax=1)
     plt.colorbar()
     plt.title('Lattice site-wise %s onto memory %d (%s) (Step=%d)' %
@@ -153,7 +156,9 @@ def graph_lattice_projection_composite(multicell, step, cmap_vary=False, use_pro
             colours = [(0.0, 'black'), (0.5, 'white'), (1.0, c3)]
             colourmap = LinearSegmentedColormap.from_list('customcmap', colours, N=1e4)
         else:
-            colourmap = plt.get_cmap('PiYG')  # 'PiYG' or 'Spectral'
+            #colourmap = plt.get_cmap('PiYG')  # 'PiYG' or 'Spectral'
+            colourmap = mpl.cm.get_cmap('PiYG')  # 'PiYG' or 'Spectral'
+
         return colourmap
 
     mu = 0  # Note mu loop to handle empty mu plots (for composite grid)
@@ -229,7 +234,9 @@ def graph_lattice_reference_overlap_plotter(multicell, step, ref_node=0, fpath=N
     fig = plt.figure(figsize=(12, 12))
     #fig.tight_layout(rect=[0, 0.03, 1, 0.95])
     # see https://matplotlib.org/examples/color/colormaps_reference.html... used 'PiYG',
-    colourmap = plt.get_cmap('Spectral')
+    #colourmap = plt.get_cmap('Spectral')
+    colourmap = mpl.cm.get_cmap('Spectral')  # 'PiYG' or 'Spectral'
+
     # TODO: normalize? also use this for other lattice plot fn...
     plt.imshow(overlaps, cmap=colourmap, vmin=-1,vmax=1)
     if state_int:
