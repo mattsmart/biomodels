@@ -1091,7 +1091,7 @@ def replot_scatter_dots(lattice_state, simsetup, sidelength, outpath, fmod='', s
     fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)  # unsure
     # save figure
     plt.savefig(outpath + fmod + '.jpg')#, bbox_inches='tight')
-    #plt.savefig(outpath + fmod + '.pdf')#, bbox_inches='tight')
+    plt.savefig(outpath + fmod + '.pdf')#, bbox_inches='tight')
     plt.close()
     return
 
@@ -1173,7 +1173,7 @@ if __name__ == '__main__':
         replot_dir = replot_dir + os.sep + 'slide5_gamma1'
 
         #k_choice = np.arange(17)
-        k_choice = [1,2,4,5,7,10,13,14,17]
+        k_choice = [1,2,4,5,7,10,13,14,15,17]
         flag_ranked_cmap = False
 
         # build ranked colourmap first

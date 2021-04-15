@@ -4,6 +4,7 @@ SEARCH_RADIUS_CELL = 1
 
 # lattice dynamics
 BLOCK_UPDATE_LATTICE = True
+SEND_01 = False
 
 # lattice initial condition
 VALID_BUILDSTRINGS = ["mono", "dual", "memory_sequence", "random", "explicit"]

@@ -11,7 +11,7 @@ from multicell.graph_adjacency import \
 from multicell.graph_helper import state_load
 from multicell.multicell_constants import \
     VALID_BUILDSTRINGS, VALID_EXOSOME_STRINGS, EXOSTRING, EXOSOME_REMOVE_RATIO, \
-    BLOCK_UPDATE_LATTICE, AUTOCRINE
+    BLOCK_UPDATE_LATTICE, AUTOCRINE, SEND_01
 from multicell.multicell_lattice import \
     build_lattice_main, write_grid_state_int_alt
 from multicell.multicell_metrics import \
@@ -480,7 +480,7 @@ class Multicell:
                 self, node_idx, next_step, neighbours=graph_neighbours)
             # signaling field part 2
             field_signal_W = general_paracrine_field(
-                self, node_idx, next_step, flag_01=False, neighbours=graph_neighbours)
+                self, node_idx, next_step, flag_01=SEND_01, neighbours=graph_neighbours)
             # sum the two field contributions
             field_signal_unscaled = field_signal_exo + field_signal_W
             field_signal = self.gamma * field_signal_unscaled
@@ -864,7 +864,6 @@ class Multicell:
 
 if __name__ == '__main__':
 
-
     # 1) create simsetup
     main_seed = 0  #np.random.randint(1e6)
     curated = True
@@ -872,6 +871,7 @@ if __name__ == '__main__':
     random_W = True          # TODO incorporate seed in random W in simsetup/curated
 
     #W_override_path = None
+    #W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_2018mazeUpTri.txt'
     W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_maze.txt'
     #W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'matrix_W_9_W15maze.txt'
     #W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'matrix_W_9_W7maze.txt'
@@ -885,16 +885,18 @@ if __name__ == '__main__':
     print("simsetup checks:")
     print("\tsimsetup['N'],", simsetup_main['N'])
     print("\tsimsetup['P'],", simsetup_main['P'])
+    print(simsetup_main['XI'])
 
     # setup 2.1) multicell sim core parameters
     search_radius = 1
     num_cells = 20**2           # global GRIDSIZE
     total_steps = 31            # global NUM_LATTICE_STEPS
     plot_period = 10
-    flag_state_int = True
+    flag_state_int = False
     flag_blockparallel = False
     beta = 2000.0
-    gamma = 0.05 #1.0               # i.e. field_signal_strength
+    #gamma = 0.8  #1.0               # i.e. field_signal_strength
+    gamma = 1.0  # 1.0               # i.e. field_signal_strength
     kappa = 0.0                # i.e. field_applied_strength
 
     # setup 2.2) graph options
@@ -970,8 +972,18 @@ if __name__ == '__main__':
     }
 
     # 3) instantiate
-    multicell = Multicell(simsetup_main, verbose=True, **multicell_kwargs)
+    #multicell = Multicell(simsetup_main, verbose=True, **multicell_kwargs)
 
     # 4) run sim
-    multicell.simulation_standard()
+    #multicell.simulation_standard()
     #multicell.simulation_fast()
+
+    # looped version of steps 3) and 4):
+    for gstep in [0.015, 0.017, 0.02, 0.025, 0.03, 0.035, 0.039, 0.04,
+                  0.045, 0.05, 0.055, 0.056, 0.06, 0.062, 0.065, 0.07, 0.075, 0.08, 0.09,
+                  0.1, 0.15, 0.5, 0.75, 1.0, 2.0, 5.0]:
+        multicell_kwargs_step = dict(multicell_kwargs, gamma=gstep)
+
+        multicell = Multicell(simsetup_main, verbose=True, **multicell_kwargs_step)
+        multicell.simulation_fast()
+

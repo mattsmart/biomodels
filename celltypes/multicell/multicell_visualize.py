@@ -73,7 +73,6 @@ def get_graph_lattice_overlaps(multicell, step, ref_node=0):
     """ Builds nn x nn array of overlaps between all cells and a reference cell
     multicell - Multicell class object
     """
-    assert multicell.flag_state_int
     assert multicell.graph_style == 'lattice_square'
     nn = multicell.graph_kwargs['sidelength']
     # used to annotate the lattice according to unique integer rep of each node

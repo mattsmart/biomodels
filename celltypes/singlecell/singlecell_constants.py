@@ -13,7 +13,7 @@ MEMS_MEHTA = MEMORIESDIR + os.sep + "2014_mehta_mems_genes_types_boolean_compres
 MEMS_SCMCA = MEMORIESDIR + os.sep + "2018_scmca_mems_genes_types_boolean_compressed_pruned_A_TFonly.npz"
 
 # UNFOLDING DEFAULT
-MEMS_UNFOLD = UNFOLDINGDIR + os.sep + "unfold_expB2_mems_genes_types_signals.npz"
+MEMS_UNFOLD = UNFOLDINGDIR + os.sep + "unfold_expC1_mems_genes_types_signals.npz"
 
 # MODEL SPECIFICATION -- TODO print used vars in simsetup dict, write to run_info.txt
 DEFAULT_MEMORIES_NPZPATH = MEMS_UNFOLD    # choose which memories to embed

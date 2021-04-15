@@ -72,6 +72,14 @@ curated = {
          'W': np.zeros((12, 12)),
          'celltype_labels': [r'$\xi_A$', r'$\xi_B$', r'$\xi_C$'],
          'gene_labels': ['gene_%d' % idx for idx in range(12)],
+         },
+    '3Mem2019':
+        {'XI': np.array([[1, -1, -1, 1, -1, 1, 1, 1, 1],
+                         [-1, 1, 1, -1, -1, 1, 1, -1, -1],
+                         [1, 1, 1, -1, -1, 1, -1, -1, -1]]).T,
+         'W': np.zeros((9, 9)),
+         'celltype_labels': [r'$\xi_A$', r'$\xi_B$', r'$\xi_C$'],
+         'gene_labels': ['gene_%d' % idx for idx in range(9)],
          }
 }
 
