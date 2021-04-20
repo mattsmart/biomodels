@@ -11,7 +11,7 @@ from multicell.graph_adjacency import \
 from multicell.graph_helper import state_load
 from multicell.multicell_constants import \
     VALID_BUILDSTRINGS, VALID_EXOSOME_STRINGS, EXOSTRING, EXOSOME_REMOVE_RATIO, \
-    BLOCK_UPDATE_LATTICE, AUTOCRINE, SEND_01
+    BLOCK_UPDATE_LATTICE, AUTOCRINE, SEND_01, DYNAMICS_FIXED_UPDATE_ORDER
 from multicell.multicell_lattice import \
     build_lattice_main, write_grid_state_int_alt
 from multicell.multicell_metrics import \
@@ -27,7 +27,6 @@ from utils.file_io import run_subdir_setup, runinfo_append, write_general_arr, I
 
 
 # TODO convert to main attribute of class, passable (defaults to False?)
-DYNAMICS_FIXED_UPDATE_ORDER = True
 print('DYNAMICS_FIXED_UPDATE_ORDER:', DYNAMICS_FIXED_UPDATE_ORDER)
 
 

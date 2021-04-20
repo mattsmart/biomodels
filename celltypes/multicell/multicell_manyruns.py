@@ -4,6 +4,7 @@ import pickle
 import shutil
 
 from multicell.graph_helper import state_load
+from multicell.multicell_constants import DYNAMICS_FIXED_UPDATE_ORDER
 from multicell.multicell_metrics import calc_graph_energy
 from multicell.multicell_simulate import Multicell
 from singlecell.singlecell_simsetup import singlecell_simsetup
@@ -83,7 +84,29 @@ def aggregate_manyruns(runs_basedir, agg_subdir='aggregate',
             np.savez_compressed(agg_dir + os.sep + 'X_energy_%s' % label, energies)
 
 
+def gen_random_W(simsetup, seed):
+    N = simsetup['N']
+    np.random.seed(seed)
+    W_0 = np.random.rand(N, N) * 2 - 1  # scale to Uniform [-1, 1]
+    W_lower = np.tril(W_0, k=-1)
+    W_diag = np.diag(np.diag(W_0))
+    W_sym = (W_lower + W_lower.T + W_diag)
+    return W_sym
+
+
 if __name__ == '__main__':
+
+    # Approach A (switch = True): fix W, vary the initial condition
+    # Approach B (switch = False): fix the initial condition, vary W
+    switch_vary_initcond = False
+    load_manual_init = False
+    if switch_vary_initcond:
+        flag_fixed_initcond = False
+        flag_fixed_W = True
+
+    else:
+        flag_fixed_initcond = True
+        flag_fixed_W = False
 
     generate_data = True
     aggregate_data = True
@@ -99,7 +122,7 @@ if __name__ == '__main__':
     # place to generate many runs
     #gamma_list = [0.0, 0.2]  #, 0.05, 0.1, 0.2, 1.0, 2.0, 20.0]
     #[0.06, 0.07, 0.08, 0.09, 0.15, 0.4, 0.6, 0.8]
-    gamma_list = [0.08, 0.09]
+    gamma_list = [1.0]
     beta_main = 2000.0   # 2000.0
     if beta_main == 2000.0:
         agg_only_last = True
@@ -111,7 +134,7 @@ if __name__ == '__main__':
         beta_str = 'beta%.2f_' % beta_main
 
     for gamma_main in gamma_list:
-        multirun_name = '%sWrandom0_gamma%.2f_10k_periodic_fixedorderV3_p3_M100' % (beta_str, gamma_main)
+        multirun_name = '%sWvary_s0randomInit_gamma%.2f_10k_periodic_fixedorderV3_p3_M100' % (beta_str, gamma_main)
         multirun_path = RUNS_FOLDER + os.sep + 'multicell_manyruns' + os.sep + multirun_name
 
         if generate_data:
@@ -226,16 +249,29 @@ if __name__ == '__main__':
                 if i % 200 == 0:
                     print("On run %d (%d total)" % (i, num_runs))
                 multicell_kwargs_local = multicell_kwargs_base.copy()
+                simsetup_local = simsetup_main.copy()
 
                 # 1) modify multicell kwargs for each run
-                # (A) local seed
-                seed = i
-                multicell_kwargs_local['seed'] = seed
-                # (B) local run_label
-                multicell_kwargs_local['run_subdir'] = 's%d' % seed
+                seed = i                                             # set local seed
+                multicell_kwargs_local['run_subdir'] = 's%d' % seed  # set run label
+                if switch_vary_initcond:
+                    # Note multicell seed controls:
+                    # - init cond (if 'random' initialization style is used)
+                    # - dynamics if the following global is False: DYNAMICS_FIXED_UPDATE_ORDER
+                    multicell_kwargs_local['seed'] = seed
+                else:
+                    # Note multicell seed controls:
+                    # - init cond (if 'random' initialization style is used)
+                    # - dynamics if the following global is False: DYNAMICS_FIXED_UPDATE_ORDER
+                    if DYNAMICS_FIXED_UPDATE_ORDER:
+                        multicell_kwargs_local['seed'] = 0  # so that 'random init' will use seed 0
+                    else:
+                        multicell_kwargs_local['seed'] = seed
+                        assert init_state_path is not None  # if its None, then seed will affect IC
+                    simsetup_local['FIELD_SEND'] = gen_random_W(simsetup_local, seed)
 
                 # 2) instantiate
-                multicell = Multicell(simsetup_main, verbose=False, **multicell_kwargs_local)
+                multicell = Multicell(simsetup_local, verbose=False, **multicell_kwargs_local)
                 run_dirs[i] = multicell.io_dict['basedir']
 
                 # 2.1) save full state to file for the first run (place in parent dir)

@@ -2,6 +2,9 @@
 GRIDSIZE = 4
 SEARCH_RADIUS_CELL = 1
 
+# update order of cells and spins requires a seed, this fixed it at zero
+DYNAMICS_FIXED_UPDATE_ORDER = True
+
 # lattice dynamics
 BLOCK_UPDATE_LATTICE = True
 SEND_01 = False
