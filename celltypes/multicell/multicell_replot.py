@@ -157,10 +157,8 @@ def fixed_state_to_colour_map(N, show=True, shuffle=False):
     if shuffle:
         state_labels = shuffle_state_space()
     num_cmaps = len(cmaps)
-    print('num cmaps:', len(cmaps))
     for idx, label in enumerate(state_labels):
         cmap_choice = idx % num_cmaps
-        print(idx,label, cmap_choice)
         colour_map[label] = cmaps[cmap_choice](idx)
 
     custom_mpl_cmap = mpl.colors.ListedColormap([colour_map[i] for i in np.arange(num_states)])
@@ -1112,14 +1110,14 @@ def translate_lattice_state(X, sidelength, down=0, right=0):
 
 if __name__ == '__main__':
 
-    label = 'specific'  # 'slide4', 'slide5', 'slide6', 'specific'
+    label = 'slide5'  # 'slide4', 'slide5', 'slide6', 'specific'
 
     version = '2'
     state_int = False
     fmod = '_int%d' % state_int
     # fmod = '_beige'
 
-    sidelength = 10 #20
+    sidelength = 20 #20
     num_cells = sidelength ** 2
     curated = True
     random_mem = False  # TODO incorporate seed in random XI in simsetup/curated
