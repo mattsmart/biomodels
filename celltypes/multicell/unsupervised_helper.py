@@ -57,8 +57,8 @@ REDUCER_SEED = 100
 REDUCER_COMPONENTS = 3
 #REDUCERS_TO_USE = ['pca']
 #REDUCERS_TO_USE = ['tsne']
-REDUCERS_TO_USE = ['umap']
-#REDUCERS_TO_USE = ['umap', 'tsne', 'pca']
+#REDUCERS_TO_USE = ['umap']
+REDUCERS_TO_USE = ['umap', 'tsne', 'pca']
 
 VALID_REDUCERS = ['umap', 'tsne', 'pca']
 
@@ -93,6 +93,7 @@ def generate_control_data(total_spins, num_runs):
 
 def make_dimreduce_object(data_subdict, flag_control=False, nsubsample=None,
                           use_01=True, jitter_scale=0.0,
+                          reducers=REDUCERS_TO_USE,
                           umap_kwargs=UMAP_KWARGS,
                           pca_kwargs=PCA_KWARGS,
                           tsne_kwargs=TSNE_KWARGS,
@@ -162,7 +163,7 @@ def make_dimreduce_object(data_subdict, flag_control=False, nsubsample=None,
         data_subdict['data'] = data_subdict['data'] + jitter
 
     # perform dimension reduction
-    for algo in REDUCERS_TO_USE:
+    for algo in reducers:
         assert algo in VALID_REDUCERS
         data_subdict['algos'][algo] = {}
 
@@ -222,7 +223,7 @@ def plot_umap_of_data_nonBokeh(data_subdict):
     return
 
 
-def plotly_express_embedding(data_subdict, color_by_index=False, as_landscape=False,
+def plotly_express_embedding(data_subdict, color_by_index=False, clusterstyle=None, as_landscape=False,
                              fmod='', show=False, dirpath=None, surf=False, step=None):
     """
     Supports 2D and 3D embeddings
@@ -242,13 +243,23 @@ def plotly_express_embedding(data_subdict, color_by_index=False, as_landscape=Fa
     if step is not None:
         smod = ' (step %d)' % step
 
-    if color_by_index:
-        c = np.arange(num_runs)
-        fmod += '_cIndex'
-        clabel = 'index'
+    plotly_kw = {}
+    if clusterstyle is not None:
+        #c = clusterstyle['color_vector']
+        c = clusterstyle['cluster_ids'].astype('str')
+        clabel = 'Cluster'
+        fmod += '_clustered'
+        plotly_kw.update({
+            'category_orders': {clabel: clusterstyle['order']}
+        })
     else:
-        c = data_subdict['energies'][:, 0]  # range(num_runs)
-        clabel = 'energy'
+        if color_by_index:
+            c = np.arange(num_runs)
+            fmod += '_cIndex'
+            clabel = 'index'
+        else:
+            c = data_subdict['energies'][:, 0]  # range(num_runs)
+            clabel = 'energy'
 
     for key, algodict in data_subdict['algos'].items():
         algo = key
@@ -270,7 +281,8 @@ def plotly_express_embedding(data_subdict, color_by_index=False, as_landscape=Fa
                 fig = px.scatter(df, x='x', y='y',
                                  color=clabel,
                                  title=plot_title,
-                                 hover_name='index')
+                                 hover_name='index',
+                                 **plotly_kw)
 
             else:
                 df = pd.DataFrame({'index': range(num_runs),
@@ -282,7 +294,8 @@ def plotly_express_embedding(data_subdict, color_by_index=False, as_landscape=Fa
                 fig = px.scatter_3d(df, x='x', y='y', z='z',
                                     color=clabel,
                                     title=plot_title,
-                                    hover_name='index')
+                                    hover_name='index',
+                                    **plotly_kw)
         else:
             plot_title += ' landscape'
             plot_path += '_landscape'
@@ -337,7 +350,10 @@ def plotly_express_embedding(data_subdict, color_by_index=False, as_landscape=Fa
                 fig = px.scatter_3d(df, x='x', y='y', z='z',
                                     color=clabel,
                                     title=plot_title,
-                                    hover_name='index')
+                                    hover_name='index',
+                                    **plotly_kw)
+
+        #fig.update_layout(legend_traceorder="normal")
 
         fig.write_html(plot_path + '.html')
         fig.write_image(plot_path + '.png')
@@ -400,7 +416,7 @@ if __name__ == '__main__':
     # Step 0) which 'manyruns' dirs to work with
     #gamma_list = [0.0, 0.05, 0.1, 0.2, 1.0, 2.0, 20.0]
     #gamma_list = [0.06, 0.07, 0.08, 0.09, 0.15, 0.4, 0.6, 0.8, 0.9]
-    gamma_list = [0.0, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.15, 0.20, 0.4, 0.6, 0.8, 0.9, 1.0, 20.0]
+    gamma_list = [0.0, 0.05, 0.06, 0.07, 0.08, 0.09, 0.10, 0.15, 0.20, 0.4, 0.6, 0.8, 1.0, 2.0, 20.0]
 
     #gamma_list = [0.0, 0.2]
     # gamma_list = [2.0, 20.0]
@@ -415,7 +431,10 @@ if __name__ == '__main__':
     #manyruns_dirnames = ['Wrandom0_gamma%.2f_10k_p3_M100' % a for a in gamma_list]
     #manyruns_dirnames = ['Wrandom0_gamma%.2f_10k_fixedorderNotOrig_p3_M100' % a for a in gamma_list]
     #manyruns_dirnames = ['Wrandom1_gamma%.2f_10k_fixedorder_p3_M100' % a for a in gamma_list]
-    manyruns_dirnames = ['Wrandom0_gamma%.2f_10k_periodic_fixedorderV3_p3_M100' % a for a in gamma_list]
+    #manyruns_dirnames = ['Wrandom0_gamma%.2f_10k_periodic_fixedorderV3_p3_M100' % a for a in gamma_list]
+    #manyruns_dirnames = ['Wvary_s0randomInit_gamma1.00_10k_periodic_fixedorderV3_p3_M100',
+    #                     'Wvary_dualInit_gamma1.00_10k_periodic_fixedorderV3_p3_M100']
+    manyruns_dirnames = ['Wmaze15_gamma%.2f_10k_p3_M100' % a for a in gamma_list]
 
     manyruns_paths = [RUNS_FOLDER + os.sep + 'multicell_manyruns' + os.sep + dirname
                       for dirname in manyruns_dirnames]
@@ -437,7 +456,7 @@ if __name__ == '__main__':
                 #umap_kwargs['unique'] = True
                 #umap_kwargs['n_neighbors'] = 100
                 #umap_kwargs['min_dist'] = 0.1
-                umap_kwargs['spread'] = 3.0
+                #umap_kwargs['spread'] = 3.0
                 #umap_kwargs['metric'] = 'euclidean'
                 # modify tsne settings
                 #tsne_kwargs['perplexity'] = 100
