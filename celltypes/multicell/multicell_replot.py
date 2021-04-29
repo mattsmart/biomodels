@@ -996,7 +996,7 @@ def replot_scatter_dots(lattice_state, simsetup, sidelength, outpath, fmod='', s
         return mask
 
     # plot - detailed settings
-    assert n in [10, 20]
+    assert n in [2, 10, 20]
     if n == 10:
         box_lw = 2*1.5
         eps = 0.25
@@ -1005,12 +1005,21 @@ def replot_scatter_dots(lattice_state, simsetup, sidelength, outpath, fmod='', s
         trisize = 4*50  # 225
         lw_eps = 0.05
 
+    elif n == 2:
+        box_lw = 4*1.5
+        eps = 0.3
+        lw = 4*2
+        boxsize = 95*1800  # 600, 750, 850, at 990 it forms grey grid
+        trisize = 30*50  # 225
+        lw_eps = 0.05
+
     else:
+        assert n == 20
         box_lw = 1.5
         eps = 0.25
         lw = 2
-        boxsize = 1800   # 600, 750, 850, at 990 it forms grey grid
-        trisize = 50   # 225
+        boxsize = 1800  # 600, 750, 850, at 990 it forms grey grid
+        trisize = 50  # 225
         lw_eps = 0.05
 
     # create gene markers
@@ -1110,14 +1119,14 @@ def translate_lattice_state(X, sidelength, down=0, right=0):
 
 if __name__ == '__main__':
 
-    label = 'slide5'  # 'slide4', 'slide5', 'slide6', 'specific'
+    label = 'specific'  # 'slide4', 'slide5', 'slide6', 'specific'
 
     version = '2'
     state_int = False
     fmod = '_int%d' % state_int
     # fmod = '_beige'
 
-    sidelength = 20 #20
+    sidelength = 2  #20
     num_cells = sidelength ** 2
     curated = True
     random_mem = False  # TODO incorporate seed in random XI in simsetup/curated
@@ -1276,7 +1285,8 @@ if __name__ == '__main__':
         # where is the data?
         step = None
         # dirname = 'Wrandom0_gamma0.20_10k_periodic_fixedorderV3_p3_M100'
-        dirname = 'Wrandom0_gamma1.00_10k_periodic_fixedorderV3_p3_M100'
+        #dirname = 'Wrandom0_gamma1.00_10k_periodic_fixedorderV3_p3_M100'
+        dirname = 'Wrandom0_gamma1.00_10k_fixedorder_p3_M4'
 
         # step = 14
         # dirname = 'beta2.05_Wrandom0_gamma0.20_10k_periodic_fixedorderV3_p3_M100'
