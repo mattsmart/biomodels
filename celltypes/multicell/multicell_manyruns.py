@@ -1,3 +1,4 @@
+import natsort
 import numpy as np
 import os
 import pickle
@@ -23,7 +24,8 @@ def aggregate_manyruns(runs_basedir, agg_subdir='aggregate',
     # Step 0) get all the run directories
     fpaths = [runs_basedir + os.sep + a for a in os.listdir(runs_basedir)]
     run_dirs = [a for a in fpaths
-                if os.path.isdir(a) and os.path.basename(a) != 'aggregate']
+                if os.path.isdir(a) and os.path.basename(a) not in ('aggregate', 'dimreduce')]
+    run_dirs = natsort.natsorted(run_dirs)
 
     # Step 1) get info from the first run directory (require at least one)
     ppath = runs_basedir + os.sep + 'multicell_template.pkl'
@@ -49,7 +51,7 @@ def aggregate_manyruns(runs_basedir, agg_subdir='aggregate',
     for label in X_labels:
         for i, run_dir in enumerate(run_dirs):
             if i % 200 == 0:
-                print(i, run_dir)
+                print(i, run_dir[-40:])
             fpath = run_dir + os.sep + 'states' + os.sep + 'X_%s.npz' % label
             X = state_load(fpath, cells_as_cols=False, num_genes=num_genes,
                            num_cells=num_cells, txt=False)
