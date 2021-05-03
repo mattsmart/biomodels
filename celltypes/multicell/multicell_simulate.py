@@ -144,8 +144,10 @@ class Multicell:
         self.graph_state_arr = np.zeros((self.total_spins, self.total_steps), dtype=int)
         self.init_state_path = kwargs.get('init_state_path', None)
         if self.init_state_path is not None:
+            flag_txt = self.init_state_path[0:4] == '.txt'
             manual_init_state = state_load(self.init_state_path, cells_as_cols=False,
-                                           num_genes=self.num_genes, num_cells=self.num_cells)
+                                           num_genes=self.num_genes, num_cells=self.num_cells,
+                                           txt=flag_txt)
             self.graph_state_arr[:, 0] = manual_init_state
         else:
             self.graph_state_arr[:, 0] = self.init_graph_state()
@@ -509,6 +511,25 @@ class Multicell:
                                     use_radar=False, pltdir=io_dict['latticedir'])"""
         return
 
+    def count_lattice_states(self, step, verbose=False):
+        """
+        Returns list of unique labels and list of their occurrences at "step"
+        """
+        labels = [0] * self.num_cells
+        for node_idx in range(self.num_cells):
+            spin_idx_low = self.num_genes * node_idx
+            spin_idx_high = self.num_genes * (node_idx + 1)
+
+            cellstate = self.graph_state_arr[spin_idx_low:spin_idx_high, step]
+            labels[node_idx] = state_to_label(tuple(cellstate))
+
+        labels_unique, labels_counts = np.unique(labels, return_counts=True)
+        if verbose:
+            for i, elem in enumerate(labels_unique):
+                print('Unique label: %d, with %d occurrences' % (elem, labels_counts[i]))
+
+        return labels_unique, labels_counts
+
     def step_datadict_update_global(self, step, fill_to_end=False):
         """
         Following a simulation multicell step, update the data dict.
@@ -730,7 +751,7 @@ class Multicell:
 
         # """make copies of relevant save states"""
         sdir = self.io_dict['statesdir']
-        # copy final - 1 to X_secondlast.npz
+        # copy "final - 1" to X_secondlast.npz
         shutil.copyfile(sdir + os.sep + 'X_%d.npz' % (self.current_step - 1),
                         sdir + os.sep + 'X_secondlast.npz')
         # copy final to X_last.npz
@@ -893,7 +914,7 @@ if __name__ == '__main__':
     plot_period = 10
     flag_state_int = False
     flag_blockparallel = False
-    beta = 2000.0
+    beta = np.Inf  # 2000.0 use np.Inf instead of fixed 1e3, can cause rare bugs otherwise
     #gamma = 0.8  #1.0               # i.e. field_signal_strength
     gamma = 1.0  # 1.0               # i.e. field_signal_strength
     kappa = 0.0                # i.e. field_applied_strength
