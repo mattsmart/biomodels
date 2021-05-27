@@ -95,7 +95,7 @@ def general_paracrine_field(multicell, receiver_idx, step, flag_01=False, neighb
 
 def general_exosome_field(multicell, receiver_idx, step, neighbours=None):
     """
-    Generalization of `get_local_exosome_field(self, ...)` in multicell_class.py
+    Generalization of `get_local_exosome_field(self, ...)` in multicell_spatialcell.py
         A - sample from only 'on' genes (similar options of 'off', 'all')
         B - 'no_exo_field' will return all np.zeros(num_genes) for the field
     Returns:

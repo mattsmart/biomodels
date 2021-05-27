@@ -1,6 +1,6 @@
 import numpy as np
 
-from multicell.multicell_class import SpatialCell
+from multicell.multicell_spatialcell import SpatialCell
 from singlecell.singlecell_functions import state_to_label
 from cytokine_settings import build_intercell_model, DEFAULT_CYTOKINE_MODEL
 

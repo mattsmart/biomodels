@@ -5,7 +5,7 @@ import os
 
 from twocell.twocell_visualize import simple_vis, lattice_timeseries_proj_grid, lattice_timeseries_overlap, \
     lattice_timeseries_energy, lattice_timeseries_state_grid
-from multicell.multicell_class import SpatialCell
+from multicell.multicell_spatialcell import SpatialCell
 from multicell.multicell_constants import VALID_EXOSOME_STRINGS
 from singlecell.singlecell_class import Cell
 from singlecell.singlecell_constants import MEMS_UNFOLD, BETA

@@ -5,7 +5,7 @@ import os
 import matplotlib.pyplot as plt
 
 from twocell.twocell_simulate import twocell_sim_fast, twocell_sim_as_onelargemodel
-from multicell.multicell_class import SpatialCell
+from multicell.multicell_spatialcell import SpatialCell
 from singlecell.singlecell_constants import MEMS_UNFOLD, BETA
 from utils.file_io import RUNS_FOLDER
 from singlecell.singlecell_simsetup import singlecell_simsetup
