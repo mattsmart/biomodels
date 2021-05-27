@@ -100,17 +100,16 @@ if __name__ == '__main__':
 
     # Approach A (switch = True): fix W, vary the initial condition
     # Approach B (switch = False): fix the initial condition, vary W
-    switch_vary_initcond = False
+    switch_vary_initcond = True
     load_manual_init = False
     if switch_vary_initcond:
         flag_fixed_initcond = False
         flag_fixed_W = True
-
     else:
         flag_fixed_initcond = True
         flag_fixed_W = False
 
-    generate_data = True
+    generate_data = True #True
     aggregate_data = True
     agg_states = True  # setting used with aggregate_data
     agg_energy = True  # setting used with aggregate_data
@@ -122,11 +121,15 @@ if __name__ == '__main__':
     num_runs = int(1e4)  # int(1e4)
 
     # place to generate many runs
-    #gamma_list = [0.0, 0.2]  #, 0.05, 0.1, 0.2, 1.0, 2.0, 20.0]
-    #[0.06, 0.07, 0.08, 0.09, 0.15, 0.4, 0.6, 0.8]
-    gamma_list = [1.0]
-    beta_main = 2000.0   # 2000.0
-    if beta_main == 2000.0:
+    #gamma_list = [0.0, 0.02, 0.05, 0.1, 0.2, 1.0, 2.0, 20.0]
+
+    gamma_list = [0.0, 0.02, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1,
+                  0.15, 0.2, 0.4, 0.6, 0.8, 1.0, 2.0, 20.0]
+
+    #gamma_list = [1.0]
+    beta_main = np.Inf   # 2000.0
+    if beta_main == np.Inf:
+        print('Note (beta is np.Inf): using deterministic settings')
         agg_only_last = True
         end_at_fp = True
         beta_str = ''
@@ -136,7 +139,10 @@ if __name__ == '__main__':
         beta_str = 'beta%.2f_' % beta_main
 
     for gamma_main in gamma_list:
-        multirun_name = '%sWvary_s0randomInit_gamma%.2f_10k_periodic_fixedorderV3_p3_M100' % (beta_str, gamma_main)
+        multirun_name = '%sWmaze15_R5_gamma%.2f_10k_p3_M100' % (beta_str, gamma_main)
+        #multirun_name = '%sW1pattern_gamma%.2f_10k_p3_M100' % (beta_str, gamma_main)
+        #multirun_name = '%sWvary_s0randomInit_gamma%.2f_10k_periodic_fixedorderV3_p3_M100' % (beta_str, gamma_main)
+        #multirun_name = '%sWvary_dualInit_gamma%.2f_10k_periodic_fixedorderV3_p3_M100' % (beta_str, gamma_main)
         multirun_path = RUNS_FOLDER + os.sep + 'multicell_manyruns' + os.sep + multirun_name
 
         if generate_data:
@@ -148,8 +154,10 @@ if __name__ == '__main__':
             random_mem = False        # TODO incorporate seed in random XI
             random_W = False          # TODO incorporate seed in random W
             #W_override_path = None
-            W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_maze.txt'
+            #W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_maze.txt'
             #W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_random1.txt'
+            W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_W15maze.txt'
+            #W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_W1pattern.txt'
 
             simsetup_main = singlecell_simsetup(
                 unfolding=True, random_mem=random_mem, random_W=random_W, curated=curated, housekeeping=0)
@@ -175,7 +183,7 @@ if __name__ == '__main__':
             # setup 2.2) graph options
             autocrine = False
             graph_style = 'lattice_square'
-            graph_kwargs = {'search_radius': 1,
+            graph_kwargs = {'search_radius': 5,
                             'periodic': True,
                             'initialization_style': 'random'}
 
