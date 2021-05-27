@@ -771,7 +771,7 @@ class Multicell:
 
         if verbose:
             print("\nMulticell simulation complete - output in %s" % self.io_dict['basedir'])
-        return
+        return self.current_step
 
     def get_cell_state(self, cell_idx, step):
         assert 0 <= cell_idx < self.num_cells  # TODO think this is not needed

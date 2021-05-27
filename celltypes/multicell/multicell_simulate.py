@@ -3,7 +3,7 @@ import os
 import matplotlib.pyplot as plt
 plt.rcdefaults()
 
-from multicell.multicell import Multicell
+from multicell.multicell_class import Multicell
 from multicell.multicell_constants import DYNAMICS_FIXED_UPDATE_ORDER
 from singlecell.singlecell_simsetup import singlecell_simsetup
 from utils.file_io import INPUT_FOLDER
