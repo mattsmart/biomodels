@@ -503,6 +503,7 @@ class Multicell:
 
             self.graph_state_arr[spin_idx_low:spin_idx_high, next_step] = \
                 dummy_cell.get_current_state()
+
             """
             if turn % (
                     120 * plot_period) == 0:  # proj vis of each cell (slow; every k steps)
@@ -892,9 +893,9 @@ if __name__ == '__main__':
 
     #W_override_path = None
     #W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_2018mazeUpTri.txt'
-    W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_maze.txt'
-    #W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'matrix_W_9_W15maze.txt'
-    #W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'matrix_W_9_W7maze.txt'
+    #W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_manual_ABv2.txt'
+    W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_W15maze.txt'
+    #W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_W7maze.txt'
 
     simsetup_main = singlecell_simsetup(
         unfolding=True, random_mem=random_mem, random_W=random_W, curated=curated, housekeeping=0)
@@ -908,15 +909,15 @@ if __name__ == '__main__':
     print(simsetup_main['XI'])
 
     # setup 2.1) multicell sim core parameters
-    search_radius = 1
-    num_cells = 20**2           # global GRIDSIZE
+    search_radius = 5
+    num_cells = 10**2           # global GRIDSIZE
     total_steps = 31            # global NUM_LATTICE_STEPS
-    plot_period = 10
+    plot_period = 1
     flag_state_int = False
     flag_blockparallel = False
     beta = np.Inf  # 2000.0 use np.Inf instead of fixed 1e3, can cause rare bugs otherwise
     #gamma = 0.8  #1.0               # i.e. field_signal_strength
-    gamma = 1.0  # 1.0               # i.e. field_signal_strength
+    gamma = 0.02  # 1.0               # i.e. field_signal_strength
     kappa = 0.0                # i.e. field_applied_strength
 
     # setup 2.2) graph options
@@ -924,7 +925,7 @@ if __name__ == '__main__':
     graph_style = 'lattice_square'
     graph_kwargs = {'search_radius': search_radius,
                     'periodic': True,
-                    'initialization_style': 'dual'}
+                    'initialization_style': 'random'}
 
     # setup 2.3) signalling field (exosomes + cell-cell signalling via W matrix)
     # Note: consider rescale gamma as gamma / num_cells * num_plaquette
@@ -992,18 +993,18 @@ if __name__ == '__main__':
     }
 
     # 3) instantiate
-    #multicell = Multicell(simsetup_main, verbose=True, **multicell_kwargs)
+    multicell = Multicell(simsetup_main, verbose=True, **multicell_kwargs)
 
     # 4) run sim
-    #multicell.simulation_standard()
+    multicell.simulation_standard()
     #multicell.simulation_fast()
 
     # looped version of steps 3) and 4):
-    for gstep in [0.015, 0.017, 0.02, 0.025, 0.03, 0.035, 0.039, 0.04,
-                  0.045, 0.05, 0.055, 0.056, 0.06, 0.062, 0.065, 0.07, 0.075, 0.08, 0.09,
-                  0.1, 0.15, 0.5, 0.75, 1.0, 2.0, 5.0]:
+    """
+    for gstep in [0.01, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.2, 0.5, 0.75, 1.0, 4.0, 20.0]:
         multicell_kwargs_step = dict(multicell_kwargs, gamma=gstep)
 
         multicell = Multicell(simsetup_main, verbose=True, **multicell_kwargs_step)
         multicell.simulation_fast()
+    """
 
