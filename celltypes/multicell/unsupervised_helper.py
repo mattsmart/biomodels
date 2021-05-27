@@ -243,7 +243,7 @@ def plotly_express_embedding(data_subdict, color_by_index=False, clusterstyle=No
     if step is not None:
         smod = ' (step %d)' % step
 
-    plotly_kw = {}
+    plotly_kw = {'color_continuous_scale': 'spectral_r'}
     if clusterstyle is not None:
         #c = clusterstyle['color_vector']
         c = clusterstyle['cluster_ids'].astype('str')
