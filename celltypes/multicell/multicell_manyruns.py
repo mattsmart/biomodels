@@ -7,7 +7,7 @@ import shutil
 from multicell.graph_helper import state_load
 from multicell.multicell_constants import DYNAMICS_FIXED_UPDATE_ORDER
 from multicell.multicell_metrics import calc_graph_energy
-from multicell.multicell_simulate import Multicell
+from multicell.multicell import Multicell
 from singlecell.singlecell_simsetup import singlecell_simsetup
 from utils.file_io import RUNS_FOLDER, INPUT_FOLDER
 
