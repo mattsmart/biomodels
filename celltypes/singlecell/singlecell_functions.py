@@ -1,5 +1,5 @@
 import numpy as np
-from random import random, shuffle
+import random
 
 from singlecell.singlecell_constants import BETA, FIELD_SIGNAL_STRENGTH, FIELD_APPLIED_STRENGTH, MEMS_UNFOLD
 from singlecell.singlecell_linalg import sorted_eig
@@ -11,6 +11,12 @@ Conventions follow from Lang & Mehta 2014, PLOS Comp. Bio
 - note the memory matrix is transposed throughout here (dim N x p instead of dim p x N)
 """
 
+def homebrew_sgn(x):
+    # NOTE: we set sgn(0)=1 here
+    if x >= 0:
+        return 1
+    else:
+        return -1
 
 def hamming(s1, s2):
     """Calculate the Hamming distance between two bit lists"""
@@ -39,6 +45,30 @@ def internal_field(state, gene_idx, t, intxn_matrix):
     """
     internal_field = np.dot(intxn_matrix[gene_idx,:], state[:,t])  # note diagonals assumed to be zero (enforce in J definition)
     return internal_field
+
+
+def update_state_infbeta_simple(init_state, intxn_matrix, applied_field,
+                                async_batch=True, async_flag=True, seed=0):
+    """
+    # NOTE: we set sgn(0)=1 here
+    async_batch: if True, sample from 0 to N with replacement, else each step will be 'fully random'
+                 i.e. can update same site twice in a row, vs time gap of at least N substeps
+                 these produce different short term behaviour, but should reach same steady state
+    """
+    assert async_flag
+    assert async_batch
+
+    # pick site order
+    N = len(init_state)
+    sites = list(range(N))
+    random.seed(seed); random.shuffle(sites)  # randomize site ordering each timestep updates
+
+    next_state = np.copy(init_state)
+    for idx, site in enumerate(sites):
+        internal_field_site = np.dot(intxn_matrix[site,:], next_state[:])
+        total_field_site = internal_field_site + applied_field[site]
+        next_state[site] = homebrew_sgn(total_field_site)
+    return next_state
 
 
 def glauber_dynamics_update(state, gene_idx, t, intxn_matrix, unirand, beta=BETA,
@@ -381,7 +411,7 @@ def fp_of_state(intxn_matrix, state_start, app_field=0, dynamics='sync', zero_ov
         assert dynamics in ['async_batch', 'async_fixed']
         while not np.array_equal(state_next, state_current):
             if dynamics == 'async_batch':
-                shuffle(sites)  # randomize site ordering each update
+                random.shuffle(sites)  # randomize site ordering each update
             state_current = np.copy(state_next)
             for i in sites:
                 total_field_on_i = np.dot(intxn_matrix[i, :], state_next) + app_field[i]

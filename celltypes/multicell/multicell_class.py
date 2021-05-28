@@ -20,8 +20,9 @@ from multicell.multicell_visualize import \
     graph_lattice_uniplotter, graph_lattice_reference_overlap_plotter, graph_lattice_projection_composite
 from multicell.multicell_replot import replot_scatter_dots
 from singlecell.singlecell_class import Cell
+from singlecell.singlecell_constants import ASYNC_BATCH
 from singlecell.singlecell_functions import \
-    state_memory_overlap_alt, state_memory_projection_alt, state_to_label
+    state_memory_overlap_alt, state_memory_projection_alt, state_to_label, update_state_infbeta_simple
 from utils.file_io import run_subdir_setup, runinfo_append, write_general_arr
 
 
@@ -114,6 +115,7 @@ class Multicell:
         self.total_spins = self.num_cells * self.num_genes
         self.graph_style = kwargs['graph_style']
         self.autocrine = kwargs.get('autocrine', AUTOCRINE)
+        self.verbose = verbose
         # random seed
         # see https://medium.com/@ODSC/properly-setting-the-random-seed-in-ml-experiments-not-as-simple-as-you-might-imagine-219969c84752
         self.seed = kwargs.get('seed',
