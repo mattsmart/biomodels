@@ -78,8 +78,9 @@ def build_lattice_explicit(n, simsetup, state=None):
     return lattice
 
 
-def build_lattice_main(n, list_of_celltype_idx, buildstring, simsetup, state=None, seed=0):
-    print("Building %s lattice with types %s" % (buildstring, list_of_celltype_idx))
+def build_lattice_main(n, list_of_celltype_idx, buildstring, simsetup, state=None, seed=0, verbose=False):
+    if verbose:
+        print("Building %s lattice with types %s" % (buildstring, list_of_celltype_idx))
     if buildstring == "mono":
         assert len(list_of_celltype_idx) == 1
         return build_lattice_mono(n, simsetup, type_1_idx=list_of_celltype_idx[0])

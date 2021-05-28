@@ -138,7 +138,7 @@ class Multicell:
         # bool: speedup dynamics (check vs graph attributes)
         # self.dynamics_meanfield = ...  # TODO reimplement?
         # graph initialization
-        # TODO replace lattice by graph everywhere?
+        # TODO replace lattice by graph everywhere
         self.graph_kwargs = kwargs.get('graph_kwargs', {})
         self.initialization_style = self.graph_kwargs.get('initialization_style', None)
         self.matrix_A = self.build_adjacency()
@@ -226,6 +226,24 @@ class Multicell:
 
         assert self.graph_style in ['general', 'meanfield', 'lattice_square']
         return
+
+    def simulation_reset(self, provided_init_state=None):
+        # reset counters
+        self.current_step = 0
+        # reset graph state
+        self.graph_state_arr = np.zeros((self.total_spins, self.total_steps), dtype=int)
+        # reset initial state
+        if provided_init_state is None:
+            if self.init_state_path is not None:
+                flag_txt = self.init_state_path[0:4] == '.txt'
+                manual_init_state = state_load(self.init_state_path, cells_as_cols=False,
+                                               num_genes=self.num_genes, num_cells=self.num_cells,
+                                               txt=flag_txt)
+                self.graph_state_arr[:, 0] = manual_init_state
+            else:
+                self.graph_state_arr[:, 0] = self.init_graph_state()
+        else:
+            self.graph_state_arr[:, 0] = provided_init_state
 
     # TODO cleanup
     def init_io_dict(self):
@@ -403,17 +421,19 @@ class Multicell:
             if initialization_style == "random":
                 list_of_type_idx = list(range(self.simsetup['P']))
             lattice = build_lattice_main(
-                sidelength, list_of_type_idx, initialization_style, self.simsetup, seed=self.seed)
+                sidelength, list_of_type_idx, initialization_style, self.simsetup,
+                seed=self.seed, verbose=self.verbose)
             # print list_of_type_idx
 
             # 2) now convert the lattice to a graph state (tall NM vector)
-            graph_state = self.TEMP_graph_state_from_lattice(lattice, sidelength)
+            graph_state = self.TEMP_graph_state_from_lattice(lattice, sidelength, verbose=self.verbose)
 
         return graph_state
 
     # TODO remove asap
-    def TEMP_graph_state_from_lattice(self, lattice, sidelength):
-        print('call to TEMP_graph_state_from_lattice() -- remove this function')
+    def TEMP_graph_state_from_lattice(self, lattice, sidelength, verbose=True):
+        if verbose:
+            print('call to TEMP_graph_state_from_lattice() -- remove this function')
         assert self.graph_style == 'lattice_square'
         N = self.num_genes
         s_block = np.zeros(self.total_spins)
@@ -495,7 +515,7 @@ class Multicell:
 
             dummy_cell.update_state(
                 beta=beta,
-                intxn_matrix=self.matrix_J,
+                intxn_matrix=self.matrix_J,  # TODO J diag block should be modified for autocrine case
                 field_signal=field_signal,
                 field_signal_strength=1.0,
                 field_applied=field_applied_on_cell,
@@ -511,6 +531,39 @@ class Multicell:
                 fig, ax, proj = cell. \
                     plot_projection(simsetup['A_INV'], simsetup['XI'], proj=cell_proj,
                                     use_radar=False, pltdir=io_dict['latticedir'])"""
+        return
+
+    def step_dynamics_async_deterministic_no_exo_fields(self, next_step, field_applied, beta):
+        assert beta == np.Inf
+        if DYNAMICS_FIXED_UPDATE_ORDER:
+            seed_local = 0
+        else:
+            seed_local = self.seed
+
+        cell_indices = list(range(self.num_cells))
+        random.seed(seed_local); random.shuffle(cell_indices)
+
+        # need to move current state to next step index, then operate on that column 'in place'
+        self.graph_state_arr[:, next_step] = np.copy(self.graph_state_arr[:, next_step - 1])
+
+        for idx, node_idx in enumerate(cell_indices):
+            cell_state = self.get_cell_state(node_idx, next_step)
+            spin_idx_low = self.num_genes * node_idx
+            spin_idx_high = self.num_genes * (node_idx + 1)
+
+            J_multicell_chunk = self.matrix_J_multicell[spin_idx_low:spin_idx_high, :]
+            J_multicell_chunk_nodiag = np.copy(J_multicell_chunk)
+            J_multicell_chunk_nodiag[0:self.num_genes, spin_idx_low:spin_idx_high] = 0
+            paracrine_field = np.dot(J_multicell_chunk_nodiag,
+                                     self.graph_state_arr[:, next_step])
+
+            field_applied_on_cell = field_applied[spin_idx_low: spin_idx_high]
+            netstatic_field_applied_on_cell = paracrine_field + field_applied_on_cell
+
+            cell_next_state = update_state_infbeta_simple(
+                cell_state, self.matrix_J, netstatic_field_applied_on_cell,
+                async_batch=ASYNC_BATCH, async_flag=True, seed=seed_local)
+            self.graph_state_arr[spin_idx_low:spin_idx_high, next_step] = cell_next_state
         return
 
     def count_lattice_states(self, step, verbose=False):
@@ -649,7 +702,8 @@ class Multicell:
             return False
 
     # TODO handle case of dynamics_async
-    def dynamics_full(self, flag_visualize=True, flag_datastore=True, end_at_fp=False, verbose=False):
+    def dynamics_full(self, flag_visualize=True, flag_datastore=True, flag_savestates=True,
+                      end_at_fp=False, verbose=False):
         """
             flag_visualize: optionally force off datadict updates (speedup)
             flag_datastore: optionally force off calls to step_state_visualize updates (speedup)
@@ -666,11 +720,16 @@ class Multicell:
         #  - cell specific datastorage call
 
         # 1) initial data storage and plotting
-        self.step_state_save(0)
+        if flag_savestates:
+            self.step_state_save(0)
         if flag_datastore:
             self.step_datadict_update_global(0)  # measure initial state
         if flag_visualize:
             self.step_state_visualize(0)
+
+        if not verbose:
+            fp_msg = None
+            fp_msg_2flicker = None
 
         # 2) main loop
         for step in range(1, self.total_steps):
@@ -681,15 +740,22 @@ class Multicell:
             field_applied_step = self.field_applied[:, step - 1]
             beta_step = self.beta[step - 1]
 
+            # choose graph update function
             if self.dynamics_blockparallel:
-                self.step_dynamics_parallel(step, field_applied_step, beta_step)
+                graph_update_fn = self.step_dynamics_parallel
             else:
-                self.step_dynamics_async(step, field_applied_step, beta_step)
+                if beta_step == np.Inf and self.exosome_string == 'no_exo_field':
+                    graph_update_fn = self.step_dynamics_async_deterministic_no_exo_fields
+                else:
+                    graph_update_fn = self.step_dynamics_async
+            # call (slow step)
+            graph_update_fn(step, field_applied_step, beta_step)
 
             # compute lattice properties (assess global state)
             # TODO 1 - consider lattice energy at each cell update (not lattice update)
             # TODO 2 - speedup lattice energy calc by using info from state update calls...
-            self.step_state_save(step)
+            if flag_savestates:
+                self.step_state_save(step)
             if flag_datastore:
                 self.step_datadict_update_global(step)
 
@@ -703,12 +769,14 @@ class Multicell:
 
             # (optional) simulation termination condition: fixed point reached
             if end_at_fp:
-                fp_msg = 'FP reached early (step %d of %d), terminating dynamics' % \
-                         (step, self.total_steps)
+                if verbose:
+                    fp_msg = 'FP reached early (step %d of %d), terminating dynamics' % \
+                             (step, self.total_steps)
+                    fp_msg_2flicker = 'Flicker (2-state) ' + fp_msg
                 fp_reached = self.check_if_fixed_point(
                     self.graph_state_arr[:, step - 1], step, msg=fp_msg)
                 fp_reached_flicker = self.check_if_fixed_point(
-                    self.graph_state_arr[:, step - 2], step, msg='Flicker (2-state) ' + fp_msg)
+                    self.graph_state_arr[:, step - 2], step, msg=fp_msg_2flicker)
                 if fp_reached or fp_reached_flicker:
                     break
 
