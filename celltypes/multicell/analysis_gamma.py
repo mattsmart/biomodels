@@ -123,10 +123,47 @@ def fullscan_gamma_bifurcation_candidates(
         # 3) report a bifurcation whenever the fixed point moves
         if not fp_unchanged:
             if verbose:
-                print('bifurcation at gamma=%.3f' % gamma)
+                print('fixed point shift at gamma=%.3f' % gamma)
             bifurcation_candidate_sequence.append(gamma)
 
     return bifurcation_candidate_sequence, gamma_space, multicell_base
+
+
+def plot_bifurcation_candidates(bifurcation_candidates, gamma_space, outdir, show=False):
+    # plot type A
+    x = np.arange(len(bifurcation_candidates))
+    y = np.array(bifurcation_candidates)
+    plt.scatter(x, y, marker='x')
+    plt.xlabel(r'$n$')
+    plt.ylabel(r'${\gamma}^*_n$')
+    plt.savefig(outdir + os.sep + 'bifurc_A.jpg')
+    if show:
+        plt.show()
+
+    # plot type B
+    x = np.arange(len(bifurcation_candidates))
+    y_construct = np.zeros(len(gamma_space))
+    k = 0
+    g0 = 0.0
+    total_bifurcation_candidates = len(bifurcation_candidates)
+    print(bifurcation_candidates)
+    for i, gamma in enumerate(gamma_space):
+        if bifurcation_candidates[k] > gamma:
+            y_construct[i] = g0
+        else:
+            g0 = bifurcation_candidates[k]
+            if k < total_bifurcation_candidates - 1:
+                k += 1
+            y_construct[i] = g0
+        print(i, gamma, y_construct[i], k)
+    plt.plot(gamma_space, y_construct, '--', c='k')
+    plt.plot(gamma_space, gamma_space, '-.', c='k', alpha=0.5)
+    plt.scatter(bifurcation_candidates, bifurcation_candidates, marker='o')
+    plt.xlabel(r'$\gamma$')
+    plt.ylabel(r'${\gamma}^*_n$ Transitions (n=%d)' % len(bifurcation_candidates))
+    plt.savefig(outdir + os.sep + 'bifurc_B.jpg')
+    if show:
+        plt.show()
 
 
 # TODO check that not symmetrizing loaded W (in simsetup)
@@ -232,51 +269,15 @@ if __name__ == '__main__':
             'init_state_path': init_state_path,
         }
 
-        dg = 1e-3
-        gmax = 2.0
+        dg = 1#0.01
+        gmax = 1000.0
+        anchored = True
         bifurcation_candidates, gamma_space, multicell = fullscan_gamma_bifurcation_candidates(
-            multicell_kwargs_base, simsetup_base, anchored=True, verbose=True,
+            multicell_kwargs_base, simsetup_base, anchored=anchored, verbose=True,
             dg=dg, gmax=gmax)
         outdir = multicell.io_dict['datadir']
 
-        # plot type A
-        x = np.arange(len(bifurcation_candidates))
-        y = np.array(bifurcation_candidates)
-        plt.scatter(x, y, marker='x')
-        plt.xlabel(r'$n$')
-        plt.ylabel(r'${\gamma}^*_n$')
-        plt.savefig(outdir + os.sep + 'bifurc_A.jpg')
-        plt.show()
-
-        # plot type B
-        x = np.arange(len(bifurcation_candidates))
-        y_construct = np.zeros(len(gamma_space))
-        k = 0
-        g0 = 0.0
-        total_bifurcation_candidates = len(bifurcation_candidates)
-        print(bifurcation_candidates)
-        for i, gamma in enumerate(gamma_space):
-            if bifurcation_candidates[k] > gamma:
-                y_construct[i] = g0
-            else:
-                g0 = bifurcation_candidates[k]
-                if k < total_bifurcation_candidates - 1:
-                    k += 1
-                y_construct[i] = g0
-            print(i, gamma, y_construct[i], k)
-        plt.plot(gamma_space, y_construct, '--', c='k')
-        plt.plot(gamma_space, gamma_space, '-.', c='k', alpha=0.5)
-        plt.scatter(bifurcation_candidates, bifurcation_candidates, marker='o')
-        plt.xlabel(r'$\gamma$')
-        plt.ylabel(r'${\gamma}^*_n$ Transitions (n=%d)' % len(bifurcation_candidates))
-        plt.savefig(outdir + os.sep + 'bifurc_B.jpg')
-        plt.show()
-
-        print(gamma_space)
-        print()
-        print(y_construct)
-        print()
-        print(bifurcation_candidates)
+        plot_bifurcation_candidates(bifurcation_candidates, gamma_space, outdir, show=True)
 
         fpath_x = outdir + os.sep + 'bifurcation_candidates.txt'
         fpath_gamma = outdir + os.sep + 'gamma_space.txt'
