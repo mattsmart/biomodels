@@ -36,8 +36,33 @@ def scan_plaquette_gamma_dynamics(J, W, state, coordnum=8, verbose=False, use_01
     return critgamma
 
 
-def fullscan_gamma_bifurcation_candidates(
-        multicell_kwargs, simsetup_base, anchored=True, verbose=True, dg=1e-1, gmax=20.0):
+def descend_to_fp(multicell):
+    """
+    Helper function for gamma scan functions
+    - scan_gamma_bifurcation_candidates()
+    - manyruns_gamma_bifurcation_candidates()
+    """
+    multicell.dynamics_full(
+        flag_visualize=False, flag_datastore=False, flag_savestates=False,
+        end_at_fp=True, verbose=False)
+    current_step = multicell.current_step
+    fp = multicell.graph_state_arr[:, current_step]
+    return fp
+
+def check_still_fp(test_fp, J_multicell):
+    """
+    Helper function for gamma scan functions
+    - scan_gamma_bifurcation_candidates()
+    - manyruns_gamma_bifurcation_candidates()
+    """
+    A = test_fp
+    B = np.sign(np.dot(J_multicell, test_fp))  # TODO if any sgn(0), then what?
+    return np.array_equal(A, B)
+
+
+def scan_gamma_bifurcation_candidates(
+        multicell_kwargs, simsetup_base, anchored=True, verbose=True, dg=1e-1, gmin=0.0, gmax=20.0,
+        save_states_all=False, save_states_shift=True):
     """
     For fixed initial condition and multicell parameters, slowly vary gamma.
     Find {gamma*}, the observed points where the fixed point has changed.
@@ -53,6 +78,8 @@ def fullscan_gamma_bifurcation_candidates(
         simsetup_base: simsetup dict template storing J, W, singlecell parameters
         anchored: if True, use a fixed initial condition for each gradient descent;
                   else will use the previous fixed point as the initial condition
+        save_states_all: saved the fixed point for each gamma as 'X_all_g%.5f.npz'
+        save_states_shift: saved the fixed point for each 'fp shift' gamma as 'X_shift_g%.5f.npz'
     Returns:
          list: the sequence of points {gamma*_n} where bifurcations have occurred
     Notes:
@@ -68,26 +95,18 @@ def fullscan_gamma_bifurcation_candidates(
     """
 
     # build gamma_space
-    gamma_space = np.arange(0.0, gmax, dg)
+    gamma_space = np.arange(gmin, gmax, dg)
     num_gamma = len(gamma_space)
     bifurcation_candidate_sequence = []
+
+    if save_states_all:
+        print('Warning: save_states_all is inefficient, use inferred gamma step size to recreate '
+              'distribution of fixed points (i.e. fill in gaps between shifts)')
+    assert not save_states_all  # next run only
 
     # construct multicell_base from kwargs
     multicell_base = Multicell(simsetup_base, verbose=False, **multicell_kwargs)
     #init_cond = multicell_base.graph_state_arr[:, 0]
-
-    def descend_to_fp(multicell):
-        multicell.dynamics_full(
-            flag_visualize=False, flag_datastore=False, flag_savestates=False,
-            end_at_fp=True, verbose=False)
-        current_step = multicell.current_step
-        fp = multicell.graph_state_arr[:, current_step]
-        return fp
-
-    def check_still_fp(test_fp, J_multicell):
-        A = test_fp
-        B = np.sign(np.dot(J_multicell, test_fp))  # TODO if any sgn(0), then what?
-        return np.array_equal(A, B)
 
     # prep: perform gradient descent on the init cond to get our (potentially anchored) fixed point
     init_fp = descend_to_fp(multicell_base)
@@ -98,12 +117,11 @@ def fullscan_gamma_bifurcation_candidates(
 
     for i, gamma in enumerate(gamma_space):
         if i % 200 == 0:
-            print("Checking %d/%d (gamma=%.3f)" % (i, num_gamma, gamma))
+            print("Checking %d/%d (gamma=%.4f)" % (i, num_gamma, gamma))
         multicell_kwargs_local = multicell_kwargs.copy()
         multicell_kwargs_local['gamma'] = gamma
 
         # 1) Re-build Multicell for gamma
-        # TODO needed to recreate Multicell each step? seems very slow, optimize
         J_multicell = multicell_base.build_J_multicell(gamma=gamma, plot=False)
         multicell_local.gamma = gamma
         multicell_local.matrix_J_multicell = J_multicell
@@ -120,11 +138,26 @@ def fullscan_gamma_bifurcation_candidates(
                 multicell_local.simulation_reset(provided_init_state=prev_fp)
                 prev_fp = descend_to_fp(multicell_local)
 
-        # 3) report a bifurcation whenever the fixed point moves
+        if save_states_all:
+            glabel = 'all_g%.5f' % gamma
+            fpath = multicell_local.io_dict['statesdir'] + os.sep + 'X_%s.npz' % glabel
+            np.savez_compressed(fpath, prev_fp, fmt='%d')
+
+    # 3) report a bifurcation whenever the fixed point moves
         if not fp_unchanged:
             if verbose:
-                print('fixed point shift at gamma=%.3f' % gamma)
+                print('fixed point shift at gamma=%.5f' % gamma)
+            if save_states_shift:
+                glabel = 'fpshift_g%.5f' % gamma
+                fpath = multicell_local.io_dict['statesdir'] + os.sep + 'X_%s.npz' % glabel
+                np.savez_compressed(fpath, prev_fp, fmt='%d')
             bifurcation_candidate_sequence.append(gamma)
+
+    # save primary data from gammascan loop
+    fpath_x = multicell_local.io_dict['datadir'] + os.sep + 'bifurcation_candidates.txt'
+    fpath_gamma = multicell_local.io_dict['datadir'] + os.sep + 'gamma_space.txt'
+    np.savetxt(fpath_x, bifurcation_candidate_sequence, '%.5f')
+    np.savetxt(fpath_gamma, gamma_space, '%.5f')
 
     return bifurcation_candidate_sequence, gamma_space, multicell_base
 
@@ -146,7 +179,6 @@ def plot_bifurcation_candidates(bifurcation_candidates, gamma_space, outdir, sho
     k = 0
     g0 = 0.0
     total_bifurcation_candidates = len(bifurcation_candidates)
-    print(bifurcation_candidates)
     for i, gamma in enumerate(gamma_space):
         if bifurcation_candidates[k] > gamma:
             y_construct[i] = g0
@@ -155,7 +187,6 @@ def plot_bifurcation_candidates(bifurcation_candidates, gamma_space, outdir, sho
             if k < total_bifurcation_candidates - 1:
                 k += 1
             y_construct[i] = g0
-        print(i, gamma, y_construct[i], k)
     plt.plot(gamma_space, y_construct, '--', c='k')
     plt.plot(gamma_space, gamma_space, '-.', c='k', alpha=0.5)
     plt.scatter(bifurcation_candidates, bifurcation_candidates, marker='o')
@@ -226,7 +257,8 @@ if __name__ == '__main__':
     if flag_bifurcation_sequence:
 
         # 1) choose BASE simsetup (core singlecell params J, W)
-        W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_W15maze.txt'
+        W_id = 'W_9_W15maze'
+        W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_%s.txt' % W_id
         simsetup_base = singlecell_simsetup(
                 unfolding=True, random_mem=False, random_W=False, curated=curated, housekeeping=0)
         if W_override_path is not None:
@@ -235,22 +267,42 @@ if __name__ == '__main__':
             simsetup_base['FIELD_SEND'] = explicit_W
 
         # 2) choose BASE Multicell class parameters
-        bifurcation_path = RUNS_FOLDER + os.sep + 'explore' + os.sep + 'bifurcation'
-        num_cells = 10 ** 2
+        num_cells = 20 ** 2
         autocrine = False
         graph_style = 'lattice_square'
-        graph_kwargs = {'search_radius': 1,
+        assert graph_style == 'lattice_square' and not autocrine
+        search_radius = 1
+        init_style = 'dual'
+        graph_kwargs = {'search_radius': search_radius,
                         'periodic': True,
-                        'initialization_style': 'dual'}
+                        'initialization_style': init_style}
         load_manual_init = False
         init_state_path = None
         if load_manual_init:
+            init_style = 'manual'
             print('Note: in main, loading init graph state from file...')
             init_state_path = INPUT_FOLDER + os.sep + 'manual_graphstate' + os.sep + 'X_8.txt'
 
+        # specify gamma scan parameters
+        dgS = '5e-4'
+        gminS = '0'
+        gmaxS = '2.0' #1.0
+        dg, gmin, gmax = float(dgS), float(gminS), float(gmaxS)
+        anchored = False
+        save_all = True
+        save_shifts = True
+
+        # create run basedir label based on specified parameters
+        run_subdir = 'gscan_anchor%d_gLow%s_gHigh%s_gStep%s_%s_R%d_init_%s_M%d' % \
+                     (int(anchored), gminS, gmaxS, dgS, W_id, search_radius, init_style, num_cells)
+        #run_basedir_path = RUNS_FOLDER + os.sep + 'multicell_manyruns'
+        run_basedir_path = RUNS_FOLDER + os.sep + 'explore' + os.sep + 'bifurcation'
+        assert not os.path.exists(run_basedir_path + os.sep + run_subdir)
+
         multicell_kwargs_base = {
             'seed': 0,
-            'run_basedir': bifurcation_path,
+            'run_basedir': run_basedir_path,
+            'run_subdir': run_subdir,
             'beta': np.Inf,
             'total_steps': 500,
             'num_cells': num_cells,
@@ -269,17 +321,9 @@ if __name__ == '__main__':
             'init_state_path': init_state_path,
         }
 
-        dg = 1#0.01
-        gmax = 1000.0
-        anchored = True
-        bifurcation_candidates, gamma_space, multicell = fullscan_gamma_bifurcation_candidates(
+        bifurcation_candidates, gamma_space, multicell = scan_gamma_bifurcation_candidates(
             multicell_kwargs_base, simsetup_base, anchored=anchored, verbose=True,
-            dg=dg, gmax=gmax)
+            dg=dg, gmin=gmin, gmax=gmax, save_states_all=save_all, save_states_shift=save_shifts)
         outdir = multicell.io_dict['datadir']
 
         plot_bifurcation_candidates(bifurcation_candidates, gamma_space, outdir, show=True)
-
-        fpath_x = outdir + os.sep + 'bifurcation_candidates.txt'
-        fpath_gamma = outdir + os.sep + 'gamma_space.txt'
-        np.savetxt(fpath_x, bifurcation_candidates, '%.4f')
-        np.savetxt(fpath_gamma, gamma_space, '%.4f')
