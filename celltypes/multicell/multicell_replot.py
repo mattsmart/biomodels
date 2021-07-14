@@ -932,8 +932,7 @@ Full info morphology plot with 9 genes as triangle cilia
     return
 
 
-def replot_scatter_dots(lattice_state, simsetup, sidelength, outpath, fmod='', state_int=False,
-                        cmap=None):
+def replot_scatter_dots(lattice_state, sidelength, outpath, fmod='', state_int=False, cmap=None):
     """
     Full info morphology plot with grid of 9 genes as dots
     """
@@ -941,7 +940,7 @@ def replot_scatter_dots(lattice_state, simsetup, sidelength, outpath, fmod='', s
     if cmap is None:
         cmap = FIXED_COLOURMAP
 
-    def state_to_colour_and_morphology(state, simsetup):
+    def state_to_colour_and_morphology(state):
         """
         # assign a unique colour to each state based on a colourmap
         cellstate_01 = ((cellstate + 1) / 2).astype(int)
@@ -979,7 +978,7 @@ def replot_scatter_dots(lattice_state, simsetup, sidelength, outpath, fmod='', s
         for j in range(n):
             grid_loc_to_idx = lattice_square_loc_to_int((i,j), sidelength)
             cellstate = lattice_state[:, grid_loc_to_idx]
-            colors[grid_loc_to_idx, :] = state_to_colour_and_morphology(cellstate, simsetup)
+            colors[grid_loc_to_idx, :] = state_to_colour_and_morphology(cellstate)
             x[grid_loc_to_idx] = j
             y[grid_loc_to_idx] = n - i
 
@@ -1172,9 +1171,7 @@ if __name__ == '__main__':
             replot_modern(
                 X, simsetup_main, sidelength, outpath_uniquecolours, version='3', fmod=qmod,
                 state_int=state_int)
-            replot_scatter_dots(
-                X, simsetup_main, sidelength, outpath_scatter, fmod=qmod,
-                state_int=state_int)
+            replot_scatter_dots(X, sidelength, outpath_scatter, fmod=qmod, state_int=state_int)
 
     elif label == 'slide5':
         replot_dir = replot_dir + os.sep + 'slide5_gamma1'
@@ -1232,9 +1229,8 @@ if __name__ == '__main__':
                 """replot_modern(
                     X, simsetup_main, sidelength, outpath_uniquecolours, version='3', fmod=qmod,
                     state_int=state_int)"""
-                replot_scatter_dots(
-                    X, simsetup_main, sidelength, outpath_scatter, fmod=qmod,
-                    state_int=state_int, cmap=ranked_cmap)
+                replot_scatter_dots(X, sidelength, outpath_scatter, fmod=qmod, state_int=state_int,
+                                    cmap=ranked_cmap)
 
     elif label == 'slide6':
         replot_dir = replot_dir + os.sep + 'slide6'
@@ -1255,8 +1251,7 @@ if __name__ == '__main__':
             outpath_scatter = replot_dir + os.sep + 'scatter_' + fname[:-4]
             #replot_graph_lattice_reference_overlap_plotter(X, sidelength, outpath_ref,
             #                                               fmod=fmod, ref_node=0)
-            replot_scatter_dots(
-                X, simsetup_main, sidelength, outpath_scatter, fmod=fmod, state_int=state_int)
+            replot_scatter_dots(X, sidelength, outpath_scatter, fmod=fmod, state_int=state_int)
     else:
 
         replot_dir = replot_dir + os.sep + 'plot_specific_points'
@@ -1328,5 +1323,4 @@ if __name__ == '__main__':
                           version=version, fmod=fmod, state_int=state_int)
 
             outpath = replot_dir + os.sep + 'agg%d_scatter' % agg_index
-            replot_scatter_dots(X_state.T, simsetup_main, sidelength, outpath,
-                                fmod=fmod, state_int=state_int)
+            replot_scatter_dots(X_state.T, sidelength, outpath, fmod=fmod, state_int=state_int)
