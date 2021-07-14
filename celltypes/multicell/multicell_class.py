@@ -171,7 +171,7 @@ class Multicell:
         # field signal
         assert self.exosome_string in VALID_EXOSOME_STRINGS
         assert 0.0 <= self.exosome_remove_ratio < 1.0
-        assert 0.0 <= self.gamma <= 100.0
+        assert 0.0 <= self.gamma <= 2000.0
 
         # field applied (not it has length NM
         if self.num_housekeeping > 0:
@@ -665,8 +665,7 @@ class Multicell:
                 outpath = self.io_dict['latticedir'] + os.sep + 'dots_%d' % step
             X = self.graph_state_arr[:, step]
             X = X.reshape((self.num_genes, self.num_cells), order='F')  # reshape as 2D arr
-            replot_scatter_dots(X, self.simsetup, nn, outpath,
-                                state_int=self.flag_state_int)
+            replot_scatter_dots(X, nn, outpath, state_int=self.flag_state_int)
         return
 
     def step_state_visualize_alt(self, step, flag_uniplots=False, fpaths=None):
