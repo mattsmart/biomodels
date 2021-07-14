@@ -55,7 +55,7 @@ def aggregate_manyruns(runs_basedir, agg_subdir='aggregate',
             fpath = run_dir + os.sep + 'states' + os.sep + 'X_%s.npz' % label
             X = state_load(fpath, cells_as_cols=False, num_genes=num_genes,
                            num_cells=num_cells, txt=False)
-            step_hack = 0  # TODO care this will break if class has time-varying applied field
+            step_hack = 0  # care: this will break if class has time-varying applied field
             multicell_template.graph_state_arr[:, step_hack] = X[:]
             assert np.array_equal(multicell_template.field_applied,
                                   np.zeros((total_spins, multicell_template.total_steps)))
