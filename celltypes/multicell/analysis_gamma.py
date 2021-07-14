@@ -49,6 +49,7 @@ def descend_to_fp(multicell):
     fp = multicell.graph_state_arr[:, current_step]
     return fp
 
+
 def check_still_fp(test_fp, J_multicell):
     """
     Helper function for gamma scan functions
@@ -101,12 +102,15 @@ def scan_gamma_bifurcation_candidates(
 
     if save_states_all:
         print('Warning: save_states_all is inefficient, use inferred gamma step size to recreate '
-              'distribution of fixed points (i.e. fill in gaps between shifts)')
-    assert not save_states_all  # next run only
+              'distribution of fixed points (i.e. fill in gaps between FP shifts)')
 
     # construct multicell_base from kwargs
+    save_init = True
     multicell_base = Multicell(simsetup_base, verbose=False, **multicell_kwargs)
-    #init_cond = multicell_base.graph_state_arr[:, 0]
+    if save_init:
+        init_cond = multicell_base.graph_state_arr[:, 0]
+        fpath = multicell_base.io_dict['statesdir'] + os.sep + 'X_init.npz'
+        np.savez_compressed(fpath, init_cond, fmt='%d')
 
     # prep: perform gradient descent on the init cond to get our (potentially anchored) fixed point
     init_fp = descend_to_fp(multicell_base)
@@ -210,9 +214,9 @@ if __name__ == '__main__':
     random_W = False          # TODO incorporate seed in random W in simsetup/curated
 
     #W_override_path = None
-    W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_W15maze.txt'
-    #W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_2018maze.txt'
-    #W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_random1.txt'
+    W_id = 'W_9_W15maze'
+    #W_id = 'W_9_maze'
+    W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_%s.txt' % W_id
     simsetup = singlecell_simsetup(
         unfolding=True, random_mem=random_mem, random_W=random_W, curated=curated, housekeeping=0)
     if W_override_path is not None:
@@ -257,14 +261,7 @@ if __name__ == '__main__':
     if flag_bifurcation_sequence:
 
         # 1) choose BASE simsetup (core singlecell params J, W)
-        W_id = 'W_9_W15maze'
-        W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_%s.txt' % W_id
-        simsetup_base = singlecell_simsetup(
-                unfolding=True, random_mem=False, random_W=False, curated=curated, housekeeping=0)
-        if W_override_path is not None:
-            print('Note: in main, overriding W from file...')
-            explicit_W = np.loadtxt(W_override_path, delimiter=',')
-            simsetup_base['FIELD_SEND'] = explicit_W
+        simsetup_base = simsetup
 
         # 2) choose BASE Multicell class parameters
         num_cells = 20 ** 2
@@ -284,46 +281,52 @@ if __name__ == '__main__':
             init_state_path = INPUT_FOLDER + os.sep + 'manual_graphstate' + os.sep + 'X_8.txt'
 
         # specify gamma scan parameters
-        dgS = '5e-4'
+        dgS = '5e-4' #'5e-4'
         gminS = '0'
-        gmaxS = '2.0' #1.0
+        gmaxS = '4.0' #1.0
         dg, gmin, gmax = float(dgS), float(gminS), float(gmaxS)
         anchored = False
-        save_all = True
+        save_all = False
         save_shifts = True
 
-        # create run basedir label based on specified parameters
-        run_subdir = 'gscan_anchor%d_gLow%s_gHigh%s_gStep%s_%s_R%d_init_%s_M%d' % \
-                     (int(anchored), gminS, gmaxS, dgS, W_id, search_radius, init_style, num_cells)
-        #run_basedir_path = RUNS_FOLDER + os.sep + 'multicell_manyruns'
-        run_basedir_path = RUNS_FOLDER + os.sep + 'explore' + os.sep + 'bifurcation'
-        assert not os.path.exists(run_basedir_path + os.sep + run_subdir)
+        #seed = 0
+        for seed in range(1000):
+            print('WORKING ON seed:', seed)
 
-        multicell_kwargs_base = {
-            'seed': 0,
-            'run_basedir': run_basedir_path,
-            'run_subdir': run_subdir,
-            'beta': np.Inf,
-            'total_steps': 500,
-            'num_cells': num_cells,
-            'flag_blockparallel': False,
-            'graph_style': graph_style,
-            'graph_kwargs': graph_kwargs,
-            'autocrine': autocrine,
-            'gamma': 0.0,
-            'exosome_string': 'no_exo_field',
-            'exosome_remove_ratio': 0.0,
-            'kappa': 0.0,
-            'field_applied': None,
-            'flag_housekeeping': False,
-            'flag_state_int': True,
-            'plot_period': 1,
-            'init_state_path': init_state_path,
-        }
+            # create run basedir label based on specified parameters
+            run_subdir = 'gscan_anchor%d_gLow%s_gHigh%s_gStep%s_%s_R%d_init_%s_s%d_M%d' % \
+                         (int(anchored), gminS, gmaxS, dgS, W_id, search_radius, init_style, seed, num_cells)
+            if save_all or save_shifts:
+                run_basedir_path = RUNS_FOLDER + os.sep + 'multicell_manyruns'
+            else:
+                run_basedir_path = RUNS_FOLDER + os.sep + 'explore' + os.sep + 'bifurcation'
+            assert not os.path.exists(run_basedir_path + os.sep + run_subdir)
 
-        bifurcation_candidates, gamma_space, multicell = scan_gamma_bifurcation_candidates(
-            multicell_kwargs_base, simsetup_base, anchored=anchored, verbose=True,
-            dg=dg, gmin=gmin, gmax=gmax, save_states_all=save_all, save_states_shift=save_shifts)
-        outdir = multicell.io_dict['datadir']
+            multicell_kwargs_base = {
+                'seed': seed,
+                'run_basedir': run_basedir_path,
+                'run_subdir': run_subdir,
+                'beta': np.Inf,
+                'total_steps': 500,
+                'num_cells': num_cells,
+                'flag_blockparallel': False,
+                'graph_style': graph_style,
+                'graph_kwargs': graph_kwargs,
+                'autocrine': autocrine,
+                'gamma': 0.0,
+                'exosome_string': 'no_exo_field',
+                'exosome_remove_ratio': 0.0,
+                'kappa': 0.0,
+                'field_applied': None,
+                'flag_housekeeping': False,
+                'flag_state_int': True,
+                'plot_period': 1,
+                'init_state_path': init_state_path,
+            }
 
-        plot_bifurcation_candidates(bifurcation_candidates, gamma_space, outdir, show=True)
+            bifurcation_candidates, gamma_space, multicell = scan_gamma_bifurcation_candidates(
+                multicell_kwargs_base, simsetup_base, anchored=anchored, verbose=True,
+                dg=dg, gmin=gmin, gmax=gmax, save_states_all=save_all, save_states_shift=save_shifts)
+
+            outdir = multicell.io_dict['datadir']
+            plot_bifurcation_candidates(bifurcation_candidates, gamma_space, outdir, show=False)
