@@ -4,6 +4,7 @@ import os
 from multicell.multicell_spatialcell import SpatialCell
 from multicell.multicell_constants import VALID_BUILDSTRINGS
 from singlecell.singlecell_functions import state_to_label
+from singlecell.singlecell_simsetup import singlecell_simsetup
 
 # TODO: could wrap all these lattice operations into Lattice class
 
@@ -183,3 +184,64 @@ def read_grid_state_int(fname):
     Reads the n x n grid of integer states (for a single timestep)
     """
     return np.loadtxt(fname, dtype='int', delimiter=',')
+
+
+def reconstruct_random_state_from_seed(total_spins, seed):
+    # total_spins = num_cells * num_genes
+    np.random.seed(seed)
+    multicell_state = np.array([2*int(np.random.rand() < .5) - 1 for _ in range(total_spins)])
+    return multicell_state
+
+
+def build_lattice_random(n, simsetup, seed=0):
+    # TODO replace with reconstruct_random_state_from_seed()
+    np.random.seed(seed)
+    lattice = [[0 for _ in range(n)] for _ in range(n)]  # TODO: this can be made faster as np array
+    idx = 0
+    for i in range(n):
+        for j in range(n):
+            cellname = str(i*j)
+            cellstate = np.array([2*int(np.random.rand() < .5) - 1 for _ in range(simsetup['N'])]).T
+            lattice[i][j] = SpatialCell(cellstate, "%d,%d_%s" % (i, j, cellname), [i, j], simsetup)
+            idx += 1
+            
+    return lattice
+
+
+if __name__ == '__main__':
+    # TODO confirm reconstruct_random_state_from_seed()
+    #  has same random generation as build_lattice_random()
+    test_seed = 7
+    simsetup = singlecell_simsetup(unfolding=True, random_mem=False, random_W=True, curated=True)
+    num_genes = simsetup['N']
+    sidelength = 4
+    num_cells = sidelength ** 2
+
+    test_lattice = build_lattice_random(sidelength, simsetup, seed=test_seed)
+    test_state = reconstruct_random_state_from_seed(num_genes * num_cells, test_seed)
+
+    def TEMP_graph_state_from_lattice(num_genes, num_cells, lattice, sidelength):
+        N = num_genes
+        total_spins = num_cells * num_genes
+        s_block = np.zeros(total_spins)
+        for a in range(num_cells):
+            arow, acol = lattice_square_int_to_loc(a, sidelength)
+            cellstate = np.copy(
+                lattice[arow][acol].get_current_state())
+            s_block[a * N: (a+1) * N] = cellstate
+        return s_block
+
+    def lattice_square_int_to_loc(node_idx, sidelength):
+        # maps node_idx, the unique int rep of a cell location on the grid, to corresponding two-tuple
+        # sidelength is sqrt(num_cells), the edge length of the lattice
+        y = node_idx % sidelength              # remainder from the division mod n
+        x = int((node_idx - y) / sidelength)   # solve for x
+        return x, y
+
+    test_lattice_state = TEMP_graph_state_from_lattice(
+        num_genes, num_cells, test_lattice, sidelength)
+    print(test_lattice_state.astype(int))
+    print(test_state.astype(int))
+    print(test_lattice_state.shape)
+    print(test_state.shape)
+    print(test_lattice_state - test_state)
