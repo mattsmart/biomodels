@@ -932,7 +932,8 @@ Full info morphology plot with 9 genes as triangle cilia
     return
 
 
-def replot_scatter_dots(lattice_state, sidelength, outpath, fmod='', state_int=False, cmap=None):
+def replot_scatter_dots(lattice_state, sidelength, outpath,
+                        fmod='', state_int=False, cmap=None, title=None):
     """
     Full info morphology plot with grid of 9 genes as dots
     """
@@ -1003,6 +1004,7 @@ def replot_scatter_dots(lattice_state, sidelength, outpath, fmod='', state_int=F
         boxsize = 4*1800  # 600, 750, 850, at 990 it forms grey grid
         trisize = 4*50  # 225
         lw_eps = 0.05
+        fontsize = 24
 
     elif n == 2:
         box_lw = 4*1.5
@@ -1011,6 +1013,7 @@ def replot_scatter_dots(lattice_state, sidelength, outpath, fmod='', state_int=F
         boxsize = 95*1800  # 600, 750, 850, at 990 it forms grey grid
         trisize = 30*50  # 225
         lw_eps = 0.05
+        fontsize = 24
 
     else:
         assert n == 20
@@ -1020,6 +1023,7 @@ def replot_scatter_dots(lattice_state, sidelength, outpath, fmod='', state_int=F
         boxsize = 1800  # 600, 750, 850, at 990 it forms grey grid
         trisize = 50  # 225
         lw_eps = 0.05
+        fontsize = 24
 
     # create gene markers
     appendage_style = 'o'  # 1
@@ -1076,7 +1080,8 @@ def replot_scatter_dots(lattice_state, sidelength, outpath, fmod='', state_int=F
             i, j = lattice_square_int_to_loc(k, n)
             plt.gca().text(j, i, label, color='black', ha='center', va='center')
 
-    #plt.title('Lattice site-wise overlap with ref site %d,%d (Step=%d)' % (ref_site[0], ref_site[1], time))
+    if title is not None:
+        plt.title(title, fontsize=fontsize)
     # draw gridlines
     ax = plt.gca()
     plt.axis('off')  # no grid can look nice
@@ -1096,8 +1101,12 @@ def replot_scatter_dots(lattice_state, sidelength, outpath, fmod='', state_int=F
     plt.ylim( 0.5 - lw_eps, n + 0.5 + lw_eps)
     fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)  # unsure
     # save figure
-    plt.savefig(outpath + fmod + '.jpg')#, bbox_inches='tight')
-    plt.savefig(outpath + fmod + '.pdf')#, bbox_inches='tight')
+    if title is None:
+        plt.savefig(outpath + fmod + '.jpg')
+        plt.savefig(outpath + fmod + '.pdf')
+    else:
+        plt.savefig(outpath + fmod + '.jpg', bbox_inches='tight')
+        plt.savefig(outpath + fmod + '.pdf', bbox_inches='tight')
     plt.close()
     return
 
