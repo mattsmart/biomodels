@@ -17,6 +17,9 @@ from multicell.graph_adjacency import lattice_square_loc_to_int, lattice_square_
 from utils.file_io import run_subdir_setup, RUNS_FOLDER, INPUT_FOLDER
 
 
+GLOBAL_DPI = 450
+
+
 turquoise = [30, 223, 214]
 
 white = [255,255,255]
@@ -933,7 +936,8 @@ Full info morphology plot with 9 genes as triangle cilia
 
 
 def replot_scatter_dots(lattice_state, sidelength, outpath,
-                        fmod='', state_int=False, cmap=None, title=None):
+                        fmod='', state_int=False, cmap=None, title=None,
+                        ext=['.jpg', '.svg'], rasterized=True):
     """
     Full info morphology plot with grid of 9 genes as dots
     """
@@ -988,7 +992,7 @@ def replot_scatter_dots(lattice_state, sidelength, outpath,
     #fig, ax = plt.subplots(figsize=(12, 12), dpi=100)
     #ax = fig.add_axes([0, 0, 1, 1])  # position: left, bottom, width, height
     #ax.set_axis_off()
-    fig, ax = plt.subplots(figsize=(12, 12))
+    fig, ax = plt.subplots(figsize=(12, 12), dpi=GLOBAL_DPI)
     ax.set_axis_off()
 
     def get_cell_mask(gene_idx):
@@ -1025,7 +1029,7 @@ def replot_scatter_dots(lattice_state, sidelength, outpath,
         lw_eps = 0.05
         fontsize = 24
 
-    # create gene markers
+    # create gene markers (the three celltype block functionality is no longer used, now 9 dots)
     appendage_style = 'o'  # 1
     appendage_z = 2
     t_series = [0] * 9
@@ -1034,43 +1038,44 @@ def replot_scatter_dots(lattice_state, sidelength, outpath,
         t_series[idx] = t_mod
 
     # outer square with alpha (orig 0.4 alpha)
-    plt.scatter(x, y, marker='s', c=colors, alpha=1.0, s=boxsize, ec='k', zorder=1, lw=box_lw)
-    # gene 0, 1 mask for celltype A: up/down appendage
+    plt.scatter(x, y, marker='s', c=colors, alpha=1.0, s=boxsize,
+                ec='k', zorder=1, lw=box_lw, rasterized=rasterized)
+    # gene 0, 1 mask for celltype A: originally up/down appendage
     mask0 = get_cell_mask(0)
     mask1 = get_cell_mask(1)
     mask2 = get_cell_mask(2)
     x0, x1, x2 = -eps, 0, +eps
     y0, y1, y2 = +eps, +eps, +eps
     plt.scatter(x[mask0]+x0, y[mask0]+y0, marker=t_series[0], c='white', alpha=1.0,
-                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw, rasterized=rasterized)
     plt.scatter(x[mask1]+x1, y[mask1]+y1, marker=t_series[1], c='white', alpha=1.0,
-                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw, rasterized=rasterized)
     plt.scatter(x[mask2]+x2, y[mask2]+y2, marker=t_series[2], c='white', alpha=1.0,
-                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
-    # gene 3, 4 mask for celltype B: left/right appendage
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw, rasterized=rasterized)
+    # gene 3, 4 mask for celltype B: originally left/right appendage
     mask3 = get_cell_mask(3)
     mask4 = get_cell_mask(4)
     mask5 = get_cell_mask(5)
     x3, x4, x5 = x0, x1, x2
     y3, y4, y5 = 0, 0, 0
     plt.scatter(x[mask3]+x3, y[mask3]+y3, marker=t_series[3], c='white', alpha=1.0,
-                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw, rasterized=rasterized)
     plt.scatter(x[mask4]+x4, y[mask4]+y4, marker=t_series[4], c='white', alpha=1.0,
-                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw, rasterized=rasterized)
     plt.scatter(x[mask5]+x5, y[mask5]+y5, marker=t_series[5], c='white', alpha=1.0,
-                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
-    # gene 6, 7 mask for celltype C: membrane/circle interior
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw, rasterized=rasterized)
+    # gene 6, 7 mask for celltype C: originally membrane/circle interior
     mask6 = get_cell_mask(6)
     mask7 = get_cell_mask(7)
     mask8 = get_cell_mask(8)
     x6, x7, x8 = x0, x1, x2
     y6, y7, y8 = -eps, -eps, -eps
     plt.scatter(x[mask6]+x6, y[mask6]+y6, marker=t_series[6], c='white', alpha=1.0,
-                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw, rasterized=rasterized)
     plt.scatter(x[mask7]+x7, y[mask7]+y7, marker=t_series[7], c='white', alpha=1.0,
-                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw, rasterized=rasterized)
     plt.scatter(x[mask8]+x8, y[mask8]+y8, marker=t_series[8], c='white', alpha=1.0,
-                s=trisize, ec='k', zorder=appendage_z, linewidths=lw)
+                s=trisize, ec='k', zorder=appendage_z, linewidths=lw, rasterized=rasterized)
 
     if state_int:
         num_cells = lattice_state.shape[1]
@@ -1100,13 +1105,18 @@ def replot_scatter_dots(lattice_state, sidelength, outpath,
     plt.xlim(-0.5 - lw_eps, n - 0.5 + lw_eps)
     plt.ylim( 0.5 - lw_eps, n + 0.5 + lw_eps)
     fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)  # unsure
+    plt.tight_layout(pad=1.2, w_pad=0.5, h_pad=1.0)                            # maybe remove line
     # save figure
     if title is None:
-        plt.savefig(outpath + fmod + '.jpg')
-        plt.savefig(outpath + fmod + '.pdf')
+        bbox_inches = None
     else:
-        plt.savefig(outpath + fmod + '.jpg', bbox_inches='tight')
-        plt.savefig(outpath + fmod + '.pdf', bbox_inches='tight')
+        bbox_inches = 'tight'
+    if isinstance(ext, list):
+        for ext_str in ext:
+            assert ext_str[0] == '.'
+            plt.savefig(outpath + fmod + ext_str, bbox_inches=bbox_inches, dpi=GLOBAL_DPI)
+    else:
+        plt.savefig(outpath + fmod + ext, bbox_inches=bbox_inches, dpi=GLOBAL_DPI)
     plt.close()
     return
 
@@ -1134,7 +1144,7 @@ if __name__ == '__main__':
     fmod = '_int%d' % state_int
     # fmod = '_beige'
 
-    sidelength = 2  #20
+    sidelength = 2  #2, 10, or 20
     num_cells = sidelength ** 2
     curated = True
     random_mem = False  # TODO incorporate seed in random XI in simsetup/curated
@@ -1323,13 +1333,16 @@ if __name__ == '__main__':
 
             # plot option 2) using replot
             X_state = X_state.reshape(num_cells, simsetup_main['N'])
+            """
             outpath_ref = replot_dir + os.sep + 'agg%d_ref0' % agg_index
             replot_graph_lattice_reference_overlap_plotter(
                 X_state.T, sidelength, outpath_ref, fmod=fmod, ref_node=0)
 
             outpath = replot_dir + os.sep + 'agg%d_modern' % agg_index
             replot_modern(X_state.T, simsetup_main, sidelength, outpath,
-                          version=version, fmod=fmod, state_int=state_int)
+                          version=version, fmod=fmod, state_int=state_int)"""
 
             outpath = replot_dir + os.sep + 'agg%d_scatter' % agg_index
-            replot_scatter_dots(X_state.T, sidelength, outpath, fmod=fmod, state_int=state_int)
+            title = None #'test_title'
+            replot_scatter_dots(X_state.T, sidelength, outpath,
+                                fmod=fmod, state_int=state_int, title=title)
