@@ -74,8 +74,9 @@ def aggregate_manyruns(runs_basedir, agg_subdir='aggregate',
                 fpaths = [runs_basedir + os.sep + 'aggregate' + os.sep + a for a in
                           ['agg_%s_%d_compOverlap.png' % (label, i),
                            'agg_%s_%d_compProj.png' % (label, i),
-                           'agg_%s_%d_ref0_overlap.png' % (label, i)]
-                          ]
+                           'agg_%s_%d_ref0_overlap.png' % (label, i),
+                           'agg_%s_%d_scatter_dots.png' % (label, i)]
+                           ]
                 multicell_template.step_datadict_update_global(step_hack, fill_to_end=False)
                 multicell_template.step_state_visualize(step_hack, fpaths=fpaths)  # visualize
 

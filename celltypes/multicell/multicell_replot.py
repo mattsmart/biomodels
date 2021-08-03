@@ -1083,7 +1083,11 @@ def replot_scatter_dots(lattice_state, sidelength, outpath,
             cellstate = lattice_state[:, k]
             label = state_to_label(cellstate)
             i, j = lattice_square_int_to_loc(k, n)
-            plt.gca().text(j, i, label, color='black', ha='center', va='center')
+            xc = j
+            yc = n - i
+            #plt.gca().text(j, i, label, color='black', ha='center', va='center')  # bugfix below
+            plt.gca().text(xc, yc, '%s' % label,
+                           color='black', ha='center', va='center')
 
     if title is not None:
         plt.title(title, fontsize=fontsize)
@@ -1133,6 +1137,60 @@ def translate_lattice_state(X, sidelength, down=0, right=0):
         X_translated[:, k_new] = X[:, k]
 
     return X_translated
+
+
+def plot_tissue_given_agg_idx(
+        data_subdict, agg_index, fmod, outdir,
+        state_int=False, smod_last=True, title=None):
+    """
+    Used and designed within explore_aligned.ipynb
+    Args:
+    - data_subdict: data_subdict (stores metadata, embedding) from parent notebook dict termed 'embedded_datasets'
+    - settings_alignment: dict of settings for the notebook,
+    - agg_index: selects the tissue state (int in range(0, num_runs))
+    """
+    manyruns_path = data_subdict['path']
+    multicell_template = data_subdict['multicell_template']
+
+    # Load and replace W in the multicell_template
+    """
+    agg_datadir = manyruns_path + os.sep + 's%d' % agg_index
+    W_LOAD = np.loadtxt(agg_datadir + os.sep + 'simsetup' + os.sep + 'matrix_W.txt', delimiter=',')
+    #print(W_LOAD)  # compare vs template W ?
+    multicell.matrix_W = W_LOAD
+    multicell.simsetup['FIELD_SEND'] = W_LOAD"""
+
+    # constants
+    num_cells = multicell_template.num_cells
+    num_genes = multicell_template.num_genes
+    simsetup = multicell_template.simsetup
+    sidelength = int(np.sqrt(num_cells)); assert sidelength ** 2 == num_cells
+
+    # switchable settings
+    if smod_last:
+        smod = '_last' # oldstyle
+    else:
+        smod = ''      # newstyle
+    #if step is not None:
+    #    smod = '_%d' % step
+
+    # load and reshape desired tissue state
+    X_state = data_subdict['data'][agg_index, :].copy()
+    X_state = X_state.reshape(num_cells, num_genes)
+
+    #outpath_ref = outdir + os.sep + 'agg%d_ref0' % agg_index
+    #replot_graph_lattice_reference_overlap_plotter(
+    #    X_state.T, sidelength, outpath_ref, fmod=fmod, ref_node=0)
+
+    outpath = outdir + os.sep + 'agg%d_modern' % agg_index
+    replot_modern(X_state.T, simsetup, sidelength, outpath,
+                  version='3', fmod=fmod, state_int=state_int)
+
+    # plot option 3) using replot_scatter_dots
+    outpath = outdir + os.sep + 'agg%d_scatter' % agg_index
+    replot_scatter_dots(X_state.T, sidelength, outpath,
+                        fmod=fmod, state_int=state_int, title=title)
+    return
 
 
 if __name__ == '__main__':
