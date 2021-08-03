@@ -11,9 +11,12 @@ Conventions follow from Lang & Mehta 2014, PLOS Comp. Bio
 - note the memory matrix is transposed throughout here (dim N x p instead of dim p x N)
 """
 
+MACHINE_EPS = np.finfo(np.float_).eps
+
+
 def homebrew_sgn(x):
     # NOTE: we set sgn(0)=1 here
-    if x >= 0:
+    if x >= MACHINE_EPS:
         return 1
     else:
         return -1
