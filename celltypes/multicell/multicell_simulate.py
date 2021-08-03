@@ -16,7 +16,7 @@ print('DYNAMICS_FIXED_UPDATE_ORDER:', DYNAMICS_FIXED_UPDATE_ORDER)
 if __name__ == '__main__':
 
     # 1) create simsetup
-    main_seed = 0  #np.random.randint(1e6)
+    main_seed = 9086  #np.random.randint(1e6)
     curated = True
     random_mem = False        # TODO incorporate seed in random XI in simsetup/curated
     random_W = True          # TODO incorporate seed in random W in simsetup/curated
@@ -48,7 +48,7 @@ if __name__ == '__main__':
     flag_blockparallel = False
     beta = np.Inf  # 2000.0 use np.Inf instead of fixed 1e3, can cause rare bugs otherwise
     #gamma = 0.8  #1.0               # i.e. field_signal_strength
-    gamma = 1600  # 1.0               # i.e. field_signal_strength
+    gamma = 0.0  # 1.0               # i.e. field_signal_strength
     kappa = 0.0                # i.e. field_applied_strength
 
     # setup 2.2) graph options
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     graph_style = 'lattice_square'
     graph_kwargs = {'search_radius': search_radius,
                     'periodic': True,
-                    'initialization_style': 'dual'}
+                    'initialization_style': 'random'}
 
     # setup 2.3) signalling field (exosomes + cell-cell signalling via W matrix)
     # Note: consider rescale gamma as gamma / num_cells * num_plaquette
@@ -127,8 +127,8 @@ if __name__ == '__main__':
     multicell = Multicell(simsetup_main, verbose=True, **multicell_kwargs)
 
     # 4) run sim
-    multicell.simulation_standard()
-    #multicell.simulation_fast()
+    #multicell.simulation_standard()
+    multicell.simulation_fast()
 
     # looped version of steps 3) and 4):
     """
@@ -138,4 +138,3 @@ if __name__ == '__main__':
         multicell = Multicell(simsetup_main, verbose=True, **multicell_kwargs_step)
         multicell.simulation_fast()
     """
-
