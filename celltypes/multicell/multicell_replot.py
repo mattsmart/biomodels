@@ -1195,14 +1195,14 @@ def plot_tissue_given_agg_idx(
 
 if __name__ == '__main__':
 
-    label = 'specific'  # 'slide4', 'slide5', 'slide6', 'specific'
+    label = 'slide4'  # 'slide4', 'slide5', 'slide6', 'specific'
 
     version = '2'
     state_int = False
     fmod = '_int%d' % state_int
     # fmod = '_beige'
 
-    sidelength = 2  #2, 10, or 20
+    sidelength = 20  #2, 10, or 20
     num_cells = sidelength ** 2
     curated = True
     random_mem = False  # TODO incorporate seed in random XI in simsetup/curated
@@ -1254,7 +1254,7 @@ if __name__ == '__main__':
         replot_dir = replot_dir + os.sep + 'slide5_gamma1'
 
         #k_choice = np.arange(17)
-        k_choice = [1,2,4,5,7,10,13,14,15,17]
+        k_choice = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17]
         flag_ranked_cmap = False
 
         # build ranked colourmap first
@@ -1290,7 +1290,8 @@ if __name__ == '__main__':
                 fname = fnames[idx]
                 #replot_overlap()
                 X = state_load(fpath, cells_as_cols=True, num_genes=None, num_cells=None, txt=False)
-                X = translate_lattice_state(X, sidelength, down=0, right=0)  # down 8
+                if k_choice[idx] == '14':
+                    X = translate_lattice_state(X, sidelength, down=8, right=0)  # down 8 for W14
 
                 outpath = replot_dir + os.sep + fname[:-4]
                 outpath_ref = replot_dir + os.sep + 'ref0_' + fname[:-4]
@@ -1358,7 +1359,8 @@ if __name__ == '__main__':
         step = None
         # dirname = 'Wrandom0_gamma0.20_10k_periodic_fixedorderV3_p3_M100'
         #dirname = 'Wrandom0_gamma1.00_10k_periodic_fixedorderV3_p3_M100'
-        dirname = 'Wrandom0_gamma1.00_10k_fixedorder_p3_M4'
+        #dirname = 'Wrandom0_gamma1.00_10k_fixedorder_p3_M4'
+        dirname = 'W0_gamma1.00_10k_periodic_R1_p3_M100_machineEps'
 
         # step = 14
         # dirname = 'beta2.05_Wrandom0_gamma0.20_10k_periodic_fixedorderV3_p3_M100'
