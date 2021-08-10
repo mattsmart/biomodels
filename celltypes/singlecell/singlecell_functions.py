@@ -343,7 +343,8 @@ def check_min_or_max(intxn_matrix, state, energy=None, field=None, fs=0.0, inspe
     return is_fp, is_min
 
 
-def fp_of_state(intxn_matrix, state_start, app_field=0, dynamics='sync', zero_override=False):
+def fp_of_state(intxn_matrix, state_start, app_field=0, dynamics='sync',
+                zero_override=False, seed=0, verbose=False):
     # TODO cycle support
     """
     Given state e.g. (1, ... 1) i.e. hypercube vertex, return corresponding FP of specified dynamics
@@ -411,18 +412,21 @@ def fp_of_state(intxn_matrix, state_start, app_field=0, dynamics='sync', zero_ov
                 break
 
     else:
+        print('Warning: in fp_of_state(), sync=False, the update order should be checked')
         assert dynamics in ['async_batch', 'async_fixed']
         while not np.array_equal(state_next, state_current):
+            state_current = np.copy(state_next)
+            if dynamics == 'async_fixed':
+                random.seed(seed)
+                random.shuffle(sites)  # same site ordering for all updates
             if dynamics == 'async_batch':
                 random.shuffle(sites)  # randomize site ordering each update
-            state_current = np.copy(state_next)
-            for i in sites:
-                total_field_on_i = np.dot(intxn_matrix[i, :], state_next) + app_field[i]
-                if total_field_on_i == 0:
-                    state_next[i] = state_next[i] * -1
-                else:
-                    state_next[i] = np.sign(total_field_on_i)
-                i += 1
+            for idx in sites:
+                total_field_on_idx = np.dot(intxn_matrix[idx, :], state_next) + app_field[idx]
+                state_next[idx] = homebrew_sgn(total_field_on_idx)
+            if verbose:
+                print('(verbose) fp check...\n\t', state_current, 'to', state_next)
+
     fp = state_next
     return fp
 
@@ -575,13 +579,13 @@ def distances_from_master_eqn(X):
     return dists
 
 
-def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, use_proj=False, add_noise=False, plot_X=False,
-                         field=None, fs=0.0, beta=BETA, print_XI=True):
+def reduce_hypercube_dim(simsetup, method, dim=2, use_hd=False, use_proj=False, add_noise=False,
+                         plot_X=False, field=None, fs=0.0, beta=BETA, print_XI=True, seed=0):
     # TODO in addition to hamming dist (i.e. m(s)) should get memory proj a(s)...
     # TODO spectral clustering from MSE with temp?
     # TODO implement own diffusion map since packages wont work (mapalign fail, pydiff no precompute)
     # TODO try umap on its own and in spectral_custom
-
+    # TODO propogate seed in all applicable methods
     N = simsetup['N']
     states = np.array([label_to_state(label, simsetup['N']) for label in range(2 ** N)])
     X = states
@@ -612,7 +616,7 @@ def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, use_proj=False,
     print('Performing dimension reduction (%s): (%d x %d) to (%d x %d)' % (method, X.shape[0], X.shape[1], X.shape[0], dim))
     if method == 'pca':
         from sklearn.decomposition import PCA
-        pca = PCA(n_components=dim)
+        pca = PCA(n_components=dim, random_state=seed)
         X_new = pca.fit_transform(X)
     elif method == 'mds':
         from sklearn.manifold import MDS
@@ -624,15 +628,34 @@ def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, use_proj=False,
                 d = hamming(X[i, :], X[j, :])
                 dists[i, j] = d
         dists = dists + dists.T - np.diag(dists.diagonal())
-        X_new = MDS(n_components=dim, max_iter=300, verbose=1, dissimilarity='precomputed').fit_transform(dists)
+        X_new = MDS(n_components=dim,
+                    max_iter=300,
+                    verbose=1,
+                    dissimilarity='precomputed',
+                    random_state=seed
+                    ).fit_transform(dists)
+    elif method == 'umap':
+        import umap
+        umap_kwargs = {
+            'random_state': seed,
+            'n_components': dim,
+            'metric': 'euclidean',
+            'init': 'spectral',
+            'unique': False,
+            'n_neighbors': 15,
+            'min_dist': 0.1,
+            'spread': 1.0,
+        }
+        reducer = umap.UMAP(**umap_kwargs)
+        X_new = reducer.fit_transform(X)
     elif method == 'tsne':
         from sklearn.manifold import TSNE
         perplexity_def = 5.0
-        tsne = TSNE(n_components=dim, init='random', random_state=0, perplexity=perplexity_def)
+        tsne = TSNE(n_components=dim, init='random', random_state=seed, perplexity=perplexity_def)
         X_new = tsne.fit_transform(X)
     elif method == 'spectral_auto':
         from sklearn.manifold import SpectralEmbedding
-        embedding = SpectralEmbedding(n_components=dim, random_state=0, affinity='precomputed')
+        embedding = SpectralEmbedding(n_components=dim, random_state=seed, affinity='precomputed')
         #TODO pass through beta and field, note glauber may be ill-defined at 0 T / beta infty
         X_new = embedding.fit_transform(X.T)
     elif method == 'spectral_custom':
@@ -666,6 +689,7 @@ def reduce_hypercube_dim(simsetup, method, dim=2,  use_hd=False, use_proj=False,
         print('method must be in [pca, mds, tsne, spectral_auto, spectral_custom, diffusion, diffusion_custom]')
     if add_noise:
         # jostles the point in case they are overlapping
+        np.random.seed(seed)
         X_new += np.random.normal(0, 0.5, X_new.shape)
     if print_XI:
         for i in range(simsetup['P']):
