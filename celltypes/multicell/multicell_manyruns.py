@@ -146,7 +146,7 @@ if __name__ == '__main__':
         #beta_str = 'beta%.2f_' % beta_main
 
     for gamma_main in gamma_list:
-        multirun_name = 'W0_gamma%.2f_10k_periodic_R1_p3_M100_machineEps' % (gamma_main)
+        multirun_name = 'W14_gamma%.2f_10k_periodic_R1_p3_M100_machineEps' % (gamma_main)
         #multirun_name = '%sW1pattern_gamma%.2f_10k_p3_M100' % (beta_str, gamma_main)
         #multirun_name = '%sWvary_s0randomInit_gamma%.2f_10k_periodic_fixedorderV3_p3_M100' % (beta_str, gamma_main)
         #multirun_name = '%sWvary_dualInit_gamma%.2f_10k_periodic_fixedorderV3_p3_M100' % (beta_str, gamma_main)
@@ -161,10 +161,13 @@ if __name__ == '__main__':
             random_mem = False        # TODO incorporate seed in random XI
             random_W = False          # TODO incorporate seed in random W
             #W_override_path = None
-            W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_maze.txt'
+            #W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_maze.txt'
             #W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_random1.txt'
-            #W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_W15maze.txt'
             #W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_W1pattern.txt'
+            W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_W14blob.txt'
+            #W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_W12hetero.txt'
+            #W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_W13pattern.txt'
+            #W_override_path = INPUT_FOLDER + os.sep + 'manual_WJ' + os.sep + 'simsetup_W_9_W15maze.txt'
 
             simsetup_main = singlecell_simsetup(
                 unfolding=True, random_mem=random_mem, random_W=random_W, curated=curated, housekeeping=0)
