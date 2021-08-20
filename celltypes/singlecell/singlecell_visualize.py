@@ -164,8 +164,59 @@ def hypercube_visualize(simsetup, X_reduced, energies, num_cells=1, elevate3D=Tr
         if elevate3D:
             # implicit 3D plot, height is energy
             if surf:
-                sc = ax.plot_trisurf(X_reduced[:,0], X_reduced[:,1], energies_norm, cmap=plt.cm.viridis)
-                #sc = ax.plot_wireframe(X_reduced[:,0], X_reduced[:,1], energies_norm)
+
+                surface_method = 2
+                assert surface_method in [1,2]
+
+                #cmap_str =  # plt.cm.viridis
+                cmap_str = 'Spectral_r' # 'viridis'
+                cmap = plt.cm.get_cmap(cmap_str)
+
+                # original approach:
+                if surface_method == 1:
+
+                    sc = ax.plot_trisurf(X_reduced[:,0], X_reduced[:,1], energies_norm, cmap=cmap)
+                    #sc = ax.plot_wireframe(X_reduced[:,0], X_reduced[:,1], energies_norm)
+                # new approach: interpolate
+                else:
+                    assert surface_method == 2
+                    from scipy.interpolate import griddata
+
+                    x0 = X_reduced[:,0]
+                    y0 = X_reduced[:,1]
+                    z0 = energies_norm
+                    nmeshpoints = 50  #len(x0)
+                    x_mesh = np.linspace(x0.min(), x0.max(), nmeshpoints)
+                    y_mesh = np.linspace(y0.min(), y0.max(), nmeshpoints)
+                    z_interpolated = griddata(
+                        (x0, y0),
+                        z0,
+                        (x_mesh[None,:], y_mesh[:,None]),
+                        method='cubic',      # nearest, linear, or cubic
+                        fill_value=np.nan)    # defaults to np.nan; try 0
+                    print('energies:', energies.shape, energies.min(), energies.max())
+                    print('z0:', z0.shape, z0.min(), z0.max())
+                    print('z_interpolated:', z_interpolated.shape, z_interpolated.min(), z_interpolated.max())
+                    print('np.isnan(z_interpolated).sum()', np.isnan(z_interpolated).sum())
+                    # converts vectors to matrices (expanded representation of coordinates)
+                    x_mesh_matrix, y_mesh_matrix = np.meshgrid(x_mesh, y_mesh)
+                    sc = ax.plot_surface(
+                        x_mesh_matrix, y_mesh_matrix, z_interpolated,
+                        edgecolors='k',
+                        linewidths=0.5,
+                        cmap=cmap,
+                        vmin=np.nanmin(z_interpolated),
+                        vmax=np.nanmax(z_interpolated))
+
+                    # add contour lines on bottom of plot (contourf = filled)
+                    #cset = ax.contourf(
+                    #    x_mesh_matrix, y_mesh_matrix, z_interpolated,
+                    #    zdir='z', offset=np.nanmin(z_interpolated), cmap=cmap)
+                    contour_offset = -0.4 # np.nanmin(z_interpolated)
+                    cset = ax.contour(
+                        x_mesh_matrix, y_mesh_matrix, z_interpolated,
+                        zdir='z', offset=contour_offset, cmap=cmap)
+
             else:
                 if colours_dict is not None:
                     for key in list(colours_dict['basins_dict'].keys()):

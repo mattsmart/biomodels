@@ -531,7 +531,7 @@ def glauber_transition_matrix(intxn_matrix, field=None, fs=0.0, beta=BETA, overr
 
 def spectral_custom(L, dim, norm_each=False, plot_evec=False, skip_small_eval=False):
     # see https://github.com/hlml-toronto/machinelearning/blob/master/guides/unsupervised/spectral.ipynb
-    evals, evecs = sorted_eig(L, take_real=True)
+    evals, evecs = sorted_eig(L, take_real=True, symmetric_method=False)
 
     if plot_evec:
         statevol = evecs.shape[0]
@@ -545,8 +545,10 @@ def spectral_custom(L, dim, norm_each=False, plot_evec=False, skip_small_eval=Fa
     # get first dim evecs, sorted
     if skip_small_eval:
         start_idx = 0
-        while evals[start_idx] < 1e-13:
+        while np.abs(evals[start_idx]) < 1e-13 and start_idx < len(evals) - 1:
             start_idx += 1
+        print(evals)
+        print(start_idx)
         dim_reduced = evecs[:, start_idx:dim+start_idx]
     else:
         dim_reduced = evecs[:, 0:dim]
@@ -579,7 +581,8 @@ def distances_from_master_eqn(X):
     return dists
 
 
-def reduce_hypercube_dim(simsetup, method, dim=2, use_hd=False, use_proj=False, add_noise=False,
+def reduce_hypercube_dim(simsetup, method, dim=2, use_hd=False, use_proj=False,
+                         use_magnetization=False, add_noise=False,
                          plot_X=False, field=None, fs=0.0, beta=BETA, print_XI=True, seed=0):
     # TODO in addition to hamming dist (i.e. m(s)) should get memory proj a(s)...
     # TODO spectral clustering from MSE with temp?
@@ -600,11 +603,21 @@ def reduce_hypercube_dim(simsetup, method, dim=2, use_hd=False, use_proj=False, 
         hd = calc_state_dist_to_local_min(simsetup, encoded_minima, X=states, norm=True)
         X = hd
     if use_proj:
-        projdist = np.dot(states, simsetup['ETA'].T)
+        #projdist = np.dot(states, simsetup['ETA'].T)
+        projdist = np.dot(states, simsetup['XI'])
         if use_hd:
-            X = np.concatenate((hd, projdist), axis=1)
+            X = np.concatenate((X, projdist), axis=1)
         else:
             X = projdist
+    if use_magnetization:
+        magnetization = np.dot(states, np.ones(N))
+        print(X.shape)
+        print(magnetization.shape)
+        if use_hd or use_proj:
+            X = np.concatenate((X, magnetization[:, None]), axis=1)
+        else:
+            X = magnetization
+
     if method in ['spectral_auto', 'spectral_custom', 'diffusion']:
         X = glauber_transition_matrix(simsetup['J'], field=field, fs=fs, beta=beta, override=0)
     if plot_X:
@@ -660,9 +673,10 @@ def reduce_hypercube_dim(simsetup, method, dim=2, use_hd=False, use_proj=False, 
         X_new = embedding.fit_transform(X.T)
     elif method == 'spectral_custom':
         dim_spectral = 3  # use dim >= number of known minima?
-        X_lower = spectral_custom(-X, dim_spectral, norm_each=False, plot_evec=False, skip_pss=True)
+        #X_lower = spectral_custom(-X, dim_spectral, norm_each=False, plot_evec=False, skip_pss=True)
+        X_lower = spectral_custom(-X, dim_spectral, norm_each=False, plot_evec=False, skip_small_eval=True)
         from sklearn.decomposition import PCA
-        X_new = PCA(n_components=dim).fit_transform(X_lower)
+        X_new = PCA(n_components=dim, random_state=seed).fit_transform(X_lower)
         """
         from sklearn.manifold import TSNE
         X_new = TSNE(n_components=dim, init='random', random_state=0, perplexity=5.0).fit_transform(X_lower)
@@ -673,7 +687,9 @@ def reduce_hypercube_dim(simsetup, method, dim=2, use_hd=False, use_proj=False, 
         num_steps = 1
         X_DTMC = glauber_transition_matrix(simsetup['J'], field=field, fs=fs, beta=beta, override=0, DTMC=True)
         X_bigstep = np.linalg.matrix_power(X_DTMC, num_steps)
-        X_lower = spectral_custom(-X_bigstep, dim_spectral, norm_each=False, plot_evec=False, skip_pss=True)
+        #X_lower = spectral_custom(-X_bigstep, dim_spectral, norm_each=False, plot_evec=False, skip_pss=True)
+        #X_lower = spectral_custom(-X_bigstep, dim_spectral, norm_each=False, plot_evec=False, skip_small_eval=True)
+        X_lower = spectral_custom(-X_bigstep, dim_spectral, norm_each=False, plot_evec=False, skip_small_eval=False)
         from sklearn.decomposition import PCA
         X_new = PCA(n_components=dim).fit_transform(X_lower)
         #X_new = DiffusionMapEmbedding(alpha=0.5, diffusion_time=1, affinity='precomputed',
