@@ -940,6 +940,7 @@ def replot_scatter_dots(lattice_state, sidelength, outpath,
                         ext=['.jpg', '.svg'], rasterized=True):
     """
     Full info morphology plot with grid of 9 genes as dots
+    Assumes lattice state is 2D array of num_genes (per cell) x num_cells, e.g. 9 x 100 not 900
     """
 
     if cmap is None:
