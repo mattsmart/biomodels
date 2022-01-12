@@ -9,20 +9,25 @@ class SingleCell():
         """
         For numeric cell labels (network growth), use label='%d' % idx, for instance
         """
-        self.num_variables = 4
-        if label != '':
-            label_short = '_%s' % label
-            label_long = '(Cell %s)' % label
-        self.variables_short = {0: 'x%s' % label_short,
-                                1: 'y%s' % label_short,
-                                2: 'z%s' % label_short,
-                                3: 'f%s' % label_short}
-        self.variables_long = {0: 'Oscillator A - Cyclin active ' % label_long,
-                               1: 'Oscillator B - Cyclin total' % label_long,
-                               2: 'Modulator, e.g. Bam' % label_long,
-                               3: 'Fusome content' % label_long}
+        self.num_ode = 3           # dimension of ODE system
+        self.num_variables = 4     # dimension of total state space (ODE + misc.)
         self.state = init_cond
 
+        # setup names for all dynamical variables
+        self.variables_short = {0: 'x',
+                                1: 'y',
+                                2: 'z',
+                                3: 'f'}
+        self.variables_long = {0: 'Oscillator A - Cyclin active',
+                               1: 'Oscillator B - Cyclin total',
+                               2: 'Modulator, e.g. Bam',
+                               3: 'Fusome content'}
+        if label != '':
+            for idx in range(self.num_variables):
+                self.variables_short[idx] += '_%s' % label
+                self.variables_long[idx] += ' (Cell %s)' % label
+
+s
     def ode_system_vector(self, init_cond):
         p = self  # if there is feedback these 'constants' might be pseudo-dynamic -- see xyz params.py
         x, y, z = init_cond
