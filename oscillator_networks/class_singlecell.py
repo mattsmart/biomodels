@@ -66,7 +66,7 @@ class SingleCell():
             x_d = x ** p['n_deg']
             ec50_d = p['EC50_deg'] ** p['n_deg']
             degradation = p['a_deg'] + p['b_deg'] * x_d / (ec50_d + x_d)
-            degradation_scaled = degradation / (1 + z / p['k_Bam'])
+            degradation_scaled = degradation / (1 + z / p['k_Bam'])        # as in p7 of SmallCellCluster Review draft
 
             # "g(x)" factor of the review - activation by Cdc25
             x_plus = x ** p['n_Cdc25']
@@ -84,11 +84,7 @@ class SingleCell():
         else:
             print('Error: invalid self.style_ode', self.style_ode)
             assert self.style_ode == 'Yang2013'
-        """
-        dxdt = p.v_x - x * (p.alpha_plus + p.mu_base) + y * p.alpha_minus + (p.a - fbar) * x
-        dydt = p.v_y + x * p.alpha_plus - y * (p.alpha_minus + p.mu) + (p.b - fbar) * y
-        dzdt = p.v_z + y * p.mu + x * p.mu_base + (p.c - fbar) * z
-        """
+
         return [dxdt, dydt, dzdt]
 
     def trajectory(self, init_cond=None, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
@@ -132,7 +128,7 @@ class SingleCell():
 
 
 if __name__ == '__main__':
-    init_cond = (1, 2, 0)
+    init_cond = (20.0, 0.0, 0.0)
     sc = SingleCell(init_cond, label='foo')
     r, times = sc.trajectory(flag_info=True, dynamics_method='libcall')
     print(r, times)
