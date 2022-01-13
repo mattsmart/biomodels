@@ -1,4 +1,5 @@
 import csv
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 
@@ -45,8 +46,8 @@ class SingleCell():
                                 1: 'y',
                                 2: 'z',
                                 3: 'f'}
-        self.variables_long = {0: 'Oscillator A - Cyclin active',
-                               1: 'Oscillator B - Cyclin total',
+        self.variables_long = {0: 'Cyclin active',
+                               1: 'Cyclin total',
                                2: 'Modulator, e.g. Bam',
                                3: 'Fusome content'}
         if label != '':
@@ -92,9 +93,6 @@ class SingleCell():
 
     def trajectory(self, init_cond=None, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
                    dynamics_method=DYNAMICS_METHOD, flag_info=False):
-        """
-        single_cell is an instance of SingleCell
-        """
         if init_cond is None:
             init_cond = self.state_ode
 
@@ -110,7 +108,6 @@ class SingleCell():
             print('Done trajectory\n')
 
         return r, times
-
 
     def printer(self):
         print("State variables:")
@@ -135,7 +132,14 @@ class SingleCell():
 
 
 if __name__ == '__main__':
-    init_cond = (1, 2, 3)
+    init_cond = (1, 2, 0)
     sc = SingleCell(init_cond, label='foo')
-    r, times = sc.trajectory(flag_info=True)
+    r, times = sc.trajectory(flag_info=True, dynamics_method='libcall')
     print(r, times)
+    print(r.shape)
+
+    plt.plot(times, r, label=['x', 'y', 'z'])
+    plt.xlabel(r'$t$ [min]')
+    plt.ylabel(r'concentration [nM]')
+    plt.legend()
+    plt.show()
