@@ -22,7 +22,7 @@ class SingleCell():
 
         # make this flexible if other single cell ODEs are used
         assert self.style_ode == 'Yang2013'
-        self.params_ode = set_params_ode()
+        self.params_ode = set_params_ode(self.style_ode)
 
         # setup names for all dynamical variables
         self.variables_short = {0: 'x',
