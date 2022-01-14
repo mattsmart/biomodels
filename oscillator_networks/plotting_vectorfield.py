@@ -74,14 +74,21 @@ def plot_vectorfield_2D(single_cell, streamlines=True, ax=None):
 '''
 
 
+def nan_mask(x, fill=1000):
+    x_mask_arr = np.isfinite(x)
+    # print(x_mask_arr)
+    x[~x_mask_arr] = fill
+    return x
+
+
 def example_vectorfield():
     ax_lims = 10
     Y, X = np.mgrid[-ax_lims:ax_lims:100j, -ax_lims:ax_lims:100j]
     U = -10 - X**2 + Y
     V = 10 + X - Y**2
+
     speed = np.sqrt(U**2 + V**2)
     lw = 5*speed / speed.max()
-
 
     fig = plt.figure(figsize=(7, 9))
 
@@ -101,7 +108,7 @@ def example_vectorfield():
     return
 
 
-def Yang2013_manual_vectorfield(z=0):
+def Yang2013_vectorfield(z=0):
     """
     Scalar z represents static Bam concentration
     """
@@ -112,11 +119,8 @@ def Yang2013_manual_vectorfield(z=0):
     params = set_params_ode('Yang2013')
     U, V = vectorfield_Yang2013(params, X, Y, z=z, two_dim=True)
 
-    U_mask_arr = np.isfinite(U)
-    V_mask_arr = np.isfinite(V)
-    print(U_mask_arr)
-    U[~U_mask_arr] = 1000
-    V[~V_mask_arr] = 1000
+    U = nan_mask(U)
+    V = nan_mask(V)
 
     # Block for example code
     speed = np.sqrt(U**2 + V**2)
@@ -139,11 +143,93 @@ def Yang2013_manual_vectorfield(z=0):
     plt.show()
 
 
+def Yang2013_contourplot(z=0):
+    """
+    Scalar z represents static Bam concentration
+    """
+    #ax_lims = 100
+    #Y, X = np.mgrid[0:ax_lims:100j, 0:ax_lims:100j]
+
+    delta = 0.5
+    x = np.arange(0, 100.0, delta)
+    y = np.arange(0, 100.0, delta)
+    X, Y = np.meshgrid(x, y)
+
+    params = set_params_ode('Yang2013')
+    U, V = vectorfield_Yang2013(params, X, Y, z=z, two_dim=True)
+
+    U = nan_mask(U)
+    V = nan_mask(V)
+
+    fig, ax = plt.subplots(1, 3)
+    contours_u = ax[0].contour(X, Y, U)
+    ax[0].clabel(contours_u, inline=1, fontsize=10)
+    ax[0].set_title('U contours')
+    ax[0].set_xlabel('U')
+    ax[0].set_ylabel('V')
+
+    contours_v = ax[1].contour(X, Y, V)
+    ax[1].clabel(contours_v, inline=1, fontsize=10)
+    ax[1].set_title('V contours')
+    ax[1].set_xlabel('U')
+    ax[1].set_ylabel('V')
+
+    contours_dbl_u = ax[2].contour(X, Y, U)
+    contours_dbl_v = ax[2].contour(X, Y, V)
+    ax[2].set_title('U, V contours overlaid')
+    ax[2].set_xlabel('U')
+    ax[2].set_ylabel('V')
+
+    plt.show()
+
+
+def Yang2013_nullclines(z=0, flip_axis=False):
+    delta = 0.5
+    axmax = 150.0
+    x = np.arange(0, axmax, delta)
+    y = np.arange(0, axmax, delta)
+    X, Y = np.meshgrid(x, y)
+
+    params = set_params_ode('Yang2013')
+    U, V = vectorfield_Yang2013(params, X, Y, z=z, two_dim=True)
+
+    U = nan_mask(U)
+    V = nan_mask(V)
+
+    x_label = 'x'
+    y_label = 'y'
+    if flip_axis:
+        # swap X, Y
+        tmp = X
+        X = Y
+        Y = tmp
+        # swap labels
+        tmp = x_label
+        x_label = y_label
+        y_label = tmp
+
+    plt.figure(figsize=(5, 5))
+    ax = plt.gca()
+    # plot nullclines
+    nullcline_u = ax.contour(X, Y, U, (0,), colors='b', linewidths=1.5)
+    ax.clabel(nullcline_u, inline=1, fmt='X nc', fontsize=10)
+    nullcline_v = ax.contour(X, Y, V, (0,), colors='r', linewidths=1.5)
+    ax.clabel(nullcline_v, inline=1, fmt='Y nc', fontsize=10)
+    # plot labels
+    ax.set_title('X, Y nullclines overlaid (blue=X, red=Y)')
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+    plt.show()
+
+
 if __name__ == '__main__':
     #example_vectorfield()
-    Yang2013_manual_vectorfield()
+
+    Yang2013_vectorfield()
+    Yang2013_contourplot()
+    Yang2013_nullclines()
+    Yang2013_nullclines(flip_axis=True)
 
     #sinit_cond = (10.0, 0, 0)
     #single_cell = SingleCell(init_cond)
     #plot_vectorfield_2D(single_cell)
-
