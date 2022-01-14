@@ -5,6 +5,7 @@ import os
 
 from dynamics import simulate_dynamics_general
 from settings import DYNAMICS_METHODS_VALID, DYNAMICS_METHOD, INIT_COND, TIME_START, TIME_END, NUM_STEPS
+from vectorfields import set_params_ode, vectorfield_Yang2013
 
 
 class SingleCell():
@@ -21,25 +22,7 @@ class SingleCell():
 
         # make this flexible if other single cell ODEs are used
         assert self.style_ode == 'Yang2013'
-        # reference is Yang2013 Table S1
-        self.params_ode = {
-            'k_synth': 1,      # nM / min
-            'a_deg': 0.01,     # min^-1
-            'b_deg': 0.04,     # min^-1
-            'EC50_deg': 32,    # nM
-            'n_deg': 17,       # unitless
-            'a_Cdc25': 0.16,   # min^-1
-            'b_Cdc25': 0.80,   # min^-1
-            'EC50_Cdc25': 35,  # nM
-            'n_Cdc25': 11,     # unitless
-            'a_Wee1': 0.08,    # min^-1
-            'b_Wee1': 0.40,    # min^-1
-            'EC50_Wee1': 30,   # nM
-            'n_Wee1': 3.5,     # unitless
-        }
-
-        # add any extra parameters
-        self.params_ode['k_Bam'] = 1  # as indicated in SmallCellCluster review draft p7
+        self.params_ode = set_params_ode()
 
         # setup names for all dynamical variables
         self.variables_short = {0: 'x',
@@ -56,36 +39,16 @@ class SingleCell():
                 self.variables_long[idx] += ' (Cell %s)' % label
 
     def ode_system_vector(self, init_cond):
-        p = self.params_ode  # if there is feedback these 'constants' might be pseudo-dynamic [see xyz params.py]
+        p = self.params_ode  # TODO if there is feedback these 'constants' might be pseudo-dynamic [see xyz params.py]
         x, y, z = init_cond
         if self.style_ode == 'Yang2013':
-            # setup factors
-            k_synth = p['k_synth']
-
-            # "f(x)" factor of the review
-            x_d = x ** p['n_deg']
-            ec50_d = p['EC50_deg'] ** p['n_deg']
-            degradation = p['a_deg'] + p['b_deg'] * x_d / (ec50_d + x_d)
-            degradation_scaled = degradation / (1 + z / p['k_Bam'])        # as in p7 of SmallCellCluster Review draft
-
-            # "g(x)" factor of the review - activation by Cdc25
-            x_plus = x ** p['n_Cdc25']
-            ec50_plus = p['EC50_Cdc25'] ** p['n_Cdc25']
-            activation = p['a_Cdc25'] + p['b_Cdc25'] * x_plus / (ec50_plus + x_plus)
-
-            # "k_i" factor of the review - de-activation by Wee1
-            x_minus = x ** p['n_Wee1']
-            ec50_minus = p['EC50_Wee1'] ** p['n_Wee1']
-            deactivation = p['a_Wee1'] + p['b_Wee1'] * ec50_minus / (ec50_minus + x_minus)
-
-            dxdt = k_synth - degradation_scaled * x + activation * (x-y) - deactivation * x
-            dydt = k_synth - degradation_scaled * y
-            dzdt = 0  # TODO keep constant inhibitor for now (see review draft)
+            vectorfield = vectorfield_Yang2013(self.params_ode, x, y, z=z, two_dim=False)
         else:
             print('Error: invalid self.style_ode', self.style_ode)
             assert self.style_ode == 'Yang2013'
+            vectorfield = None
 
-        return [dxdt, dydt, dzdt]
+        return vectorfield
 
     def trajectory(self, init_cond=None, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
                    dynamics_method=DYNAMICS_METHOD, flag_info=False):
@@ -128,7 +91,7 @@ class SingleCell():
 
 
 if __name__ == '__main__':
-    init_cond = (20.0, 0.0, 0.0)
+    init_cond = (60.0, 0.0, 0.0)
     sc = SingleCell(init_cond, label='foo')
     r, times = sc.trajectory(flag_info=True, dynamics_method='libcall')
     print(r, times)

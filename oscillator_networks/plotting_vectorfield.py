@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from class_singlecell import SingleCell
+from vectorfields import set_params_ode, vectorfield_Yang2013
+
 '''
 def plot_vectorfield_2D(single_cell, streamlines=True, ax=None):
 
@@ -71,6 +73,7 @@ def plot_vectorfield_2D(single_cell, streamlines=True, ax=None):
     return ax
 '''
 
+
 def example_vectorfield():
     ax_lims = 10
     Y, X = np.mgrid[-ax_lims:ax_lims:100j, -ax_lims:ax_lims:100j]
@@ -103,60 +106,21 @@ def Yang2013_manual_vectorfield(z=0):
     Scalar z represents static Bam concentration
     """
     # Block for example code
-    ax_lims = 10
-    Y, X = np.mgrid[-ax_lims:ax_lims:100j, -ax_lims:ax_lims:100j]
+    ax_lims = 100
+    Y, X = np.mgrid[0:ax_lims:100j, 0:ax_lims:100j]
 
-    # Bock for manual Yang2013 code
-    p = {
-        'k_synth': 1,  # nM / min
-        'a_deg': 0.01,  # min^-1
-        'b_deg': 0.04,  # min^-1
-        'EC50_deg': 32,  # nM
-        'n_deg': 17,  # unitless
-        'a_Cdc25': 0.16,  # min^-1
-        'b_Cdc25': 0.80,  # min^-1
-        'EC50_Cdc25': 35,  # nM
-        'n_Cdc25': 11,  # unitless
-        'a_Wee1': 0.08,  # min^-1
-        'b_Wee1': 0.40,  # min^-1
-        'EC50_Wee1': 30,  # nM
-        'n_Wee1': 3.5,  # unitless
-    }
-    p['k_Bam'] = 1
-
-    # setup factors
-    k_synth = p['k_synth']
-
-    # "f(x)" factor of the review
-    x_d = X ** p['n_deg']
-    ec50_d = p['EC50_deg'] ** p['n_deg']
-    degradation = p['a_deg'] + p['b_deg'] * x_d / (ec50_d + x_d)
-    degradation_scaled = degradation / (1 + z / p['k_Bam'])  # as in p7 of SmallCellCluster Review draft
-
-    # "g(x)" factor of the review - activation by Cdc25
-    x_plus = X ** p['n_Cdc25']
-    ec50_plus = p['EC50_Cdc25'] ** p['n_Cdc25']
-    activation = p['a_Cdc25'] + p['b_Cdc25'] * x_plus / (ec50_plus + x_plus)
-
-    # "k_i" factor of the review - de-activation by Wee1
-    x_minus = X ** p['n_Wee1']
-    ec50_minus = p['EC50_Wee1'] ** p['n_Wee1']
-    deactivation = p['a_Wee1'] + p['b_Wee1'] * ec50_minus / (ec50_minus + x_minus)
-
-    U = k_synth - degradation_scaled * X + activation * (X - Y) - deactivation * X
-    V = k_synth - degradation_scaled * Y
+    params = set_params_ode('Yang2013')
+    U, V = vectorfield_Yang2013(params, X, Y, z=z, two_dim=True)
 
     U_mask_arr = np.isfinite(U)
     V_mask_arr = np.isfinite(V)
-    U[U_mask_arr] = 1000
-    V[V_mask_arr] = 1000
+    print(U_mask_arr)
+    U[~U_mask_arr] = 1000
+    V[~V_mask_arr] = 1000
 
     # Block for example code
-    print(type(U))
-    print(U.shape)
-    print(U)
     speed = np.sqrt(U**2 + V**2)
-    lw = 5*speed / speed.max()
+    lw = 5 * speed / speed.max()
 
     fig = plt.figure(figsize=(7, 9))
 
@@ -182,3 +146,4 @@ if __name__ == '__main__':
     #sinit_cond = (10.0, 0, 0)
     #single_cell = SingleCell(init_cond)
     #plot_vectorfield_2D(single_cell)
+
