@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 
-from dynamics import simulate_dynamics_general
+from dynamics_generic import simulate_dynamics_general
 from settings import DYNAMICS_METHODS_VALID, DYNAMICS_METHOD, INIT_COND, TIME_START, TIME_END, NUM_STEPS
-from vectorfields import set_params_ode, vectorfield_Yang2013
+from dynamics_vectorfields import set_params_ode, vectorfield_Yang2013
 
 
 class SingleCell():

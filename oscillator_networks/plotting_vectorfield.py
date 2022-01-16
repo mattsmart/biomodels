@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from class_singlecell import SingleCell
-from vectorfields import set_params_ode, vectorfield_Yang2013
+from dynamics_vectorfields import set_params_ode, vectorfield_Yang2013
 
 '''
 def plot_vectorfield_2D(single_cell, streamlines=True, ax=None):
@@ -76,7 +76,6 @@ def plot_vectorfield_2D(single_cell, streamlines=True, ax=None):
 
 def nan_mask(x, fill=1000):
     x_mask_arr = np.isfinite(x)
-    # print(x_mask_arr)
     x[~x_mask_arr] = fill
     return x
 
