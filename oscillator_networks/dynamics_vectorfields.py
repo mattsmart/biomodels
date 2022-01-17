@@ -24,7 +24,7 @@ def set_params_ode(style_ode):
         p = {}
     # add any extra parameters that are generic
     p['Bam_activity'] = 1  # as indicated in SmallCellCluster review draft p7
-    p['Bam_deg'] = 1e-2  # degradation rate; arbitrary
+    p['Bam_deg'] = 0  # degradation rate; arbitrary, try 0 or 1e-2 to 1e-4
     return p
 
 
@@ -57,8 +57,8 @@ def vectorfield_Yang2013(params, x, y, z=0, two_dim=True):
 
     dxdt = p['k_synth'] - degradation_scaled * x + activation * (y - x) - deactivation * x
     dydt = p['k_synth'] - degradation_scaled * y
-    dzdt = np.zeros_like(dxdt)
-    #dzdt = -p['Bam_deg'] * z
+    #dzdt = np.zeros_like(dxdt)
+    dzdt = -p['Bam_deg'] * z
 
     if two_dim:
         out = [dxdt, dydt]
