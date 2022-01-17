@@ -27,8 +27,9 @@ class CellGraph():
 
     def division_event(self, idx_dividing_cell):
         self.num_cells += 1
-        # TODO
+
         updated_labels = self.labels + ['c%d' % self.num_cells]
+
         # generate update adjaency matrix
         updated_adjacency = np.zeros((self.num_cells, self.num_cells))
         # fill A[0:M-1, 0:M-1] entries with old adjacency matrix
@@ -42,6 +43,7 @@ class CellGraph():
         self.labels = updated_labels
 
     def print_state(self):
+        print(self.labels)
         print(self.adjacency)
         return
 
