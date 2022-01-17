@@ -16,7 +16,7 @@ class SingleCell():
         For numeric cell labels (network growth), use label='%d' % idx, for instance
         """
         self.dim_ode = 3           # dimension of ODE system
-        self.dim_misc = 1          # dimension of misc. variables (e.g. fusome content)
+        self.dim_misc = 2          # dimension of misc. variables (e.g. fusome content)
         self.num_variables = self.dim_ode + self.dim_misc
         self.state_ode = init_cond
         self.style_ode = 'Yang2013'
@@ -26,14 +26,16 @@ class SingleCell():
         self.params_ode = set_params_ode(self.style_ode)
 
         # setup names for all dynamical variables
-        self.variables_short = {0: 'x',
-                                1: 'y',
-                                2: 'z',
-                                3: 'f'}
+        self.variables_short = {0: 'Cyc_act',
+                                1: 'Cyc_tot',
+                                2: 'Bam',
+                                3: 'ndiv',
+                                4: 'fusome'}
         self.variables_long = {0: 'Cyclin active',
                                1: 'Cyclin total',
                                2: 'Modulator, e.g. Bam',
-                               3: 'Fusome content'}
+                               3: 'Number of Divisions',
+                               4: 'Fusome content'}
         if label != '':
             for idx in range(self.num_variables):
                 self.variables_short[idx] += '_%s' % label
@@ -92,17 +94,18 @@ class SingleCell():
 
 
 if __name__ == '__main__':
-    init_cond = (60.0, 0.0, 0.0)
-    sc = SingleCell(init_cond, label='foo')
+    init_cond = (60.0, 0.0, 20.0)
+    sc = SingleCell(init_cond, label='cell_1')
     r, times = sc.trajectory(flag_info=True, dynamics_method='libcall')
     print(r, times)
     print(r.shape)
 
     io_dict = run_subdir_setup()
 
-    plt.plot(times, r, label=['x', 'y', 'z'])
+    plt.plot(times, r, label=[sc.variables_short[0], sc.variables_short[1], sc.variables_short[2]])
     plt.xlabel(r'$t$ [min]')
     plt.ylabel(r'concentration [nM]')
     plt.legend()
     plt.savefig(io_dict['basedir'] + os.sep + 'traj_example.jpg')
     plt.show()
+
