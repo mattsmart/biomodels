@@ -1,3 +1,11 @@
+import os
+import sys
+
+# IO: Default directories
+OSCILLATOR_NETWORKS = os.path.dirname(__file__)
+DIR_RUNS = 'runs'  # store timestamped runs here
+sys.path.append(OSCILLATOR_NETWORKS)
+
 # DEFAULTS: Integrating the ODE trajectory
 DYNAMICS_METHOD = 'libcall'
 DYNAMICS_METHODS_VALID = ['libcall', 'rk4', 'euler']

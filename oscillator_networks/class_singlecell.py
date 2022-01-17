@@ -4,8 +4,9 @@ import numpy as np
 import os
 
 from dynamics_generic import simulate_dynamics_general
-from settings import DYNAMICS_METHODS_VALID, DYNAMICS_METHOD, INIT_COND, TIME_START, TIME_END, NUM_STEPS
 from dynamics_vectorfields import set_params_ode, vectorfield_Yang2013
+from file_io import run_subdir_setup
+from settings import DYNAMICS_METHODS_VALID, DYNAMICS_METHOD, INIT_COND, TIME_START, TIME_END, NUM_STEPS, DIR_RUNS
 
 
 class SingleCell():
@@ -97,8 +98,11 @@ if __name__ == '__main__':
     print(r, times)
     print(r.shape)
 
+    io_dict = run_subdir_setup()
+
     plt.plot(times, r, label=['x', 'y', 'z'])
     plt.xlabel(r'$t$ [min]')
     plt.ylabel(r'concentration [nM]')
     plt.legend()
+    plt.savefig(io_dict['basedir'] + os.sep + 'traj_example.jpg')
     plt.show()
