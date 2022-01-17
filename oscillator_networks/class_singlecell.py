@@ -95,7 +95,7 @@ class SingleCell():
 
 if __name__ == '__main__':
     init_cond = (60.0, 0.0, 20.0)
-    sc = SingleCell(init_cond, label='cell_1')
+    sc = SingleCell(init_cond, label='c1')
     r, times = sc.trajectory(flag_info=True, dynamics_method='libcall')
     print(r, times)
     print(r.shape)
