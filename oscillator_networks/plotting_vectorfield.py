@@ -280,31 +280,36 @@ if __name__ == '__main__':
     single_cell = SingleCell(init_cond)
     plot_vectorfield_2D(single_cell)'''
 
-    params_Yang2013 = ode_choose_params('Yang2013')
-    ode_dict_Yang2013 = {
-        'style_ode': 'Yang2013',
-        'params': params_Yang2013
-    }
-    kwargs_Yang2013 = {
-        'z': 0
-    }
+    flag_Yang2013 = False
+    flag_PWL = True
 
-    vectorfield_general(ode_dict_Yang2013, axlow=0, axhigh=120, **kwargs_Yang2013)
-    contourplot_general(ode_dict_Yang2013, axlow=0, axhigh=120, **kwargs_Yang2013)
-    nullclines_general(ode_dict_Yang2013, axlow=0, axhigh=120, contour_labels=False, flip_axis=False, **kwargs_Yang2013)
-    nullclines_general(ode_dict_Yang2013, axlow=0, axhigh=120, contour_labels=False, flip_axis=True, **kwargs_Yang2013)
+    if flag_Yang2013:
+        params_Yang2013 = ode_choose_params('Yang2013')
+        ode_dict_Yang2013 = {
+            'style_ode': 'Yang2013',
+            'params': params_Yang2013
+        }
+        kwargs_Yang2013 = {
+            'z': 0
+        }
 
-    params_PWL = ode_choose_params('PWL')
-    ode_dict_PWL = {
-        'style_ode': 'PWL',
-        'params': params_PWL
-    }
-    kwargs_PWL = {
-        'z': 0,
-        't': 0
-    }
+        vectorfield_general(ode_dict_Yang2013, axlow=0, axhigh=120, **kwargs_Yang2013)
+        contourplot_general(ode_dict_Yang2013, axlow=0, axhigh=120, **kwargs_Yang2013)
+        nullclines_general(ode_dict_Yang2013, axlow=0, axhigh=120, contour_labels=False, flip_axis=False, **kwargs_Yang2013)
+        nullclines_general(ode_dict_Yang2013, axlow=0, axhigh=120, contour_labels=False, flip_axis=True, **kwargs_Yang2013)
 
-    vectorfield_general(ode_dict_PWL, axlow=-2.0, axhigh=2.0, **kwargs_PWL)
-    contourplot_general(ode_dict_Yang2013, axlow=-2.0, axhigh=2.0, **kwargs_Yang2013)
-    nullclines_general(ode_dict_PWL, axlow=-2.0, axhigh=2.0, contour_labels=False, flip_axis=False, **kwargs_PWL)
-    nullclines_general(ode_dict_PWL, axlow=-2.0, axhigh=2.0, contour_labels=False, flip_axis=True, **kwargs_PWL)
+    if flag_PWL:
+        params_PWL = ode_choose_params('PWL')
+        ode_dict_PWL = {
+            'style_ode': 'PWL',
+            'params': params_PWL
+        }
+        kwargs_PWL = {
+            'z': 0,
+            't': 0
+        }
+
+        vectorfield_general(ode_dict_PWL, axlow=-2.0, axhigh=2.0, **kwargs_PWL)
+        contourplot_general(ode_dict_PWL, axlow=-2.0, axhigh=2.0, **kwargs_PWL)
+        nullclines_general(ode_dict_PWL, axlow=-2.0, axhigh=2.0, contour_labels=False, flip_axis=False, **kwargs_PWL)
+        nullclines_general(ode_dict_PWL, axlow=-2.0, axhigh=2.0, contour_labels=False, flip_axis=True, **kwargs_PWL)
