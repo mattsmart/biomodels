@@ -48,11 +48,11 @@ def ode_choose_params(style_ode):
     return p
 
 
-def ode_choose_vectorfield(style_ode, params, x, y, two_dim=True, **kwargs):
+def ode_choose_vectorfield(style_ode, params, x, y, two_dim=True, **ode_kwargs):
     if style_ode == 'Yang2013':
-        dxdt = vectorfield_Yang2013(params, x, y, z=kwargs.get('z', 0), two_dim=two_dim)
+        dxdt = vectorfield_Yang2013(params, x, y, z=ode_kwargs.get('z', 0), two_dim=two_dim)
     elif style_ode == 'PWL':
-        dxdt = vectorfield_PWL(params, x, y, kwargs.get('t', 0), z=kwargs.get('z', 0), two_dim=two_dim)
+        dxdt = vectorfield_PWL(params, x, y, ode_kwargs.get('t', 0), z=ode_kwargs.get('z', 0), two_dim=two_dim)
     else:
         print("Warning: style_ode %s is not supported by get_params_ODE()" % style_ode)
         print("Supported odes include:", VALID_STYLE_ODE)

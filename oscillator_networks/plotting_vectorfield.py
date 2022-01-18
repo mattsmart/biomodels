@@ -142,21 +142,62 @@ def vectorfield_Yang2013(z=0):
     plt.show()
 
 
-def contourplot_Yang2013(z=0):
+def vectorfield_general(ode_dict, delta=0.5, axlow=0.0, axhigh=120.0, **ode_kwargs):
     """
-    Scalar z represents static Bam concentration
+    ode_kwargs:
+        'z': Scalar z represents static Bam concentration
+        't': Scalar t represents time
+    """
+    # Block for example code
+    # TODO replace
+    #ax_lims = 100
+    #Y, X = np.mgrid[0:ax_lims:100j, 0:ax_lims:100j]
+
+    x = np.arange(axlow, axhigh, delta)
+    y = np.arange(axlow, axhigh, delta)
+    X, Y = np.meshgrid(x, y)
+
+    params = ode_dict['params']
+    U, V = ode_choose_vectorfield(ode_dict['style_ode'], params, X, Y, two_dim=True, **ode_kwargs)
+    U = nan_mask(U)
+    V = nan_mask(V)
+
+    # Block for example code
+    speed = np.sqrt(U**2 + V**2)
+    lw = 5 * speed / speed.max()
+
+    fig = plt.figure(figsize=(7, 9))
+
+    #  Varying density along a streamline
+    plt.axhline(0, linestyle='--', color='k')
+    plt.axvline(0, linestyle='--', color='k')
+
+    ax0 = fig.gca()
+    strm = ax0.streamplot(X, Y, U, V, density=[0.5, 1], color=speed, linewidth=lw)
+    fig.colorbar(strm.lines)
+    ax0.set_title('Varying Density, Color, Linewidth')
+    ax0.set_xlabel('U')
+    ax0.set_ylabel('V')
+
+    plt.tight_layout()
+    plt.show()
+
+
+def contourplot_general(ode_dict, delta=0.5, axlow=0.0, axhigh=120.0, **ode_kwargs):
+    """
+    ode_kwargs:
+        'z': Scalar z represents static Bam concentration
+        't': Scalar t represents time
     """
     #ax_lims = 100
     #Y, X = np.mgrid[0:ax_lims:100j, 0:ax_lims:100j]
 
-    delta = 0.5
-    x = np.arange(0, 100.0, delta)
-    y = np.arange(0, 100.0, delta)
+    x = np.arange(axlow, axhigh, delta)
+    y = np.arange(axlow, axhigh, delta)
     X, Y = np.meshgrid(x, y)
 
-    params = ode_choose_params('Yang2013')
-    U, V = vectorfield_Yang2013(params, X, Y, z=z, two_dim=True)
-
+    params = ode_dict['params']
+    U, V = ode_choose_vectorfield(ode_dict['style_ode'], params, X, Y, two_dim=True, **ode_kwargs)
     U = nan_mask(U)
     V = nan_mask(V)
 
@@ -184,7 +225,7 @@ def contourplot_Yang2013(z=0):
 
 def nullclines_general(ode_dict, flip_axis=False, contour_labels=True,
                        x_str=r'Cyc$_{act}$', y_str=r'Cyc$_{tot}$',
-                       delta=0.5, axlow=-2.0, axhigh=2.0):
+                       delta=0.5, axlow=0.0, axhigh=120.0, **ode_kwargs):
     """
     style_dict has the form
         'style_ode': 'PWL' or 'Yang2013'
@@ -197,9 +238,7 @@ def nullclines_general(ode_dict, flip_axis=False, contour_labels=True,
     X, Y = np.meshgrid(x, y)
 
     params = ode_dict['params']
-    kwargs = {'t': ode_dict.get('t', 0),
-              'z': ode_dict.get('z', 0)}
-    U, V = ode_choose_vectorfield(ode_dict['style_ode'], params, X, Y, two_dim=True, **kwargs)
+    U, V = ode_choose_vectorfield(ode_dict['style_ode'], params, X, Y, two_dim=True, **ode_kwargs)
     U = nan_mask(U)
     V = nan_mask(V)
 
@@ -234,38 +273,38 @@ def nullclines_general(ode_dict, flip_axis=False, contour_labels=True,
 
 
 if __name__ == '__main__':
+    '''
     #example_vectorfield()
 
-    """vectorfield_Yang2013()
-    contourplot_Yang2013()
-    nullclines_Yang2013()
-    nullclines_Yang2013(flip_axis=True)"""
-
-    #TODO generalize vectorfield_PWL()
-    #TODO generalize contourplot_PWL()
-
-    '''
-    #sinit_cond = (10.0, 0, 0)
-    #single_cell = SingleCell(init_cond)
-    #plot_vectorfield_2D(single_cell)'''
+    sinit_cond = (10.0, 0, 0)
+    single_cell = SingleCell(init_cond)
+    plot_vectorfield_2D(single_cell)'''
 
     params_Yang2013 = ode_choose_params('Yang2013')
     ode_dict_Yang2013 = {
         'style_ode': 'Yang2013',
-        'params': params_Yang2013,
+        'params': params_Yang2013
+    }
+    kwargs_Yang2013 = {
         'z': 0
     }
 
-    nullclines_general(ode_dict_Yang2013, axlow=0, axhigh=120, contour_labels=False, flip_axis=False)
-    nullclines_general(ode_dict_Yang2013, axlow=0, axhigh=120, contour_labels=False, flip_axis=True)
+    vectorfield_general(ode_dict_Yang2013, axlow=0, axhigh=120, **kwargs_Yang2013)
+    contourplot_general(ode_dict_Yang2013, axlow=0, axhigh=120, **kwargs_Yang2013)
+    nullclines_general(ode_dict_Yang2013, axlow=0, axhigh=120, contour_labels=False, flip_axis=False, **kwargs_Yang2013)
+    nullclines_general(ode_dict_Yang2013, axlow=0, axhigh=120, contour_labels=False, flip_axis=True, **kwargs_Yang2013)
 
     params_PWL = ode_choose_params('PWL')
     ode_dict_PWL = {
         'style_ode': 'PWL',
-        'params': params_PWL,
+        'params': params_PWL
+    }
+    kwargs_PWL = {
         'z': 0,
         't': 0
     }
 
-    nullclines_general(ode_dict_PWL, axlow=-2.0, axhigh=2.0, contour_labels=False, flip_axis=False)
-    nullclines_general(ode_dict_PWL, axlow=-2.0, axhigh=2.0, contour_labels=False, flip_axis=True)
+    vectorfield_general(ode_dict_PWL, axlow=-2.0, axhigh=2.0, **kwargs_PWL)
+    contourplot_general(ode_dict_Yang2013, axlow=-2.0, axhigh=2.0, **kwargs_Yang2013)
+    nullclines_general(ode_dict_PWL, axlow=-2.0, axhigh=2.0, contour_labels=False, flip_axis=False, **kwargs_PWL)
+    nullclines_general(ode_dict_PWL, axlow=-2.0, axhigh=2.0, contour_labels=False, flip_axis=True, **kwargs_PWL)

@@ -52,11 +52,11 @@ class SingleCell():
             print('Error: invalid self.style_ode', self.style_ode)
             print("Supported odes include:", VALID_STYLE_ODE)
             vectorfield = None'''
-        kwargs = {
+        ode_kwargs = {
             'z': z,
             't': t
         }
-        dxdt = ode_choose_vectorfield(self.style_ode, self.params_ode, x, y, two_dim=False, **kwargs)
+        dxdt = ode_choose_vectorfield(self.style_ode, self.params_ode, x, y, two_dim=False, **ode_kwargs)
         return dxdt
 
     def trajectory(self, init_cond=None, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
