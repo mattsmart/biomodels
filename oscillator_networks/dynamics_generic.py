@@ -27,17 +27,19 @@ def simulate_dynamics_general(init_cond, times, single_cell, method="libcall"):
     return r, times
 
 
-def ode_system_vector(init_cond, times, single_cell):
+def ode_system_vector(init_cond, t, single_cell):
     """
-    single_cell is an instance of SingleCell
+    Wrapper used by ode_libcall [format is: traj = odeint(fn, x0, t, args=(b, c))]
+    - single_cell is an instance of SingleCell
     """
-    dxvec_dt = single_cell.ode_system_vector(init_cond)
+    dxvec_dt = single_cell.ode_system_vector(init_cond, t)
     return dxvec_dt
 
 
 def system_vector_obj_ode(t_scalar, r_idx, single_cell):
     """
-    single_cell is an instance of SingleCell
+    Wrapper used by ode_rk4
+    - single_cell is an instance of SingleCell
     """
     return ode_system_vector(r_idx, t_scalar, single_cell)
 

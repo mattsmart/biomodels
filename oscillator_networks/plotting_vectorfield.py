@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from class_singlecell import SingleCell
-from dynamics_vectorfields import set_params_ode, vectorfield_Yang2013
+from dynamics_vectorfields import set_params_ode, vectorfield_Yang2013, vectorfield_PWL
 
 '''
 def plot_vectorfield_2D(single_cell, streamlines=True, ax=None):
@@ -107,7 +107,7 @@ def example_vectorfield():
     return
 
 
-def Yang2013_vectorfield(z=0):
+def vectorfield_Yang2013(z=0):
     """
     Scalar z represents static Bam concentration
     """
@@ -142,7 +142,7 @@ def Yang2013_vectorfield(z=0):
     plt.show()
 
 
-def Yang2013_contourplot(z=0):
+def contourplot_Yang2013(z=0):
     """
     Scalar z represents static Bam concentration
     """
@@ -182,7 +182,7 @@ def Yang2013_contourplot(z=0):
     plt.show()
 
 
-def Yang2013_nullclines(z=0, flip_axis=False):
+def nullclines_Yang2013(z=0, flip_axis=False):
     delta = 0.5
     axmax = 150.0
     x = np.arange(0, axmax, delta)
@@ -221,13 +221,58 @@ def Yang2013_nullclines(z=0, flip_axis=False):
     plt.show()
 
 
+def nullclines_PWL(t=0, flip_axis=False, contour_labels=True):
+    delta = 0.5
+    axmax = 2.0
+    x = np.arange(-axmax, axmax, delta)
+    y = np.arange(-axmax, axmax, delta)
+    X, Y = np.meshgrid(x, y)
+
+    params = set_params_ode('PWL')
+    U, V = vectorfield_PWL(params, X, Y, t, z=0, two_dim=True)
+
+    U = nan_mask(U)
+    V = nan_mask(V)
+
+    x_label = 'x'
+    y_label = 'y'
+    if flip_axis:
+        # swap X, Y
+        tmp = X
+        X = Y
+        Y = tmp
+        # swap labels
+        tmp = x_label
+        x_label = y_label
+        y_label = tmp
+
+    plt.figure(figsize=(5, 5))
+    ax = plt.gca()
+    # plot nullclines
+    nullcline_u = ax.contour(X, Y, U, (0,), colors='b', linewidths=1.5)
+    nullcline_v = ax.contour(X, Y, V, (0,), colors='r', linewidths=1.5)
+    if contour_labels:
+        ax.clabel(nullcline_u, inline=1, fmt='X nc', fontsize=10)
+        ax.clabel(nullcline_v, inline=1, fmt='Y nc', fontsize=10)
+    # plot labels
+    ax.set_title('X, Y nullclines overlaid (blue=X, red=Y)')
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+    plt.show()
+
+
 if __name__ == '__main__':
     #example_vectorfield()
 
-    Yang2013_vectorfield()
-    Yang2013_contourplot()
-    Yang2013_nullclines()
-    Yang2013_nullclines(flip_axis=True)
+    """vectorfield_Yang2013()
+    contourplot_Yang2013()
+    nullclines_Yang2013()
+    nullclines_Yang2013(flip_axis=True)"""
+
+    #TODO generalize vectorfield_PWL()
+    #TODO generalize contourplot_PWL()
+    nullclines_PWL(t=0, contour_labels=False)
+    nullclines_PWL(t=0, contour_labels=False, flip_axis=True)
 
     #sinit_cond = (10.0, 0, 0)
     #single_cell = SingleCell(init_cond)

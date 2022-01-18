@@ -4,14 +4,14 @@ import numpy as np
 import os
 
 from dynamics_generic import simulate_dynamics_general
-from dynamics_vectorfields import set_params_ode, vectorfield_Yang2013
+from dynamics_vectorfields import set_params_ode, vectorfield_Yang2013, vectorfield_PWL
 from file_io import run_subdir_setup
-from settings import DYNAMICS_METHODS_VALID, DYNAMICS_METHOD, INIT_COND, TIME_START, TIME_END, NUM_STEPS, DIR_RUNS
+from settings import DYNAMICS_METHOD, VALID_STYLE_ODE, TIME_START, TIME_END, NUM_STEPS, STYLE_ODE
 
 
 class SingleCell():
 
-    def __init__(self, init_cond, label=''):
+    def __init__(self, init_cond, style_ode=STYLE_ODE, label=''):
         """
         For numeric cell labels (network growth), use label='%d' % idx, for instance
         """
@@ -19,10 +19,9 @@ class SingleCell():
         self.dim_misc = 2          # dimension of misc. variables (e.g. fusome content)
         self.num_variables = self.dim_ode + self.dim_misc
         self.state_ode = init_cond
-        self.style_ode = 'Yang2013'
+        self.style_ode = style_ode
 
         # make this flexible if other single cell ODEs are used
-        assert self.style_ode == 'Yang2013'
         self.params_ode = set_params_ode(self.style_ode)
 
         # setup names for all dynamical variables
@@ -41,14 +40,16 @@ class SingleCell():
                 self.variables_short[idx] += '_%s' % label
                 self.variables_long[idx] += ' (Cell %s)' % label
 
-    def ode_system_vector(self, init_cond):
+    def ode_system_vector(self, init_cond, t):
         p = self.params_ode  # TODO if there is feedback these 'constants' might be pseudo-dynamic [see xyz params.py]
         x, y, z = init_cond
         if self.style_ode == 'Yang2013':
             vectorfield = vectorfield_Yang2013(self.params_ode, x, y, z=z, two_dim=False)
+        elif self.style_ode == 'PWL':
+            vectorfield = vectorfield_PWL(self.params_ode, x, y, t, z=z, two_dim=False)
         else:
             print('Error: invalid self.style_ode', self.style_ode)
-            assert self.style_ode == 'Yang2013'
+            print("Supported odes include:", VALID_STYLE_ODE)
             vectorfield = None
 
         return vectorfield
@@ -94,9 +95,9 @@ class SingleCell():
 
 
 if __name__ == '__main__':
-    init_cond = (60.0, 0.0, 20.0)
-    sc = SingleCell(init_cond, label='c1')
-    r, times = sc.trajectory(flag_info=True, dynamics_method='libcall')
+    init_cond = (60.0, 0.0, 0.0)
+    sc = SingleCell(init_cond, label='c1', style_ode='PWL')
+    r, times = sc.trajectory(flag_info=True, dynamics_method='libcall', t1=50)
     print(r, times)
     print(r.shape)
 

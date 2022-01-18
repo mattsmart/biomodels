@@ -1,5 +1,7 @@
 import numpy as np
 
+from settings import VALID_STYLE_ODE
+
 
 def set_params_ode(style_ode):
     if style_ode == 'Yang2013':
@@ -19,12 +21,30 @@ def set_params_ode(style_ode):
             'EC50_Wee1': 30,  # nM
             'n_Wee1': 3.5,  # unitless
         }
+        # add any extra parameters that are separate from Yang2013
+        p['Bam_activity'] = 1  # as indicated in SmallCellCluster review draft p7
+        p['Bam_deg'] = 0  # degradation rate; arbitrary, try 0 or 1e-2 to 1e-4
+    elif style_ode == 'PWL':
+        """ Notes from Hayden slide 12:
+        - ((1−𝛾))/2𝜀𝛾 is duration that green intersects red between extrema of red
+        - the free params are 𝑎, 𝐼, 𝜀𝛾/(1+𝛾)
+        - Maybe specify conditions on 𝛾
+        """
+        p = {
+            'C': 1e-1,         # speed scale for fast variable Cyc_act
+            'a': 1e-1,         # defines the corners of PWL function
+            'gamma': 1e-1,    # degradation of Cyc_tot
+            'epsilon': 1e-1,  # rate of inhibitor accumulation
+            'I_initial': 0    # initial ihibitor
+        }
+        assert 0 < p['C'] < 1
+        assert 0 < p['gamma']
+        assert 0 < p['epsilon']
+
     else:
         print("Warning: style_ode %s is not supported by get_params_ODE()" % style_ode)
+        print("Supported odes include:", VALID_STYLE_ODE)
         p = {}
-    # add any extra parameters that are generic
-    p['Bam_activity'] = 1  # as indicated in SmallCellCluster review draft p7
-    p['Bam_deg'] = 0  # degradation rate; arbitrary, try 0 or 1e-2 to 1e-4
     return p
 
 
@@ -59,6 +79,66 @@ def vectorfield_Yang2013(params, x, y, z=0, two_dim=True):
     dydt = p['k_synth'] - degradation_scaled * y
     #dzdt = np.zeros_like(dxdt)
     dzdt = -p['Bam_deg'] * z
+
+    if two_dim:
+        out = [dxdt, dydt]
+    else:
+        out = [dxdt, dydt, dzdt]
+
+    return out
+
+
+def PWL_f_of_x_SCALAR(params, x):
+    """
+    Currently unused; see vectorized variant PWL_f_of_x()
+    :param params:
+    :param x:
+    :return:
+    """
+    a = params['a']
+    if x < (a/2):
+        f = -x
+    elif x <= ((1+a)/2):
+        f = x - a
+    else:
+        f = 1 - x
+    return f
+
+
+def PWL_f_of_x(params, x):
+    a = params['a']
+    f1 = np.where(x < a/2, -x, 0)
+    f2 = np.where(
+        ((a/2) <= x) & (x < ((1+a)/2)),
+        x - a, 0)
+    f3 = np.where(x > ((1+a)/2), 1 - x, 0)
+    f = f1 + f2 + f3
+    return f
+
+
+def PWL_I_of_t(params, t):
+    I = params['I_initial'] + params['epsilon'] * t
+    return I
+
+
+def vectorfield_PWL(params, x, y, t, z=0, two_dim=True):
+    """
+    Args:
+        params - dictionary of ODE parameters used by piecewise linear ODE system
+        x - array-like
+        y - array-like
+        z - array-like
+        t - time corresponding to integration variable (non-autonomous system)
+    Returns:
+        array like of shape [x, y] or [x, y, z] depending on two_dim flag
+    """
+    inhibition_of_t = PWL_I_of_t(params, t)
+    f_of_x = PWL_f_of_x(params, x)
+
+    dxdt = f_of_x - y + inhibition_of_t
+    dydt = x - params['gamma'] * y
+    dzdt = np.zeros_like(dxdt)
+    #dzdt = -p['Bam_deg'] * z
 
     if two_dim:
         out = [dxdt, dydt]
