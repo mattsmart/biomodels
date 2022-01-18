@@ -1,14 +1,18 @@
 import numpy as np
-from scipy.integrate import ode, odeint
+from scipy.integrate import ode, odeint, solve_ivp
 
 from settings import DYNAMICS_METHODS_VALID, DYNAMICS_METHOD
 
 
-def simulate_dynamics_general(init_cond, times, single_cell, method="libcall"):
+def simulate_dynamics_general(init_cond, times, single_cell, method="solve_ivp"):
     """
     single_cell is an instance of SingleCell
+    See documentation on SciPy mehods here
+    - https://docs.scipy.org/doc/scipy/reference/integrate.html
     """
-    if method == "libcall":
+    if method == 'solve_ivp':
+        r, times = ode_solve_ivp(init_cond, times, single_cell)
+    elif method == "libcall":
         r, times = ode_libcall(init_cond, times, single_cell)
     elif method == "rk4":
         r, times = ode_rk4(init_cond, times, single_cell)
@@ -82,4 +86,19 @@ def ode_libcall(init_cond, times, single_cell):
     """
     fn = ode_system_vector
     r = odeint(fn, init_cond, times, args=(single_cell,))
+    return r, times
+
+
+def ode_solve_ivp(init_cond, times, single_cell, method='Radau'):
+    """
+    single_cell is an instance of SingleCell
+    method: see documentation here
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.solve_ivp.html#scipy.integrate.solve_ivp
+    - stiff case: try 'Radau', 'BDF', 'LSODA'
+    """
+    fn = system_vector_obj_ode
+    time_interval = [times[0], times[-1]]
+    sol = solve_ivp(fn, time_interval, init_cond, method=method, vectorized=True, args=(single_cell,))
+    r = np.transpose(sol.y)
+    times = sol.t
     return r, times

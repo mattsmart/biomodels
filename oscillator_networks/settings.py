@@ -7,8 +7,8 @@ DIR_RUNS = 'runs'  # store timestamped runs here
 sys.path.append(OSCILLATOR_NETWORKS)
 
 # DEFAULTS: Integrating the ODE trajectory
-DYNAMICS_METHOD = 'libcall'
-DYNAMICS_METHODS_VALID = ['libcall', 'rk4', 'euler']
+DYNAMICS_METHOD = 'solve_ivp'
+DYNAMICS_METHODS_VALID = ['solve_ivp', 'libcall', 'rk4', 'euler']
 
 # DEFAULTS: dynamical system
 VALID_STYLE_ODE = ['Yang2013', 'PWL']

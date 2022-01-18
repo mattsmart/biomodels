@@ -45,15 +45,6 @@ class SingleCell():
     def ode_system_vector(self, init_cond, t):
         p = self.params_ode  # TODO if there is feedback these 'constants' might be pseudo-dynamic [see xyz params.py]
         x, y, z = init_cond
-        '''
-        if self.style_ode == 'Yang2013':
-            vectorfield = vectorfield_Yang2013(self.params_ode, x, y, z=z, two_dim=False)
-        elif self.style_ode == 'PWL':
-            vectorfield = vectorfield_PWL(self.params_ode, x, y, t, z=z, two_dim=False)
-        else:
-            print('Error: invalid self.style_ode', self.style_ode)
-            print("Supported odes include:", VALID_STYLE_ODE)
-            vectorfield = None'''
         ode_kwargs = {
             'z': z,
             't': t
@@ -112,7 +103,7 @@ class SingleCell():
 if __name__ == '__main__':
     init_cond = (60.0, 0.0, 0.0)
     sc = SingleCell(init_cond, label='c1', style_ode='Yang2013')
-    r, times = sc.trajectory(flag_info=True, dynamics_method='libcall')
+    r, times = sc.trajectory(flag_info=True, dynamics_method='solve_ivp')
     print(r, times)
     print(r.shape)
 
