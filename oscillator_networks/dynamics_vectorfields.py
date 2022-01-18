@@ -3,7 +3,7 @@ import numpy as np
 from settings import VALID_STYLE_ODE
 
 
-def set_params_ode(style_ode):
+def ode_choose_params(style_ode):
     if style_ode == 'Yang2013':
         # reference is Yang2013 Table S1
         p = {
@@ -46,6 +46,18 @@ def set_params_ode(style_ode):
         print("Supported odes include:", VALID_STYLE_ODE)
         p = {}
     return p
+
+
+def ode_choose_vectorfield(style_ode, params, x, y, two_dim=True, **kwargs):
+    if style_ode == 'Yang2013':
+        dxdt = vectorfield_Yang2013(params, x, y, z=kwargs.get('z', 0), two_dim=two_dim)
+    elif style_ode == 'PWL':
+        dxdt = vectorfield_PWL(params, x, y, kwargs.get('t', 0), z=kwargs.get('z', 0), two_dim=two_dim)
+    else:
+        print("Warning: style_ode %s is not supported by get_params_ODE()" % style_ode)
+        print("Supported odes include:", VALID_STYLE_ODE)
+        dxdt = None
+    return dxdt
 
 
 def vectorfield_Yang2013(params, x, y, z=0, two_dim=True):
@@ -91,9 +103,6 @@ def vectorfield_Yang2013(params, x, y, z=0, two_dim=True):
 def PWL_f_of_x_SCALAR(params, x):
     """
     Currently unused; see vectorized variant PWL_f_of_x()
-    :param params:
-    :param x:
-    :return:
     """
     a = params['a']
     if x < (a/2):

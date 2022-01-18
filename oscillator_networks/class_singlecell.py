@@ -4,7 +4,7 @@ import numpy as np
 import os
 
 from dynamics_generic import simulate_dynamics_general
-from dynamics_vectorfields import set_params_ode, vectorfield_Yang2013, vectorfield_PWL
+from dynamics_vectorfields import ode_choose_params, vectorfield_Yang2013, vectorfield_PWL, ode_choose_vectorfield
 from file_io import run_subdir_setup
 from settings import DYNAMICS_METHOD, VALID_STYLE_ODE, TIME_START, TIME_END, NUM_STEPS, STYLE_ODE
 
@@ -22,7 +22,7 @@ class SingleCell():
         self.style_ode = style_ode
 
         # make this flexible if other single cell ODEs are used
-        self.params_ode = set_params_ode(self.style_ode)
+        self.params_ode = ode_choose_params(self.style_ode)
 
         # setup names for all dynamical variables
         self.variables_short = {0: 'Cyc_act',
@@ -43,6 +43,7 @@ class SingleCell():
     def ode_system_vector(self, init_cond, t):
         p = self.params_ode  # TODO if there is feedback these 'constants' might be pseudo-dynamic [see xyz params.py]
         x, y, z = init_cond
+        '''
         if self.style_ode == 'Yang2013':
             vectorfield = vectorfield_Yang2013(self.params_ode, x, y, z=z, two_dim=False)
         elif self.style_ode == 'PWL':
@@ -50,9 +51,13 @@ class SingleCell():
         else:
             print('Error: invalid self.style_ode', self.style_ode)
             print("Supported odes include:", VALID_STYLE_ODE)
-            vectorfield = None
-
-        return vectorfield
+            vectorfield = None'''
+        kwargs = {
+            'z': z,
+            't': t
+        }
+        dxdt = ode_choose_vectorfield(self.style_ode, self.params_ode, x, y, two_dim=False, **kwargs)
+        return dxdt
 
     def trajectory(self, init_cond=None, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
                    dynamics_method=DYNAMICS_METHOD, flag_info=False):
@@ -109,4 +114,3 @@ if __name__ == '__main__':
     plt.legend()
     plt.savefig(io_dict['basedir'] + os.sep + 'traj_example.jpg')
     plt.show()
-

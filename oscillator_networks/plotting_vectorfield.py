@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from class_singlecell import SingleCell
-from dynamics_vectorfields import set_params_ode, vectorfield_Yang2013, vectorfield_PWL
+from dynamics_vectorfields import ode_choose_params, vectorfield_Yang2013, ode_choose_vectorfield
 
 '''
 def plot_vectorfield_2D(single_cell, streamlines=True, ax=None):
@@ -115,7 +115,7 @@ def vectorfield_Yang2013(z=0):
     ax_lims = 100
     Y, X = np.mgrid[0:ax_lims:100j, 0:ax_lims:100j]
 
-    params = set_params_ode('Yang2013')
+    params = ode_choose_params('Yang2013')
     U, V = vectorfield_Yang2013(params, X, Y, z=z, two_dim=True)
 
     U = nan_mask(U)
@@ -154,7 +154,7 @@ def contourplot_Yang2013(z=0):
     y = np.arange(0, 100.0, delta)
     X, Y = np.meshgrid(x, y)
 
-    params = set_params_ode('Yang2013')
+    params = ode_choose_params('Yang2013')
     U, V = vectorfield_Yang2013(params, X, Y, z=z, two_dim=True)
 
     U = nan_mask(U)
@@ -182,69 +182,38 @@ def contourplot_Yang2013(z=0):
     plt.show()
 
 
-def nullclines_Yang2013(z=0, flip_axis=False):
-    delta = 0.5
-    axmax = 150.0
-    x = np.arange(0, axmax, delta)
-    y = np.arange(0, axmax, delta)
+def nullclines_general(ode_dict, flip_axis=False, contour_labels=True,
+                       x_str=r'Cyc$_{act}$', y_str=r'Cyc$_{tot}$',
+                       delta=0.5, axlow=-2.0, axhigh=2.0):
+    """
+    style_dict has the form
+        'style_ode': 'PWL' or 'Yang2013'
+        'params': params dict
+        't': optional parameter for PWL
+        'z': optional parameter for Yang2013
+    """
+    x = np.arange(axlow, axhigh, delta)
+    y = np.arange(axlow, axhigh, delta)
     X, Y = np.meshgrid(x, y)
 
-    params = set_params_ode('Yang2013')
-    U, V = vectorfield_Yang2013(params, X, Y, z=z, two_dim=True)
-
+    params = ode_dict['params']
+    kwargs = {'t': ode_dict.get('t', 0),
+              'z': ode_dict.get('z', 0)}
+    U, V = ode_choose_vectorfield(ode_dict['style_ode'], params, X, Y, two_dim=True, **kwargs)
     U = nan_mask(U)
     V = nan_mask(V)
 
-    x_label = 'x'
-    y_label = 'y'
     if flip_axis:
         # swap X, Y
         tmp = X
         X = Y
         Y = tmp
         # swap labels
-        tmp = x_label
-        x_label = y_label
-        y_label = tmp
-
-    plt.figure(figsize=(5, 5))
-    ax = plt.gca()
-    # plot nullclines
-    nullcline_u = ax.contour(X, Y, U, (0,), colors='b', linewidths=1.5)
-    ax.clabel(nullcline_u, inline=1, fmt='X nc', fontsize=10)
-    nullcline_v = ax.contour(X, Y, V, (0,), colors='r', linewidths=1.5)
-    ax.clabel(nullcline_v, inline=1, fmt='Y nc', fontsize=10)
-    # plot labels
-    ax.set_title('X, Y nullclines overlaid (blue=X, red=Y)')
-    ax.set_xlabel(x_label)
-    ax.set_ylabel(y_label)
-    plt.show()
-
-
-def nullclines_PWL(t=0, flip_axis=False, contour_labels=True):
-    delta = 0.5
-    axmax = 2.0
-    x = np.arange(-axmax, axmax, delta)
-    y = np.arange(-axmax, axmax, delta)
-    X, Y = np.meshgrid(x, y)
-
-    params = set_params_ode('PWL')
-    U, V = vectorfield_PWL(params, X, Y, t, z=0, two_dim=True)
-
-    U = nan_mask(U)
-    V = nan_mask(V)
-
-    x_label = 'x'
-    y_label = 'y'
-    if flip_axis:
-        # swap X, Y
-        tmp = X
-        X = Y
-        Y = tmp
-        # swap labels
-        tmp = x_label
-        x_label = y_label
-        y_label = tmp
+        label_x = y_str
+        label_y = x_str
+    else:
+        label_x = x_str
+        label_y = y_str
 
     plt.figure(figsize=(5, 5))
     ax = plt.gca()
@@ -254,10 +223,13 @@ def nullclines_PWL(t=0, flip_axis=False, contour_labels=True):
     if contour_labels:
         ax.clabel(nullcline_u, inline=1, fmt='X nc', fontsize=10)
         ax.clabel(nullcline_v, inline=1, fmt='Y nc', fontsize=10)
+    # gridlines
+    plt.axhline(0, linewidth=1, color='k', linestyle='--')
+    plt.axvline(0, linewidth=1, color='k', linestyle='--')
     # plot labels
-    ax.set_title('X, Y nullclines overlaid (blue=X, red=Y)')
-    ax.set_xlabel(x_label)
-    ax.set_ylabel(y_label)
+    ax.set_title('%s nullclines (blue=%s, red=%s)' % (ode_dict['style_ode'], x_str, y_str))
+    ax.set_xlabel(label_x)
+    ax.set_ylabel(label_y)
     plt.show()
 
 
@@ -271,9 +243,29 @@ if __name__ == '__main__':
 
     #TODO generalize vectorfield_PWL()
     #TODO generalize contourplot_PWL()
-    nullclines_PWL(t=0, contour_labels=False)
-    nullclines_PWL(t=0, contour_labels=False, flip_axis=True)
 
+    '''
     #sinit_cond = (10.0, 0, 0)
     #single_cell = SingleCell(init_cond)
-    #plot_vectorfield_2D(single_cell)
+    #plot_vectorfield_2D(single_cell)'''
+
+    params_Yang2013 = ode_choose_params('Yang2013')
+    ode_dict_Yang2013 = {
+        'style_ode': 'Yang2013',
+        'params': params_Yang2013,
+        'z': 0
+    }
+
+    nullclines_general(ode_dict_Yang2013, axlow=0, axhigh=120, contour_labels=False, flip_axis=False)
+    nullclines_general(ode_dict_Yang2013, axlow=0, axhigh=120, contour_labels=False, flip_axis=True)
+
+    params_PWL = ode_choose_params('PWL')
+    ode_dict_PWL = {
+        'style_ode': 'PWL',
+        'params': params_PWL,
+        'z': 0,
+        't': 0
+    }
+
+    nullclines_general(ode_dict_PWL, axlow=-2.0, axhigh=2.0, contour_labels=False, flip_axis=False)
+    nullclines_general(ode_dict_PWL, axlow=-2.0, axhigh=2.0, contour_labels=False, flip_axis=True)
