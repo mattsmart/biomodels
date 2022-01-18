@@ -3,7 +3,8 @@ import sys
 
 # IO: Default directories
 OSCILLATOR_NETWORKS = os.path.dirname(__file__)
-DIR_RUNS = 'runs'  # store timestamped runs here
+DIR_RUNS = 'runs'      # store timestamped runs here
+DIR_OUTPUT = 'output'  # misc output like simple plots
 sys.path.append(OSCILLATOR_NETWORKS)
 
 # DEFAULTS: Integrating the ODE trajectory

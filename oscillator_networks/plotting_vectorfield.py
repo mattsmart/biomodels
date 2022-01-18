@@ -1,10 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 from class_singlecell import SingleCell
 from dynamics_generic import simulate_dynamics_general
 from dynamics_vectorfields import ode_choose_params, ode_choose_vectorfield, ode_integration_defaults
-from settings import DYNAMICS_METHOD, STYLE_ODE, PLOT_XLABEL, PLOT_YLABEL
+from settings import DYNAMICS_METHOD, DIR_OUTPUT, PLOT_XLABEL, PLOT_YLABEL
 
 '''
 def plot_vectorfield_2D(single_cell, streamlines=True, ax=None):
@@ -109,12 +110,11 @@ def example_vectorfield():
     return
 
 
-def phaseplot_general(ode_dict, init_conds=None, dynamics_method=DYNAMICS_METHOD, axlow=0., axhigh=120., k=10, ax=None):
+def phaseplot_general(ode_dict, init_conds=None, dynamics_method=DYNAMICS_METHOD, axlow=0., axhigh=120., ax=None):
     """
     ode_kwargs:
         'z': Scalar z represents static Bam concentration
         't': Scalar t represents time
-    k is the number of points between arrows along the trajectory
     """
     # integration parameters
     t0, t1, num_steps, _ = ode_integration_defaults(ode_dict['style_ode'])
@@ -135,15 +135,16 @@ def phaseplot_general(ode_dict, init_conds=None, dynamics_method=DYNAMICS_METHOD
         nn = 10
         np.random.seed(0)
         init_conds = np.random.uniform(low=axlow, high=axhigh, size=(nn, 3))
+        init_conds[:, 2] = 0  # fix z = 0 for all trajectories
 
     for init_cond in init_conds:
-        print(init_cond.shape, init_cond)
         single_cell = SingleCell(init_cond, style_ode=ode_dict['style_ode'], params_ode=ode_dict['params'], label='')
         r, times = simulate_dynamics_general(init_cond, times, single_cell, method=dynamics_method)
         ax.plot(r[:, 0], r[:, 1], '-.', linewidth=0.5)
         # draw arrows every k points
         """
         # Note: see mpl quiver to do this vectorized
+        k = 10
         for idx in range(0, num_steps, k):
             arrow_vec = r[idx+1, :] - r[idx,:]
             dx, dy, _ = arrow_vec
@@ -159,9 +160,10 @@ def phaseplot_general(ode_dict, init_conds=None, dynamics_method=DYNAMICS_METHOD
     ax.set_xlabel(PLOT_XLABEL)
     ax.set_ylabel(PLOT_YLABEL)
     ax.set_title('Example trajectories')
-    plt.savefig('test_arrows.pdf')
+    plt.savefig(DIR_OUTPUT + os.sep + 'phaseplot_%s.pdf' % ode_dict['style_ode'])
     plt.show()
     return ax
+
 
 def vectorfield_general(ode_dict, delta=0.1, axlow=0.0, axhigh=120.0, **ode_kwargs):
     """
@@ -203,9 +205,6 @@ def contourplot_general(ode_dict, delta=0.1, axlow=0.0, axhigh=120.0, **ode_kwar
         'z': Scalar z represents static Bam concentration
         't': Scalar t represents time
     """
-    #ax_lims = 100
-    #Y, X = np.mgrid[0:ax_lims:100j, 0:ax_lims:100j]
-
     x = np.arange(axlow, axhigh, delta)
     y = np.arange(axlow, axhigh, delta)
     X, Y = np.meshgrid(x, y)
@@ -286,12 +285,6 @@ def nullclines_general(ode_dict, flip_axis=False, contour_labels=True,
 
 
 if __name__ == '__main__':
-    '''
-    #example_vectorfield()
-
-    sinit_cond = (10.0, 0, 0)
-    single_cell = SingleCell(init_cond)
-    plot_vectorfield_2D(single_cell)'''
 
     flag_Yang2013 = True
     flag_PWL = True
