@@ -32,10 +32,10 @@ def ode_choose_params(style_ode):
         """
         p = {
             'C': 1e-1,         # speed scale for fast variable Cyc_act
-            'a': 1e-1,         # defines the corners of PWL function
+            'a': 2,         # defines the corners of PWL function
             'gamma': 1e-1,    # degradation of Cyc_tot
             'epsilon': 1e-1,  # rate of inhibitor accumulation
-            'I_initial': 0    # initial ihibitor
+            'I_initial': 0    # initial inhibitor
         }
         assert 0 < p['C'] < 1
         assert 0 < p['gamma']
@@ -58,6 +58,25 @@ def ode_choose_vectorfield(style_ode, params, x, y, two_dim=True, **ode_kwargs):
         print("Supported odes include:", VALID_STYLE_ODE)
         dxdt = None
     return dxdt
+
+
+def ode_integration_defaults(style_ode):
+    t0 = 0.0
+    if style_ode == 'Yang2013':
+        t1 = 800
+        num_steps = 2000
+        init_cond = [60.0, 0.0, 0.0]
+    elif style_ode == 'PWL':
+        t1 = 50
+        num_steps = 2000
+        init_cond = [5.0, 0.0, 0.0]
+    else:
+        print("Warning: style_ode %s is not supported by get_params_ODE()" % style_ode)
+        print("Supported odes include:", VALID_STYLE_ODE)
+        t1 = None
+        num_steps = None
+        init_cond = None
+    return t0, t1, num_steps, init_cond
 
 
 def vectorfield_Yang2013(params, x, y, z=0, two_dim=True):
@@ -116,11 +135,11 @@ def PWL_f_of_x_SCALAR(params, x):
 
 def PWL_f_of_x(params, x):
     a = params['a']
-    f1 = np.where(x < a/2, -x, 0)
+    f1 = np.where(x < a/2, x, 0)
     f2 = np.where(
         ((a/2) <= x) & (x < ((1+a)/2)),
-        x - a, 0)
-    f3 = np.where(x > ((1+a)/2), 1 - x, 0)
+        -x + a, 0)
+    f3 = np.where(x > ((1+a)/2), -1 + x, 0)
     f = f1 + f2 + f3
     return f
 
@@ -132,6 +151,11 @@ def PWL_I_of_t(params, t):
 
 def vectorfield_PWL(params, x, y, t, z=0, two_dim=True):
     """
+    Originally from slide 12 of Hayden ppt
+    - here the variables are relabelled (based on Jan 18 discussion)
+        x = -1 * v
+        y = w
+    - note x only degrades in the intermediate regime of f(x) now, because of the relabelling
     Args:
         params - dictionary of ODE parameters used by piecewise linear ODE system
         x - array-like
@@ -141,11 +165,11 @@ def vectorfield_PWL(params, x, y, t, z=0, two_dim=True):
     Returns:
         array like of shape [x, y] or [x, y, z] depending on two_dim flag
     """
-    inhibition_of_t = PWL_I_of_t(params, t)
+    I_of_t = PWL_I_of_t(params, t)
     f_of_x = PWL_f_of_x(params, x)
 
-    dxdt = f_of_x - y + inhibition_of_t
-    dydt = x - params['gamma'] * y
+    dxdt = 1/params['C'] * (y - f_of_x - I_of_t)
+    dydt = -x - params['gamma'] * y
     dzdt = np.zeros_like(dxdt)
     #dzdt = -p['Bam_deg'] * z
 

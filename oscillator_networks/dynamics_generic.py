@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.integrate import ode, odeint
 
-from settings import DYNAMICS_METHODS_VALID, DYNAMICS_METHOD, INIT_COND, TIME_START, TIME_END, NUM_STEPS
+from settings import DYNAMICS_METHODS_VALID, DYNAMICS_METHOD
 
 
 def simulate_dynamics_general(init_cond, times, single_cell, method="libcall"):

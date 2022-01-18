@@ -2,7 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from class_singlecell import SingleCell
-from dynamics_vectorfields import ode_choose_params, ode_choose_vectorfield
+from dynamics_generic import simulate_dynamics_general
+from dynamics_vectorfields import ode_choose_params, ode_choose_vectorfield, ode_integration_defaults
+from settings import DYNAMICS_METHOD, STYLE_ODE, PLOT_XLABEL, PLOT_YLABEL
 
 '''
 def plot_vectorfield_2D(single_cell, streamlines=True, ax=None):
@@ -107,7 +109,48 @@ def example_vectorfield():
     return
 
 
-def vectorfield_general(ode_dict, delta=0.5, axlow=0.0, axhigh=120.0, **ode_kwargs):
+def phaseplot_general(ode_dict, init_conds=None, dynamics_method=DYNAMICS_METHOD, axlow=0., axhigh=120., k=10):
+    """
+    ode_kwargs:
+        'z': Scalar z represents static Bam concentration
+        't': Scalar t represents time
+    k is the number of points between arrows along the trajectory
+    """
+    # integration parameters
+    t0, t1, num_steps, _ = ode_integration_defaults(ode_dict['style_ode'])
+    times = np.linspace(t0, t1, num_steps + 1)
+
+    plt.figure(figsize=(5, 5))
+    ax = plt.gca()
+
+    if init_conds is None:
+        nn = 2
+        np.random.seed(0)
+        init_conds = np.random.uniform(low=axlow, high=axhigh, size=(nn, 3))
+
+    for init_cond in init_conds:
+        print(init_cond.shape, init_cond)
+        single_cell = SingleCell(init_cond, style_ode=ode_dict['style_ode'], params_ode=ode_dict['params'], label='')
+        r, times = simulate_dynamics_general(init_cond, times, single_cell, method=dynamics_method)
+        ax.plot(r[:, 0], r[:, 1], '-.', linewidth=0.1)
+        # draw arrows every k points
+        # Note: see mpl quiver to do this vectorized
+        for idx in range(0, num_steps, k):
+            arrow_vec = r[idx+1, :] - r[idx,:]
+            dx, dy, _ = arrow_vec
+            x, y, _ = r[idx, :]
+            print(x, y, dx, dy)
+            ax.arrow(x, y, dx, dy, zorder=10, width=1e-4)
+
+    plt.axhline(0, linestyle='--', color='k')
+    plt.axvline(0, linestyle='--', color='k')
+    plt.xlabel(PLOT_XLABEL)
+    plt.ylabel(PLOT_YLABEL)
+    plt.title('Example trajectories')
+    plt.savefig('test_arrows.pdf')
+    plt.show()
+
+def vectorfield_general(ode_dict, delta=0.1, axlow=0.0, axhigh=120.0, **ode_kwargs):
     """
     ode_kwargs:
         'z': Scalar z represents static Bam concentration
@@ -127,23 +170,21 @@ def vectorfield_general(ode_dict, delta=0.5, axlow=0.0, axhigh=120.0, **ode_kwar
     lw = 5 * speed / speed.max()
 
     fig = plt.figure(figsize=(7, 9))
-
     #  Varying density along a streamline
     plt.axhline(0, linestyle='--', color='k')
     plt.axvline(0, linestyle='--', color='k')
-
     ax0 = fig.gca()
     strm = ax0.streamplot(X, Y, U, V, density=[0.5, 1], color=speed, linewidth=lw)
     fig.colorbar(strm.lines)
-    ax0.set_title('Varying Density, Color, Linewidth')
-    ax0.set_xlabel('U')
-    ax0.set_ylabel('V')
+    ax0.set_title('%s Vector field' % ode_dict['style_ode'])
+    ax0.set_xlabel(PLOT_XLABEL)
+    ax0.set_ylabel(PLOT_YLABEL)
 
     plt.tight_layout()
     plt.show()
 
 
-def contourplot_general(ode_dict, delta=0.5, axlow=0.0, axhigh=120.0, **ode_kwargs):
+def contourplot_general(ode_dict, delta=0.1, axlow=0.0, axhigh=120.0, **ode_kwargs):
     """
     ode_kwargs:
         'z': Scalar z represents static Bam concentration
@@ -184,8 +225,7 @@ def contourplot_general(ode_dict, delta=0.5, axlow=0.0, axhigh=120.0, **ode_kwar
 
 
 def nullclines_general(ode_dict, flip_axis=False, contour_labels=True,
-                       x_str=r'Cyc$_{act}$', y_str=r'Cyc$_{tot}$',
-                       delta=0.5, axlow=0.0, axhigh=120.0, **ode_kwargs):
+                       delta=0.1, axlow=0.0, axhigh=120.0, **ode_kwargs):
     """
     style_dict has the form
         'style_ode': 'PWL' or 'Yang2013'
@@ -208,11 +248,11 @@ def nullclines_general(ode_dict, flip_axis=False, contour_labels=True,
         X = Y
         Y = tmp
         # swap labels
-        label_x = y_str
-        label_y = x_str
+        label_x = PLOT_YLABEL
+        label_y = PLOT_XLABEL
     else:
-        label_x = x_str
-        label_y = y_str
+        label_x = PLOT_XLABEL
+        label_y = PLOT_YLABEL
 
     plt.figure(figsize=(5, 5))
     ax = plt.gca()
@@ -226,7 +266,7 @@ def nullclines_general(ode_dict, flip_axis=False, contour_labels=True,
     plt.axhline(0, linewidth=1, color='k', linestyle='--')
     plt.axvline(0, linewidth=1, color='k', linestyle='--')
     # plot labels
-    ax.set_title('%s nullclines (blue=%s, red=%s)' % (ode_dict['style_ode'], x_str, y_str))
+    ax.set_title('%s nullclines (blue=%s, red=%s)' % (ode_dict['style_ode'], PLOT_XLABEL, PLOT_YLABEL))
     ax.set_xlabel(label_x)
     ax.set_ylabel(label_y)
     plt.show()
@@ -240,7 +280,7 @@ if __name__ == '__main__':
     single_cell = SingleCell(init_cond)
     plot_vectorfield_2D(single_cell)'''
 
-    flag_Yang2013 = False
+    flag_Yang2013 = True
     flag_PWL = True
 
     if flag_Yang2013:
@@ -253,6 +293,8 @@ if __name__ == '__main__':
             'z': 0
         }
 
+        phaseplot_general(ode_dict_Yang2013, axlow=0, axhigh=120)
+        '''
         vectorfield_general(ode_dict_Yang2013, axlow=0, axhigh=120, **kwargs_Yang2013)
         contourplot_general(ode_dict_Yang2013, axlow=0, axhigh=120, **kwargs_Yang2013)
         nullclines_general(ode_dict_Yang2013, axlow=0, axhigh=120, contour_labels=False, flip_axis=False, **kwargs_Yang2013)
@@ -269,7 +311,9 @@ if __name__ == '__main__':
             't': 0
         }
 
-        vectorfield_general(ode_dict_PWL, axlow=-2.0, axhigh=2.0, **kwargs_PWL)
-        contourplot_general(ode_dict_PWL, axlow=-2.0, axhigh=2.0, **kwargs_PWL)
-        nullclines_general(ode_dict_PWL, axlow=-2.0, axhigh=2.0, contour_labels=False, flip_axis=False, **kwargs_PWL)
-        nullclines_general(ode_dict_PWL, axlow=-2.0, axhigh=2.0, contour_labels=False, flip_axis=True, **kwargs_PWL)
+        phaseplot_general(ode_dict_PWL, axlow=-5.0, axhigh=5.0)
+        vectorfield_general(ode_dict_PWL, delta=0.01, axlow=-5.0, axhigh=5.0, **kwargs_PWL)
+        contourplot_general(ode_dict_PWL, delta=0.01, axlow=-5.0, axhigh=5.0, **kwargs_PWL)
+        nullclines_general(ode_dict_PWL, delta=0.01, axlow=-5.0, axhigh=5.0, contour_labels=False, flip_axis=False, **kwargs_PWL)
+        nullclines_general(ode_dict_PWL, delta=0.01, axlow=-5.0, axhigh=5.0, contour_labels=False, flip_axis=True, **kwargs_PWL)'''
+

@@ -4,14 +4,14 @@ import numpy as np
 import os
 
 from dynamics_generic import simulate_dynamics_general
-from dynamics_vectorfields import ode_choose_params, vectorfield_Yang2013, vectorfield_PWL, ode_choose_vectorfield
+from dynamics_vectorfields import ode_choose_params, ode_integration_defaults, ode_choose_vectorfield
 from file_io import run_subdir_setup
-from settings import DYNAMICS_METHOD, VALID_STYLE_ODE, TIME_START, TIME_END, NUM_STEPS, STYLE_ODE
+from settings import DYNAMICS_METHOD, STYLE_ODE
 
 
 class SingleCell():
 
-    def __init__(self, init_cond, style_ode=STYLE_ODE, label=''):
+    def __init__(self, init_cond, style_ode=STYLE_ODE, params_ode=None, label=''):
         """
         For numeric cell labels (network growth), use label='%d' % idx, for instance
         """
@@ -20,9 +20,11 @@ class SingleCell():
         self.num_variables = self.dim_ode + self.dim_misc
         self.state_ode = init_cond
         self.style_ode = style_ode
+        self.params_ode = params_ode
 
         # make this flexible if other single cell ODEs are used
-        self.params_ode = ode_choose_params(self.style_ode)
+        if self.params_ode is None:
+            self.params_ode = ode_choose_params(self.style_ode)
 
         # setup names for all dynamical variables
         self.variables_short = {0: 'Cyc_act',
@@ -59,11 +61,19 @@ class SingleCell():
         dxdt = ode_choose_vectorfield(self.style_ode, self.params_ode, x, y, two_dim=False, **ode_kwargs)
         return dxdt
 
-    def trajectory(self, init_cond=None, t0=TIME_START, t1=TIME_END, num_steps=NUM_STEPS,
-                   dynamics_method=DYNAMICS_METHOD, flag_info=False):
+    def trajectory(self, init_cond=None, t0=None, t1=None, num_steps=None, dynamics_method=DYNAMICS_METHOD, flag_info=False):
+        # integration parameters
+        T0, T1, NUM_STEPS, INIT_COND = ode_integration_defaults(self.style_ode)
         if init_cond is None:
             init_cond = self.state_ode
-
+            if self.state_ode is None:
+                init_cond = INIT_COND
+        if t0 is None:
+            t0 = T0
+        if t1 is None:
+            t1 = T1
+        if num_steps is None:
+            num_steps = NUM_STEPS
         times = np.linspace(t0, t1, num_steps + 1)
         if flag_info:
             times = np.linspace(t0, t1, num_steps + 1)
@@ -101,8 +111,8 @@ class SingleCell():
 
 if __name__ == '__main__':
     init_cond = (60.0, 0.0, 0.0)
-    sc = SingleCell(init_cond, label='c1', style_ode='PWL')
-    r, times = sc.trajectory(flag_info=True, dynamics_method='libcall', t1=50)
+    sc = SingleCell(init_cond, label='c1', style_ode='Yang2013')
+    r, times = sc.trajectory(flag_info=True, dynamics_method='libcall')
     print(r, times)
     print(r.shape)
 
