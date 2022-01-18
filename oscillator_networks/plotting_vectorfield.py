@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from class_singlecell import SingleCell
-from dynamics_vectorfields import ode_choose_params, vectorfield_Yang2013, ode_choose_vectorfield
+from dynamics_vectorfields import ode_choose_params, ode_choose_vectorfield
 
 '''
 def plot_vectorfield_2D(single_cell, streamlines=True, ax=None):
@@ -107,52 +107,12 @@ def example_vectorfield():
     return
 
 
-def vectorfield_Yang2013(z=0):
-    """
-    Scalar z represents static Bam concentration
-    """
-    # Block for example code
-    ax_lims = 100
-    Y, X = np.mgrid[0:ax_lims:100j, 0:ax_lims:100j]
-
-    params = ode_choose_params('Yang2013')
-    U, V = vectorfield_Yang2013(params, X, Y, z=z, two_dim=True)
-
-    U = nan_mask(U)
-    V = nan_mask(V)
-
-    # Block for example code
-    speed = np.sqrt(U**2 + V**2)
-    lw = 5 * speed / speed.max()
-
-    fig = plt.figure(figsize=(7, 9))
-
-    #  Varying density along a streamline
-    plt.axhline(0, linestyle='--', color='k')
-    plt.axvline(0, linestyle='--', color='k')
-
-    ax0 = fig.gca()
-    strm = ax0.streamplot(X, Y, U, V, density=[0.5, 1], color=speed, linewidth=lw)
-    fig.colorbar(strm.lines)
-    ax0.set_title('Varying Density, Color, Linewidth')
-    ax0.set_xlabel('U')
-    ax0.set_ylabel('V')
-
-    plt.tight_layout()
-    plt.show()
-
-
 def vectorfield_general(ode_dict, delta=0.5, axlow=0.0, axhigh=120.0, **ode_kwargs):
     """
     ode_kwargs:
         'z': Scalar z represents static Bam concentration
         't': Scalar t represents time
     """
-    # Block for example code
-    # TODO replace
-    #ax_lims = 100
-    #Y, X = np.mgrid[0:ax_lims:100j, 0:ax_lims:100j]
-
     x = np.arange(axlow, axhigh, delta)
     y = np.arange(axlow, axhigh, delta)
     X, Y = np.meshgrid(x, y)
