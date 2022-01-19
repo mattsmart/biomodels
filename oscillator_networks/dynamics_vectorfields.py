@@ -39,7 +39,7 @@ def ode_choose_params(style_ode):
         }
         assert 0 < p['C'] < 1
         assert 0 < p['gamma']
-        assert 0 < p['epsilon']
+        assert 0 <= p['epsilon']
 
     else:
         print("Warning: style_ode %s is not supported by get_params_ODE()" % style_ode)
