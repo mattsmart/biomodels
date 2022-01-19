@@ -83,6 +83,15 @@ def nan_mask(x, fill=1000):
     return x
 
 
+def XY_meshgrid(xlims, ylims, delta):
+    x_a, x_b = xlims
+    y_a, y_b = ylims
+    x = np.arange(x_a, x_b, delta)
+    y = np.arange(y_a, y_b, delta)
+    X, Y = np.meshgrid(x, y)
+    return X, Y
+
+
 def example_vectorfield():
     ax_lims = 10
     Y, X = np.mgrid[-ax_lims:ax_lims:100j, -ax_lims:ax_lims:100j]
@@ -171,9 +180,7 @@ def vectorfield_general(ode_dict, delta=0.1, axlow=0.0, axhigh=120.0, **ode_kwar
         'z': Scalar z represents static Bam concentration
         't': Scalar t represents time
     """
-    x = np.arange(axlow, axhigh, delta)
-    y = np.arange(axlow, axhigh, delta)
-    X, Y = np.meshgrid(x, y)
+    X, Y = XY_meshgrid([axlow, axhigh], [axlow, axhigh], delta)
 
     params = ode_dict['params']
     U, V = ode_choose_vectorfield(ode_dict['style_ode'], params, X, Y, two_dim=True, **ode_kwargs)
@@ -184,7 +191,7 @@ def vectorfield_general(ode_dict, delta=0.1, axlow=0.0, axhigh=120.0, **ode_kwar
     speed = np.sqrt(U**2 + V**2)
     lw = 5 * speed / speed.max()
 
-    fig = plt.figure(figsize=(7, 9))
+    fig = plt.figure(figsize=(5, 5))
     #  Varying density along a streamline
     plt.axhline(0, linestyle='--', color='k')
     plt.axvline(0, linestyle='--', color='k')
@@ -205,9 +212,7 @@ def contourplot_general(ode_dict, delta=0.1, axlow=0.0, axhigh=120.0, **ode_kwar
         'z': Scalar z represents static Bam concentration
         't': Scalar t represents time
     """
-    x = np.arange(axlow, axhigh, delta)
-    y = np.arange(axlow, axhigh, delta)
-    X, Y = np.meshgrid(x, y)
+    X, Y = XY_meshgrid([axlow, axhigh], [axlow, axhigh], delta)
 
     params = ode_dict['params']
     U, V = ode_choose_vectorfield(ode_dict['style_ode'], params, X, Y, two_dim=True, **ode_kwargs)
@@ -245,9 +250,7 @@ def nullclines_general(ode_dict, flip_axis=False, contour_labels=True,
         't': optional parameter for PWL
         'z': optional parameter for Yang2013
     """
-    x = np.arange(axlow, axhigh, delta)
-    y = np.arange(axlow, axhigh, delta)
-    X, Y = np.meshgrid(x, y)
+    X, Y = XY_meshgrid([axlow, axhigh], [axlow, axhigh], delta)
 
     params = ode_dict['params']
     U, V = ode_choose_vectorfield(ode_dict['style_ode'], params, X, Y, two_dim=True, **ode_kwargs)
@@ -290,7 +293,7 @@ if __name__ == '__main__':
     flag_PWL = True
 
     flag_phaseplot = True
-    flag_vectorfield = False
+    flag_vectorfield = True
     flag_contourplot = False
     flag_nullclines = True
 
