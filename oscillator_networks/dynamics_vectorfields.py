@@ -31,8 +31,9 @@ def ode_choose_params(style_ode):
         - Maybe specify conditions on 𝛾
         """
         p = {
-            'C': 1e-1,         # speed scale for fast variable Cyc_act
-            'a': 2,         # defines the corners of PWL function
+            'C': 1e-1,        # speed scale for fast variable Cyc_act
+            'a': 2,           # defines the corners of PWL function for x
+            'b': 2,           # defines the y-intercept of the dy/dt=0 nullcline, y(x) = 1/gamma * (-x + b)
             'gamma': 1e-1,    # degradation of Cyc_tot
             'epsilon': 1e-1,  # rate of inhibitor accumulation
             'I_initial': 0    # initial inhibitor
@@ -139,7 +140,7 @@ def PWL_f_of_x(params, x):
     f2 = np.where(
         ((a/2) <= x) & (x < ((1+a)/2)),
         -x + a, 0)
-    f3 = np.where(x > ((1+a)/2), -1 + x, 0)
+    f3 = np.where(x >= ((1+a)/2), -1 + x, 0)
     f = f1 + f2 + f3
     return f
 
@@ -152,10 +153,13 @@ def PWL_I_of_t(params, t):
 def vectorfield_PWL(params, x, y, t, z=0, two_dim=True):
     """
     Originally from slide 12 of Hayden ppt
-    - here the variables are relabelled (based on Jan 18 discussion)
+    - Change #1: here the variables are relabelled (based on Jan 18 discussion)
         x = -1 * v
         y = w
-    - note x only degrades in the intermediate regime of f(x) now, because of the relabelling
+        - note x only degrades in the intermediate regime of f(x) now, because of the relabelling
+    - Change #2:
+        Need to shift the y-nullcline to the right in order to have positive stable states
+        Use new parameter "b" which is basal rate of y production
     Args:
         params - dictionary of ODE parameters used by piecewise linear ODE system
         x - array-like
@@ -169,7 +173,7 @@ def vectorfield_PWL(params, x, y, t, z=0, two_dim=True):
     f_of_x = PWL_f_of_x(params, x)
 
     dxdt = 1/params['C'] * (y - f_of_x - I_of_t)
-    dydt = -x - params['gamma'] * y
+    dydt = params['b'] - x - params['gamma'] * y
     dzdt = np.zeros_like(dxdt)
     #dzdt = -p['Bam_deg'] * z
 

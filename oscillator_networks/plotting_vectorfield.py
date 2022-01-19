@@ -289,7 +289,7 @@ def nullclines_general(ode_dict, flip_axis=False, contour_labels=True,
 
 if __name__ == '__main__':
 
-    flag_Yang2013 = True
+    flag_Yang2013 = False
     flag_PWL = True
 
     flag_phaseplot = True
@@ -311,6 +311,10 @@ if __name__ == '__main__':
         'style_ode': 'PWL',
         'params': params_PWL
     }
+    ode_dict_PWL['params']['I_initial'] = 0
+    ode_dict_PWL['params']['epsilon'] = 0.3
+    ode_dict_PWL['params']['a'] = 2
+    ode_dict_PWL['params']['b'] = 2
     kwargs_PWL = {
         'z': 0,
         't': 0
@@ -327,12 +331,14 @@ if __name__ == '__main__':
             nullclines_general(ode_dict_Yang2013, axlow=0, axhigh=120, contour_labels=False, flip_axis=False, **kwargs_Yang2013)
 
     if flag_PWL:
+        axlow = 0
+        axhigh = 12
         if flag_phaseplot:
-            phaseplot_general(ode_dict_PWL, axlow=-5.0, axhigh=5.0)
+            phaseplot_general(ode_dict_PWL, axlow=axlow, axhigh=axhigh)
         if flag_vectorfield:
-            vectorfield_general(ode_dict_PWL, delta=0.01, axlow=-5.0, axhigh=5.0, **kwargs_PWL)
+            vectorfield_general(ode_dict_PWL, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_PWL)
         if flag_contourplot:
-            contourplot_general(ode_dict_PWL, delta=0.01, axlow=-5.0, axhigh=5.0, **kwargs_PWL)
+            contourplot_general(ode_dict_PWL, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_PWL)
         if flag_nullclines:
-            nullclines_general(ode_dict_PWL, delta=0.01, axlow=-5.0, axhigh=5.0, contour_labels=False, flip_axis=False,
+            nullclines_general(ode_dict_PWL, delta=0.01, axlow=axlow, axhigh=axhigh, contour_labels=False, flip_axis=False,
                                **kwargs_PWL)
