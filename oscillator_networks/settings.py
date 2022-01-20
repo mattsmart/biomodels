@@ -11,9 +11,12 @@ sys.path.append(OSCILLATOR_NETWORKS)
 DYNAMICS_METHOD = 'solve_ivp'
 DYNAMICS_METHODS_VALID = ['solve_ivp', 'libcall', 'rk4', 'euler']
 
-# DEFAULTS: dynamical system
-VALID_STYLE_ODE = ['Yang2013', 'PWL']
+# DEFAULTS: single cell dynamical system
+VALID_STYLE_ODE = ['Yang2013', 'PWL', 'toy_flow']
 DEFAULT_STYLE_ODE = 'PWL'
+
+# Cell-cell coupling:
+DIFFUSION_RATE = 1.0
 
 # PLOTTING
 PLOT_XLABEL = r'Cyc$_{act}$'

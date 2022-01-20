@@ -22,6 +22,11 @@ def set_ode_attributes(style_ode):
     elif style_ode == 'PWL':
         # currently, all methods share the same attributes above
         pass
+    elif style_ode == 'toy_flow':
+        dim_ode = 1  # dimension of ODE system
+        dim_misc = 0  # dimension of misc. variables (e.g. fusome content)
+        variables_short = {0: 'vol'}
+        variables_long = {0: 'Water Volume'}
     else:
         print("Warning: style_ode %s is not supported by set_ode_attributes()" % style_ode)
         print("Supported odes include:", VALID_STYLE_ODE)
@@ -69,7 +74,8 @@ def set_ode_params(style_ode):
         assert 0 < p['C'] < 1
         assert 0 < p['gamma']
         assert 0 <= p['epsilon']
-
+    elif style_ode == 'toy_flow':
+        p = {}
     else:
         print("Warning: style_ode %s is not supported by get_params_ODE()" % style_ode)
         print("Supported odes include:", VALID_STYLE_ODE)
@@ -77,11 +83,13 @@ def set_ode_params(style_ode):
     return p
 
 
-def set_ode_vectorfield(style_ode, params, x, y, two_dim=True, **ode_kwargs):
+def set_ode_vectorfield(style_ode, params, init_cond, two_dim=True, **ode_kwargs):
     if style_ode == 'Yang2013':
-        dxdt = vectorfield_Yang2013(params, x, y, z=ode_kwargs.get('z', 0), two_dim=two_dim)
+        dxdt = vectorfield_Yang2013(params, init_cond, z=ode_kwargs.get('z', 0), two_dim=two_dim)
     elif style_ode == 'PWL':
-        dxdt = vectorfield_PWL(params, x, y, ode_kwargs.get('t', 0), z=ode_kwargs.get('z', 0), two_dim=two_dim)
+        dxdt = vectorfield_PWL(params, init_cond, ode_kwargs.get('t', 0), z=ode_kwargs.get('z', 0), two_dim=two_dim)
+    elif style_ode == 'toy_flow':
+        dxdt = vectorfield_toy()
     else:
         print("Warning: style_ode %s is not supported by set_ode_vectorfield()" % style_ode)
         print("Supported odes include:", VALID_STYLE_ODE)
@@ -99,6 +107,10 @@ def ode_integration_defaults(style_ode):
         t1 = 50
         num_steps = 2000
         init_cond = [1.0, 1.0, 0.0]
+    elif style_ode == 'toy_flow':
+        t1 = 50
+        num_steps = 2000
+        init_cond = [100.0]
     else:
         print("Warning: style_ode %s is not supported by ode_integration_defaults()" % style_ode)
         print("Supported odes include:", VALID_STYLE_ODE)
@@ -108,7 +120,11 @@ def ode_integration_defaults(style_ode):
     return t0, t1, num_steps, init_cond
 
 
-def vectorfield_Yang2013(params, x, y, z=0, two_dim=True):
+def vectorfield_toy():
+    return [0]
+
+
+def vectorfield_Yang2013(params, init_cond, z=0, two_dim=True):
     """
     Args:
         params - dictionary of ODE parameters used by Yang2013
@@ -119,6 +135,7 @@ def vectorfield_Yang2013(params, x, y, z=0, two_dim=True):
         array like of shape [x, y] or [x, y, z] depending on two_dim flag
     """
     p = params
+    x, y, _ = init_cond  # TODO note z is passed through init_cond but is unused; use static "external" z for now
 
     # "f(x)" factor of the review - degradation
     # TODO care if x = 0 -- add case?
@@ -189,7 +206,7 @@ def PWL_I_of_t_pulse(params, t):
     return I
 
 
-def vectorfield_PWL(params, x, y, t, z=0, two_dim=True):
+def vectorfield_PWL(params, init_cond, t, z=0, two_dim=True):
     """
     Originally from slide 12 of Hayden ppt
     - Change #1: here the variables are relabelled (based on Jan 18 discussion)
@@ -208,6 +225,8 @@ def vectorfield_PWL(params, x, y, t, z=0, two_dim=True):
     Returns:
         array like of shape [x, y] or [x, y, z] depending on two_dim flag
     """
+    x, y, _ = init_cond  # TODO note z is passed through init_cond but is unused; use static "external" z for now
+
     I_of_t = PWL_I_of_t_pulse(params, t)
     f_of_x = PWL_f_of_x(params, x)
 

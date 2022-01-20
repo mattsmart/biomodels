@@ -35,12 +35,11 @@ class SingleCell():
 
     def ode_system_vector(self, init_cond, t):
         p = self.params_ode  # TODO if there is feedback these 'constants' might be pseudo-dynamic [see xyz params.py]
-        x, y, z = init_cond
         ode_kwargs = {
-            'z': z,
+            'z': init_cond[-1],  # TODO remove this hacky way to pass z its not safe (handling PWL, Yang2013 here might be slow though)
             't': t
         }
-        dxdt = set_ode_vectorfield(self.style_ode, self.params_ode, x, y, two_dim=False, **ode_kwargs)
+        dxdt = set_ode_vectorfield(self.style_ode, self.params_ode, init_cond, two_dim=False, **ode_kwargs)
         return dxdt
 
     def trajectory(self, init_cond=None, t0=None, t1=None, num_steps=None, dynamics_method=DYNAMICS_METHOD,
@@ -96,7 +95,7 @@ if __name__ == '__main__':
     style_ode = 'PWL'
     sc = SingleCell(label='c1', style_ode=style_ode)
     if style_ode == 'PWL':
-        sc.params_ode['epsilon'] = 0.1
+        sc.params_ode['epsilon'] = 0.3
         sc.params_ode['t_pulse_switch'] = 25
 
     solver_kwargs = {
@@ -108,7 +107,7 @@ if __name__ == '__main__':
 
     io_dict = run_subdir_setup()
 
-    plt.plot(times, r, label=[sc.variables_short[0], sc.variables_short[1], sc.variables_short[2]])
+    plt.plot(times, r, label=[sc.variables_short[i] for i in range(sc.dim_ode)])
     plt.xlabel(r'$t$ [min]')
     plt.ylabel(r'concentration [nM]')
     plt.legend()
