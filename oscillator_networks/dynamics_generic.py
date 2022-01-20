@@ -53,7 +53,7 @@ def ode_euler(init_cond, times, single_cell, **solver_kwargs):
     single_cell is an instance of SingleCell
     """
     dt = times[1] - times[0]
-    r = np.zeros((len(times), single_cell.dim_ode))
+    r = np.zeros((len(times), single_cell.graph_dim_ode))
     r[0] = np.array(init_cond)
     for idx, t in enumerate(times[:-1]):
         v = ode_system_vector(r[idx], None, single_cell)
@@ -66,7 +66,7 @@ def ode_rk4(init_cond, times, single_cell, **solver_kwargs):
     single_cell is an instance of SingleCell
     """
     dt = times[1] - times[0]
-    r = np.zeros((len(times), single_cell.dim_ode))
+    r = np.zeros((len(times), single_cell.graph_dim_ode))
     r[0] = np.array(init_cond)
     obj_ode = ode(system_vector_obj_ode, jac=None)
     obj_ode.set_initial_value(init_cond, times[0])
@@ -102,7 +102,7 @@ def ode_solve_ivp(init_cond, times, single_cell, method='Radau', **solver_kwargs
     if 'atol' not in solver_kwargs.keys():
         solver_kwargs['atol'] = 1e-8
     if 'vectorized' not in solver_kwargs.keys():
-        if single_cell.dim_ode > 1:
+        if single_cell.graph_dim_ode > 1:
             solver_kwargs['vectorized'] = True
         else:
             solver_kwargs['vectorized'] = False
