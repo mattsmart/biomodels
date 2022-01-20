@@ -4,20 +4,20 @@ from scipy.integrate import ode, odeint, solve_ivp
 from settings import DYNAMICS_METHODS_VALID, DYNAMICS_METHOD
 
 
-def simulate_dynamics_general(init_cond, times, single_cell, method="solve_ivp"):
+def simulate_dynamics_general(init_cond, times, single_cell, method="solve_ivp", **solver_kwargs):
     """
     single_cell is an instance of SingleCell
     See documentation on SciPy mehods here
     - https://docs.scipy.org/doc/scipy/reference/integrate.html
     """
     if method == 'solve_ivp':
-        r, times = ode_solve_ivp(init_cond, times, single_cell)
+        r, times = ode_solve_ivp(init_cond, times, single_cell, **solver_kwargs)
     elif method == "libcall":
-        r, times = ode_libcall(init_cond, times, single_cell)
+        r, times = ode_libcall(init_cond, times, single_cell, **solver_kwargs)
     elif method == "rk4":
-        r, times = ode_rk4(init_cond, times, single_cell)
+        r, times = ode_rk4(init_cond, times, single_cell, **solver_kwargs)
     elif method == "euler":
-        r, times = ode_euler(init_cond, times, single_cell)
+        r, times = ode_euler(init_cond, times, single_cell, **solver_kwargs)
     else:
         raise ValueError("method arg invalid, must be one of %s" % DYNAMICS_METHODS_VALID)
     """ TODO consider implemeneting:
@@ -48,7 +48,7 @@ def system_vector_obj_ode(t_scalar, r_idx, single_cell):
     return ode_system_vector(r_idx, t_scalar, single_cell)
 
 
-def ode_euler(init_cond, times, single_cell):
+def ode_euler(init_cond, times, single_cell, **solver_kwargs):
     """
     single_cell is an instance of SingleCell
     """
@@ -61,7 +61,7 @@ def ode_euler(init_cond, times, single_cell):
     return r, times
 
 
-def ode_rk4(init_cond, times, single_cell):
+def ode_rk4(init_cond, times, single_cell, **solver_kwargs):
     """
     single_cell is an instance of SingleCell
     """
@@ -80,25 +80,30 @@ def ode_rk4(init_cond, times, single_cell):
     return r, times
 
 
-def ode_libcall(init_cond, times, single_cell):
+def ode_libcall(init_cond, times, single_cell, **solver_kwargs):
     """
     single_cell is an instance of SingleCell
     """
     fn = ode_system_vector
-    r = odeint(fn, init_cond, times, args=(single_cell,))
+    r = odeint(fn, init_cond, times, args=(single_cell,), **solver_kwargs)
     return r, times
 
 
-def ode_solve_ivp(init_cond, times, single_cell, method='Radau'):
+def ode_solve_ivp(init_cond, times, single_cell, method='Radau', **solver_kwargs):
     """
     single_cell is an instance of SingleCell
     method: see documentation here
     https://docs.scipy.org/doc/scipy/reference/generated/scipy.integrate.solve_ivp.html#scipy.integrate.solve_ivp
     - stiff case: try 'Radau', 'BDF', 'LSODA'
+    Note on solver_kwargs:
+        solver_kwargs['dense_output'] = True
+        solver_kwargs['t_eval'] = times or e.g. np.linspace(0, 50, 20000)
     """
+    if 'atol' not in solver_kwargs.keys():
+        solver_kwargs['atol'] = 1e-8
     fn = system_vector_obj_ode
     time_interval = [times[0], times[-1]]
-    sol = solve_ivp(fn, time_interval, init_cond, method=method, vectorized=True, args=(single_cell,))
+    sol = solve_ivp(fn, time_interval, init_cond, method=method, vectorized=True, args=(single_cell,), **solver_kwargs)
     r = np.transpose(sol.y)
     times = sol.t
     return r, times

@@ -4,43 +4,34 @@ import numpy as np
 import os
 
 from dynamics_generic import simulate_dynamics_general
-from dynamics_vectorfields import ode_choose_params, ode_integration_defaults, ode_choose_vectorfield
+from dynamics_vectorfields import set_ode_params, ode_integration_defaults, set_ode_vectorfield, set_ode_attributes
 from file_io import run_subdir_setup
-from settings import DYNAMICS_METHOD, STYLE_ODE
+from settings import DYNAMICS_METHOD, DEFAULT_STYLE_ODE
 
 
 class SingleCell():
 
-    def __init__(self, init_cond, style_ode=STYLE_ODE, params_ode=None, label=''):
+    def __init__(self, init_cond_ode=None, style_ode=DEFAULT_STYLE_ODE, params_ode=None, label=''):
         """
         For numeric cell labels (network growth), use label='%d' % idx, for instance
         """
-        self.dim_ode = 3           # dimension of ODE system
-        self.dim_misc = 2          # dimension of misc. variables (e.g. fusome content)
-        self.num_variables = self.dim_ode + self.dim_misc
-        self.state_ode = init_cond
         self.style_ode = style_ode
-        self.params_ode = params_ode
-
-        # make this flexible if other single cell ODEs are used
-        if self.params_ode is None:
-            self.params_ode = ode_choose_params(self.style_ode)
-
+        dim_ode, dim_misc, variables_short, variables_long = set_ode_attributes(style_ode)
+        self.dim_ode = dim_ode            # dimension of ODE system
+        self.dim_misc = dim_misc          # dimension of misc. variables (e.g. fusome content)
+        self.num_variables = self.dim_ode + self.dim_misc
         # setup names for all dynamical variables
-        self.variables_short = {0: 'Cyc_act',
-                                1: 'Cyc_tot',
-                                2: 'Bam',
-                                3: 'ndiv',
-                                4: 'fusome'}
-        self.variables_long = {0: 'Cyclin active',
-                               1: 'Cyclin total',
-                               2: 'Modulator, e.g. Bam',
-                               3: 'Number of Divisions',
-                               4: 'Fusome content'}
+        self.variables_short = variables_short
+        self.variables_long = variables_long
         if label != '':
             for idx in range(self.num_variables):
                 self.variables_short[idx] += '_%s' % label
                 self.variables_long[idx] += ' (Cell %s)' % label
+        # make this flexible if other single cell ODEs are used
+        self.state_ode = init_cond_ode
+        self.params_ode = params_ode
+        if self.params_ode is None:
+            self.params_ode = set_ode_params(self.style_ode)
 
     def ode_system_vector(self, init_cond, t):
         p = self.params_ode  # TODO if there is feedback these 'constants' might be pseudo-dynamic [see xyz params.py]
@@ -49,10 +40,11 @@ class SingleCell():
             'z': z,
             't': t
         }
-        dxdt = ode_choose_vectorfield(self.style_ode, self.params_ode, x, y, two_dim=False, **ode_kwargs)
+        dxdt = set_ode_vectorfield(self.style_ode, self.params_ode, x, y, two_dim=False, **ode_kwargs)
         return dxdt
 
-    def trajectory(self, init_cond=None, t0=None, t1=None, num_steps=None, dynamics_method=DYNAMICS_METHOD, flag_info=False):
+    def trajectory(self, init_cond=None, t0=None, t1=None, num_steps=None, dynamics_method=DYNAMICS_METHOD,
+                   flag_info=False, **solver_kwargs):
         # integration parameters
         T0, T1, NUM_STEPS, INIT_COND = ode_integration_defaults(self.style_ode)
         if init_cond is None:
@@ -72,7 +64,7 @@ class SingleCell():
             print("Init Cond:", init_cond)
             self.printer()
 
-        r, times = simulate_dynamics_general(init_cond, times, self, method=dynamics_method)
+        r, times = simulate_dynamics_general(init_cond, times, self, method=dynamics_method, **solver_kwargs)
         if flag_info:
             print('Done trajectory\n')
 
@@ -101,9 +93,16 @@ class SingleCell():
 
 
 if __name__ == '__main__':
-    init_cond = (60.0, 0.0, 0.0)
-    sc = SingleCell(init_cond, label='c1', style_ode='Yang2013')
-    r, times = sc.trajectory(flag_info=True, dynamics_method='solve_ivp')
+    style_ode = 'PWL'
+    sc = SingleCell(label='c1', style_ode=style_ode)
+    if style_ode == 'PWL':
+        sc.params_ode['epsilon'] = 0.1
+        sc.params_ode['t_pulse_switch'] = 25
+
+    solver_kwargs = {
+        'atol': 1e-8,
+        'dense_output': False}
+    r, times = sc.trajectory(flag_info=True, dynamics_method='solve_ivp', t1=100, **solver_kwargs)
     print(r, times)
     print(r.shape)
 

@@ -119,7 +119,8 @@ def example_vectorfield():
     return
 
 
-def phaseplot_general(ode_dict, init_conds=None, dynamics_method=DYNAMICS_METHOD, axlow=0., axhigh=120., ax=None):
+def phaseplot_general(ode_dict, init_conds=None, dynamics_method=DYNAMICS_METHOD, axlow=0., axhigh=120., ax=None,
+                      **solver_kwargs):
     """
     ode_kwargs:
         'z': Scalar z represents static Bam concentration
@@ -147,8 +148,9 @@ def phaseplot_general(ode_dict, init_conds=None, dynamics_method=DYNAMICS_METHOD
         init_conds[:, 2] = 0  # fix z = 0 for all trajectories
 
     for init_cond in init_conds:
-        single_cell = SingleCell(init_cond, style_ode=ode_dict['style_ode'], params_ode=ode_dict['params'], label='')
-        r, times = simulate_dynamics_general(init_cond, times, single_cell, method=dynamics_method)
+        single_cell = SingleCell(
+            init_cond_ode=init_cond, style_ode=ode_dict['style_ode'], params_ode=ode_dict['params'], label='')
+        r, times = simulate_dynamics_general(init_cond, times, single_cell, method=dynamics_method, **solver_kwargs)
         ax.plot(r[:, 0], r[:, 1], '-.', linewidth=0.5)
         # draw arrows every k points
         """
@@ -315,14 +317,18 @@ if __name__ == '__main__':
     ode_dict_PWL['params']['epsilon'] = 0.3
     ode_dict_PWL['params']['a'] = 2
     ode_dict_PWL['params']['b'] = 2
+    ode_dict_PWL['params']['t_pulse_switch'] = 25.0
     kwargs_PWL = {
         'z': 0,
         't': 0
     }
+    solver_kwargs = {
+        'atol': 1e-9,
+    }
 
     if flag_Yang2013:
         if flag_phaseplot:
-            phaseplot_general(ode_dict_Yang2013, axlow=0, axhigh=120)
+            phaseplot_general(ode_dict_Yang2013, axlow=0, axhigh=120, **solver_kwargs)
         if flag_vectorfield:
             vectorfield_general(ode_dict_Yang2013, axlow=0, axhigh=120, **kwargs_Yang2013)
         if flag_contourplot:
@@ -334,7 +340,7 @@ if __name__ == '__main__':
         axlow = 0
         axhigh = 12
         if flag_phaseplot:
-            phaseplot_general(ode_dict_PWL, axlow=axlow, axhigh=axhigh)
+            phaseplot_general(ode_dict_PWL, axlow=axlow, axhigh=axhigh, **solver_kwargs)
         if flag_vectorfield:
             vectorfield_general(ode_dict_PWL, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_PWL)
         if flag_contourplot:
