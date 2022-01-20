@@ -54,7 +54,7 @@ def set_ode_params(style_ode):
     elif style_ode == 'PWL':
         """ Notes from Hayden slide 12:
         - ((1−𝛾))/2𝜀𝛾 is duration that green intersects red between extrema of red
-        - the free params are 𝑎, 𝐼, 𝜀𝛾/(1+𝛾)
+        - the free params are 𝑎, 𝐼, 𝜀𝛾/(1+𝛾), b
         - Maybe specify conditions on 𝛾
         """
         p = {
