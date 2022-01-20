@@ -3,7 +3,34 @@ import numpy as np
 from settings import VALID_STYLE_ODE
 
 
-def ode_choose_params(style_ode):
+def set_ode_attributes(style_ode):
+    dim_ode = 3  # dimension of ODE system
+    dim_misc = 2  # dimension of misc. variables (e.g. fusome content)
+    variables_short = {0: 'Cyc_act',
+                       1: 'Cyc_tot',
+                       2: 'Bam',
+                       3: 'n_div',
+                       4: 'fusome'}
+    variables_long = {0: 'Cyclin active',
+                      1: 'Cyclin total',
+                      2: 'Modulator, e.g. Bam',
+                      3: 'Number of Divisions',
+                      4: 'Fusome content'}
+    if style_ode == 'Yang2013':
+        # currently, all methods share the same attributes above
+        pass
+    elif style_ode == 'PWL':
+        # currently, all methods share the same attributes above
+        pass
+    else:
+        print("Warning: style_ode %s is not supported by set_ode_attributes()" % style_ode)
+        print("Supported odes include:", VALID_STYLE_ODE)
+    assert len(variables_short.keys()) == len(variables_long.keys())
+    assert len(variables_short.keys()) == (dim_ode + dim_misc)
+    return dim_ode, dim_misc, variables_short, variables_long
+
+
+def set_ode_params(style_ode):
     if style_ode == 'Yang2013':
         # reference is Yang2013 Table S1
         p = {
@@ -49,13 +76,13 @@ def ode_choose_params(style_ode):
     return p
 
 
-def ode_choose_vectorfield(style_ode, params, x, y, two_dim=True, **ode_kwargs):
+def set_ode_vectorfield(style_ode, params, x, y, two_dim=True, **ode_kwargs):
     if style_ode == 'Yang2013':
         dxdt = vectorfield_Yang2013(params, x, y, z=ode_kwargs.get('z', 0), two_dim=two_dim)
     elif style_ode == 'PWL':
         dxdt = vectorfield_PWL(params, x, y, ode_kwargs.get('t', 0), z=ode_kwargs.get('z', 0), two_dim=two_dim)
     else:
-        print("Warning: style_ode %s is not supported by get_params_ODE()" % style_ode)
+        print("Warning: style_ode %s is not supported by set_ode_vectorfield()" % style_ode)
         print("Supported odes include:", VALID_STYLE_ODE)
         dxdt = None
     return dxdt
@@ -70,9 +97,9 @@ def ode_integration_defaults(style_ode):
     elif style_ode == 'PWL':
         t1 = 50
         num_steps = 2000
-        init_cond = [5.0, 0.0, 0.0]
+        init_cond = [10.0, 10.0, 0.0]
     else:
-        print("Warning: style_ode %s is not supported by get_params_ODE()" % style_ode)
+        print("Warning: style_ode %s is not supported by ode_integration_defaults()" % style_ode)
         print("Supported odes include:", VALID_STYLE_ODE)
         t1 = None
         num_steps = None

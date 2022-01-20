@@ -13,7 +13,7 @@ DYNAMICS_METHODS_VALID = ['solve_ivp', 'libcall', 'rk4', 'euler']
 
 # DEFAULTS: dynamical system
 VALID_STYLE_ODE = ['Yang2013', 'PWL']
-STYLE_ODE = 'PWL'
+DEFAULT_STYLE_ODE = 'PWL'
 
 # PLOTTING
 PLOT_XLABEL = r'Cyc$_{act}$'

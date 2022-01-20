@@ -4,7 +4,7 @@ import os
 
 from class_singlecell import SingleCell
 from dynamics_generic import simulate_dynamics_general
-from dynamics_vectorfields import ode_choose_params, ode_choose_vectorfield, ode_integration_defaults
+from dynamics_vectorfields import set_ode_params, set_ode_vectorfield, ode_integration_defaults
 from settings import DYNAMICS_METHOD, DIR_OUTPUT, PLOT_XLABEL, PLOT_YLABEL
 
 '''
@@ -183,7 +183,7 @@ def vectorfield_general(ode_dict, delta=0.1, axlow=0.0, axhigh=120.0, **ode_kwar
     X, Y = XY_meshgrid([axlow, axhigh], [axlow, axhigh], delta)
 
     params = ode_dict['params']
-    U, V = ode_choose_vectorfield(ode_dict['style_ode'], params, X, Y, two_dim=True, **ode_kwargs)
+    U, V = set_ode_vectorfield(ode_dict['style_ode'], params, X, Y, two_dim=True, **ode_kwargs)
     U = nan_mask(U)
     V = nan_mask(V)
 
@@ -215,7 +215,7 @@ def contourplot_general(ode_dict, delta=0.1, axlow=0.0, axhigh=120.0, **ode_kwar
     X, Y = XY_meshgrid([axlow, axhigh], [axlow, axhigh], delta)
 
     params = ode_dict['params']
-    U, V = ode_choose_vectorfield(ode_dict['style_ode'], params, X, Y, two_dim=True, **ode_kwargs)
+    U, V = set_ode_vectorfield(ode_dict['style_ode'], params, X, Y, two_dim=True, **ode_kwargs)
     U = nan_mask(U)
     V = nan_mask(V)
 
@@ -253,7 +253,7 @@ def nullclines_general(ode_dict, flip_axis=False, contour_labels=True,
     X, Y = XY_meshgrid([axlow, axhigh], [axlow, axhigh], delta)
 
     params = ode_dict['params']
-    U, V = ode_choose_vectorfield(ode_dict['style_ode'], params, X, Y, two_dim=True, **ode_kwargs)
+    U, V = set_ode_vectorfield(ode_dict['style_ode'], params, X, Y, two_dim=True, **ode_kwargs)
     U = nan_mask(U)
     V = nan_mask(V)
 
@@ -297,7 +297,7 @@ if __name__ == '__main__':
     flag_contourplot = False
     flag_nullclines = True
 
-    params_Yang2013 = ode_choose_params('Yang2013')
+    params_Yang2013 = set_ode_params('Yang2013')
     ode_dict_Yang2013 = {
         'style_ode': 'Yang2013',
         'params': params_Yang2013
@@ -306,7 +306,7 @@ if __name__ == '__main__':
         'z': 0
     }
 
-    params_PWL = ode_choose_params('PWL')
+    params_PWL = set_ode_params('PWL')
     ode_dict_PWL = {
         'style_ode': 'PWL',
         'params': params_PWL
@@ -328,7 +328,7 @@ if __name__ == '__main__':
         if flag_contourplot:
             contourplot_general(ode_dict_Yang2013, axlow=0, axhigh=120, **kwargs_Yang2013)
         if flag_nullclines:
-            nullclines_general(ode_dict_Yang2013, axlow=0, axhigh=120, contour_labels=False, flip_axis=False, **kwargs_Yang2013)
+            nullclines_general(ode_dict_Yang2013, axlow=0, axhigh=120, contour_labels=False, **kwargs_Yang2013)
 
     if flag_PWL:
         axlow = 0
@@ -340,5 +340,4 @@ if __name__ == '__main__':
         if flag_contourplot:
             contourplot_general(ode_dict_PWL, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_PWL)
         if flag_nullclines:
-            nullclines_general(ode_dict_PWL, delta=0.01, axlow=axlow, axhigh=axhigh, contour_labels=False, flip_axis=False,
-                               **kwargs_PWL)
+            nullclines_general(ode_dict_PWL, delta=0.01, axlow=axlow, axhigh=axhigh, contour_labels=False, **kwargs_PWL)
