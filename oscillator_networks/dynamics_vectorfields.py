@@ -58,12 +58,13 @@ def set_ode_params(style_ode):
         - Maybe specify conditions on 𝛾
         """
         p = {
-            'C': 1e-1,        # speed scale for fast variable Cyc_act
-            'a': 2,           # defines the corners of PWL function for x
-            'b': 2,           # defines the y-intercept of the dy/dt=0 nullcline, y(x) = 1/gamma * (-x + b)
-            'gamma': 1e-1,    # degradation of Cyc_tot
-            'epsilon': 1e-1,  # rate of inhibitor accumulation
-            'I_initial': 0    # initial inhibitor
+            'C': 1e-1,              # speed scale for fast variable Cyc_act
+            'a': 2,                 # defines the corners of PWL function for x
+            'b': 2,                 # defines the y-intercept of the dy/dt=0 nullcline, y(x) = 1/gamma * (-x + b)
+            'gamma': 1e-1,          # degradation of Cyc_tot
+            'epsilon': 1e-1,        # rate of inhibitor accumulation
+            'I_initial': 0,         # initial inhibitor (e.g. Bam) concentration
+            't_pulse_switch': 25.0  # treating inhibitor timeseries as pulse with a negative slope from t=T to t=2T
         }
         assert 0 < p['C'] < 1
         assert 0 < p['gamma']
@@ -97,7 +98,7 @@ def ode_integration_defaults(style_ode):
     elif style_ode == 'PWL':
         t1 = 50
         num_steps = 2000
-        init_cond = [10.0, 10.0, 0.0]
+        init_cond = [1.0, 1.0, 0.0]
     else:
         print("Warning: style_ode %s is not supported by ode_integration_defaults()" % style_ode)
         print("Supported odes include:", VALID_STYLE_ODE)
@@ -172,8 +173,19 @@ def PWL_f_of_x(params, x):
     return f
 
 
-def PWL_I_of_t(params, t):
-    I = params['I_initial'] + params['epsilon'] * t
+def PWL_I_of_t_pulse(params, t):
+    """
+    Generates a triangular pulse rising at t=0 with switch at t = params['t_pulse_switch']
+      when t > 2 * params['t_pulse_switch'], there is no further change
+    """
+    if t < params['t_pulse_switch']:
+        I = params['I_initial'] + params['epsilon'] * t
+    elif t < 2 * params['t_pulse_switch']:
+        I = params['I_initial'] - params['epsilon'] * t + 2 * params['epsilon'] * params['t_pulse_switch']
+    else:
+        I = params['I_initial']
+    assert I >= 0
+    assert t >= 0
     return I
 
 
@@ -196,7 +208,7 @@ def vectorfield_PWL(params, x, y, t, z=0, two_dim=True):
     Returns:
         array like of shape [x, y] or [x, y, z] depending on two_dim flag
     """
-    I_of_t = PWL_I_of_t(params, t)
+    I_of_t = PWL_I_of_t_pulse(params, t)
     f_of_x = PWL_f_of_x(params, x)
 
     dxdt = 1/params['C'] * (y - f_of_x - I_of_t)
