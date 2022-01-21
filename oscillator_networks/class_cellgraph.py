@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.integrate import solve_ivp
 
+from class_singlecell import SingleCell
 from dynamics_vectorfields import set_ode_attributes, ode_integration_defaults
 from plotting_networkx import draw_from_adjacency
 from settings import DEFAULT_STYLE_ODE, VALID_STYLE_ODE, DIFFUSION_RATE, DYNAMICS_METHOD
@@ -11,12 +12,20 @@ The collection of coupled cells is represented by
 - a corresponding array of state variables
 
 Attributes:
-- self.num_cells     - integer         - denoted by "M"
+- self.num_cells     - integer         - denoted by "M" = number of cells in the system
+- self.sc_dim_ode    - integer         - denoted by "N" = number of dynamic variables tracked in a single cell
+- self.graph_dim_ode - integer         - sc_dim_ode * self.num_cells
 - self.adjacency     - array (M x M)   - cell-cell adjacency matrix
+- self.diffusion     - array (N)       - rate of diffusion may be distinct for each of the N internal sc variables
 - self.labels        - list of strings - unique name for each node on the graph e.g. 'cell_%d'
 - self.style_ode     - string          - determines single cell ODE
-- self.state_init    - array (NM x 1)  - initial condition for the graph
+- self.state_init    - array (NM)      - initial condition for the graph
 - self.state_history - array (NM x t)  - state history of the graph
+- self.sc_template   - SingleCell      - instance of custom class which exposes dx/dt=f(x) (where x is one cell)
+
+Utility methods:
+- self.state_to_stacked(x):    converts array x from shape [N x M] to [NM] 
+- self.state_to_rectangle(x):  converts array x from shape [NM] to [N x M]
 
 Issues:
 - state_init and state history may need to be reinitialized following a division event, unless we do zero or NaN fill 
@@ -32,7 +41,6 @@ class CellGraph():
         self.style_ode = style_ode
         self.state_init = state_init
         self.state_history = state_history
-        self.diffusion_rate = DIFFUSION_RATE
 
         if adjacency is None:
             self.adjacency = np.zeros((self.num_cells, self.num_cells))
@@ -41,6 +49,9 @@ class CellGraph():
         if style_ode is None:
             self.style_ode = DEFAULT_STYLE_ODE
 
+        # initialize single cell template which exposes dx/dt=f(x) for internal gene regulation components of network
+        self.sc_template = SingleCell(style_ode=self.style_ode, label='template')
+
         # construct graph matrices based on adjacency
         self.degree = np.diag(np.sum(self.adjacency, axis=1))
         self.laplacian = self.degree - self.adjacency
@@ -48,6 +59,8 @@ class CellGraph():
         sc_dim_ode, sc_dim_misc, variables_short, variables_long = set_ode_attributes(style_ode)
         self.graph_dim_ode = sc_dim_ode * self.num_cells
         self.sc_dim_ode = sc_dim_ode
+        # TODO external parameter/init arguments for this
+        self.diffusion = np.array([DIFFUSION_RATE for i in range(sc_dim_ode)])  # internal variable have own rates
 
         if state_init is None:
             # Approach 1: use default init cond from single cell ode code
@@ -68,10 +81,12 @@ class CellGraph():
         assert self.state_init.shape[0] == self.graph_dim_ode and len(self.state_init.shape) == 1
         assert self.state_history.shape[0] == self.graph_dim_ode
         assert self.style_ode in VALID_STYLE_ODE
-        assert self.diffusion_rate >= 0.0
+        assert all([c >= 0.0 for c in self.diffusion])
 
     def division_event(self, idx_dividing_cell):
-
+        """
+        Returns a new instance of the CellGraph with updated state variables (as a result of adding one cell)
+        """
         def split_mother_and_daughter_state(copy_exact=False):
             # TODO what choices here for splitting materials? copy or divide by two?
             current_graph_state = self.state_history[:, -1]
@@ -126,6 +141,26 @@ class CellGraph():
             style_ode=self.style_ode)
         return new_cellgraph
 
+    def graph_trajectory_TOYFLOW(self, init_cond=None, t0=None, t1=None, **solver_kwargs):
+        single_cell = None
+        assert self.style_ode == 'toy_flow'
+
+        def graph_ode_system(t_scalar, xvec, single_cell):
+            dxvec_dt = -1 * self.diffusion * np.dot(self.laplacian, xvec)
+            return dxvec_dt
+
+        fn = graph_ode_system
+        time_interval = [t0, t1]
+        if init_cond is None:
+            init_cond = self.state_init
+
+        if 'vectorized' not in solver_kwargs.keys():
+            solver_kwargs['vectorized'] = True
+        sol = solve_ivp(fn, time_interval, init_cond, method='Radau', args=(single_cell,), **solver_kwargs)
+        r = np.transpose(sol.y)
+        times = sol.t
+        return r, times
+
     def graph_trajectory(self, init_cond=None, t0=None, t1=None, **solver_kwargs):
         """
         In principle, can simulate starting from the current state of the graph to some arbitrary timepoint,
@@ -144,13 +179,37 @@ class CellGraph():
         Where
             X = [x_1, x_2, ..., x_M]^T a stacked vector of length NM representing the state of all cells
         """
+        N = self.sc_dim_ode
+        M = self.num_cells
+        single_cell = self.sc_template
 
-        # TODO implement
-        single_cell = None
-        assert self.style_ode == 'toy_flow'
+        def f_of_x_single_cell(t_scalar, init_cond, single_cell):
+            # Gene regulatory dynamics internal to one cell based on its state variables (dx/dt = f(x))
+            dxdt = single_cell.ode_system_vector(init_cond, t_scalar)
+            return dxdt
 
         def graph_ode_system(t_scalar, xvec, single_cell):
-            dxvec_dt = -1 * self.diffusion_rate * np.dot(self.laplacian, xvec)
+            xvec_matrix = self.state_to_rectangle(xvec)
+            # Term 1: stores the single cell gene regulation (for each cell)
+            #         [f(x_1) f(x_2) ... f(x_M)] as a stacked NM long 1D array
+            term_1 = np.zeros(self.graph_dim_ode)
+            for cell_idx in range(M):
+                a = N * cell_idx
+                b = N * (cell_idx + 1)
+                term_1[a:b] = f_of_x_single_cell(t_scalar, xvec_matrix[:, cell_idx], single_cell)
+
+            # TODO check that slicing is correct
+            # TODO this can be parallelized as one liner Dvec * np.dot(X, L^T)
+            # Term 2: stores the cell-cell coupling which is just laplacian diffusion -c * L * x
+            # Note: we consider each reactant separately with own diffusion rate
+            term_2 = np.zeros(self.graph_dim_ode)
+            for gene_idx in range(N):
+                indices_for_specific_gene = np.arange(gene_idx, self.graph_dim_ode, N)
+                xvec_specific_gene = xvec[indices_for_specific_gene]
+                diffusion_specific_gene = - self.diffusion[gene_idx] * np.dot(self.laplacian, xvec_specific_gene)
+                term_2[indices_for_specific_gene] = diffusion_specific_gene
+
+            dxvec_dt = term_1 + term_2
             return dxvec_dt
 
         fn = graph_ode_system
@@ -159,7 +218,7 @@ class CellGraph():
             init_cond = self.state_init
 
         if 'vectorized' not in solver_kwargs.keys():
-            solver_kwargs['vectorized'] = True
+            solver_kwargs['vectorized'] = False  # TODO how to vectorize our graph ODE?
         sol = solve_ivp(fn, time_interval, init_cond, method='Radau', args=(single_cell,), **solver_kwargs)
         r = np.transpose(sol.y)
         times = sol.t
@@ -172,17 +231,36 @@ class CellGraph():
         print("self.graph_dim_ode", self.graph_dim_ode)
         print("self.sc_dim_ode", self.sc_dim_ode)
         print("self.style_ode", self.style_ode)
-        print("self.diffusion_rate", self.diffusion_rate)
+        print("self.diffusion_rate", self.diffusion)
         print("self.state_init", self.state_init)
         return
 
     def plot_state(self):
+        # TODO other function which up to 16 cells does 4x4 grid of xyz traj plots  ---- or ----- x,y phase plots - SUBPLOTS or GRIDSPEC?
         draw_from_adjacency(self.adjacency)
         return
 
+    def state_to_stacked(self, x):
+        """
+        converts array x from shape [N x M] to [NM]
+        E.g.: suppose 2 cells each with 2 components
+              the first two components belong to cell one, the next two to cell two
+              in: [1,2,3,4]   out: [[1, 3],
+                                    [2, 4]]
+        """
+        assert x.shape == (self.sc_dim_ode, self.num_cells)
+        return x.reshape(self.graph_dim_ode, order='F')
+
+    def state_to_rectangle(self, x):
+        """
+        converts array x from shape [NM] to [N x M]
+        """
+        assert len(x.shape) == 1 and x.shape[0] == self.graph_dim_ode
+        return x.reshape((self.sc_dim_ode, self.num_cells), order='F')
+
 
 if __name__ == '__main__':
-    cellgraph = CellGraph(num_cells=1, style_ode='toy_flow')
+    cellgraph = CellGraph(num_cells=1, style_ode='PWL')   # styles: ['PWL', 'Yang2013', 'toy_flow']
     cellgraph.plot_state()
     cellgraph.print_state()
 
@@ -201,6 +279,7 @@ if __name__ == '__main__':
     print('Example trajectory for the graph...')
     t1 = 10.0
     t_eval = np.linspace(0, t1, 7)
+    #r, times = cellgraph.graph_trajectory_TOYFLOW(t0=0, t1=t1, t_eval=t_eval)
     r, times = cellgraph.graph_trajectory(t0=0, t1=t1, t_eval=t_eval)
 
     print(r)
