@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import solve_ivp
 
@@ -19,8 +20,8 @@ Attributes:
 - self.diffusion     - array (N)       - rate of diffusion may be distinct for each of the N internal sc variables
 - self.labels        - list of strings - unique name for each node on the graph e.g. 'cell_%d'
 - self.style_ode     - string          - determines single cell ODE
-- self.state_init    - array (NM)      - initial condition for the graph
 - self.state_history - array (NM x t)  - state history of the graph
+- self.times_history - array (t)       - timepoints on which state was integrated
 - self.sc_template   - SingleCell      - instance of custom class which exposes dx/dt=f(x) (where x is one cell)
 
 Utility methods:
@@ -34,13 +35,13 @@ Issues:
 
 class CellGraph():
 
-    def __init__(self, num_cells=1, adjacency=None, labels=None, state_init=None, state_history=None, style_ode=None):
+    def __init__(self, num_cells=1, adjacency=None, labels=None, state_history=None, times_history=None, style_ode=None):
         self.num_cells = num_cells
         self.adjacency = adjacency
         self.labels = labels
         self.style_ode = style_ode
-        self.state_init = state_init
         self.state_history = state_history
+        self.times_history = times_history
 
         if adjacency is None:
             self.adjacency = np.zeros((self.num_cells, self.num_cells))
@@ -62,23 +63,25 @@ class CellGraph():
         # TODO external parameter/init arguments for this
         self.diffusion = np.array([DIFFUSION_RATE for i in range(sc_dim_ode)])  # internal variable have own rates
 
-        if state_init is None:
+        if state_history is None:
             # Approach 1: use default init cond from single cell ode code
             _, _, _, sc_init_cond = ode_integration_defaults(self.style_ode)
-            self.state_init = np.tile(sc_init_cond, self.num_cells)
+            state_init = np.tile(sc_init_cond, self.num_cells)
             # Approach 2: just zeros
-            #self.state_init = np.zeros(self.graph_dim_ode)
+            state_init = np.zeros(self.graph_dim_ode)
             # Approach 3: random
-            #self.state_init = 10 * np.random.rand(self.graph_dim_ode)
+            state_init = 10 * np.random.rand(self.graph_dim_ode)
 
-        if state_init is None:
             self.state_history = np.zeros((self.graph_dim_ode, 1))
-            self.state_history[:, 0] = self.state_init
+            self.state_history[:, 0] = state_init
+
+        if self.times_history is None:
+            t0, t1, _, _ = ode_integration_defaults(style_ode)
+            self.times_history = np.array([t0])
 
         assert self.num_cells > 0
         assert self.adjacency.shape == (self.num_cells, self.num_cells)
         assert len(self.labels) == self.num_cells
-        assert self.state_init.shape[0] == self.graph_dim_ode and len(self.state_init.shape) == 1
         assert self.state_history.shape[0] == self.graph_dim_ode
         assert self.style_ode in VALID_STYLE_ODE
         assert all([c >= 0.0 for c in self.diffusion])
@@ -119,25 +122,20 @@ class CellGraph():
         updated_adjacency[-1, idx_dividing_cell] = 1
 
         # update new initial state based on extra cell and dispersion of maternal variables
-        updated_state_init = np.zeros(updated_graph_dim_ode)
-        updated_state_init[0:self.graph_dim_ode] = self.state_init
+        updated_state_history = np.zeros((updated_graph_dim_ode, len(self.times_history)))
+        updated_state_history[0:self.graph_dim_ode, :] = self.state_history
         post_mother_state, post_daughter_state, mlow, mhigh = split_mother_and_daughter_state()
-
         print(updated_graph_dim_ode, self.graph_dim_ode, len(post_daughter_state))
         print(post_mother_state, post_daughter_state, mlow, mhigh)
-        updated_state_init[mlow:mhigh] = post_mother_state
-        updated_state_init[self.graph_dim_ode:] = post_daughter_state
-
-        # TODO handler for updating graph state history after division -- currently history is not being stored
-        updated_state_history = np.zeros((updated_graph_dim_ode, 1))
-        updated_state_history[:, 0] = updated_state_init
+        updated_state_history[mlow:mhigh, -1] = post_mother_state
+        updated_state_history[self.graph_dim_ode:, -1] = post_daughter_state
 
         new_cellgraph = CellGraph(
             num_cells=updated_num_cells,
             adjacency=updated_adjacency,
             labels=updated_labels,
-            state_init=updated_state_init,
             state_history=updated_state_history,
+            times_history=self.times_history,
             style_ode=self.style_ode)
         return new_cellgraph
 
@@ -161,7 +159,7 @@ class CellGraph():
         times = sol.t
         return r, times
 
-    def graph_trajectory(self, init_cond=None, t0=None, t1=None, **solver_kwargs):
+    def graph_trajectory(self, init_cond=None, t0=None, t1=None, update_state=True, **solver_kwargs):
         """
         In principle, can simulate starting from the current state of the graph to some arbitrary timepoint,
         However, we'd like to "pause" after the first cell completes a cycle (call this time "t_div").
@@ -213,15 +211,24 @@ class CellGraph():
             return dxvec_dt
 
         fn = graph_ode_system
+        # TODO consider having class attribute time_init at t0 and reset to t1 at end of this fn call?
+        # TODO maybe "time_window" attribute too for t1-t0?
         time_interval = [t0, t1]
         if init_cond is None:
-            init_cond = self.state_init
+            init_cond = self.state_history[:, -1]
 
         if 'vectorized' not in solver_kwargs.keys():
             solver_kwargs['vectorized'] = False  # TODO how to vectorize our graph ODE?
         sol = solve_ivp(fn, time_interval, init_cond, method='Radau', args=(single_cell,), **solver_kwargs)
-        r = np.transpose(sol.y)
+        r = sol.y
         times = sol.t
+
+        if update_state:
+            print("update_state r.shape t.shape", r.shape, times.shape, times[0], self.times_history[0])
+            self.state_history = np.concatenate((self.state_history, r[:, 1:]), axis=1)
+            self.times_history = np.concatenate((self.times_history, times[1:]), axis=0)
+            print("confirm", self.times_history.shape)
+
         return r, times
 
     def print_state(self):
@@ -232,44 +239,93 @@ class CellGraph():
         print("self.sc_dim_ode", self.sc_dim_ode)
         print("self.style_ode", self.style_ode)
         print("self.diffusion_rate", self.diffusion)
-        print("self.state_init", self.state_init)
+        print("self.state_history.shape", self.state_history.shape)
+        print("timepoints: t_0, t_1, npts:", self.times_history[0], self.times_history[-1], self.times_history.shape)
         return
 
-    def plot_state(self):
-        # TODO other function which up to 16 cells does 4x4 grid of xyz traj plots  ---- or ----- x,y phase plots - SUBPLOTS or GRIDSPEC?
+    def plot_graph(self):
+        # TODO more detailed node coloring / state info / labels (str)?
         draw_from_adjacency(self.adjacency)
+        return
+
+    def plot_state_each_cell(self):
+
+        assert self.num_cells <= 16  # for now
+        ncols = 4
+        nrows = 1 + (self.num_cells - 1) // ncols
+        print("in plot_state():", self.num_cells, ncols, nrows)
+
+        # TODO other function which up to 16 cells does 4x4 grid of xyz traj plots  ---- or ----- x,y phase plots - SUBPLOTS or GRIDSPEC
+        fig, axarr = plt.subplots(ncols=ncols, nrows=nrows, figsize=(8, 8), constrained_layout=True, squeeze=False)
+        state_tensor = self.state_to_rectangle(self.state_history)
+        times = self.times_history
+
+        for idx in range(self.num_cells):
+            i = idx // 4
+            j = idx % 4
+            print("idx, i, j", idx, i, j)
+
+            r = np.transpose(state_tensor[:, idx, :])
+
+            axarr[i, j].plot(
+                times, r, label=[self.sc_template.variables_short[i] for i in range(self.sc_dim_ode)])
+            axarr[i, j].set_xlabel(r'$t$ [min]')
+            axarr[i, j].set_ylabel(r'concentration [nM]')
+
+        plt.legend()
+
+        plt.suptitle('plot_state_each_cell()')
+        plt.show()
         return
 
     def state_to_stacked(self, x):
         """
         converts array x from shape [N x M] to [NM]
+        converts array x from shape
+         - [N x M]      to  [NM]
+         - [N x M x t]  to  [NM x t]
+
         E.g.: suppose 2 cells each with 2 components
               the first two components belong to cell one, the next two to cell two
               in: [1,2,3,4]   out: [[1, 3],
                                     [2, 4]]
         """
-        assert x.shape == (self.sc_dim_ode, self.num_cells)
-        return x.reshape(self.graph_dim_ode, order='F')
+        d = len(x.shape)
+        assert d in [2, 3]
+        assert x.shape[0:2] == (self.sc_dim_ode, self.num_cells)
+        if d == 2:
+            out = x.reshape(self.graph_dim_ode, order='F')
+        else:
+            out = x.reshape((self.graph_dim_ode, -1), order='F')
+        return out
 
     def state_to_rectangle(self, x):
         """
-        converts array x from shape [NM] to [N x M]
+        converts array x from shape
+         - [NM]      to  [N x M]
+         - [NM x t]  to  [N x M x t]
         """
-        assert len(x.shape) == 1 and x.shape[0] == self.graph_dim_ode
-        return x.reshape((self.sc_dim_ode, self.num_cells), order='F')
+        d = len(x.shape)
+        assert d in [1,2]
+        assert x.shape[0] == self.graph_dim_ode
+        if d == 1:
+            out = x.reshape((self.sc_dim_ode, self.num_cells), order='F')
+        else:
+            out = x.reshape((self.sc_dim_ode, self.num_cells, -1), order='F')
+        return out
 
 
 if __name__ == '__main__':
     cellgraph = CellGraph(num_cells=1, style_ode='PWL')   # styles: ['PWL', 'Yang2013', 'toy_flow']
-    cellgraph.plot_state()
+    cellgraph.plot_graph()
     cellgraph.print_state()
 
-    for idx in range(2):
+    for idx in range(15):
         dividing_idx = np.random.randint(0, cellgraph.num_cells)
         print(idx, dividing_idx)
         cellgraph = cellgraph.division_event(idx)
         #cellgraph.division_event(dividing_idx)
-        cellgraph.plot_state()
+        cellgraph.plot_graph()
         cellgraph.print_state()
         print()
 
@@ -277,7 +333,7 @@ if __name__ == '__main__':
     cellgraph.print_state()
 
     print('Example trajectory for the graph...')
-    t1 = 10.0
+    t1 = 100.0
     t_eval = np.linspace(0, t1, 7)
     #r, times = cellgraph.graph_trajectory_TOYFLOW(t0=0, t1=t1, t_eval=t_eval)
     r, times = cellgraph.graph_trajectory(t0=0, t1=t1, t_eval=t_eval)
@@ -286,3 +342,4 @@ if __name__ == '__main__':
     print(r.shape)
     print(times)
     print(times.shape)
+    cellgraph.plot_state_each_cell()
