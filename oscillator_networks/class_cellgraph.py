@@ -35,13 +35,15 @@ Issues:
 
 class CellGraph():
 
-    def __init__(self, num_cells=1, adjacency=None, labels=None, state_history=None, times_history=None, style_ode=None):
+    def __init__(self, num_cells=1, adjacency=None, labels=None, state_history=None, times_history=None, style_ode=None,
+                 sc_template=None):
         self.num_cells = num_cells
         self.adjacency = adjacency
         self.labels = labels
         self.style_ode = style_ode
         self.state_history = state_history
         self.times_history = times_history
+        self.sc_template = sc_template
 
         if adjacency is None:
             self.adjacency = np.zeros((self.num_cells, self.num_cells))
@@ -51,7 +53,9 @@ class CellGraph():
             self.style_ode = DEFAULT_STYLE_ODE
 
         # initialize single cell template which exposes dx/dt=f(x) for internal gene regulation components of network
-        self.sc_template = SingleCell(style_ode=self.style_ode, label='template')
+        if sc_template is None:
+            self.sc_template = SingleCell(style_ode=self.style_ode, label='template')
+        assert self.sc_template.style_ode == self.style_ode
 
         # construct graph matrices based on adjacency
         self.degree = np.diag(np.sum(self.adjacency, axis=1))
@@ -68,9 +72,9 @@ class CellGraph():
             _, _, _, sc_init_cond = ode_integration_defaults(self.style_ode)
             state_init = np.tile(sc_init_cond, self.num_cells)
             # Approach 2: just zeros
-            state_init = np.zeros(self.graph_dim_ode)
+            #state_init = np.zeros(self.graph_dim_ode)
             # Approach 3: random
-            state_init = 10 * np.random.rand(self.graph_dim_ode)
+            #state_init = 10 * np.random.rand(self.graph_dim_ode)
 
             self.state_history = np.zeros((self.graph_dim_ode, 1))
             self.state_history[:, 0] = state_init
@@ -86,11 +90,11 @@ class CellGraph():
         assert self.style_ode in VALID_STYLE_ODE
         assert all([c >= 0.0 for c in self.diffusion])
 
-    def division_event(self, idx_dividing_cell):
+    def division_event(self, idx_dividing_cell, copy_exact=False):
         """
         Returns a new instance of the CellGraph with updated state variables (as a result of adding one cell)
         """
-        def split_mother_and_daughter_state(copy_exact=False):
+        def split_mother_and_daughter_state():
             # TODO what choices here for splitting materials? copy or divide by two?
             current_graph_state = self.state_history[:, -1]
             mother_idx_low = self.sc_dim_ode * idx_dividing_cell
@@ -136,7 +140,8 @@ class CellGraph():
             labels=updated_labels,
             state_history=updated_state_history,
             times_history=self.times_history,
-            style_ode=self.style_ode)
+            style_ode=self.style_ode,
+            sc_template=self.sc_template)
         return new_cellgraph
 
     def graph_trajectory_TOYFLOW(self, init_cond=None, t0=None, t1=None, **solver_kwargs):
@@ -149,8 +154,6 @@ class CellGraph():
 
         fn = graph_ode_system
         time_interval = [t0, t1]
-        if init_cond is None:
-            init_cond = self.state_init
 
         if 'vectorized' not in solver_kwargs.keys():
             solver_kwargs['vectorized'] = True
@@ -159,7 +162,7 @@ class CellGraph():
         times = sol.t
         return r, times
 
-    def graph_trajectory(self, init_cond=None, t0=None, t1=None, update_state=True, **solver_kwargs):
+    def graph_trajectory(self, init_cond=None, time_interval=None, update_state=True, **solver_kwargs):
         """
         In principle, can simulate starting from the current state of the graph to some arbitrary timepoint,
         However, we'd like to "pause" after the first cell completes a cycle (call this time "t_div").
@@ -211,11 +214,12 @@ class CellGraph():
             return dxvec_dt
 
         fn = graph_ode_system
-        # TODO consider having class attribute time_init at t0 and reset to t1 at end of this fn call?
-        # TODO maybe "time_window" attribute too for t1-t0?
-        time_interval = [t0, t1]
         if init_cond is None:
             init_cond = self.state_history[:, -1]
+        if time_interval is None:
+            t0, t1, _, _ = ode_integration_defaults(self.style_ode)
+            tshift = t1 - t0
+            time_interval = [self.times_history[-1], tshift]
 
         if 'vectorized' not in solver_kwargs.keys():
             solver_kwargs['vectorized'] = False  # TODO how to vectorize our graph ODE?
@@ -241,6 +245,10 @@ class CellGraph():
         print("self.diffusion_rate", self.diffusion)
         print("self.state_history.shape", self.state_history.shape)
         print("timepoints: t_0, t_1, npts:", self.times_history[0], self.times_history[-1], self.times_history.shape)
+        print("Current state:")
+        X = self.state_to_rectangle(self.state_history)
+        for cell in range(self.num_cells):
+            print('\tCell #%d' % cell, X[:, cell, :].flatten())
         return
 
     def plot_graph(self):
@@ -316,30 +324,41 @@ class CellGraph():
 
 
 if __name__ == '__main__':
+
+    # Misc. setting
+    copy_exact = False  # if True, divide cell contents 100%/100% between mother/daughter (else 50%/50%)
+
+    # Initialization
     cellgraph = CellGraph(num_cells=1, style_ode='PWL')   # styles: ['PWL', 'Yang2013', 'toy_flow']
+    if cellgraph.style_ode == 'PWL':
+        cellgraph.sc_template.params_ode['epsilon'] = 0.3
+
+    # Initial state output
     cellgraph.plot_graph()
     cellgraph.print_state()
 
+    # Add some cells through manual divisions (two different modes - linear or random)
     for idx in range(15):
         dividing_idx = np.random.randint(0, cellgraph.num_cells)
-        print(idx, dividing_idx)
-        cellgraph = cellgraph.division_event(idx)
-        #cellgraph.division_event(dividing_idx)
+        print("Division event (idx, div idx):", idx, dividing_idx)
+        cellgraph = cellgraph.division_event(idx, copy_exact=copy_exact)  # Mode 1 - linear division idx
+        #cellgraph.division_event(dividing_idx, copy_exact=copy_exact)    # Mode 2 - random division idx
         cellgraph.plot_graph()
         cellgraph.print_state()
         print()
 
-    print("Final state")
-    cellgraph.print_state()
-
     print('Example trajectory for the graph...')
-    t1 = 100.0
-    t_eval = np.linspace(0, t1, 7)
-    #r, times = cellgraph.graph_trajectory_TOYFLOW(t0=0, t1=t1, t_eval=t_eval)
-    r, times = cellgraph.graph_trajectory(t0=0, t1=t1, t_eval=t_eval)
+    t_eval = None  # None or np.linspace(0, 50, 2000)
+    solver_kwargs = {
+        't_eval': t_eval
+    }
+    r, times = cellgraph.graph_trajectory(**solver_kwargs)
 
-    print(r)
-    print(r.shape)
-    print(times)
-    print(times.shape)
+    # Plot the timeseries for each cell
+    #print(r)
+    #print(r.shape)
+    #print(times)
+    #print(times.shape)
     cellgraph.plot_state_each_cell()
+
+    # TODO division event detection handling

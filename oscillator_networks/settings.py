@@ -16,7 +16,7 @@ VALID_STYLE_ODE = ['Yang2013', 'PWL', 'toy_flow']
 DEFAULT_STYLE_ODE = 'PWL'
 
 # Cell-cell coupling:
-DIFFUSION_RATE = 1.0
+DIFFUSION_RATE = 0.0
 
 # PLOTTING
 PLOT_XLABEL = r'Cyc$_{act}$'

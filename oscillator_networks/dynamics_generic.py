@@ -102,7 +102,7 @@ def ode_solve_ivp(init_cond, times, single_cell, method='Radau', **solver_kwargs
     if 'atol' not in solver_kwargs.keys():
         solver_kwargs['atol'] = 1e-8
     if 'vectorized' not in solver_kwargs.keys():
-        if single_cell.graph_dim_ode > 1:
+        if single_cell.dim_ode > 1:
             solver_kwargs['vectorized'] = True
         else:
             solver_kwargs['vectorized'] = False

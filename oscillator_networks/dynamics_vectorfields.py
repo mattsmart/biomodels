@@ -67,7 +67,7 @@ def set_ode_params(style_ode):
             'a': 2,                 # defines the corners of PWL function for x
             'b': 2,                 # defines the y-intercept of the dy/dt=0 nullcline, y(x) = 1/gamma * (-x + b)
             'gamma': 1e-1,          # degradation of Cyc_tot
-            'epsilon': 1e-1,        # rate of inhibitor accumulation
+            'epsilon': 0.3,         # rate of inhibitor accumulation
             'I_initial': 0,         # initial inhibitor (e.g. Bam) concentration
             't_pulse_switch': 25.0  # treating inhibitor timeseries as pulse with a negative slope from t=T to t=2T
         }
