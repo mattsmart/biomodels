@@ -326,10 +326,13 @@ class CellGraph():
 if __name__ == '__main__':
 
     # Misc. setting
+    style_ode = 'PWL'  # styles: ['PWL', 'Yang2013', 'toy_flow']
     copy_exact = False  # if True, divide cell contents 100%/100% between mother/daughter (else 50%/50%)
+    M = 1
+    state_history = np.array([[100, 100, 0]]).T   # None or array of shape (NM x times)
 
     # Initialization
-    cellgraph = CellGraph(num_cells=1, style_ode='PWL')   # styles: ['PWL', 'Yang2013', 'toy_flow']
+    cellgraph = CellGraph(num_cells=M, style_ode=style_ode, state_history=state_history)
     if cellgraph.style_ode == 'PWL':
         cellgraph.sc_template.params_ode['epsilon'] = 0.3
 
