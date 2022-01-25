@@ -19,7 +19,7 @@ def set_ode_attributes(style_ode):
     if style_ode == 'Yang2013':
         # currently, all methods share the same attributes above
         pass
-    elif style_ode == 'PWL':
+    elif style_ode == 'PWL2':
         # currently, all methods share the same attributes above
         pass
     elif style_ode == 'toy_flow':
@@ -56,7 +56,7 @@ def set_ode_params(style_ode):
         # add any extra parameters that are separate from Yang2013
         p['Bam_activity'] = 1  # as indicated in SmallCellCluster review draft p7
         p['Bam_deg'] = 0  # degradation rate; arbitrary, try 0 or 1e-2 to 1e-4
-    elif style_ode == 'PWL':
+    elif style_ode == 'PWL2':
         """ Notes from Hayden slide 12:
         - ((1−𝛾))/2𝜀𝛾 is duration that green intersects red between extrema of red
         - the free params are 𝑎, 𝐼, 𝜀𝛾/(1+𝛾), b
@@ -86,8 +86,8 @@ def set_ode_params(style_ode):
 def set_ode_vectorfield(style_ode, params, init_cond, two_dim=True, **ode_kwargs):
     if style_ode == 'Yang2013':
         dxdt = vectorfield_Yang2013(params, init_cond, z=ode_kwargs.get('z', 0), two_dim=two_dim)
-    elif style_ode == 'PWL':
-        dxdt = vectorfield_PWL(params, init_cond, ode_kwargs.get('t', 0), z=ode_kwargs.get('z', 0), two_dim=two_dim)
+    elif style_ode == 'PWL2':
+        dxdt = vectorfield_PWL2(params, init_cond, ode_kwargs.get('t', 0), z=ode_kwargs.get('z', 0), two_dim=two_dim)
     elif style_ode == 'toy_flow':
         dxdt = vectorfield_toy()
     else:
@@ -103,7 +103,7 @@ def ode_integration_defaults(style_ode):
         t1 = 800
         num_steps = 2000
         init_cond = [60.0, 0.0, 0.0]
-    elif style_ode == 'PWL':
+    elif style_ode == 'PWL2':
         t1 = 50
         num_steps = 2000
         init_cond = [1.0, 1.0, 0.0]
@@ -165,29 +165,29 @@ def vectorfield_Yang2013(params, init_cond, z=0, two_dim=True):
     return out
 
 
-def PWL_f_of_x_SCALAR(params, x):
+def PWL_g_of_x_SCALAR(params, x):
     """
-    Currently unused; see vectorized variant PWL_f_of_x()
+    Currently unused; see vectorized variant PWL_g_of_x()
     """
     a = params['a']
     if x < (a/2):
-        f = -x
+        g = -x
     elif x <= ((1+a)/2):
-        f = x - a
+        g = x - a
     else:
-        f = 1 - x
-    return f
+        g = 1 - x
+    return g
 
 
-def PWL_f_of_x(params, x):
+def PWL_g_of_x(params, x):
     a = params['a']
-    f1 = np.where(x < a/2, x, 0)
-    f2 = np.where(
+    g1 = np.where(x < a/2, x, 0)
+    g2 = np.where(
         ((a/2) <= x) & (x < ((1+a)/2)),
         -x + a, 0)
-    f3 = np.where(x >= ((1+a)/2), -1 + x, 0)
-    f = f1 + f2 + f3
-    return f
+    g3 = np.where(x >= ((1+a)/2), -1 + x, 0)
+    g = g1 + g2 + g3
+    return g
 
 
 def PWL_I_of_t_pulse(params, t):
@@ -206,13 +206,13 @@ def PWL_I_of_t_pulse(params, t):
     return I
 
 
-def vectorfield_PWL(params, init_cond, t, z=0, two_dim=True):
+def vectorfield_PWL2(params, init_cond, t, z=0, two_dim=True):
     """
     Originally from slide 12 of Hayden ppt
     - Change #1: here the variables are relabelled (based on Jan 18 discussion)
         x = -1 * v
         y = w
-        - note x only degrades in the intermediate regime of f(x) now, because of the relabelling
+        - note x only degrades in the intermediate regime of PWL g(x) now, because of the relabelling
     - Change #2:
         Need to shift the y-nullcline to the right in order to have positive stable states
         Use new parameter "b" which is basal rate of y production
@@ -228,9 +228,9 @@ def vectorfield_PWL(params, init_cond, t, z=0, two_dim=True):
     x, y, _ = init_cond  # TODO note z is passed through init_cond but is unused; use static "external" z for now
 
     I_of_t = PWL_I_of_t_pulse(params, t)
-    f_of_x = PWL_f_of_x(params, x)
+    g_of_x = PWL_g_of_x(params, x)
 
-    dxdt = 1/params['C'] * (y - f_of_x - I_of_t)
+    dxdt = 1/params['C'] * (y - g_of_x - I_of_t)
     dydt = params['b'] - x - params['gamma'] * y
     dzdt = np.zeros_like(dxdt)
     #dzdt = -p['Bam_deg'] * z

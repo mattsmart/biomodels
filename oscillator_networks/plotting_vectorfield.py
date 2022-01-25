@@ -292,7 +292,7 @@ def nullclines_general(ode_dict, flip_axis=False, contour_labels=True,
 if __name__ == '__main__':
 
     flag_Yang2013 = False
-    flag_PWL = True
+    flag_PWL2 = True
 
     flag_phaseplot = True
     flag_vectorfield = True
@@ -308,17 +308,17 @@ if __name__ == '__main__':
         'z': 0
     }
 
-    params_PWL = set_ode_params('PWL')
-    ode_dict_PWL = {
-        'style_ode': 'PWL',
-        'params': params_PWL
+    params_PWL2 = set_ode_params('PWL2')
+    ode_dict_PWL2 = {
+        'style_ode': 'PWL2',
+        'params': params_PWL2
     }
-    ode_dict_PWL['params']['I_initial'] = 0
-    ode_dict_PWL['params']['epsilon'] = 0.3
-    ode_dict_PWL['params']['a'] = 2
-    ode_dict_PWL['params']['b'] = 2
-    ode_dict_PWL['params']['t_pulse_switch'] = 25.0
-    kwargs_PWL = {
+    ode_dict_PWL2['params']['I_initial'] = 0
+    ode_dict_PWL2['params']['epsilon'] = 0.3
+    ode_dict_PWL2['params']['a'] = 2
+    ode_dict_PWL2['params']['b'] = 2
+    ode_dict_PWL2['params']['t_pulse_switch'] = 25.0
+    kwargs_PWL2 = {
         'z': 0,
         't': 0
     }
@@ -336,14 +336,14 @@ if __name__ == '__main__':
         if flag_nullclines:
             nullclines_general(ode_dict_Yang2013, axlow=0, axhigh=120, contour_labels=False, **kwargs_Yang2013)
 
-    if flag_PWL:
+    if flag_PWL2:
         axlow = 0
         axhigh = 12
         if flag_phaseplot:
-            phaseplot_general(ode_dict_PWL, axlow=axlow, axhigh=axhigh, **solver_kwargs)
+            phaseplot_general(ode_dict_PWL2, axlow=axlow, axhigh=axhigh, **solver_kwargs)
         if flag_vectorfield:
-            vectorfield_general(ode_dict_PWL, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_PWL)
+            vectorfield_general(ode_dict_PWL2, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_PWL2)
         if flag_contourplot:
-            contourplot_general(ode_dict_PWL, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_PWL)
+            contourplot_general(ode_dict_PWL2, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_PWL2)
         if flag_nullclines:
-            nullclines_general(ode_dict_PWL, delta=0.01, axlow=axlow, axhigh=axhigh, contour_labels=False, **kwargs_PWL)
+            nullclines_general(ode_dict_PWL2, delta=0.01, axlow=axlow, axhigh=axhigh, contour_labels=False, **kwargs_PWL2)

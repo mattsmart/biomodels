@@ -92,9 +92,9 @@ class SingleCell():
 
 
 if __name__ == '__main__':
-    style_ode = 'PWL'
+    style_ode = 'PWL2'
     sc = SingleCell(label='c1', style_ode=style_ode)
-    if style_ode == 'PWL':
+    if style_ode == 'PWL2':
         sc.params_ode['epsilon'] = 0.3
         sc.params_ode['t_pulse_switch'] = 25
 
