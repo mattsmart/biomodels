@@ -326,14 +326,17 @@ class CellGraph():
 if __name__ == '__main__':
 
     # Misc. setting
-    style_ode = 'PW2L'  # styles: ['PWL2', 'Yang2013', 'toy_flow']
+    style_ode = 'PWL3'  # styles: ['PWL2', 'PWL3', 'Yang2013', 'toy_flow']
     copy_exact = False  # if True, divide cell contents 100%/100% between mother/daughter (else 50%/50%)
     M = 1
-    state_history = np.array([[100, 100, 0]]).T   # None or array of shape (NM x times)
+    if style_ode == 'PWL2':
+        state_history = np.array([[100, 100]]).T     # None or array of shape (NM x times)
+    else:
+        state_history = np.array([[100, 100, 0]]).T  # None or array of shape (NM x times)
 
     # Initialization
     cellgraph = CellGraph(num_cells=M, style_ode=style_ode, state_history=state_history)
-    if cellgraph.style_ode == 'PWL2':
+    if cellgraph.style_ode in ['PWL2', 'PWL3']:
         cellgraph.sc_template.params_ode['epsilon'] = 0.3
 
     # Initial state output

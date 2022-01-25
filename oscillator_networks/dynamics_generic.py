@@ -109,6 +109,10 @@ def ode_solve_ivp(init_cond, times, single_cell, method='Radau', **solver_kwargs
     fn = system_vector_obj_ode
     time_interval = [times[0], times[-1]]
     print(init_cond)
+
+    print("enter solve_ivp", init_cond)
+    print(solver_kwargs)
+
     sol = solve_ivp(fn, time_interval, init_cond, method=method, args=(single_cell,), **solver_kwargs)
     r = np.transpose(sol.y)
     times = sol.t

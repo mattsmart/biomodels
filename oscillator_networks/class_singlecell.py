@@ -39,7 +39,7 @@ class SingleCell():
             'z': init_cond[-1],  # TODO remove this hacky way to pass z its not safe (handling PWL, Yang2013 here might be slow though)
             't': t
         }
-        dxdt = set_ode_vectorfield(self.style_ode, self.params_ode, init_cond, two_dim=False, **ode_kwargs)
+        dxdt = set_ode_vectorfield(self.style_ode, self.params_ode, init_cond, **ode_kwargs)
         return dxdt
 
     def trajectory(self, init_cond=None, t0=None, t1=None, num_steps=None, dynamics_method=DYNAMICS_METHOD,
@@ -63,6 +63,8 @@ class SingleCell():
             print("Init Cond:", init_cond)
             self.printer()
 
+        print("enter simulate_dynamics_general", init_cond)
+        print(solver_kwargs)
         r, times = simulate_dynamics_general(init_cond, times, self, method=dynamics_method, **solver_kwargs)
         if flag_info:
             print('Done trajectory\n')
@@ -70,6 +72,9 @@ class SingleCell():
         return r, times
 
     def printer(self):
+        print('dim_ode:', self.dim_ode)
+        print('dim_misc:', self.dim_misc)
+        print('num_variables:', self.num_variables)
         print("State variables:")
         for idx in range(self.num_variables):
             print("\t %s: %s | %s" % (idx, self.variables_short[idx], self.variables_long[idx]))
@@ -92,9 +97,9 @@ class SingleCell():
 
 
 if __name__ == '__main__':
-    style_ode = 'PWL2'
+    style_ode = 'PWL3'
     sc = SingleCell(label='c1', style_ode=style_ode)
-    if style_ode == 'PWL2':
+    if style_ode in ['PWL2', 'PWL3']:
         sc.params_ode['epsilon'] = 0.3
         sc.params_ode['t_pulse_switch'] = 25
 

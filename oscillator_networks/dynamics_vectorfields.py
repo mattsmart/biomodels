@@ -19,9 +19,20 @@ def set_ode_attributes(style_ode):
     if style_ode == 'Yang2013':
         # currently, all methods share the same attributes above
         pass
-    elif style_ode == 'PWL2':
+    elif style_ode =='PWL3':
         # currently, all methods share the same attributes above
         pass
+    elif style_ode =='PWL2':
+        # currently, all methods share the same attributes above
+        dim_ode = 2
+        variables_short = {0: 'Cyc_act',
+                           1: 'Cyc_tot',
+                           2: 'n_div',
+                           3: 'fusome'}
+        variables_long = {0: 'Cyclin active',
+                          1: 'Cyclin total',
+                          2: 'Number of Divisions',
+                          3: 'Fusome content'}
     elif style_ode == 'toy_flow':
         dim_ode = 1  # dimension of ODE system
         dim_misc = 0  # dimension of misc. variables (e.g. fusome content)
@@ -56,7 +67,7 @@ def set_ode_params(style_ode):
         # add any extra parameters that are separate from Yang2013
         p['Bam_activity'] = 1  # as indicated in SmallCellCluster review draft p7
         p['Bam_deg'] = 0  # degradation rate; arbitrary, try 0 or 1e-2 to 1e-4
-    elif style_ode == 'PWL2':
+    elif style_ode in ['PWL2', 'PWL3']:
         """ Notes from Hayden slide 12:
         - ((1−𝛾))/2𝜀𝛾 is duration that green intersects red between extrema of red
         - the free params are 𝑎, 𝐼, 𝜀𝛾/(1+𝛾), b
@@ -83,11 +94,13 @@ def set_ode_params(style_ode):
     return p
 
 
-def set_ode_vectorfield(style_ode, params, init_cond, two_dim=True, **ode_kwargs):
+def set_ode_vectorfield(style_ode, params, init_cond, **ode_kwargs):
     if style_ode == 'Yang2013':
-        dxdt = vectorfield_Yang2013(params, init_cond, z=ode_kwargs.get('z', 0), two_dim=two_dim)
+        dxdt = vectorfield_Yang2013(params, init_cond, z=ode_kwargs.get('z', 0))
     elif style_ode == 'PWL2':
-        dxdt = vectorfield_PWL2(params, init_cond, ode_kwargs.get('t', 0), z=ode_kwargs.get('z', 0), two_dim=two_dim)
+        dxdt = vectorfield_PWL2(params, init_cond, ode_kwargs.get('t', 0), z=ode_kwargs.get('z', 0))
+    elif style_ode == 'PWL3':
+        dxdt = vectorfield_PWL3(params, init_cond, ode_kwargs.get('t', 0))
     elif style_ode == 'toy_flow':
         dxdt = vectorfield_toy()
     else:
@@ -104,6 +117,10 @@ def ode_integration_defaults(style_ode):
         num_steps = 2000
         init_cond = [60.0, 0.0, 0.0]
     elif style_ode == 'PWL2':
+        t1 = 50
+        num_steps = 2000
+        init_cond = [1.0, 1.0]
+    elif style_ode == 'PWL3':
         t1 = 50
         num_steps = 2000
         init_cond = [1.0, 1.0, 0.0]
@@ -124,7 +141,7 @@ def vectorfield_toy():
     return [0]
 
 
-def vectorfield_Yang2013(params, init_cond, z=0, two_dim=True):
+def vectorfield_Yang2013(params, init_cond, z=0):
     """
     Args:
         params - dictionary of ODE parameters used by Yang2013
@@ -157,11 +174,7 @@ def vectorfield_Yang2013(params, init_cond, z=0, two_dim=True):
     #dzdt = np.zeros_like(dxdt)
     dzdt = -p['Bam_deg'] * z
 
-    if two_dim:
-        out = [dxdt, dydt]
-    else:
-        out = [dxdt, dydt, dzdt]
-
+    out = [dxdt, dydt, dzdt]
     return out
 
 
@@ -206,7 +219,22 @@ def PWL_I_of_t_pulse(params, t):
     return I
 
 
-def vectorfield_PWL2(params, init_cond, t, z=0, two_dim=True):
+def PWL_derivative_I_of_t_pulse(params, t):
+    """
+    Generates a triangular pulse rising at t=0 with switch at t = params['t_pulse_switch']
+      when t > 2 * params['t_pulse_switch'], there is no further change
+    """
+    if t < params['t_pulse_switch']:
+        dIdt = params['epsilon']
+    elif t < 2 * params['t_pulse_switch']:
+        dIdt = -params['epsilon']
+    else:
+        dIdt = 0
+    assert t >= 0
+    return dIdt
+
+
+def vectorfield_PWL2(params, init_cond, t, z=0):
     """
     Originally from slide 12 of Hayden ppt
     - Change #1: here the variables are relabelled (based on Jan 18 discussion)
@@ -223,21 +251,41 @@ def vectorfield_PWL2(params, init_cond, t, z=0, two_dim=True):
         z - array-like
         t - time corresponding to integration variable (non-autonomous system)
     Returns:
-        array like of shape [x, y] or [x, y, z] depending on two_dim flag
+        array like of shape [x, y]
     """
-    x, y, _ = init_cond  # TODO note z is passed through init_cond but is unused; use static "external" z for now
+    x, y = init_cond  # TODO note z is passed through init_cond but is unused; use static "external" z for now
 
     I_of_t = PWL_I_of_t_pulse(params, t)
     g_of_x = PWL_g_of_x(params, x)
 
     dxdt = 1/params['C'] * (y - g_of_x - I_of_t)
     dydt = params['b'] - x - params['gamma'] * y
-    dzdt = np.zeros_like(dxdt)
+
+    out = [dxdt, dydt]
+    return out
+
+
+def vectorfield_PWL3(params, init_cond, t):
+    """
+    3-dim variant of PWL2 where the modulator I(t), here z, has own differential equation
+    Args:
+        params - dictionary of ODE parameters used by piecewise linear ODE system
+        x - array-like
+        y - array-like
+        z - array-like
+        t - time corresponding to integration variable (non-autonomous system)
+    Returns:
+        array like of shape [x, y, z]
+    """
+    x, y, z = init_cond
+
+    derivative_I_of_t = PWL_derivative_I_of_t_pulse(params, t)
+    g_of_x = PWL_g_of_x(params, x)
+
+    dxdt = 1/params['C'] * (y - g_of_x - z)
+    dydt = params['b'] - x - params['gamma'] * y
+    dzdt = derivative_I_of_t * np.ones_like(dxdt)  # second factor for vectorization support
     #dzdt = -p['Bam_deg'] * z
 
-    if two_dim:
-        out = [dxdt, dydt]
-    else:
-        out = [dxdt, dydt, dzdt]
-
+    out = [dxdt, dydt, dzdt]
     return out
