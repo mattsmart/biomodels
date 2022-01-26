@@ -362,13 +362,12 @@ if __name__ == '__main__':
         if flag_nullclines:
             nullclines_general(sc_template_PWL2, delta=0.01, axlow=axlow, axhigh=axhigh, contour_labels=False, **kwargs_PWL2)
 
-
     if flag_PWL4_auto_linear:
         axlow = 0
-        axhigh = 12
-        """
+        axhigh = 5
         if flag_phaseplot:
             phaseplot_general(sc_template_PWL4_auto_linear, axlow=axlow, axhigh=axhigh, **solver_kwargs)
+        """
         if flag_vectorfield:
             vectorfield_general(sc_template_PWL4_auto_linear, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_PWL4_auto_linear)
         if flag_contourplot:

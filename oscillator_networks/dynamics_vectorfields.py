@@ -102,6 +102,7 @@ def set_ode_params(style_ode):
         p = {
             'C': 1e-1,              # speed scale for fast variable Cyc_act
             'a': 2,                 # defines the corners of PWL function for x
+            'd': 1,                 # defines the corners of PWL function for x
             'b': 2,                 # defines the y-intercept of the dy/dt=0 nullcline, y(x) = 1/gamma * (-x + b)
             'gamma': 1e-1,          # degradation of Cyc_tot
             'epsilon': 0.3,         # rate of inhibitor accumulation
@@ -115,6 +116,7 @@ def set_ode_params(style_ode):
         p = {
             'C': 1e-1,              # speed scale for fast variable Cyc_act
             'a': 2,                 # defines the corners of PWL function for x
+            'd': 1,                 # defines the corners of PWL function for x
             'b': 0,                 # defines the y-intercept of the dy/dt=0 nullcline, y(x) = 1/gamma * (-x + b)
             'gamma': 1e-1,          # degradation of Cyc_tot
             'epsilon': 0.3,         # rate of inhibitor accumulation
@@ -128,6 +130,7 @@ def set_ode_params(style_ode):
         p = {
             'C': 1e-1,              # speed scale for fast variable Cyc_act
             'a': 2,                 # defines the corners of PWL function for x
+            'd': 1,                 # defines the corners of PWL function for x
             'gamma': 1e-1,          # degradation of Cyc_tot
             'delta_w': 0.1,         # defines degradation rate of bam controller, w(t)
             'w_threshold': 0.5,     # defines threshold at which w(t) produces (above w1) or destroys (below w1) Bam
@@ -140,9 +143,10 @@ def set_ode_params(style_ode):
         p = {
             'C': 1e-1,              # speed scale for fast variable Cyc_act
             'a': 2,                 # defines the corners of PWL function for x
+            'd': 1,                 # defines the corners of PWL function for x
             'gamma': 1e-1,          # degradation of Cyc_tot
-            'epsilon': 1.0,         # rate of inhibitor accumulation (via dzdt += epsilon * w(t))
-            'delta_w': 0.1,         # defines degradation rate of bam controller, w(t)
+            'epsilon': 1,         # rate of inhibitor accumulation (via dzdt += epsilon * w(t))
+            'delta_w': 0.1, #0.1,         # defines degradation rate of bam controller, w(t)
             'w_threshold': 0,       # [Not needed] defines threshold at which w(t) produces (above w1) or destroys (below w1) Bam
             'b_Bam': 0,             # [Not needed] constant production of Bam
         }
@@ -210,9 +214,9 @@ def ode_integration_defaults(style_ode):
         num_steps = 2000
         init_cond = [0.0, 0.0, 0.0, 1.0]   # fourth component is initial condition of w(t) aka key "w0" parameter
     elif style_ode == 'PWL4_auto_linear':
-        t1 = 50
+        t1 = 100 #50
         num_steps = 2000
-        init_cond = [0.0, 0.0, 0.0, 10.0]   # fourth component is initial condition of w(t) aka key "w0" parameter
+        init_cond = [0.0, 0.0, 0.0, 2.0]   # fourth component is initial condition of w(t) aka key "w0" parameter
     elif style_ode == 'toy_flow':
         t1 = 50
         num_steps = 2000
@@ -283,11 +287,12 @@ def PWL_g_of_x_SCALAR(params, x):
 
 def PWL_g_of_x(params, x):
     a = params['a']
+    d = params['d']
     g1 = np.where(x < a/2, x, 0)
     g2 = np.where(
-        ((a/2) <= x) & (x < ((1+a)/2)),
+        ((a/2) <= x) & (x < ((d+a)/2)),
         -x + a, 0)
-    g3 = np.where(x >= ((1+a)/2), -1 + x, 0)
+    g3 = np.where(x >= ((d+a)/2), -d + x, 0)
     g = g1 + g2 + g3
     return g
 
@@ -406,7 +411,7 @@ def vectorfield_PWL3_swap(params, init_cond, t):
     return out
 
 
-def PWL4_auto_helper(params, x, y, z):
+def PWL4_auto_helper(params, x, y, z, w):
     """
     Common steps used by PWL4 autonomous vectorfields (note auto means autonomous)
     - the "dzdt" equation is what differs between the various PWL4 autonomous vectorfields
@@ -414,7 +419,7 @@ def PWL4_auto_helper(params, x, y, z):
     g_of_x = PWL_g_of_x(params, x)
     dxdt = 1/params['C'] * (y - g_of_x)
     dydt = z - x - params['gamma'] * y
-    dwdt = -params['delta_w'] * np.ones_like(dxdt)
+    dwdt = -params['delta_w'] * w
     return dxdt, dydt, dwdt
 
 
@@ -437,7 +442,7 @@ def vectorfield_PWL4_autonomous_ww(params, init_cond, t):
         array like of shape [x, y, z, w]
     """
     x, y, z, w = init_cond
-    dxdt, dydt, dwdt = PWL4_auto_helper(params, x, y, z)
+    dxdt, dydt, dwdt = PWL4_auto_helper(params, x, y, z, w)
 
     dzdt = w * (w - params['w_threshold'])
 
@@ -464,7 +469,7 @@ def vectorfield_PWL4_autonomous_wz(params, init_cond, t):
         array like of shape [x, y, z, w]
     """
     x, y, z, w = init_cond
-    dxdt, dydt, dwdt = PWL4_auto_helper(params, x, y, z)
+    dxdt, dydt, dwdt = PWL4_auto_helper(params, x, y, z, w)
 
     dzdt = z * (w - params['w_threshold'])
 
@@ -492,7 +497,7 @@ def vectorfield_PWL4_autonomous_linear(params, init_cond, t):
         array like of shape [x, y, z, w]
     """
     x, y, z, w = init_cond
-    dxdt, dydt, dwdt = PWL4_auto_helper(params, x, y, z)
+    dxdt, dydt, dwdt = PWL4_auto_helper(params, x, y, z, w)
 
     dzdt = - z + params['b_Bam'] + params['epsilon'] * (w - params['w_threshold'])
 

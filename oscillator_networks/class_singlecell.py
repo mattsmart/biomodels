@@ -100,10 +100,14 @@ if __name__ == '__main__':
     if style_ode in ['PWL2', 'PWL3']:
         sc.params_ode['epsilon'] = 0.3
         sc.params_ode['t_pulse_switch'] = 25
+    if style_ode in ['PWL4_auto_linear']:
+        sc.params_ode['a'] = 2
+        sc.params_ode['d'] = 1
 
     solver_kwargs = {
         'atol': 1e-8,
-        'dense_output': False}
+        'dense_output': False,  # seems to have no effect
+        't_eval': None} #np.linspace(0, 100, 2000)}
     r, times = sc.trajectory(flag_info=True, dynamics_method='solve_ivp', **solver_kwargs)
     #print(r, times)
     print(r.shape)
