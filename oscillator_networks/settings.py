@@ -12,7 +12,7 @@ DYNAMICS_METHOD = 'solve_ivp'
 DYNAMICS_METHODS_VALID = ['solve_ivp', 'libcall', 'rk4', 'euler']
 
 # DEFAULTS: single cell dynamical system
-VALID_STYLE_ODE = ['Yang2013', 'PWL2', 'PWL3', 'toy_flow']
+VALID_STYLE_ODE = ['Yang2013', 'PWL2', 'PWL3', 'PWL3_swap', 'PWL4_auto_wz', 'PWL4_auto_ww', 'PWL4_auto_linear', 'toy_flow']
 DEFAULT_STYLE_ODE = 'PWL'
 
 # Cell-cell coupling:

@@ -80,7 +80,7 @@ class SingleCell():
             print("\t %s: %s | %s" % (idx, self.variables_short[idx], self.variables_long[idx]))
 
     def io_write(self, filedir, filename):
-        # TODO
+        # TODO print params file and metadata like style_ode
         """
         filepath = filedir + os.sep + filename
         with open(filepath, "wb") as csv_file:
@@ -97,7 +97,7 @@ class SingleCell():
 
 
 if __name__ == '__main__':
-    style_ode = 'PWL3'
+    style_ode = 'PWL4_auto_linear'
     sc = SingleCell(label='c1', style_ode=style_ode)
     if style_ode in ['PWL2', 'PWL3']:
         sc.params_ode['epsilon'] = 0.3
@@ -106,7 +106,7 @@ if __name__ == '__main__':
     solver_kwargs = {
         'atol': 1e-8,
         'dense_output': False}
-    r, times = sc.trajectory(flag_info=True, dynamics_method='solve_ivp', t1=100, **solver_kwargs)
+    r, times = sc.trajectory(flag_info=True, dynamics_method='solve_ivp', **solver_kwargs)
     print(r, times)
     print(r.shape)
 

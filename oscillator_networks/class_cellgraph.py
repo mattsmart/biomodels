@@ -220,6 +220,9 @@ class CellGraph():
             t0, t1, _, _ = ode_integration_defaults(self.style_ode)
             tshift = t1 - t0
             time_interval = [self.times_history[-1], tshift]
+        if 't_eval' in solver_kwargs.keys():
+            time_interval[0] = min(time_interval[0], solver_kwargs['t_eval'][0])
+            time_interval[1] = max(time_interval[1], solver_kwargs['t_eval'][-1])
 
         if 'vectorized' not in solver_kwargs.keys():
             solver_kwargs['vectorized'] = False  # TODO how to vectorize our graph ODE?
@@ -332,7 +335,7 @@ if __name__ == '__main__':
     if style_ode == 'PWL2':
         state_history = np.array([[100, 100]]).T     # None or array of shape (NM x times)
     else:
-        state_history = np.array([[100, 100, 0]]).T  # None or array of shape (NM x times)
+        state_history = np.array([[100, 100, 10]]).T  # None or array of shape (NM x times)
 
     # Initialization
     cellgraph = CellGraph(num_cells=M, style_ode=style_ode, state_history=state_history)
@@ -353,8 +356,10 @@ if __name__ == '__main__':
         cellgraph.print_state()
         print()
 
+    # From the final graph (after all divisions above), simulate graph trajectory
     print('Example trajectory for the graph...')
-    t_eval = None  # None or np.linspace(0, 50, 2000)
+    #t_eval = None  # None or np.linspace(0, 50, 2000)
+    t_eval = np.linspace(15, 50, 2000)
     solver_kwargs = {
         't_eval': t_eval
     }

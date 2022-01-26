@@ -19,7 +19,7 @@ def set_ode_attributes(style_ode):
     if style_ode == 'Yang2013':
         # currently, all methods share the same attributes above
         pass
-    elif style_ode =='PWL3':
+    elif style_ode in ['PWL3', 'PWL3_swap']:
         # currently, all methods share the same attributes above
         pass
     elif style_ode =='PWL2':
@@ -33,6 +33,32 @@ def set_ode_attributes(style_ode):
                           1: 'Cyclin total',
                           2: 'Number of Divisions',
                           3: 'Fusome content'}
+    elif style_ode =='PWL4':
+        # currently, all methods share the same attributes above
+        dim_ode = 2
+        variables_short = {0: 'Cyc_act',
+                           1: 'Cyc_tot',
+                           2: 'n_div',
+                           3: 'fusome'}
+        variables_long = {0: 'Cyclin active',
+                          1: 'Cyclin total',
+                          2: 'Number of Divisions',
+                          3: 'Fusome content'}
+    elif style_ode in ['PWL4_auto_ww', 'PWL4_auto_wz', 'PWL4_auto_linear']:
+        # currently, all methods share the same attributes above
+        dim_ode = 4
+        variables_short = {0: 'Cyc_act',
+                           1: 'Cyc_tot',
+                           2: 'Bam',
+                           3: 'Bam_controller',
+                           4: 'n_div',
+                           5: 'fusome'}
+        variables_long = {0: 'Cyclin active',
+                          1: 'Cyclin total',
+                          2: 'Modulator, e.g. Bam',
+                          3: 'Bam controller',
+                          4: 'Number of Divisions',
+                          5: 'Fusome content'}
     elif style_ode == 'toy_flow':
         dim_ode = 1  # dimension of ODE system
         dim_misc = 0  # dimension of misc. variables (e.g. fusome content)
@@ -85,6 +111,45 @@ def set_ode_params(style_ode):
         assert 0 < p['C'] < 1
         assert 0 < p['gamma']
         assert 0 <= p['epsilon']
+    elif style_ode == 'PWL3_swap':
+        p = {
+            'C': 1e-1,              # speed scale for fast variable Cyc_act
+            'a': 2,                 # defines the corners of PWL function for x
+            'b': 0,                 # defines the y-intercept of the dy/dt=0 nullcline, y(x) = 1/gamma * (-x + b)
+            'gamma': 1e-1,          # degradation of Cyc_tot
+            'epsilon': 0.3,         # rate of inhibitor accumulation
+            'I_initial': 0,         # initial inhibitor (e.g. Bam) concentration
+            't_pulse_switch': 25.0  # treating inhibitor timeseries as pulse with a negative slope from t=T to t=2T
+        }
+        assert 0 < p['C'] < 1
+        assert 0 < p['gamma']
+        assert 0 <= p['epsilon']
+    elif style_ode in ['PWL3_swap', 'PWL4_auto_wz', 'PWL4_auto_ww']:
+        p = {
+            'C': 1e-1,              # speed scale for fast variable Cyc_act
+            'a': 2,                 # defines the corners of PWL function for x
+            'gamma': 1e-1,          # degradation of Cyc_tot
+            'delta_w': 0.1,         # defines degradation rate of bam controller, w(t)
+            'w_threshold': 0.5,     # defines threshold at which w(t) produces (above w1) or destroys (below w1) Bam
+        }
+        assert 0 < p['C'] < 1
+        assert 0 < p['gamma']
+        assert 0 <= p['delta_w']
+        assert 0 <= p['w_threshold'] <= 1.0  # should be below the init cond of w(t) - generally 1.0, but above 0.0
+    elif style_ode == 'PWL4_auto_linear':
+        p = {
+            'C': 1e-1,              # speed scale for fast variable Cyc_act
+            'a': 2,                 # defines the corners of PWL function for x
+            'gamma': 1e-1,          # degradation of Cyc_tot
+            'epsilon': 1.0,         # rate of inhibitor accumulation (via dzdt += epsilon * w(t))
+            'delta_w': 0.1,         # defines degradation rate of bam controller, w(t)
+            'w_threshold': 0,       # [Not needed] defines threshold at which w(t) produces (above w1) or destroys (below w1) Bam
+            'b_Bam': 0,             # [Not needed] constant production of Bam
+        }
+        assert 0 < p['C'] < 1
+        assert 0 < p['gamma']
+        assert 0 <= p['delta_w']
+        assert 0 <= p['w_threshold'] <= 1.0  # should be below the init cond of w(t) - generally 1.0, but above 0.0
     elif style_ode == 'toy_flow':
         p = {}
     else:
@@ -101,6 +166,14 @@ def set_ode_vectorfield(style_ode, params, init_cond, **ode_kwargs):
         dxdt = vectorfield_PWL2(params, init_cond, ode_kwargs.get('t', 0), z=ode_kwargs.get('z', 0))
     elif style_ode == 'PWL3':
         dxdt = vectorfield_PWL3(params, init_cond, ode_kwargs.get('t', 0))
+    elif style_ode == 'PWL3_swap':
+        dxdt = vectorfield_PWL3_swap(params, init_cond, ode_kwargs.get('t', 0))
+    elif style_ode == 'PWL4_auto_ww':
+        dxdt = vectorfield_PWL4_autonomous_ww(params, init_cond, ode_kwargs.get('t', 0))
+    elif style_ode == 'PWL4_auto_wz':
+        dxdt = vectorfield_PWL4_autonomous_wz(params, init_cond, ode_kwargs.get('t', 0))
+    elif style_ode == 'PWL4_auto_linear':
+        dxdt = vectorfield_PWL4_autonomous_linear(params, init_cond, ode_kwargs.get('t', 0))
     elif style_ode == 'toy_flow':
         dxdt = vectorfield_toy()
     else:
@@ -124,6 +197,22 @@ def ode_integration_defaults(style_ode):
         t1 = 50
         num_steps = 2000
         init_cond = [1.0, 1.0, 0.0]
+    elif style_ode == 'PWL3_swap':
+        t1 = 50
+        num_steps = 2000
+        init_cond = [0.0, 0.0, 0.0]
+    elif style_ode == 'PWL4_auto_ww':
+        t1 = 50
+        num_steps = 2000
+        init_cond = [0.0, 0.0, 0.0, 1.0]   # fourth component is initial condition of w(t) aka key "w0" parameter
+    elif style_ode == 'PWL4_auto_wz':
+        t1 = 50
+        num_steps = 2000
+        init_cond = [0.0, 0.0, 0.0, 1.0]   # fourth component is initial condition of w(t) aka key "w0" parameter
+    elif style_ode == 'PWL4_auto_linear':
+        t1 = 50
+        num_steps = 2000
+        init_cond = [0.0, 0.0, 0.0, 10.0]   # fourth component is initial condition of w(t) aka key "w0" parameter
     elif style_ode == 'toy_flow':
         t1 = 50
         num_steps = 2000
@@ -288,4 +377,124 @@ def vectorfield_PWL3(params, init_cond, t):
     #dzdt = -p['Bam_deg'] * z
 
     out = [dxdt, dydt, dzdt]
+    return out
+
+
+def vectorfield_PWL3_swap(params, init_cond, t):
+    """
+    3-dim variant of PWL2 where the modulator I(t) now affects the y nullcline (slides its y intercept)
+    Args:
+        params - dictionary of ODE parameters used by piecewise linear ODE system
+        x - array-like
+        y - array-like
+        z - array-like
+        t - time corresponding to integration variable (non-autonomous system)
+    Returns:
+        array like of shape [x, y, z]
+    """
+    x, y, z = init_cond
+
+    derivative_I_of_t = PWL_derivative_I_of_t_pulse(params, t)
+    g_of_x = PWL_g_of_x(params, x)
+
+    dxdt = 1/params['C'] * (y - g_of_x)
+    dydt = z - x - params['gamma'] * y
+    dzdt = derivative_I_of_t * np.ones_like(dxdt)  # second factor for vectorization support
+    #dzdt = -p['Bam_deg'] * z
+
+    out = [dxdt, dydt, dzdt]
+    return out
+
+
+def PWL4_auto_helper(params, x, y, z):
+    """
+    Common steps used by PWL4 autonomous vectorfields (note auto means autonomous)
+    - the "dzdt" equation is what differs between the various PWL4 autonomous vectorfields
+    """
+    g_of_x = PWL_g_of_x(params, x)
+    dxdt = 1/params['C'] * (y - g_of_x)
+    dydt = z - x - params['gamma'] * y
+    dwdt = -params['delta_w'] * np.ones_like(dxdt)
+    return dxdt, dydt, dwdt
+
+
+def vectorfield_PWL4_autonomous_ww(params, init_cond, t):
+    """
+    4-dim variant of PWL3_swap where the modulator Bam is now autonomous and controlled by 4th parameter w
+    Notes:
+        - dwdt can be integrated independently to get w(t)    -- analytically
+        - dzdt can be integrated given w(t), givng z(t)       -- analytically
+        - dxdt depends on x, y
+        - dydt depends on x, y, z
+    Args:
+        params - dictionary of ODE parameters used by piecewise linear ODE system
+        x - array-like
+        y - array-like
+        z - array-like
+        w - array-like
+        t - time corresponding to integration variable (non-autonomous system)
+    Returns:
+        array like of shape [x, y, z, w]
+    """
+    x, y, z, w = init_cond
+    dxdt, dydt, dwdt = PWL4_auto_helper(params, x, y, z)
+
+    dzdt = w * (w - params['w_threshold'])
+
+    out = [dxdt, dydt, dzdt, dwdt]
+    return out
+
+
+def vectorfield_PWL4_autonomous_wz(params, init_cond, t):
+    """
+    4-dim variant of PWL3_swap where the modulator Bam is now autonomous and controlled by 4th parameter w
+    Notes:
+        - dwdt can be integrated independently to get w(t)    -- analytically
+        - dzdt can be integrated given w(t), giving z(t)      -- analytically (see mathematica)
+        - dxdt depends on x, y
+        - dydt depends on x, y, z
+    Args:
+        params - dictionary of ODE parameters used by piecewise linear ODE system
+        x - array-like
+        y - array-like
+        z - array-like
+        w - array-like
+        t - time corresponding to integration variable (non-autonomous system)
+    Returns:
+        array like of shape [x, y, z, w]
+    """
+    x, y, z, w = init_cond
+    dxdt, dydt, dwdt = PWL4_auto_helper(params, x, y, z)
+
+    dzdt = z * (w - params['w_threshold'])
+
+    out = [dxdt, dydt, dzdt, dwdt]
+
+    return out
+
+
+def vectorfield_PWL4_autonomous_linear(params, init_cond, t):
+    """
+    4-dim variant of PWL3_swap where the modulator Bam is now autonomous and controlled by 4th parameter w
+    Notes:
+        - dwdt can be integrated independently to get w(t)    -- analytically
+        - dzdt can be integrated given w(t), giving z(t)      -- analytically (see mathematica)
+        - dxdt depends on x, y
+        - dydt depends on x, y, z
+    Args:
+        params - dictionary of ODE parameters used by piecewise linear ODE system
+        x - array-like
+        y - array-like
+        z - array-like
+        w - array-like
+        t - time corresponding to integration variable (non-autonomous system)
+    Returns:
+        array like of shape [x, y, z, w]
+    """
+    x, y, z, w = init_cond
+    dxdt, dydt, dwdt = PWL4_auto_helper(params, x, y, z)
+
+    dzdt = - z + params['b_Bam'] + params['epsilon'] * (w - params['w_threshold'])
+
+    out = [dxdt, dydt, dzdt, dwdt]
     return out

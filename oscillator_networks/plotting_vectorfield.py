@@ -119,7 +119,7 @@ def example_vectorfield():
     return
 
 
-def phaseplot_general(ode_dict, init_conds=None, dynamics_method=DYNAMICS_METHOD, axlow=0., axhigh=120., ax=None,
+def phaseplot_general(sc_template, init_conds=None, dynamics_method=DYNAMICS_METHOD, axlow=0., axhigh=120., ax=None,
                       **solver_kwargs):
     """
     ode_kwargs:
@@ -127,7 +127,7 @@ def phaseplot_general(ode_dict, init_conds=None, dynamics_method=DYNAMICS_METHOD
         't': Scalar t represents time
     """
     # integration parameters
-    t0, t1, num_steps, _ = ode_integration_defaults(ode_dict['style_ode'])
+    t0, t1, num_steps, _ = ode_integration_defaults(sc_template.style_ode)
     times = np.linspace(t0, t1, num_steps + 1)
 
     if ax is None:
@@ -144,12 +144,15 @@ def phaseplot_general(ode_dict, init_conds=None, dynamics_method=DYNAMICS_METHOD
     if init_conds is None:
         nn = 10
         np.random.seed(0)
-        init_conds = np.random.uniform(low=axlow, high=axhigh, size=(nn, 3))
-        init_conds[:, 2] = 0  # fix z = 0 for all trajectories
+        init_conds = np.random.uniform(low=axlow, high=axhigh, size=(nn, sc_template.dim_ode))
+        if sc_template.dim_ode > 2:
+            init_conds[:, 2] = 0  # fix z = 0 for all trajectories
 
     for init_cond in init_conds:
         single_cell = SingleCell(
-            init_cond_ode=init_cond, style_ode=ode_dict['style_ode'], params_ode=ode_dict['params'], label='')
+            init_cond_ode=init_cond,
+            style_ode=sc_template.style_ode,
+            params_ode=sc_template.params_ode, label='')
         r, times = simulate_dynamics_general(init_cond, times, single_cell, method=dynamics_method, **solver_kwargs)
         ax.plot(r[:, 0], r[:, 1], '-.', linewidth=0.5)
         # draw arrows every k points
@@ -171,12 +174,12 @@ def phaseplot_general(ode_dict, init_conds=None, dynamics_method=DYNAMICS_METHOD
     ax.set_xlabel(PLOT_XLABEL)
     ax.set_ylabel(PLOT_YLABEL)
     ax.set_title('Example trajectories')
-    plt.savefig(DIR_OUTPUT + os.sep + 'phaseplot_%s.pdf' % ode_dict['style_ode'])
+    plt.savefig(DIR_OUTPUT + os.sep + 'phaseplot_%s.pdf' % sc_template.style_ode)
     plt.show()
     return ax
 
 
-def vectorfield_general(ode_dict, delta=0.1, axlow=0.0, axhigh=120.0, **ode_kwargs):
+def vectorfield_general(sc_template, delta=0.1, axlow=0.0, axhigh=120.0, **ode_kwargs):
     """
     ode_kwargs:
         'z': Scalar z represents static Bam concentration
@@ -184,8 +187,8 @@ def vectorfield_general(ode_dict, delta=0.1, axlow=0.0, axhigh=120.0, **ode_kwar
     """
     X, Y = XY_meshgrid([axlow, axhigh], [axlow, axhigh], delta)
 
-    params = ode_dict['params']
-    U, V = set_ode_vectorfield(ode_dict['style_ode'], params, X, Y, two_dim=True, **ode_kwargs)
+    params = sc_template.params_ode
+    U, V = set_ode_vectorfield(sc_template.style_ode, params, (X, Y), **ode_kwargs)
     U = nan_mask(U)
     V = nan_mask(V)
 
@@ -200,7 +203,7 @@ def vectorfield_general(ode_dict, delta=0.1, axlow=0.0, axhigh=120.0, **ode_kwar
     ax0 = fig.gca()
     strm = ax0.streamplot(X, Y, U, V, density=[0.5, 1], color=speed, linewidth=lw)
     fig.colorbar(strm.lines)
-    ax0.set_title('%s Vector field' % ode_dict['style_ode'])
+    ax0.set_title('%s Vector field' % sc_template.style_ode)
     ax0.set_xlabel(PLOT_XLABEL)
     ax0.set_ylabel(PLOT_YLABEL)
 
@@ -208,7 +211,7 @@ def vectorfield_general(ode_dict, delta=0.1, axlow=0.0, axhigh=120.0, **ode_kwar
     plt.show()
 
 
-def contourplot_general(ode_dict, delta=0.1, axlow=0.0, axhigh=120.0, **ode_kwargs):
+def contourplot_general(sc_template, delta=0.1, axlow=0.0, axhigh=120.0, **ode_kwargs):
     """
     ode_kwargs:
         'z': Scalar z represents static Bam concentration
@@ -216,8 +219,8 @@ def contourplot_general(ode_dict, delta=0.1, axlow=0.0, axhigh=120.0, **ode_kwar
     """
     X, Y = XY_meshgrid([axlow, axhigh], [axlow, axhigh], delta)
 
-    params = ode_dict['params']
-    U, V = set_ode_vectorfield(ode_dict['style_ode'], params, X, Y, two_dim=True, **ode_kwargs)
+    params = sc_template.params_ode
+    U, V = set_ode_vectorfield(sc_template.style_ode, params, (X, Y), **ode_kwargs)  # TODO handler resize init cond sc_template.dim_ode
     U = nan_mask(U)
     V = nan_mask(V)
 
@@ -243,19 +246,17 @@ def contourplot_general(ode_dict, delta=0.1, axlow=0.0, axhigh=120.0, **ode_kwar
     plt.show()
 
 
-def nullclines_general(ode_dict, flip_axis=False, contour_labels=True,
+def nullclines_general(sc_template, flip_axis=False, contour_labels=True,
                        delta=0.1, axlow=0.0, axhigh=120.0, **ode_kwargs):
     """
-    style_dict has the form
-        'style_ode': 'PWL' or 'Yang2013'
-        'params': params dict
+    ode_kwargs
         't': optional parameter for PWL
         'z': optional parameter for Yang2013
     """
     X, Y = XY_meshgrid([axlow, axhigh], [axlow, axhigh], delta)
 
-    params = ode_dict['params']
-    U, V = set_ode_vectorfield(ode_dict['style_ode'], params, X, Y, two_dim=True, **ode_kwargs)
+    params = sc_template.params_ode
+    U, V = set_ode_vectorfield(sc_template.style_ode, params, (X, Y), **ode_kwargs)
     U = nan_mask(U)
     V = nan_mask(V)
 
@@ -283,7 +284,7 @@ def nullclines_general(ode_dict, flip_axis=False, contour_labels=True,
     plt.axhline(0, linewidth=1, color='k', linestyle='--')
     plt.axvline(0, linewidth=1, color='k', linestyle='--')
     # plot labels
-    ax.set_title('%s nullclines (blue=%s, red=%s)' % (ode_dict['style_ode'], PLOT_XLABEL, PLOT_YLABEL))
+    ax.set_title('%s nullclines (blue=%s, red=%s)' % (sc_template.style_ode, PLOT_XLABEL, PLOT_YLABEL))
     ax.set_xlabel(label_x)
     ax.set_ylabel(label_y)
     plt.show()
@@ -299,51 +300,40 @@ if __name__ == '__main__':
     flag_contourplot = False
     flag_nullclines = True
 
-    params_Yang2013 = set_ode_params('Yang2013')
-    ode_dict_Yang2013 = {
-        'style_ode': 'Yang2013',
-        'params': params_Yang2013
-    }
-    kwargs_Yang2013 = {
-        'z': 0
-    }
-
-    params_PWL2 = set_ode_params('PWL2')
-    ode_dict_PWL2 = {
-        'style_ode': 'PWL2',
-        'params': params_PWL2
-    }
-    ode_dict_PWL2['params']['I_initial'] = 0
-    ode_dict_PWL2['params']['epsilon'] = 0.3
-    ode_dict_PWL2['params']['a'] = 2
-    ode_dict_PWL2['params']['b'] = 2
-    ode_dict_PWL2['params']['t_pulse_switch'] = 25.0
-    kwargs_PWL2 = {
-        'z': 0,
-        't': 0
-    }
     solver_kwargs = {
         'atol': 1e-9,
     }
 
+    sc_template_Yang2013 = SingleCell(style_ode='Yang2013')
+    kwargs_Yang2013 = {
+        'z': 0
+    }
+
+    sc_template_PWL2 = SingleCell(style_ode='PWL2')
+    kwargs_PWL2 = {
+        't': 0
+    }
+
     if flag_Yang2013:
+        axlow = 0
+        axhigh = 120
         if flag_phaseplot:
-            phaseplot_general(ode_dict_Yang2013, axlow=0, axhigh=120, **solver_kwargs)
+            phaseplot_general(sc_template_Yang2013, axlow=axlow, axhigh=axhigh, **solver_kwargs)
         if flag_vectorfield:
-            vectorfield_general(ode_dict_Yang2013, axlow=0, axhigh=120, **kwargs_Yang2013)
+            vectorfield_general(sc_template_Yang2013, axlow=axlow, axhigh=axhigh, **kwargs_Yang2013)
         if flag_contourplot:
-            contourplot_general(ode_dict_Yang2013, axlow=0, axhigh=120, **kwargs_Yang2013)
+            contourplot_general(sc_template_Yang2013, axlow=axlow, axhigh=axhigh, **kwargs_Yang2013)
         if flag_nullclines:
-            nullclines_general(ode_dict_Yang2013, axlow=0, axhigh=120, contour_labels=False, **kwargs_Yang2013)
+            nullclines_general(sc_template_Yang2013, axlow=axlow, axhigh=axhigh, contour_labels=False, **kwargs_Yang2013)
 
     if flag_PWL2:
         axlow = 0
         axhigh = 12
         if flag_phaseplot:
-            phaseplot_general(ode_dict_PWL2, axlow=axlow, axhigh=axhigh, **solver_kwargs)
+            phaseplot_general(sc_template_PWL2, axlow=axlow, axhigh=axhigh, **solver_kwargs)
         if flag_vectorfield:
-            vectorfield_general(ode_dict_PWL2, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_PWL2)
+            vectorfield_general(sc_template_PWL2, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_PWL2)
         if flag_contourplot:
-            contourplot_general(ode_dict_PWL2, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_PWL2)
+            contourplot_general(sc_template_PWL2, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_PWL2)
         if flag_nullclines:
-            nullclines_general(ode_dict_PWL2, delta=0.01, axlow=axlow, axhigh=axhigh, contour_labels=False, **kwargs_PWL2)
+            nullclines_general(sc_template_PWL2, delta=0.01, axlow=axlow, axhigh=axhigh, contour_labels=False, **kwargs_PWL2)
