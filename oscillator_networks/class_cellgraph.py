@@ -3,6 +3,7 @@ import numpy as np
 from scipy.integrate import solve_ivp
 
 from class_singlecell import SingleCell
+from dynamics_detect_cycles import detect_oscillations_scipy
 from dynamics_vectorfields import set_ode_attributes, ode_integration_defaults
 from plotting_networkx import draw_from_adjacency
 from settings import DEFAULT_STYLE_ODE, VALID_STYLE_ODE, DIFFUSION_RATE, DYNAMICS_METHOD
@@ -162,8 +163,54 @@ class CellGraph():
         times = sol.t
         return r, times
 
-    def graph_trajectory(self, init_cond=None, time_interval=None, update_state=True, **solver_kwargs):
+    def detect_oscillations_graph_trajectory(self, times, traj):
         """
+        # TODO implement and test
+        # TODO - this approach (disregarding the full history) will have bugs when the cells have division events slightly phase shifted... how to detect?
+        Given a graph trajectory (not the full history, just the most recent slice), detect oscillation events (if any)
+        Returns:
+            event_detected   - bool
+            event_cell       - cell index where the event occurred first
+            event_idx        - time index of the event
+            event_time       - actual time (i.e. t[t_index]) of the event
+            truncated_times  - i.e. times[0:event_idx]
+            truncated_traj   - i.e. traj[0:event_idx, ...]
+        """
+        state_choice = 1
+        assert self.sc_template.variables_short[state_choice] == 'Cyc_tot'  # not tested for other variables
+
+        event_detected = False
+        first_event_cell = None
+        first_event_idx = None
+        first_event_time = 1e11
+        truncated_times = None
+        truncated_traj = None
+
+        traj_rectangle = self.state_to_rectangle(traj)
+        for idx in range(self.num_cells):
+            cell_traj_specific_variable = traj_rectangle[state_choice, idx, :]
+            num_oscillations, events_idx, events_times, duration_cycles = detect_oscillations_scipy(
+                times, cell_traj_specific_variable, show=True)
+            if num_oscillations > 0:
+                event_detected = True
+                if events_times[0] == first_event_time:
+                    print('Note - two cells are dviiding at the same time, we are '
+                          'picking the one with the earlier index to divide... why not have all divide?')
+                    assert 1 == 2
+                if events_times[0] < first_event_time:
+                    first_event_time = events_times[0]
+                    first_event_idx = events_idx[0]
+                    first_event_cell = idx
+
+        if event_detected:
+            truncated_times = times[:, 0:first_event_idx]
+            truncated_traj = traj[:, 0:first_event_idx]
+
+        return event_detected, first_event_cell, first_event_idx, first_event_time, truncated_times, truncated_traj
+
+    def graph_trajectory(self, init_cond=None, time_interval=None, update_state=True, truncate_at_first_cycle=False, **solver_kwargs):
+        """
+        # TODO implement truncate_at_first_cycle kwarg
         In principle, can simulate starting from the current state of the graph to some arbitrary timepoint,
         However, we'd like to "pause" after the first cell completes a cycle (call this time "t_div").
           - Issue #1: how to detect this given a timeseries of state changes for the whole graph.
@@ -229,6 +276,11 @@ class CellGraph():
         sol = solve_ivp(fn, time_interval, init_cond, method='Radau', args=(single_cell,), **solver_kwargs)
         r = sol.y
         times = sol.t
+
+        if truncate_at_first_cycle:
+            self.detect_oscillations_graph_trajectory(times, r)
+            # ToDO not sure where to put this block (since division creates a new class and we want to update the state history as below)
+            assert 1==2  # todo modify r and times before updating state AND spit out cell division idx
 
         if update_state:
             print("update_state r.shape t.shape", r.shape, times.shape, times[0], self.times_history[0])
