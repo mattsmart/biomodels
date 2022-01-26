@@ -63,8 +63,6 @@ class SingleCell():
             print("Init Cond:", init_cond)
             self.printer()
 
-        print("enter simulate_dynamics_general", init_cond)
-        print(solver_kwargs)
         r, times = simulate_dynamics_general(init_cond, times, self, method=dynamics_method, **solver_kwargs)
         if flag_info:
             print('Done trajectory\n')
@@ -107,7 +105,7 @@ if __name__ == '__main__':
         'atol': 1e-8,
         'dense_output': False}
     r, times = sc.trajectory(flag_info=True, dynamics_method='solve_ivp', **solver_kwargs)
-    print(r, times)
+    #print(r, times)
     print(r.shape)
 
     io_dict = run_subdir_setup()

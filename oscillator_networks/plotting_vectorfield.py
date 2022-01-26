@@ -254,9 +254,25 @@ def nullclines_general(sc_template, flip_axis=False, contour_labels=True,
         'z': optional parameter for Yang2013
     """
     X, Y = XY_meshgrid([axlow, axhigh], [axlow, axhigh], delta)
+    init_cond = [X, Y]
+    if sc_template.dim_ode > 2:
+        for idx in range(2, sc_template.dim_ode):
+            print('...')
+            if idx == 2:
+                z = ode_kwargs.get('z', 0)
+                Z = z * np.ones_like(X)
+                init_cond.append(Z)
+            else:
+                assert idx == 3
+                w = ode_kwargs.get('w', 0)
+                W = w * np.ones_like(X)
+                init_cond.append(W)
 
     params = sc_template.params_ode
-    U, V = set_ode_vectorfield(sc_template.style_ode, params, (X, Y), **ode_kwargs)
+    dXdt = set_ode_vectorfield(sc_template.style_ode, params, init_cond, **ode_kwargs)
+    U = dXdt[0]
+    V = dXdt[1]
+
     U = nan_mask(U)
     V = nan_mask(V)
 
@@ -293,7 +309,8 @@ def nullclines_general(sc_template, flip_axis=False, contour_labels=True,
 if __name__ == '__main__':
 
     flag_Yang2013 = False
-    flag_PWL2 = True
+    flag_PWL2 = False
+    flag_PWL4_auto_linear = True
 
     flag_phaseplot = True
     flag_vectorfield = True
@@ -312,6 +329,13 @@ if __name__ == '__main__':
     sc_template_PWL2 = SingleCell(style_ode='PWL2')
     kwargs_PWL2 = {
         't': 0
+    }
+
+    sc_template_PWL4_auto_linear = SingleCell(style_ode='PWL4_auto_linear')
+    kwargs_PWL4_auto_linear = {
+        't': 0,    # this should have no affect on the autonomous equations
+        'z': 1.5,  # note z represents the x-intercept of the dydt=0 nullcline
+        'w': 0     # currently this has no affect
     }
 
     if flag_Yang2013:
@@ -337,3 +361,18 @@ if __name__ == '__main__':
             contourplot_general(sc_template_PWL2, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_PWL2)
         if flag_nullclines:
             nullclines_general(sc_template_PWL2, delta=0.01, axlow=axlow, axhigh=axhigh, contour_labels=False, **kwargs_PWL2)
+
+
+    if flag_PWL4_auto_linear:
+        axlow = 0
+        axhigh = 12
+        """
+        if flag_phaseplot:
+            phaseplot_general(sc_template_PWL4_auto_linear, axlow=axlow, axhigh=axhigh, **solver_kwargs)
+        if flag_vectorfield:
+            vectorfield_general(sc_template_PWL4_auto_linear, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_PWL4_auto_linear)
+        if flag_contourplot:
+            contourplot_general(sc_template_PWL4_auto_linear, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_PWL4_auto_linear)
+        """
+        if flag_nullclines:
+            nullclines_general(sc_template_PWL4_auto_linear, delta=0.01, axlow=axlow, axhigh=axhigh, contour_labels=False, **kwargs_PWL4_auto_linear)
