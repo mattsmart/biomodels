@@ -95,11 +95,11 @@ class SingleCell():
 
 
 if __name__ == '__main__':
-    style_ode = 'PWL4_auto_linear'
+    style_ode = 'PWL3_swap'  # PWL4_auto_linear
     sc = SingleCell(label='c1', style_ode=style_ode)
-    if style_ode in ['PWL2', 'PWL3']:
-        sc.params_ode['epsilon'] = 0.3
-        sc.params_ode['t_pulse_switch'] = 25
+    if style_ode in ['PWL2', 'PWL3', 'PWL3_swap']:
+        sc.params_ode['epsilon'] = 0.1
+        sc.params_ode['t_pulse_switch'] = 30
     if style_ode in ['PWL4_auto_linear']:
         sc.params_ode['a'] = 2
         sc.params_ode['d'] = 1
@@ -109,10 +109,12 @@ if __name__ == '__main__':
         'dense_output': False,  # seems to have no effect
         't_eval': None} #np.linspace(0, 100, 2000)}
     r, times = sc.trajectory(flag_info=True, dynamics_method='solve_ivp', **solver_kwargs)
-    #print(r, times)
-    print(r.shape)
 
     io_dict = run_subdir_setup()
+
+    print(r.shape)
+    np.savetxt(io_dict['basedir'] + os.sep + 'traj_times.txt', times)
+    np.savetxt(io_dict['basedir'] + os.sep + 'traj_x.txt', r)
 
     plt.plot(times, r, label=[sc.variables_short[i] for i in range(sc.dim_ode)])
     plt.xlabel(r'$t$ [min]')

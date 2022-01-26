@@ -329,13 +329,13 @@ class CellGraph():
 if __name__ == '__main__':
 
     # Misc. setting
-    style_ode = 'PWL3'  # styles: ['PWL2', 'PWL3', 'Yang2013', 'toy_flow']
+    style_ode = 'PWL3_swap'  # styles: ['PWL2', 'PWL3', 'Yang2013', 'toy_flow']
     copy_exact = False  # if True, divide cell contents 100%/100% between mother/daughter (else 50%/50%)
     M = 1
     if style_ode == 'PWL2':
         state_history = np.array([[100, 100]]).T     # None or array of shape (NM x times)
     else:
-        state_history = np.array([[100, 100, 10]]).T  # None or array of shape (NM x times)
+        state_history = np.array([[0, 0, 0]]).T  # None or array of shape (NM x times)
 
     # Initialization
     cellgraph = CellGraph(num_cells=M, style_ode=style_ode, state_history=state_history)
@@ -347,12 +347,14 @@ if __name__ == '__main__':
     cellgraph.print_state()
 
     # Add some cells through manual divisions (two different modes - linear or random)
-    for idx in range(15):
+    for idx in range(3):
         dividing_idx = np.random.randint(0, cellgraph.num_cells)
         print("Division event (idx, div idx):", idx, dividing_idx)
+        # Mode choice (divide linearly or randomly)
         cellgraph = cellgraph.division_event(idx, copy_exact=copy_exact)  # Mode 1 - linear division idx
         #cellgraph.division_event(dividing_idx, copy_exact=copy_exact)    # Mode 2 - random division idx
-        cellgraph.plot_graph()
+        # Output plot & print
+        #cellgraph.plot_graph()
         cellgraph.print_state()
         print()
 

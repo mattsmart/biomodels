@@ -115,22 +115,22 @@ def set_ode_params(style_ode):
     elif style_ode == 'PWL3_swap':
         p = {
             'C': 1e-1,              # speed scale for fast variable Cyc_act
-            'a': 2,                 # defines the corners of PWL function for x
-            'd': 1,                 # defines the corners of PWL function for x
-            'b': 0,                 # defines the y-intercept of the dy/dt=0 nullcline, y(x) = 1/gamma * (-x + b)
-            'gamma': 1e-1,          # degradation of Cyc_tot
-            'epsilon': 0.3,         # rate of inhibitor accumulation
+            'a': 4,                 # defines the corners of PWL function for x
+            'd': 2,                 # defines the corners of PWL function for x
+            'b': 0,                 # [Not needed] defines the y-intercept of the dy/dt=0 nullcline, y(x) = 1/gamma * (-x + b)
+            'gamma': 1e-2,          # degradation of Cyc_tot
+            'epsilon': 0.1,         # rate of inhibitor accumulation
             'I_initial': 0,         # initial inhibitor (e.g. Bam) concentration
-            't_pulse_switch': 25.0  # treating inhibitor timeseries as pulse with a negative slope from t=T to t=2T
+            't_pulse_switch': 30.0  # treating inhibitor timeseries as pulse with a negative slope from t=T to t=2T
         }
         assert 0 < p['C'] < 1
         assert 0 < p['gamma']
         assert 0 <= p['epsilon']
-    elif style_ode in ['PWL3_swap', 'PWL4_auto_wz', 'PWL4_auto_ww']:
+    elif style_ode in ['PWL4_auto_wz', 'PWL4_auto_ww']:
         p = {
             'C': 1e-1,              # speed scale for fast variable Cyc_act
-            'a': 2,                 # defines the corners of PWL function for x
-            'd': 1,                 # defines the corners of PWL function for x
+            'a': 4,                 # defines the corners of PWL function for x
+            'd': 2,                 # defines the corners of PWL function for x
             'gamma': 1e-1,          # degradation of Cyc_tot
             'delta_w': 0.1,         # defines degradation rate of bam controller, w(t)
             'w_threshold': 0.5,     # defines threshold at which w(t) produces (above w1) or destroys (below w1) Bam
@@ -145,8 +145,8 @@ def set_ode_params(style_ode):
             'a': 2,                 # defines the corners of PWL function for x
             'd': 1,                 # defines the corners of PWL function for x
             'gamma': 1e-1,          # degradation of Cyc_tot
-            'epsilon': 1,         # rate of inhibitor accumulation (via dzdt += epsilon * w(t))
-            'delta_w': 0.1, #0.1,         # defines degradation rate of bam controller, w(t)
+            'epsilon': 1,           # rate of inhibitor accumulation (via dzdt += epsilon * w(t))
+            'delta_w': 0.1,         # defines degradation rate of bam controller, w(t)
             'w_threshold': 0,       # [Not needed] defines threshold at which w(t) produces (above w1) or destroys (below w1) Bam
             'b_Bam': 0,             # [Not needed] constant production of Bam
         }
@@ -202,7 +202,7 @@ def ode_integration_defaults(style_ode):
         num_steps = 2000
         init_cond = [1.0, 1.0, 0.0]
     elif style_ode == 'PWL3_swap':
-        t1 = 50
+        t1 = 100
         num_steps = 2000
         init_cond = [0.0, 0.0, 0.0]
     elif style_ode == 'PWL4_auto_ww':
