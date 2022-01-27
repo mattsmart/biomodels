@@ -43,9 +43,6 @@ def detect_oscillations_scipy(times, traj, min_height=None, max_valley=None, sho
     duration_cycles = [times[peaks[i]] - times[peaks[i-1]] for i in range(1, len(peaks))]
     events_idx = [peaks[i] - buffer for i in range(1, len(peaks))]
     events_times = [times[events_idx[i]] for i in range(len(events_idx))]
-    print("DEL", events_idx)
-    print("DEL", events_times)
-    print("DEL", duration_cycles)
     num_oscillations = len(events_idx)
 
     if show:
