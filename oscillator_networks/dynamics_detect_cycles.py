@@ -40,9 +40,12 @@ def detect_oscillations_scipy(times, traj, min_height=None, max_valley=None, sho
         -1 * traj, height=max_valley, threshold=None, distance=None, prominence=None, wlen=None, plateau_size=None)
 
     # based on the peaks and oscillations, report the event times
+    duration_cycles = [times[peaks[i]] - times[peaks[i-1]] for i in range(1, len(peaks))]
     events_idx = [peaks[i] - buffer for i in range(1, len(peaks))]
     events_times = [times[events_idx[i]] for i in range(len(events_idx))]
-    duration_cycles = [times[events_idx[i]] - times[events_idx[i-1]] for i in range(len(events_idx))]
+    print("DEL", events_idx)
+    print("DEL", events_times)
+    print("DEL", duration_cycles)
     num_oscillations = len(events_idx)
 
     if show:
@@ -58,12 +61,19 @@ def detect_oscillations_scipy(times, traj, min_height=None, max_valley=None, sho
 
 
 if __name__ == '__main__':
-    times = np.loadtxt('input' + os.sep + 'traj_times.txt')
-    r = np.loadtxt('input' + os.sep + 'traj_x.txt')
-    r_choice = r[:, 1]  # try idx 0 or 1 (active/total cyclin)
 
+    # 1) load or generate traj data
+    flag_load_test_traj = False
+    if flag_load_test_traj:
+        times = np.loadtxt('input' + os.sep + 'traj_times.txt')
+        r = np.loadtxt('input' + os.sep + 'traj_x.txt')
+        r_choice = r[:, 1]  # try idx 0 or 1 (active/total cyclin)
+    else:
+        times = np.linspace(0, 5.2, 1000)
+        r_choice = np.sin(2 * np.pi * times)
+
+    # 2) main detection call
     num_oscillations, events_idx, events_times, duration_cycles = detect_oscillations_scipy(times, r_choice, show=True)
-
     print('\nTimeseries has %d oscillations' % num_oscillations)
     print('Oscillation info:')
     for idx in range(num_oscillations):
@@ -71,7 +81,7 @@ if __name__ == '__main__':
         print('\t(%d of %d) - Time of event: %.2f:' % (idx, num_oscillations, events_times[idx]))
         print('\t(%d of %d) - Period of cycle: %.2f' % (idx, num_oscillations, duration_cycles[idx]))
 
-    # Now backtest by iteratively truncating the function as might occur during oscillator network trajectory
+    # 3) Backtest - iteratively truncating the function as might occur during oscillator network trajectory
     while num_oscillations > 0:
         print('while.......')
         idx_restart = events_idx[0]
@@ -85,5 +95,3 @@ if __name__ == '__main__':
             print('\t(%d of %d) - Index of event: %d:' % (idx, num_oscillations, events_idx[idx]))
             print('\t(%d of %d) - Time of event: %.2f:' % (idx, num_oscillations, events_times[idx]))
             print('\t(%d of %d) - Period of cycle: %.2f' % (idx, num_oscillations, duration_cycles[idx]))
-
-    # TODO why is first period negative ?
