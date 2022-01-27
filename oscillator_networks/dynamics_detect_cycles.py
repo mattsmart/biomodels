@@ -23,7 +23,7 @@ def detect_oscillations_manual(times, traj, expect_lower, expect_upper, buffer=1
     return num_oscillations
 
 
-def detect_oscillations_scipy(times, traj, min_height=None, max_valley=None, show=False):
+def detect_oscillations_scipy(times, traj, min_height=None, max_valley=None, show=False, buffer=1):
     """
     Uses scipy "find_peaks" https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.find_peaks.html
     Returns:
@@ -40,13 +40,13 @@ def detect_oscillations_scipy(times, traj, min_height=None, max_valley=None, sho
         -1 * traj, height=max_valley, threshold=None, distance=None, prominence=None, wlen=None, plateau_size=None)
 
     # based on the peaks and oscillations, report the event times
-    buffer = 1  # useful for iteratively calling this function
     events_idx = [peaks[i] - buffer for i in range(1, len(peaks))]
     events_times = [times[events_idx[i]] for i in range(len(events_idx))]
     duration_cycles = [times[events_idx[i]] - times[events_idx[i-1]] for i in range(len(events_idx))]
     num_oscillations = len(events_idx)
 
     if show:
+        print("in show...", times.shape, times[0:3], times[-3:])
         plt.plot(times, traj, '-', c='k')
         plt.plot(times[peaks], traj[peaks], 'o', c='red')
         plt.plot(times[valleys], traj[valleys], 'o', c='blue')
@@ -85,3 +85,5 @@ if __name__ == '__main__':
             print('\t(%d of %d) - Index of event: %d:' % (idx, num_oscillations, events_idx[idx]))
             print('\t(%d of %d) - Time of event: %.2f:' % (idx, num_oscillations, events_times[idx]))
             print('\t(%d of %d) - Period of cycle: %.2f' % (idx, num_oscillations, duration_cycles[idx]))
+
+    # TODO why is first period negative ?

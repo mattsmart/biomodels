@@ -116,6 +116,18 @@ class CellGraph():
         assert self.division_events.shape[1] == 3
         assert self.cell_stats.shape[0] == self.num_cells and self.cell_stats.shape[1] == 2
 
+    def cell_last_division_time(self, cell_idx):
+        """
+        Wrapper to get time index and time explicit value of given cell_idx last division event
+        Note: This represents the time it acted as a daughter cell or mother cell in a division event
+        """
+        time_idx = int(self.cell_stats[cell_idx, 1])
+        time_absolute = self.times_history[time_idx]
+        return time_idx, time_absolute
+
+    def n_divisions(self):
+        return int(self.division_events.shape[0])
+
     def division_event(self, idx_dividing_cell, idx_timepoint, copy_exact=False):
         """
         Returns a new instance of the CellGraph with updated state variables (as a result of adding one cell)
@@ -154,21 +166,22 @@ class CellGraph():
 
         # update new initial state based on extra cell and dispersion of maternal variables
         updated_state_history = np.zeros((updated_graph_dim_ode, len(self.times_history)))
+        print("division_event() CHECK", updated_state_history.shape, updated_state_history.shape, self.state_history.shape, self.times_history.shape)
         updated_state_history[0:self.graph_dim_ode, :] = self.state_history
         post_mother_state, post_daughter_state, mlow, mhigh = split_mother_and_daughter_state()
-        print(updated_graph_dim_ode, self.graph_dim_ode, len(post_daughter_state))
-        print(post_mother_state, post_daughter_state, mlow, mhigh)
+        print("division_event()", updated_graph_dim_ode, self.graph_dim_ode, len(post_daughter_state))
+        print("division_event()", post_mother_state, post_daughter_state, mlow, mhigh)
         updated_state_history[mlow:mhigh, -1] = post_mother_state
         updated_state_history[self.graph_dim_ode:, -1] = post_daughter_state
 
         # update division event array: (d x 3)   - see details in docstring
-        n_divisions = self.division_events.shape[0]
+        n_divisions = self.n_divisions() + 1
         updated_division_events = np.zeros((n_divisions, 3), dtype=int)
         updated_division_events[:-1, :] = self.division_events
         updated_division_events[-1, :] = np.array([idx_dividing_cell, idx_daughter_cell, idx_timepoint])
 
         # update cell stats array: (M x 2)   - see details in docstring
-        updated_cell_stats = np.zeros((updated_num_cells, 1))
+        updated_cell_stats = np.zeros((updated_num_cells, 2))
         updated_cell_stats[:-1, :] = self.cell_stats
         updated_cell_stats[-1, :] = np.array([0, idx_timepoint])  # i.e. new daughter cell has no divisions TODO fusome content
         updated_cell_stats[idx_dividing_cell, 0] += 1              # update (n_div, time last div) for daughter cell
@@ -221,11 +234,9 @@ class CellGraph():
             truncated_times  - i.e. times[0:event_idx]
             truncated_traj   - i.e. traj[0:event_idx, ...]
         """
-
-        # TODO assumes times and traj are full history... remove the args and use self?
-
+        buffer = 1  # "how many indices before end of oscillation do we label the oscillation?"
         state_choice = 1
-        assert self.sc_template.variables_short[state_choice] == 'Cyc_tot'  # not tested for other variables
+        assert self.sc_template.variables_short[state_choice] == 'Cyc_tot_template'  # not tested for other variables
 
         event_detected = False
         first_event_cell = None
@@ -238,11 +249,16 @@ class CellGraph():
         for idx in range(self.num_cells):
 
             # for each cell, check the trajectory since its last division to look for oscillation event
-            time_idx_last_div_specific_cell = self.cell_stats[idx, 1]
+            print('detect_osc().. step 4')
+            time_idx_last_div_specific_cell, time_absolute_last_div_specific_cell = self.cell_last_division_time(idx)
+            print('detect_osc().. step 3')
             slice_traj = traj_rectangle[state_choice, idx, time_idx_last_div_specific_cell:]
+            print('detect_osc().. step 2')
             slice_times = times[time_idx_last_div_specific_cell:]
+            print('detect_osc().. step 1')
+            print('\ndetect_osc().. before enter detect_oscillations_scipy()...', time_idx_last_div_specific_cell, time_absolute_last_div_specific_cell, times[0:3], times[-3:])
             num_oscillations, events_idx, events_times, duration_cycles = detect_oscillations_scipy(
-                slice_times, slice_traj, show=True)
+                slice_times, slice_traj, show=True, buffer=buffer)
 
             if num_oscillations > 0:
                 print('EVENT: %d oscillations detected for cell %d' % (num_oscillations, idx))
@@ -263,10 +279,50 @@ class CellGraph():
                 print('No oscillation detected for cell %d' % idx)
 
         if event_detected:
-            truncated_times = times[:, 0:first_event_idx]
-            truncated_traj = traj[:, 0:first_event_idx]
+            truncated_times = times[0:(first_event_idx + buffer)]
+            truncated_traj = traj[:, 0:(first_event_idx + buffer)]
 
         return event_detected, first_event_cell, first_event_idx, truncated_times, truncated_traj
+
+    def wrapper_graph_trajectory(self, time_interval=None, copy_exact=False, verbose=False, **solver_kwargs):
+        """
+        Iteratively runs graph_trajectory() to integrate from time t0 to t1, expanding the graph at each cell divisions
+        """
+        if time_interval is None:
+            t0, t1, _, _ = ode_integration_defaults(self.style_ode)
+        else:
+            t0, t1 = time_interval
+
+        # loop initialization
+        event_detected = True
+        t0_shifted = t0
+        cellgraph = self  # care: all self.foo should be cellgraph.foo below
+
+        if verbose:
+            print("wrapper_graph_trajectory(): Input number of cells", cellgraph.num_cells)
+            print("wrapper_graph_trajectory(): Input times shape", cellgraph.times_history.shape)
+            print("wrapper_graph_trajectory(): Input state shape", cellgraph.state_history.shape)
+
+        while event_detected:
+            sub_interval = [t0_shifted, t1]
+            event_detected, cellgraph = cellgraph.graph_trajectory(time_interval=sub_interval, ignore_oscillations=False, copy_exact=copy_exact, **solver_kwargs)
+            if event_detected:
+                if verbose:
+                    print("wrapper_graph_trajectory(): Division event detected")
+                time_last_division_idx = cellgraph.division_events[-1, 2]  # time index of most recent divison
+                t0_shifted = cellgraph.times_history[time_last_division_idx]  # move the start time of the integration
+            if verbose:
+                # event_detected, cellgraph = cellgraph.graph_trajectory(ignore_oscillations=True, copy_exact=copy_exact, **solver_kwargs)
+                print("\nwrapper_graph_trajectory(): ===========CORE LOOP PRINT========")
+                print(cellgraph.num_cells, cellgraph.times_history[0:5], '...', cellgraph.times_history[-5:])
+                print("wrapper_graph_trajectory(): ===========CORE LOOP END========")
+
+        if verbose:
+            print("wrapper_graph_trajectory(): Output number of cells", cellgraph.num_cells)
+            print("wrapper_graph_trajectory(): Output times shape", cellgraph.times_history.shape)
+            print("wrapper_graph_trajectory(): Output state shape", cellgraph.state_history.shape)
+
+        return event_detected, cellgraph
 
     def graph_trajectory(self, init_cond=None, time_interval=None, copy_exact=False, ignore_oscillations=False, **solver_kwargs):
         """
@@ -334,22 +390,29 @@ class CellGraph():
         r = sol.y
         times = sol.t
 
-        print("extend_state r.shape t.shape", r.shape, times.shape, times[0], self.times_history[0])
+        print("graph_trajectory() CHECK extend_state r.shape t.shape", r.shape, times.shape, times[0], self.times_history[0])
+        print("graph_trajectory() CHECK HISTORY", self.state_history.shape, self.times_history.shape)
         state_history_extended = np.concatenate((self.state_history, r[:, 1:]), axis=1)
         times_history_extended = np.concatenate((self.times_history, times[1:]), axis=0)
+        print("graph_trajectory() CHECK HISTORY append", state_history_extended.shape, times_history_extended.shape)
 
         # Check for division event in all cells of the graph (unless ignore_oscillations is set)
         if ignore_oscillations:
             event_detected, mother_cell, event_time_idx = False, None, None
         else:
-            event_detected, mother_cell, event_time_idx, state_history_extended, times_history_extended = \
+            event_detected, mother_cell, event_time_idx, times_history_truncated, state_history_truncated = \
                 self.detect_oscillations_graph_trajectory(times_history_extended, state_history_extended)
+            if event_detected:
+                state_history_extended = state_history_truncated
+                times_history_extended = times_history_truncated
 
         print("Updating state, time history in graph_trajectory()")
         self.state_history = state_history_extended
         self.times_history = times_history_extended
         print("\tnew dimensions time", self.times_history.shape)
         print("\tnew dimensions state", self.state_history.shape)
+        print("graph_trajectory() CHECK HISTORY before div event...", self.state_history.shape, self.times_history.shape)
+        print("Note the reported time event idx is", event_time_idx)
 
         if event_detected:
             new_cellgraph = self.division_event(mother_cell, event_time_idx, copy_exact=copy_exact)
@@ -379,12 +442,18 @@ class CellGraph():
         draw_from_adjacency(self.adjacency)
         return
 
-    def plot_state_each_cell(self):
+    def plot_state_each_cell(self, arrange_vertical=True):
 
-        assert self.num_cells <= 16  # for now
-        ncols = 4
-        nrows = 1 + (self.num_cells - 1) // ncols
-        print("in plot_state():", self.num_cells, ncols, nrows)
+        if arrange_vertical:
+            # subplots as M x 1 grid
+            ncols = 1
+            nrows = self.num_cells
+        else:
+            # subplots as k x 4 grid
+            assert self.num_cells <= 16  # for now
+            ncols = 4
+            nrows = 1 + (self.num_cells - 1) // ncols
+        #print("in plot_state():", self.num_cells, ncols, nrows)
 
         # TODO other function which up to 16 cells does 4x4 grid of xyz traj plots  ---- or ----- x,y phase plots - SUBPLOTS or GRIDSPEC
         fig, axarr = plt.subplots(ncols=ncols, nrows=nrows, figsize=(8, 8), constrained_layout=True, squeeze=False)
@@ -392,9 +461,12 @@ class CellGraph():
         times = self.times_history
 
         for idx in range(self.num_cells):
-            i = idx // 4
-            j = idx % 4
-            print("idx, i, j", idx, i, j)
+            if arrange_vertical:
+                i, j = idx, 0
+            else:
+                i = idx // 4
+                j = idx % 4
+            #print("idx, i, j", idx, i, j)
 
             r = np.transpose(state_tensor[:, idx, :])
 
@@ -437,7 +509,7 @@ class CellGraph():
          - [NM x t]  to  [N x M x t]
         """
         d = len(x.shape)
-        assert d in [1,2]
+        assert d in [1, 2]
         assert x.shape[0] == self.graph_dim_ode
         if d == 1:
             out = x.reshape((self.sc_dim_ode, self.num_cells), order='F')
@@ -448,16 +520,16 @@ class CellGraph():
 
 if __name__ == '__main__':
 
-    # Misc. setting
+    # High-level initialization & graph settings
     style_ode = 'PWL3_swap'  # styles: ['PWL2', 'PWL3', 'Yang2013', 'toy_flow']
-    copy_exact = False  # if True, divide cell contents 100%/100% between mother/daughter (else 50%/50%)
+    copy_exact = True  # if True, divide cell contents 100%/100% between mother/daughter (else 50%/50%)
     M = 1
     if style_ode == 'PWL2':
         state_history = np.array([[100, 100]]).T     # None or array of shape (NM x times)
     else:
         state_history = np.array([[0, 0, 0]]).T  # None or array of shape (NM x times)
 
-    # Initialization
+    # Instantiate the graph
     cellgraph = CellGraph(num_cells=M, style_ode=style_ode, state_history=state_history)
     if cellgraph.style_ode in ['PWL2', 'PWL3']:
         cellgraph.sc_template.params_ode['epsilon'] = 0.3
@@ -467,7 +539,8 @@ if __name__ == '__main__':
     cellgraph.print_state()
 
     # Add some cells through manual divisions (two different modes - linear or random)
-    for idx in range(3):
+    add_init_cells = 0
+    for idx in range(add_init_cells):
         dividing_idx = np.random.randint(0, cellgraph.num_cells)
         print("Division event (idx, div idx):", idx, dividing_idx)
         # Mode choice (divide linearly or randomly)
@@ -478,20 +551,31 @@ if __name__ == '__main__':
         cellgraph.print_state()
         print()
 
-    # From the final graph (after all divisions above), simulate graph trajectory
+    # From the initialized graph (after all divisions above), simulate graph trajectory
     print('Example trajectory for the graph...')
+    """
     #t_eval = None  # None or np.linspace(0, 50, 2000)
-    t_eval = np.linspace(15, 50, 2000)
+    t_eval = np.linspace(15, 50, 2000)  # TODO resolve issue where if t0 != 0, then we have gap in times history [0, t0, ...] -- another issue where t0 is skipped, start t0+dt
     solver_kwargs = {
         't_eval': t_eval
     }
-    r, times = cellgraph.graph_trajectory(ignore_oscillations=True, **solver_kwargs)
+    event_detected = True
+    while event_detected:
+        event_detected, cellgraph = cellgraph.graph_trajectory(ignore_oscillations=False, copy_exact=copy_exact, **solver_kwargs)
+        #event_detected, cellgraph = cellgraph.graph_trajectory(ignore_oscillations=True, copy_exact=copy_exact, **solver_kwargs)
+        print("\n===========CORE LOOP PRINT========")
+        print(cellgraph.num_cells, cellgraph.times_history[0:5], '...', cellgraph.times_history[-5:])
+        print("===========CORE LOOP END========")
+    """
+
+    event_detected, cellgraph = cellgraph.wrapper_graph_trajectory(copy_exact=False, verbose=True)
+    print("\n in main: num cells after wrapper trajectory =", cellgraph.num_cells)
 
     # Plot the timeseries for each cell
     #print(r)
     #print(r.shape)
     #print(times)
     #print(times.shape)
-    cellgraph.plot_state_each_cell()
+    cellgraph.plot_state_each_cell(arrange_vertical=True)
 
-    # TODO division event detection handling
+    # TODO division event detection issues
