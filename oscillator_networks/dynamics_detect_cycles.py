@@ -26,6 +26,11 @@ def detect_oscillations_manual(times, traj, expect_lower, expect_upper, buffer=1
 def detect_oscillations_scipy(times, traj, min_height=None, max_valley=None, show=False):
     """
     Uses scipy "find_peaks" https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.find_peaks.html
+    Returns:
+        num_oscillations   - "k" int
+        events_idx         - k-list of int
+        events_times       - k-list of float
+        duration_cycles    - k-list of float
     """
     assert times.shape == traj.shape
 
