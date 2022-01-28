@@ -207,9 +207,9 @@ class CellGraph():
         updated_cell_stats = np.zeros((updated_num_cells, 3), dtype=int)
         updated_cell_stats[:-1, :] = self.cell_stats
         # cell stats for new daughter cell: has no divisions, last division event is *now*, is born *now*
-        updated_cell_stats[-1, :] = np.array([0, idx_timepoint, idx_timepoint])
-        updated_cell_stats[idx_dividing_cell, 0] += 1              # update (n_div, time last div) for mother cell
-        updated_cell_stats[idx_dividing_cell, 1] += idx_timepoint  # update (n_div, time last div) for mother cell
+        updated_cell_stats[-1, :] = np.array([0, idx_timepoint, idx_timepoint])  # update cell stats for daughter cell
+        updated_cell_stats[idx_dividing_cell, 0] += 1              # for mother cell - update stat: n_div
+        updated_cell_stats[idx_dividing_cell, 1] = idx_timepoint   # for mother cell - update stat: time_last_div
 
         new_cellgraph = CellGraph(
             style_ode=self.style_ode,
@@ -362,7 +362,8 @@ class CellGraph():
             division_counter += 1
             print("wrapper_graph_trajectory(), before printer: cellgraph.cell_stats.shape", cellgraph.cell_stats.shape)
             cellgraph.print_state()
-            cellgraph.write_state(fmod='_iter%d' % division_counter)
+            cellgraph.write_state(fmod='iter%d' % division_counter)
+            cellgraph.plot_graph(fmod='iter%d' % division_counter)
 
         if verbose:
             print("wrapper_graph_trajectory(): Output number of cells", cellgraph.num_cells)
@@ -626,9 +627,12 @@ class CellGraph():
 
         return filepath
 
-    def write_state(self, fmod='', filetype='.txt'):
+    def write_state(self, fmod=None, filetype='.txt'):
         outdir = self.io_dict['statesdir']
-        suffix = fmod + filetype
+        if fmod is None:
+            suffix = fmod + filetype
+        else:
+            suffix = '_' + fmod + filetype
         np.savetxt(outdir + os.sep + 'labels' + suffix, self.labels, fmt="%s")
         np.savetxt(outdir + os.sep + 'adjacency' + suffix, self.adjacency, fmt="%.4f")
         np.savetxt(outdir + os.sep + 'times_history' + suffix, self.times_history, fmt="%.4f")
@@ -690,11 +694,10 @@ if __name__ == '__main__':
         print()
 
     # Write initial CellGraph info to file
-    cellgraph.write_metadata()
-    cellgraph.write_state(fmod='_init')
-    # Initial state output
-    cellgraph.plot_graph(fmod='init')
     cellgraph.print_state()
+    cellgraph.write_metadata()
+    cellgraph.write_state(fmod='init')
+    cellgraph.plot_graph(fmod='init')
 
     # From the initialized graph (after all divisions above), simulate graph trajectory
     print('\nExample trajectory for the graph...')
