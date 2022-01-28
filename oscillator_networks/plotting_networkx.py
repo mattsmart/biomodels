@@ -3,25 +3,42 @@ import networkx as nx
 import numpy as np
 
 
-def draw_from_adjacency(A, node_color=None, labels=True, draw_edge_labels=False):
+def draw_from_adjacency(A, node_color=None, labels=None, draw_edge_labels=False, cmap='Pastel1', title='Cell graph', fpath=None):
     """
     create_using=nx.DiGraph -- store as directed graph with possible self-loops
-    create_using=nx.DiGraph -- store as undirected graph with possible self-loops
+    create_using=nx.DiGrapsh -- store as undirected graph with possible self-loops
+
+    cmap options: 'Blues', 'Pastel1', 'Spectral_r'
     """
-    cmap = 'Pastel1'  # options: 'plt.cm.Blues', 'Pastel1', 'Spectral_r'
-    ns = 900
+    # plot settings
+    ns = 800
     alpha = 1.0
     font_color = 'k'  # options: 'whitesmoke', 'k'
 
+    # initialize the figure
+    plt.figure(figsize=(8, 8))
+    ax = plt.gca()
+    ax.set_title(title)
+
+    # initialize the graph
     G = nx.from_numpy_matrix(np.matrix(A), create_using=nx.Graph)
-    layout = nx.spring_layout(G)
+    # determine node positions
+    seed = 1
+    layout = nx.spring_layout(G, seed=seed)
+    # draw the nodes
     nx.draw(G, layout, node_color=node_color, cmap=cmap, node_size=ns, alpha=alpha)
+    # write node labels
     if labels is not None:
-        #nx.draw_networkx_labels(G, layout, labels, font_size=8.5, font_color='k')
         nx.draw_networkx_labels(G, layout, labels, font_size=8, font_color=font_color)
+    # write edge labels
     if draw_edge_labels:
         nx.draw_networkx_edge_labels(G, pos=layout)
-    plt.show()
+
+    if fpath is None:
+        plt.show()
+    else:
+        plt.savefig(fpath)
+    return ax
 
 
 if __name__ == '__main__':
@@ -40,4 +57,4 @@ if __name__ == '__main__':
         [0, 0, 1, 0]
     ]
 
-    draw_from_adjacency(A2)
+    draw_from_adjacency(A2, fpath='foo.pdf')
