@@ -1,6 +1,6 @@
 import numpy as np
 
-from settings import VALID_STYLE_ODE
+from settings import STYLE_ODE_VALID
 
 
 def set_ode_attributes(style_ode):
@@ -66,7 +66,7 @@ def set_ode_attributes(style_ode):
         variables_long = {0: 'Water Volume'}
     else:
         print("Warning: style_ode %s is not supported by set_ode_attributes()" % style_ode)
-        print("Supported odes include:", VALID_STYLE_ODE)
+        print("Supported odes include:", STYLE_ODE_VALID)
     assert len(variables_short.keys()) == len(variables_long.keys())
     assert len(variables_short.keys()) == (dim_ode + dim_misc)
     return dim_ode, dim_misc, variables_short, variables_long
@@ -158,7 +158,7 @@ def set_ode_params(style_ode):
         p = {}
     else:
         print("Warning: style_ode %s is not supported by get_params_ODE()" % style_ode)
-        print("Supported odes include:", VALID_STYLE_ODE)
+        print("Supported odes include:", STYLE_ODE_VALID)
         p = {}
     return p
 
@@ -182,7 +182,7 @@ def set_ode_vectorfield(style_ode, params, init_cond, **ode_kwargs):
         dxdt = vectorfield_toy()
     else:
         print("Warning: style_ode %s is not supported by set_ode_vectorfield()" % style_ode)
-        print("Supported odes include:", VALID_STYLE_ODE)
+        print("Supported odes include:", STYLE_ODE_VALID)
         dxdt = None
     return dxdt
 
@@ -223,7 +223,7 @@ def ode_integration_defaults(style_ode):
         init_cond = [100.0]
     else:
         print("Warning: style_ode %s is not supported by ode_integration_defaults()" % style_ode)
-        print("Supported odes include:", VALID_STYLE_ODE)
+        print("Supported odes include:", STYLE_ODE_VALID)
         t1 = None
         num_steps = None
         init_cond = None
@@ -313,7 +313,7 @@ def PWL_I_of_t_pulse(params, t):
     return I
 
 
-def PWL_derivative_I_of_t_pulse(params, t):
+def PWL_derivative_I_of_t_pulse(params, z, t, eps=1e-6):
     """
     Generates a triangular pulse rising at t=0 with switch at t = params['t_pulse_switch']
       when t > 2 * params['t_pulse_switch'], there is no further change
@@ -322,8 +322,10 @@ def PWL_derivative_I_of_t_pulse(params, t):
         dIdt = params['epsilon']
     elif t < 2 * params['t_pulse_switch']:
         dIdt = -params['epsilon']
+        dIdt = np.where(z <= eps, 0, dIdt)
     else:
         dIdt = 0
+
     assert t >= 0
     return dIdt
 
@@ -373,7 +375,7 @@ def vectorfield_PWL3(params, init_cond, t):
     """
     x, y, z = init_cond
 
-    derivative_I_of_t = PWL_derivative_I_of_t_pulse(params, t)
+    derivative_I_of_t = PWL_derivative_I_of_t_pulse(params, z, t)
     g_of_x = PWL_g_of_x(params, x)
 
     dxdt = 1/params['C'] * (y - g_of_x - z)
@@ -399,7 +401,7 @@ def vectorfield_PWL3_swap(params, init_cond, t):
     """
     x, y, z = init_cond
 
-    derivative_I_of_t = PWL_derivative_I_of_t_pulse(params, t)
+    derivative_I_of_t = PWL_derivative_I_of_t_pulse(params, z, t)
     g_of_x = PWL_g_of_x(params, x)
 
     dxdt = 1/params['C'] * (y - g_of_x)

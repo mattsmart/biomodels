@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.integrate import ode, odeint, solve_ivp
 
-from settings import DYNAMICS_METHODS_VALID, DYNAMICS_METHOD
+from settings import STYLE_DYNAMICS_VALID, STYLE_DYNAMICS
 
 
 def simulate_dynamics_general(init_cond, times, single_cell, method="solve_ivp", **solver_kwargs):
@@ -19,7 +19,7 @@ def simulate_dynamics_general(init_cond, times, single_cell, method="solve_ivp",
     elif method == "euler":
         r, times = ode_euler(init_cond, times, single_cell, **solver_kwargs)
     else:
-        raise ValueError("method arg invalid, must be one of %s" % DYNAMICS_METHODS_VALID)
+        raise ValueError("method arg invalid, must be one of %s" % STYLE_DYNAMICS_VALID)
     """ TODO consider implemeneting:
     elif method == "gillespie":
         return stoch_gillespie(init_cond, len(times), params)

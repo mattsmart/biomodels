@@ -5,7 +5,7 @@ import os
 from class_singlecell import SingleCell
 from dynamics_generic import simulate_dynamics_general
 from dynamics_vectorfields import set_ode_params, set_ode_vectorfield, ode_integration_defaults
-from settings import DYNAMICS_METHOD, DIR_OUTPUT, PLOT_XLABEL, PLOT_YLABEL
+from settings import STYLE_DYNAMICS, DIR_OUTPUT, PLOT_XLABEL, PLOT_YLABEL
 
 '''
 def plot_vectorfield_2D(single_cell, streamlines=True, ax=None):
@@ -119,7 +119,7 @@ def example_vectorfield():
     return
 
 
-def phaseplot_general(sc_template, init_conds=None, dynamics_method=DYNAMICS_METHOD, axlow=0., axhigh=120., ax=None,
+def phaseplot_general(sc_template, init_conds=None, dynamics_method=STYLE_DYNAMICS, axlow=0., axhigh=120., ax=None,
                       **solver_kwargs):
     """
     ode_kwargs:

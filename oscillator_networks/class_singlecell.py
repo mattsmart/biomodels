@@ -6,12 +6,12 @@ import os
 from dynamics_generic import simulate_dynamics_general
 from dynamics_vectorfields import set_ode_params, ode_integration_defaults, set_ode_vectorfield, set_ode_attributes
 from file_io import run_subdir_setup
-from settings import DYNAMICS_METHOD, DEFAULT_STYLE_ODE
+from settings import STYLE_DYNAMICS, STYLE_ODE
 
 
 class SingleCell():
 
-    def __init__(self, init_cond_ode=None, style_ode=DEFAULT_STYLE_ODE, params_ode=None, label=''):
+    def __init__(self, init_cond_ode=None, style_ode=STYLE_ODE, params_ode=None, label=''):
         """
         For numeric cell labels (network growth), use label='%d' % idx, for instance
         """
@@ -42,7 +42,7 @@ class SingleCell():
         dxdt = set_ode_vectorfield(self.style_ode, self.params_ode, init_cond, **ode_kwargs)
         return dxdt
 
-    def trajectory(self, init_cond=None, t0=None, t1=None, num_steps=None, dynamics_method=DYNAMICS_METHOD,
+    def trajectory(self, init_cond=None, t0=None, t1=None, num_steps=None, dynamics_method=STYLE_DYNAMICS,
                    flag_info=False, **solver_kwargs):
         # integration parameters
         T0, T1, NUM_STEPS, INIT_COND = ode_integration_defaults(self.style_ode)
@@ -77,21 +77,13 @@ class SingleCell():
         for idx in range(self.num_variables):
             print("\t %s: %s | %s" % (idx, self.variables_short[idx], self.variables_long[idx]))
 
-    def io_write(self, filedir, filename):
-        # TODO print params file and metadata like style_ode
-        """
-        filepath = filedir + os.sep + filename
-        with open(filepath, "wb") as csv_file:
+    def write_ode_params(self, fpath):
+        with open(fpath, "a", newline='\n') as csv_file:
             writer = csv.writer(csv_file, delimiter=',')
-            for idx in range(len(PARAMS_ID.keys())):
-                val = self.params_list[idx]
-                if self.params_list[idx] is None:
-                    val = 'None'
-                writer.writerow([PARAMS_ID[idx], val])
-            # any extra non-dynamics params
-            writer.writerow(['system', self.system])
-            writer.writerow(['feedback', self.feedback])"""
-        return filepath
+            keys = list(self.params_ode.keys())
+            keys.sort()
+            for k in keys:
+                writer.writerow([k, self.params_ode[k]])
 
 
 if __name__ == '__main__':
@@ -111,7 +103,7 @@ if __name__ == '__main__':
         't_eval': None} #np.linspace(0, 100, 2000)}
     r, times = sc.trajectory(flag_info=True, dynamics_method='solve_ivp', **solver_kwargs)
 
-    io_dict = run_subdir_setup()
+    io_dict = run_subdir_setup(run_subfolder='singlecell')
 
     print(r.shape)
     np.savetxt(io_dict['basedir'] + os.sep + 'traj_times.txt', times)
