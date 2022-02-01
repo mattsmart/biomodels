@@ -1,6 +1,7 @@
 import datetime
 import numpy as np
 import os
+import pickle
 
 from settings import DIR_RUNS
 
@@ -47,6 +48,12 @@ def run_subdir_setup(run_subfolder=None, timedir_override=None):
     runinfo_append(io_dict, ('basedir', current_run_dir))
 
     return io_dict
+
+
+def pickle_load(fpath):
+    with open(fpath, 'rb') as pickle_file:
+        loaded_object = pickle.load(pickle_file)
+    return loaded_object
 
 
 def state_write(state, row_vals, col_vals, dataname, rowname, colname, output_dir):

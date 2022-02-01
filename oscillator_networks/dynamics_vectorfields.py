@@ -121,7 +121,7 @@ def set_ode_params(style_ode):
             'gamma': 1e-2,          # degradation of Cyc_tot
             'epsilon': 0.1,         # rate of inhibitor accumulation
             'I_initial': 0,         # initial inhibitor (e.g. Bam) concentration
-            't_pulse_switch': 30.0  # treating inhibitor timeseries as pulse with a negative slope from t=T to t=2T
+            't_pulse_switch': 25.0  # treating inhibitor timeseries as pulse with a negative slope from t=T to t=2T
         }
         assert 0 < p['C'] < 1
         assert 0 < p['gamma']

@@ -2,6 +2,7 @@ import csv
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import pickle
 from scipy.integrate import solve_ivp
 
 from class_singlecell import SingleCell
@@ -513,7 +514,7 @@ class CellGraph():
             print('\t\tCell #%d' % cell, X[:, cell, -1].flatten(), 'stats:', self.cell_stats[cell, :])
         return
 
-    def plot_graph(self, fmod=None, title='Cell graph', by_ndiv=True, by_last_div=True, by_age=True):
+    def plot_graph(self, fmod=None, title='Cell graph', by_ndiv=True, by_last_div=True, by_age=True, seed=1):
         fpath = self.io_dict['plotlatticedir'] + os.sep + 'networkx'
         if fmod is not None:
             title = title + ' ' + fmod
@@ -523,19 +524,22 @@ class CellGraph():
             fpathvar = fpath + '_nDiv.pdf'
             n_divisions = self.cell_stats[:, 0]
             labels = {idx: r'$c_{%d}: %d$' % (idx, val) for idx, val in enumerate(n_divisions)}
-            draw_from_adjacency(self.adjacency, title=tvar, node_color=n_divisions, labels=labels, cmap='Pastel1', fpath=fpathvar)
+            draw_from_adjacency(self.adjacency, title=tvar, node_color=n_divisions, labels=labels, cmap='Pastel1',
+                                seed=seed, fpath=fpathvar)
         if by_last_div:
             tvar = title + ' (time of last division)'
             fpathvar = fpath + '_tLastEvent.pdf'
             t_last_div = self.cell_stats[:, 1]
             labels = {idx: r'$c_{%d}: %d$' % (idx, val) for idx, val in enumerate(t_last_div)}
-            draw_from_adjacency(self.adjacency, title=tvar, node_color=t_last_div, labels=labels, cmap='GnBu', fpath=fpathvar)
+            draw_from_adjacency(self.adjacency, title=tvar, node_color=t_last_div, labels=labels, cmap='GnBu',
+                                seed=seed, fpath=fpathvar)
         if by_age:
             tvar = title + ' (time of birth)'
             fpathvar = fpath + '_tBirth.pdf'
             birthdays = self.cell_stats[:, 2]
             labels = {idx: r'$c_{%d}: %d$' % (idx, val) for idx, val in enumerate(birthdays)}
-            draw_from_adjacency(self.adjacency, title=tvar, node_color=birthdays, labels=labels, cmap='GnBu', fpath=fpathvar)
+            draw_from_adjacency(self.adjacency, title=tvar, node_color=birthdays, labels=labels, cmap='GnBu',
+                                seed=seed, fpath=fpathvar)
         return
 
     def plot_state_each_cell(self, fmod='', arrange_vertical=True):
@@ -665,6 +669,11 @@ class CellGraph():
         np.savetxt(outdir + os.sep + 'division_events' + suffix, self.division_events, fmt="%d")
         return
 
+    def pickle_save(self, fpath):
+        with open(fpath, 'wb') as pickle_file:
+            pickle.dump(self, pickle_file)
+        return
+
 
 if __name__ == '__main__':
 
@@ -732,3 +741,5 @@ if __name__ == '__main__':
     # Plot the timeseries for each cell
     cellgraph.plot_state_each_cell(arrange_vertical=True, fmod='final')
     cellgraph.plot_graph(fmod='final')
+
+    cellgraph.pickle_save('foo.pkl')

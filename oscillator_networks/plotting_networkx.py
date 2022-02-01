@@ -3,7 +3,8 @@ import networkx as nx
 import numpy as np
 
 
-def draw_from_adjacency(A, node_color=None, labels=None, draw_edge_labels=False, cmap='Pastel1', title='Cell graph', fpath=None):
+def draw_from_adjacency(A, node_color=None, labels=None, draw_edge_labels=False, cmap='Pastel1', title='Cell graph',
+                        seed=1, fpath=None):
     """
     create_using=nx.DiGraph -- store as directed graph with possible self-loops
     create_using=nx.DiGrapsh -- store as undirected graph with possible self-loops
@@ -23,7 +24,6 @@ def draw_from_adjacency(A, node_color=None, labels=None, draw_edge_labels=False,
     # initialize the graph
     G = nx.from_numpy_matrix(np.matrix(A), create_using=nx.Graph)
     # determine node positions
-    seed = 1
     layout = nx.spring_layout(G, seed=seed)
     # draw the nodes
     nx.draw(G, layout, node_color=node_color, cmap=cmap, node_size=ns, alpha=alpha)
