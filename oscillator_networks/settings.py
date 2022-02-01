@@ -21,7 +21,7 @@ STYLE_ODE_VALID = ['Yang2013', 'PWL2', 'PWL3', 'PWL3_swap', 'PWL4_auto_wz', 'PWL
 
 # DEFAULTS: module 2 - Oscillation detection
 STYLE_DETECTION = 'scipy_peaks'
-STYLE_DETECTION_VALID = ['ignore', 'scipy_peaks']
+STYLE_DETECTION_VALID = ['ignore', 'scipy_peaks', 'manual_crossings']
 
 # DEFAULTS: module 3 - Coupled cell graph dynamical system - division rules
 STYLE_DIVISION = 'copy'
