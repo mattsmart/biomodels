@@ -5,7 +5,7 @@ import os
 from scipy.integrate import solve_ivp
 
 from class_singlecell import SingleCell
-from dynamics_detect_cycles import detect_oscillations_scipy
+from dynamics_detect_cycles import detect_oscillations_scipy, detect_oscillations_manual
 from dynamics_vectorfields import set_ode_attributes, ode_integration_defaults
 from file_io import run_subdir_setup
 from plotting_networkx import draw_from_adjacency
@@ -133,6 +133,8 @@ class CellGraph():
         assert self.style_ode in STYLE_ODE_VALID
         assert self.style_dynamics in STYLE_DYNAMICS_VALID
         assert self.style_detection in STYLE_DETECTION_VALID
+        if self.style_detection == 'manual_crossings':
+            assert self.style_ode in ['PWL3_swap']
         assert self.style_division in STYLE_DIVISION_VALID
         assert all([c >= 0.0 for c in self.diffusion])
         assert self.division_events.shape[1] == 3
@@ -277,15 +279,34 @@ class CellGraph():
         if self.style_detection == 'ignore':
             pass
         else:
-            assert self.style_detection == 'scipy_peaks'
+            #state_choice = 1
+            #assert self.sc_template.variables_short[state_choice] == 'Cyc_tot_template'  # not tested for other variables
+            state_choice = 0
+            assert self.sc_template.variables_short[state_choice] == 'Cyc_act_template'  # not tested for other variables
+            detector = {
+                'scipy_peaks': {
+                    'fn': detect_oscillations_scipy,
+                    'kwargs': {'show': False,
+                               'buffer': 1}
+                },
+                'manual_crossings': {
+                    'fn': detect_oscillations_manual,
+                    'kwargs': {'show': False,
+                               'expect_lower': 0,
+                               'expect_upper': 0}
+                }
+            }
+            detect_fn = detector[self.style_detection]['fn']
+            detect_kwargs = detector[self.style_detection]['kwargs']
 
-            buffer = 1  # "how many indices before end of oscillation do we label the oscillation?"
-            state_choice = 1
-            assert self.sc_template.variables_short[state_choice] == 'Cyc_tot_template'  # not tested for other variables
+            # TODO only know midpoint for some models currently (add method to get this for diff models later?)
+            if self.style_ode == 'PWL_3':
+                pp = self.sc_template.params_ode
+                detector['manual_crossings']['expect_lower'] = 0.5 * pp['a']
+                detector['manual_crossings']['expect_upper'] = 0.5 * (pp['a'] + pp['d'])
 
             traj_rectangle = self.state_to_rectangle(traj)
             for idx in range(self.num_cells):
-
                 # for each cell, check the trajectory since its last division to look for oscillation event
                 print('detect_osc().. step 4 - accessing cell last division time (idx, t_absolute) tuple for cell idx', (idx))
                 time_idx_last_div_specific_cell = self.cell_last_division_time_idx(idx)
@@ -295,8 +316,10 @@ class CellGraph():
                 slice_times = times[time_idx_last_div_specific_cell:]
                 print('detect_osc().. step 1')
                 print('detect_osc().. before enter detect_oscillations_scipy()...', time_idx_last_div_specific_cell, times[0:3], times[-3:])
-                num_oscillations, events_idx, events_times, duration_cycles = detect_oscillations_scipy(
-                    slice_times, slice_traj, show=False, buffer=buffer)
+                #num_oscillations, events_idx, events_times, duration_cycles = detect_oscillations_scipy(
+                #    slice_times, slice_traj, show=False, buffer=buffer)
+                detect_args = (slice_times, slice_traj)
+                num_oscillations, events_idx, events_times, duration_cycles = detect_fn(*detect_args, **detect_kwargs)
 
                 if num_oscillations > 0:
                     print('EVENT: %d oscillations detected for cell %d' % (num_oscillations, idx))
@@ -306,7 +329,6 @@ class CellGraph():
                         print('Note - two cells are dividing at the same time, we are '
                               'picking the one with the earlier index to divide... why not have all divide?')
                         continue
-                        #assert 1 == 2
 
                     # This is the earliest division event identified so far -- record it (and possibly return it)
                     # since we gave sliced array, need to shift the index of the times to match our full self.times_history
@@ -318,6 +340,8 @@ class CellGraph():
                     print('No oscillation detected for cell %d' % idx)
 
         if event_detected:
+            buffer = 1
+            print('TODO remove buffer event detected')  # TODO
             truncated_times = times[0:(first_event_idx + buffer)]
             truncated_traj = traj[:, 0:(first_event_idx + buffer)]
 

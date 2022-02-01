@@ -4,7 +4,7 @@ import os
 import scipy.signal as signal
 
 
-def detect_oscillations_manual(times, traj, expect_lower, expect_upper, show=False):
+def detect_oscillations_manual(times, traj, expect_lower=0, expect_upper=0, show=False):
     """
     buffer is plus/minus "buffer" percent from the expected upper/lower points of the oscillation turning points
 
@@ -130,11 +130,12 @@ if __name__ == '__main__':
         r_choice = r[:, 1]  # try idx 0 or 1 (active/total cyclin)
     else:
         times = np.linspace(0, 5.2, 1000)
-        r_choice = np.sin(2 * np.pi * times)
+        r_choice = np.sin(2 * np.pi * times - 0)
 
     # 2) main detection call
     #num_oscillations, events_idx, events_times, duration_cycles = detect_oscillations_scipy(times, r_choice, show=True)
-    num_oscillations, events_idx, events_times, duration_cycles = detect_oscillations_manual(times, r_choice, -1, 1, show=True)
+    num_oscillations, events_idx, events_times, duration_cycles = detect_oscillations_manual(
+        times, r_choice, expect_lower=-1, expect_upper=1, show=True)
 
     # 3) prints
     print('\nTimeseries has %d oscillations' % num_oscillations)
