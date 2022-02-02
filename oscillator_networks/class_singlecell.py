@@ -87,7 +87,7 @@ class SingleCell():
 
 
 if __name__ == '__main__':
-    style_ode = 'PWL3_swap'  # PWL4_auto_linear
+    style_ode = 'toy_clock'  # PWL4_auto_linear, PWL3_swap, toy_clock
     sc = SingleCell(label='c1', style_ode=style_ode)
     if style_ode in ['PWL2', 'PWL3', 'PWL3_swap']:
         sc.params_ode['C'] = 1e-1
@@ -98,9 +98,9 @@ if __name__ == '__main__':
         sc.params_ode['d'] = 1
 
     solver_kwargs = {
-        'atol': 1e-8,
+        'atol': 1e-9,
         'dense_output': False,  # seems to have no effect
-        't_eval': None} #np.linspace(0, 100, 2000)}
+        't_eval': None} # np.linspace(0, 100, 2000) or None
     r, times = sc.trajectory(flag_info=True, dynamics_method='solve_ivp', **solver_kwargs)
 
     io_dict = run_subdir_setup(run_subfolder='singlecell')

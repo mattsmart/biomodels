@@ -6,7 +6,7 @@ import pickle
 from scipy.integrate import solve_ivp
 
 from class_singlecell import SingleCell
-from dynamics_detect_cycles import detect_oscillations_scipy, detect_oscillations_manual
+from dynamics_detect_cycles import detect_oscillations_scipy, detect_oscillations_manual, detect_oscillations_manual_2d
 from dynamics_vectorfields import set_ode_attributes, ode_integration_defaults
 from file_io import run_subdir_setup
 from plotting_networkx import draw_from_adjacency
@@ -134,8 +134,6 @@ class CellGraph():
         assert self.style_ode in STYLE_ODE_VALID
         assert self.style_dynamics in STYLE_DYNAMICS_VALID
         assert self.style_detection in STYLE_DETECTION_VALID
-        if self.style_detection == 'manual_crossings':
-            assert self.style_ode in ['PWL3_swap']
         assert self.style_division in STYLE_DIVISION_VALID
         assert all([c >= 0.0 for c in self.diffusion])
         assert self.division_events.shape[1] == 3
@@ -150,6 +148,17 @@ class CellGraph():
 
     def cell_birth_time_idx(self, cell_idx):
         return int(self.cell_stats[cell_idx, 2])
+
+    def time_indices_where_acted_as_mother(self, cell_choice):
+        """
+        Returns array like of time indices where cell_choice acted as the mother cell during a division event
+        """
+        event_acted_as_mother = np.argwhere(self.division_events[:, 0] == cell_choice)
+        if len(event_acted_as_mother) > 0:
+            events_idx = self.division_events[event_acted_as_mother, 2]
+        else:
+            events_idx = []
+        return events_idx
 
     def n_divisions(self):
         return int(self.division_events.shape[0])
@@ -277,13 +286,7 @@ class CellGraph():
         truncated_times = None
         truncated_traj = None
 
-        if self.style_detection == 'ignore':
-            pass
-        else:
-            state_choice = 1
-            assert self.sc_template.variables_short[state_choice] == 'Cyc_tot_template'  # not tested for other variables
-            #state_choice = 0
-            #assert self.sc_template.variables_short[state_choice] == 'Cyc_act_template'  # not tested for other variables
+        def detection_args_given_style():
             detector = {
                 'scipy_peaks': {
                     'fn': detect_oscillations_scipy,
@@ -293,33 +296,71 @@ class CellGraph():
                 'manual_crossings': {
                     'fn': detect_oscillations_manual,
                     'kwargs': {'show': False}
+                },
+                'manual_crossings_2d': {
+                    'fn': detect_oscillations_manual_2d,
+                    'kwargs': {'show': False}
                 }
             }
-            # TODO only know midpoint for some models currently (add method to get this for diff models later?)
-            if self.style_ode == 'PWL3_swap' and self.style_detection == 'manual_crossings':
-                pp = self.sc_template.params_ode
-                detector['manual_crossings']['kwargs']['xlow'] = 0.5 * pp['a']
-                detector['manual_crossings']['kwargs']['xhigh'] = 0.5 * (pp['a'] + pp['d'])
-                detector['manual_crossings']['kwargs']['ylow'] = 0.5 * (pp['a'] - pp['d'])
-                detector['manual_crossings']['kwargs']['yhigh'] = 0.5 * pp['a']
+            # specify kwargs for each detection + style_ode curated ase combo
+            pp = self.sc_template.params_ode
+            if self.style_detection == 'manual_crossings':
+                if self.style_ode == 'PWL3_swap':
+                    state_choice_local = 1
+                    detector['manual_crossings']['kwargs']['state_choice'] = state_choice_local
+                    if state_choice_local == 1:
+                        assert self.sc_template.variables_short[state_choice_local] == 'Cyc_tot_template'
+                        detector['manual_crossings']['kwargs']['xlow'] = 0.5 * (pp['a'] - pp['d'])
+                        detector['manual_crossings']['kwargs']['xhigh'] = 0.5 * pp['a']
+                    else:
+                        assert state_choice_local == 0
+                        assert self.sc_template.variables_short[state_choice_local] == 'Cyc_act_template'
+                        detector['manual_crossings']['kwargs']['xlow'] = 0.5 * pp['a']
+                        detector['manual_crossings']['kwargs']['xhigh'] = 0.5 * (pp['a'] + pp['d'])
+                elif self.style_ode == 'toy_clock':
+                    threshold = 0.9
+                    detector['manual_crossings']['kwargs']['state_choice'] = 0
+                    detector['manual_crossings']['kwargs']['xlow'] = -1.0 * threshold
+                    detector['manual_crossings']['kwargs']['xhigh'] = 1.0 * threshold
+                else:
+                    print("style_ode %s is not yet supported for manual_crossings detection style" % self.style_ode)
+                    assert 1==2
+
+            if self.style_detection == 'manual_crossings_2d':
+                if self.style_ode == 'PWL3_swap':
+                    detector['manual_crossings']['kwargs']['xlow'] = 0.5 * pp['a']
+                    detector['manual_crossings']['kwargs']['xhigh'] = 0.5 * (pp['a'] + pp['d'])
+                    detector['manual_crossings']['kwargs']['ylow'] = 0.5 * (pp['a'] - pp['d'])
+                    detector['manual_crossings']['kwargs']['yhigh'] = 0.5 * pp['a']
+                    detector['manual_crossings']['kwargs']['state_xy'] = (0, 1)
+                else:
+                    print("style_ode %s is not yet supported for manual_crossings_2d detection style" % self.style_ode)
+                    assert 1==2
+
+            if self.style_detection == 'detect_scipy':
+                if self.style_ode == 'PWL3_swap':
+                    detector['detect_scipy']['kwargs']['state_choice'] = 1
 
             detect_fn = detector[self.style_detection]['fn']
             detect_kwargs = detector[self.style_detection]['kwargs']
-            print(detect_kwargs)
+            return detect_fn, detect_kwargs
 
+        if self.style_detection == 'ignore':
+            pass
+        else:
+            detect_fn, detect_kwargs = detection_args_given_style()
+            print(detect_kwargs)
             traj_rectangle = self.state_to_rectangle(traj)
             for idx in range(self.num_cells):
                 # for each cell, check the trajectory since its last division to look for oscillation event
                 print('detect_osc().. step 4 - accessing cell last division time (idx, t_absolute) tuple for cell idx', (idx))
                 time_idx_last_div_specific_cell = self.cell_last_division_time_idx(idx)
                 print('detect_osc().. step 3')
-                slice_traj = traj_rectangle[state_choice, idx, time_idx_last_div_specific_cell:]
+                slice_traj = traj_rectangle[:, idx, time_idx_last_div_specific_cell:]
                 print('detect_osc().. step 2')
                 slice_times = times[time_idx_last_div_specific_cell:]
                 print('detect_osc().. step 1')
                 print('detect_osc().. before enter detect_oscillations_scipy()...', time_idx_last_div_specific_cell, times[0:3], times[-3:])
-                #num_oscillations, events_idx, events_times, duration_cycles = detect_oscillations_scipy(
-                #    slice_times, slice_traj, show=False, buffer=buffer)
                 detect_args = (slice_times, slice_traj)
                 num_oscillations, events_idx, events_times, duration_cycles = detect_fn(*detect_args, **detect_kwargs)
 
@@ -515,7 +556,7 @@ class CellGraph():
             print('\t\tCell #%d' % cell, X[:, cell, -1].flatten(), 'stats:', self.cell_stats[cell, :])
         return
 
-    def plot_graph(self, fmod=None, title='Cell graph', by_ndiv=True, by_last_div=True, by_age=True, seed=1):
+    def plot_graph(self, fmod=None, title='Cell graph', by_ndiv=True, by_last_div=True, by_age=True, seed=None):
         fpath = self.io_dict['plotlatticedir'] + os.sep + 'networkx'
         if fmod is not None:
             title = title + ' ' + fmod
@@ -544,7 +585,7 @@ class CellGraph():
         plt.close()
         return
 
-    def plot_state_unified(self, fmod='', arrange_vertical=True):
+    def plot_state_unified(self, fmod='', arrange_vertical=True, decorate=True):
 
         if arrange_vertical:
             # subplots as M x 1 grid
@@ -584,6 +625,12 @@ class CellGraph():
             axarr[i, j].set_ylabel(r'$x_{%d}$' % idx)  # (r'concentration [nM]')
             if not arrange_vertical or i == self.num_cells - 1:
                 axarr[i, j].set_xlabel(r'$t$')  # (r'$t$ [min]')
+
+            if decorate:
+                # plot points in phase space where division event occurred
+                events_idx = self.time_indices_where_acted_as_mother(idx)
+                for event_idx in events_idx:
+                    axarr[i,j].axvline(times[event_idx], linestyle='--', c='gray')
 
         plt.legend()
         plt.suptitle('plot_state_each_cell() - %s' % fmod)
@@ -640,9 +687,8 @@ class CellGraph():
                     plt.axhline(yhigh, linestyle='-.', c='gray')
 
                 # plot points in phase space where division event occurred
-                event_acted_as_mother = np.argwhere(self.division_events[:, 0] == idx)
-                if len(event_acted_as_mother) > 0:
-                    events_idx = self.division_events[event_acted_as_mother, 2]
+                events_idx = self.time_indices_where_acted_as_mother(idx)
+                if len(events_idx) > 0:
                     xdiv = state_tensor[0, idx, events_idx]
                     ydiv = state_tensor[1, idx, events_idx]
                     plt.scatter(xdiv, ydiv, marker='*', c='gold')
@@ -662,7 +708,6 @@ class CellGraph():
                 fpath += '_' + fmod
             plt.savefig(fpath + '.pdf')
         return
-
 
     def state_to_stacked(self, x):
         """
@@ -757,12 +802,11 @@ class CellGraph():
 if __name__ == '__main__':
 
     # High-level initialization & graph settings
-    style_ode = 'PWL3_swap'                # styles: ['PWL2', 'PWL3', 'Yang2013', 'toy_flow']
-    style_detection = 'manual_crossings'   # styles: ['ignore', 'scipy_peaks', 'manual_crossings']
+    style_ode = 'PWL3_swap'                # styles: ['PWL2', 'PWL3', 'PWL3_swap', 'Yang2013', 'toy_flow', 'toy_clock']
+    style_detection = 'manual_crossings'   # styles: ['ignore', 'scipy_peaks', 'manual_crossings', 'manual_crossings_2d']
     style_division = 'copy'     # styles: ['copy', 'partition_equal']
     M = 1
-    state_history = np.array([[0, 0, 0]]).T  # None or array of shape (NM x times)
-    # TODO - GLOBAL initiliazation style (predefined, random, other?)
+    # TODO - GLOBAL initiliazation style (predefined, random, other? -- the if else below is just an override to predefined ones)
     # TODO external parameter/init arguments for this DIFFUSION style
 
     # Main-loop-specific settings
@@ -771,6 +815,10 @@ if __name__ == '__main__':
     # Initialization modifications for different cases
     if style_ode == 'PWL2':
         state_history = np.array([[100, 100]]).T     # None or array of shape (NM x times)
+    elif style_ode == 'PWL3_swap':
+        state_history = np.array([[0, 0, 0]]).T  # None or array of shape (NM x times)
+    else:
+        state_history = None
 
     # Setup solver kwargs for the graph trajectory wrapper
     # TODO ensure solver kwargs can be passed properly -- note wrapper is recursive so some kwargs MUST be updated...
