@@ -22,7 +22,7 @@ def set_ode_attributes(style_ode):
     elif style_ode in ['PWL3', 'PWL3_swap']:
         # currently, all methods share the same attributes above
         pass
-    elif style_ode =='PWL2':
+    elif style_ode == 'PWL2':
         # currently, all methods share the same attributes above
         dim_ode = 2
         variables_short = {0: 'Cyc_act',
@@ -33,7 +33,7 @@ def set_ode_attributes(style_ode):
                           1: 'Cyclin total',
                           2: 'Number of Divisions',
                           3: 'Fusome content'}
-    elif style_ode =='PWL4':
+    elif style_ode == 'PWL4':
         # currently, all methods share the same attributes above
         dim_ode = 2
         variables_short = {0: 'Cyc_act',
@@ -64,6 +64,11 @@ def set_ode_attributes(style_ode):
         dim_misc = 0  # dimension of misc. variables (e.g. fusome content)
         variables_short = {0: 'vol'}
         variables_long = {0: 'Water Volume'}
+    elif style_ode == 'toy_clock':
+        dim_ode = 1  # dimension of ODE system
+        dim_misc = 0
+        variables_short = {0: 'x'}
+        variables_long = {0: 'x=sin(w*t)'}
     else:
         print("Warning: style_ode %s is not supported by set_ode_attributes()" % style_ode)
         print("Supported odes include:", STYLE_ODE_VALID)
@@ -156,6 +161,8 @@ def set_ode_params(style_ode):
         assert 0 <= p['w_threshold'] <= 1.0  # should be below the init cond of w(t) - generally 1.0, but above 0.0
     elif style_ode == 'toy_flow':
         p = {}
+    elif style_ode == 'toy_clock':
+        p = {'w': 2*np.pi}
     else:
         print("Warning: style_ode %s is not supported by get_params_ODE()" % style_ode)
         print("Supported odes include:", STYLE_ODE_VALID)
@@ -179,7 +186,9 @@ def set_ode_vectorfield(style_ode, params, init_cond, **ode_kwargs):
     elif style_ode == 'PWL4_auto_linear':
         dxdt = vectorfield_PWL4_autonomous_linear(params, init_cond, ode_kwargs.get('t', 0))
     elif style_ode == 'toy_flow':
-        dxdt = vectorfield_toy()
+        dxdt = vectorfield_toy_flow()
+    elif style_ode == 'toy_clock':
+        dxdt = vectorfield_toy_clock(params, init_cond, ode_kwargs.get('t', 0))
     else:
         print("Warning: style_ode %s is not supported by set_ode_vectorfield()" % style_ode)
         print("Supported odes include:", STYLE_ODE_VALID)
@@ -221,6 +230,10 @@ def ode_integration_defaults(style_ode):
         t1 = 50
         num_steps = 2000
         init_cond = [100.0]
+    elif style_ode == 'toy_clock':
+        t1 = 3.4
+        num_steps = 2000
+        init_cond = [0.0]
     else:
         print("Warning: style_ode %s is not supported by ode_integration_defaults()" % style_ode)
         print("Supported odes include:", STYLE_ODE_VALID)
@@ -230,8 +243,14 @@ def ode_integration_defaults(style_ode):
     return t0, t1, num_steps, init_cond
 
 
-def vectorfield_toy():
+def vectorfield_toy_flow():
     return [0]
+
+
+def vectorfield_toy_clock(params, init_cond, t):
+    w = params['w']
+    dxdt = w * np.cos(w * t)
+    return [dxdt]
 
 
 def vectorfield_Yang2013(params, init_cond, z=0):

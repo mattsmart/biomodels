@@ -95,13 +95,15 @@ def detect_oscillations_manual_v1(times, traj, expect_lower=0, expect_upper=0, s
     return num_oscillations, events_idx, events_times, duration_cycles
 
 
-def detect_oscillations_manual(times, traj, xlow=0, xhigh=0, ylow=0, yhigh=0, show=False):
+def detect_oscillations_manual_2d(times, traj, xlow=0, xhigh=0, ylow=0, yhigh=0, state_xy=[0,1], show=False):
     show=True
     print("detect_oscillations_manual", xlow, xhigh, ylow, yhigh)
+    print("todo implement detect_oscillations_manual_2d()")
+    assert 1==2
     """
     Inputs:
         time: 1D arr
-        traj: 1D arr (for now)
+        traj: nD arr (for now)
         xlow, xhigh: thresholds for x variable [0] cycle detection
         ylow, yhigh: thresholds for y variable [1] cycle detection
     
@@ -120,26 +122,21 @@ def detect_oscillations_manual(times, traj, xlow=0, xhigh=0, ylow=0, yhigh=0, sh
         A: either of the conditions must be met again
     An event is detected the moment before condition A is satisfied for the second time in the full sequence above
     
-    Soft version of the sequence above is as follows, using only one coordinate (y coord)
-    - A: y cross yhigh from below
-    - B: y cross ylow from above
-    - A (again): y cross yhigh from below  -- event is called the moment before A occurs again
-    
-    See https://docs.scipy.org/doc/scipy/reference/signal.html for numerous options
-
     Returns:
         num_oscillations   - "k" int
         events_idx         - k-list of int
         events_times       - k-list of float
         duration_cycles    - k-list of float
     """
-    assert times.shape == traj.shape
+    traj_2d = traj[state_xy, :]
+    assert times.shape[0] == traj_2d.shape[1]
     assert xlow <= xhigh
     assert ylow <= yhigh
     xmid = 0.5 * (xlow + xhigh)
     ymid = 0.5 * (ylow + yhigh)
 
     def get_cross_indices(traj_1d, threshold, from_below=True):
+        # TODO if this is used in multiple manual fns then move it out (also cleanup/remove the toDOs)
         traj_shifted_threshold = traj_1d - threshold
         traj_diff_prod_threshold = traj_shifted_threshold[0:-1] * traj_shifted_threshold[1:]
         cross_indices_threshold = np.where(traj_diff_prod_threshold <= 0)[0]
@@ -160,9 +157,9 @@ def detect_oscillations_manual(times, traj, xlow=0, xhigh=0, ylow=0, yhigh=0, sh
 
         return cross_indices_pruned
 
-    traj_1d = traj  # TODO have spearate detect fn for 2D x,y traj; need to refactor cellgraph detection calls though
-    A_events = get_cross_indices(traj_1d, yhigh, from_below=True)
-    B_events = get_cross_indices(traj_1d, yhigh, from_below=False)
+    # TODO revise this 1d code to the stricter 2d case as in the docstring
+    A_events = get_cross_indices(traj_2d[0,:], yhigh, from_below=True)
+    B_events = get_cross_indices(traj_2d[0,:], yhigh, from_below=False)
 
     # RULES:
     # - need at least two A events
@@ -189,6 +186,7 @@ def detect_oscillations_manual(times, traj, xlow=0, xhigh=0, ylow=0, yhigh=0, sh
     num_oscillations = len(events_idx)
 
     if show:
+        # TODO revise plot for 2d case based on phase portrait
         print("in show...", times.shape, times[0:3], times[-3:])
         plt.plot(times, traj, '-', c='k')
         plt.plot(times[events_idx], traj[events_idx], 'o', c='red')
@@ -201,7 +199,92 @@ def detect_oscillations_manual(times, traj, xlow=0, xhigh=0, ylow=0, yhigh=0, sh
     return num_oscillations, events_idx, events_times, duration_cycles
 
 
-def detect_oscillations_scipy(times, traj, min_height=None, max_valley=None, show=False, buffer=1):
+def detect_oscillations_manual(times, traj, xlow=0, xhigh=0, state_choice=None, show=False):
+    show = True
+    print("detect_oscillations_manual", xlow, xhigh)
+    """
+    Inputs:
+        time: 1D arr
+        traj: nD arr
+        xlow, xhigh: thresholds for x variable (index controlled by state_choice) cycle detection
+
+    Soft, 1D version of the nD detection sequence is as follows, using only one coordinate (e.g. x or y coord)
+    - A: y cross yhigh from below
+    - B: y cross ylow from above
+    - A (again): y cross yhigh from below  -- event is called the moment before A occurs again
+    
+    Returns:
+        num_oscillations   - "k" int  (currently 0 or 1; this is hard coded to be capped at 1)
+        events_idx         - k-list of int
+        events_times       - k-list of float
+        duration_cycles    - k-list of float
+    """
+    assert times.shape[0] == traj.shape[1]
+    assert xlow <= xhigh
+    xmid = 0.5 * (xlow + xhigh)
+
+    def get_cross_indices(traj_1d, threshold, from_below=True):
+        traj_shifted_threshold = traj_1d - threshold
+        traj_diff_prod_threshold = traj_shifted_threshold[0:-1] * traj_shifted_threshold[1:]
+        cross_indices_threshold = np.where(traj_diff_prod_threshold <= 0)[0]
+
+        cross_indices_pruned = []
+        if from_below:
+            for idx in cross_indices_threshold:
+                print(idx, traj_shifted_threshold[idx], traj_shifted_threshold[idx + 1])  # toDO remove
+                if traj_shifted_threshold[idx] < traj_shifted_threshold[idx + 1]:
+                    assert np.sign(traj_shifted_threshold[idx + 1]) == 1  # toDO remove
+                    cross_indices_pruned += [idx]
+        else:
+            for idx in cross_indices_threshold:
+                print(idx, traj_shifted_threshold[idx], traj_shifted_threshold[idx + 1])  # toDO remove
+                if traj_shifted_threshold[idx] > traj_shifted_threshold[idx + 1]:
+                    assert np.sign(traj_shifted_threshold[idx + 1]) == -1  # toDO remove
+                    cross_indices_pruned += [idx]
+
+        return cross_indices_pruned
+
+    traj_1d = np.squeeze(traj[state_choice, :])
+    A_events = get_cross_indices(traj_1d, xhigh, from_below=True)
+    B_events = get_cross_indices(traj_1d, xlow, from_below=False)
+
+    # RULES:
+    # - need at least two A events
+    # - need A[0] < B[0] < A[1]
+    # - return first oscillation info only (for now), with "event_idx = A[1]"
+    events_idx = []
+    duration_cycles = []
+    events_times = []
+    if len(A_events) > 1 and len(B_events) > 0:
+        A0 = A_events[0]
+        A1 = A_events[1]
+
+        # now search for first B0 which occurs after A0
+        A0_where_to_put = np.searchsorted(B_events, A0)
+        # if A0_where_to_put >= len(B_above), no suitable elements and therefore no valid events
+        if A0_where_to_put < len(B_events):
+            B_first = B_events[A0_where_to_put]
+
+        if A0 < B_first < A1:
+            events_idx = [A1]
+            duration_cycles = [times[A1] - times[A0]]
+            events_times = [times[A1]]
+    num_oscillations = len(events_idx)
+
+    if show:
+        print("in show...", times.shape, times[0:3], times[-3:])
+        plt.plot(times, traj_1d, '-', c='k')
+        plt.plot(times[events_idx], traj_1d[events_idx], 'o', c='red')
+        for idx in range(num_oscillations):
+            plt.axvline(events_times[idx], linestyle='--', c='gray')
+        plt.axhline(xhigh, linestyle='--', c='gray')
+        plt.axhline(xlow, linestyle='--', c='gray')
+        plt.show()
+
+    return num_oscillations, events_idx, events_times, duration_cycles
+
+
+def detect_oscillations_scipy(times, traj, state_choice=None, min_height=None, max_valley=None, show=False, buffer=1):
     """
     Uses scipy "find_peaks" https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.find_peaks.html
     Returns:
@@ -210,7 +293,8 @@ def detect_oscillations_scipy(times, traj, min_height=None, max_valley=None, sho
         events_times       - k-list of float
         duration_cycles    - k-list of float
     """
-    assert times.shape == traj.shape
+    assert times.shape[0] == traj.shape[1]
+    traj = np.squeeze(traj[state_choice, :])  # work with 1d problem along chosen state variable axis
 
     peaks, peaks_properties = signal.find_peaks(
         traj, height=min_height, threshold=None, distance=None, prominence=None, wlen=None, plateau_size=None)
@@ -249,9 +333,11 @@ if __name__ == '__main__':
 
     # 2) main detection call
     ylow, yhigh = 1, 2
-    #num_oscillations, events_idx, events_times, duration_cycles = detect_oscillations_scipy(times, r_choice, show=True)
+    state_choice = 0
+    #num_oscillations, events_idx, events_times, duration_cycles = detect_oscillations_scipy(
+    #    times, r_choice, show=Tru, state_choice=state_choice)
     num_oscillations, events_idx, events_times, duration_cycles = detect_oscillations_manual(
-        times, r_choice, ylow=ylow, yhigh=yhigh, show=True)
+        times, r_choice, ylow=ylow, yhigh=yhigh, show=True, state_choice=state_choice)
 
     # 3) prints
     print('\nTimeseries has %d oscillations' % num_oscillations)
@@ -267,9 +353,9 @@ if __name__ == '__main__':
         idx_restart = events_idx[0]
         r_choice = r_choice[idx_restart:]
         times = times[idx_restart:]
-        #num_oscillations, events_idx, events_times, duration_cycles = detect_oscillations_scipy(times, r_choice, show=True)
+        #num_oscillations, events_idx, events_times, duration_cycles = detect_oscillations_scipy(times, r_choice, show=True, state_choice=state_choice)
         num_oscillations, events_idx, events_times, duration_cycles = detect_oscillations_manual(
-            times, r_choice, ylow=ylow, yhigh=yhigh, show=True)
+            times, r_choice, ylow=ylow, yhigh=yhigh, show=True, state_choice=state_choice)
 
         print('\nTimeseries has %d oscillations' % num_oscillations)
         print('Oscillation info:')
