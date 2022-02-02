@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import pandas as pd
+import plotly.express as px
 
 from class_cellgraph import CellGraph
 from file_io import pickle_load
@@ -9,12 +11,22 @@ from file_io import pickle_load
 if __name__ == '__main__':
 
     flag_replot = False
-    flag_inspect = True
+    flag_inspect = False
+    flag_plotly = True
+    flag_redetect = False
 
     runs_dir = 'runs' + os.sep + 'cellgraph'
-    specific_dir = runs_dir + os.sep + '2022-02-02_01.00.24PM' #'2022-02-01_03.20.31PM'
+    specific_dir = runs_dir + os.sep + '2022-02-02_02.47.01PM'
     fpath = specific_dir + os.sep + 'classdump.pkl'
     cellgraph = pickle_load(fpath)
+
+    # shorthands
+    pp = cellgraph.sc_template.params_ode
+    times = cellgraph.times_history
+    state = cellgraph.state_history
+    state_tensor = cellgraph.state_to_rectangle(state)
+    div_events = cellgraph.division_events
+    birthdays = cellgraph.cell_stats[:, 2]
 
     # "replot" standard cellgraph trajectory outputs with minor adjustments
     if flag_replot:
@@ -25,19 +37,61 @@ if __name__ == '__main__':
 
     # manual plot to inspect trajectory
     if flag_inspect:
-        times = cellgraph.times_history
-        state = cellgraph.state_history
-        state_tensor = cellgraph.state_to_rectangle(state)
-        div_events = cellgraph.division_events
-
-        t0_idx = 25
+        # plot time slice for one cell
+        t0_idx = 18
         t1_idx = 95
         cell_choice = 0
         times_slice = times[t0_idx:t1_idx]
         state_slice = state_tensor[:, 0, t0_idx:t1_idx]
         plt.plot(times_slice, state_slice.T, 'o')
+        # add any axhline decorators
+        clow = 0.5*(pp['a'])  # None
+        chigh = 0.5*(pp['a'] - pp['d'])  # None
+        if clow is not None:
+            plt.axhline(clow, linestyle='--', c='gray')
+        if chigh is not None:
+            plt.axhline(chigh, linestyle='--', c='gray')
         # decorate any division events in window
         events_idx = cellgraph.time_indices_where_acted_as_mother(cell_choice)
         for event_idx in events_idx:
             plt.axvline(times[event_idx], linestyle='--', c='gray')
         plt.show()
+
+    if flag_plotly:
+        # Example dataframe
+        #df = px.data.gapminder().query("country in ['Canada', 'Botswana']")
+        #print(df)
+
+        column_names = ['cell', 'time_index', 'time'] + ['x%d' % i for i in range(cellgraph.sc_dim_ode)]
+        df = pd.DataFrame(columns=column_names)
+        i = 0
+        for cell in range(cellgraph.num_cells):
+            init_idx = birthdays[cell]
+            looptot = len(times) - init_idx
+            for idx, t in enumerate(range(init_idx, len(times))):
+                row = ['cell%d' % cell,
+                       t,
+                       times[t]]
+                row = row + [state_tensor[i, cell, t] for i in range(cellgraph.sc_dim_ode)]
+                df.loc[idx + i] = row
+            i += looptot
+            #df = df.append(list_of_lists)
+
+        #datadict = {'t': times}
+        #for c in range(cellgraph.num_cells):
+        #    for i in range(cellgraph.sc_dim_ode):
+        #        datadict['c%d_x%d' % (c, i)] = state_tensor[i, c, :]
+        fig = px.line(df, x="time", y="x0", color='cell', title="Cell state trajectories")
+        fig.show()
+        fig = px.line(df, x="time", y="x1", color='cell', title="Cell state trajectories")
+        fig.show()
+
+    if flag_redetect:
+        # reset division trackers (so that early ones can be identified)
+        cellgraph.division_events = np.zeros((0, div_events.shape[1]))
+        cellgraph.cell_stats[:, 1] = 0
+        # re-detect division events
+        event_detected, mother_cell, event_time_idx, times_history_truncated, state_history_truncated = \
+            cellgraph.detect_oscillations_graph_trajectory(times, state)
+        print("\nRE-DETECTION RESULTS: \nevent_detected, mother_cell, event_time_idx, abs time")
+        print(event_detected, mother_cell, event_time_idx, times[event_time_idx])

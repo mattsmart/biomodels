@@ -201,7 +201,7 @@ def detect_oscillations_manual_2d(times, traj, xlow=0, xhigh=0, ylow=0, yhigh=0,
 
 def detect_oscillations_manual(times, traj, xlow=0, xhigh=0, state_choice=None, show=False):
     show = True
-    print("detect_oscillations_manual", xlow, xhigh)
+    print("detect_oscillations_manual():", "xlow", xlow, "xhigh", xhigh)
     """
     Inputs:
         time: 1D arr
@@ -230,14 +230,22 @@ def detect_oscillations_manual(times, traj, xlow=0, xhigh=0, state_choice=None, 
 
         cross_indices_pruned = []
         if from_below:
+            print("From below TRUE")
+            print("idx, traj_shifted_threshold[idx], traj_shifted_threshold[idx + 1]")
             for idx in cross_indices_threshold:
                 print(idx, traj_shifted_threshold[idx], traj_shifted_threshold[idx + 1])  # toDO remove
+                print(idx, traj_1d[idx], traj_1d[idx + 1])  # toDO remove
+
                 if traj_shifted_threshold[idx] < traj_shifted_threshold[idx + 1]:
                     assert np.sign(traj_shifted_threshold[idx + 1]) == 1  # toDO remove
                     cross_indices_pruned += [idx]
         else:
+            print("From below FALSE")
+            print("idx, traj_shifted_threshold[idx], traj_shifted_threshold[idx + 1]")
             for idx in cross_indices_threshold:
                 print(idx, traj_shifted_threshold[idx], traj_shifted_threshold[idx + 1])  # toDO remove
+                print(idx, traj_1d[idx], traj_1d[idx + 1])  # toDO remove
+
                 if traj_shifted_threshold[idx] > traj_shifted_threshold[idx + 1]:
                     assert np.sign(traj_shifted_threshold[idx + 1]) == -1  # toDO remove
                     cross_indices_pruned += [idx]
@@ -245,7 +253,9 @@ def detect_oscillations_manual(times, traj, xlow=0, xhigh=0, state_choice=None, 
         return cross_indices_pruned
 
     traj_1d = np.squeeze(traj[state_choice, :])
+    print("Collecting A events...")
     A_events = get_cross_indices(traj_1d, xhigh, from_below=True)
+    print("Collecting B events...")
     B_events = get_cross_indices(traj_1d, xlow, from_below=False)
 
     # RULES:
@@ -273,7 +283,8 @@ def detect_oscillations_manual(times, traj, xlow=0, xhigh=0, state_choice=None, 
 
     if show:
         print("in show...", times.shape, times[0:3], times[-3:])
-        plt.plot(times, traj_1d, '-', c='k')
+        plt.figure(figsize=(5,5))
+        plt.plot(times, traj_1d, 'o', linewidth=0.1, c='k')
         plt.plot(times[events_idx], traj_1d[events_idx], 'o', c='red')
         for idx in range(num_oscillations):
             plt.axvline(events_times[idx], linestyle='--', c='gray')
@@ -309,6 +320,7 @@ def detect_oscillations_scipy(times, traj, state_choice=None, min_height=None, m
 
     if show:
         print("in show...", times.shape, times[0:3], times[-3:])
+        plt.figure(figsize=(5,5))
         plt.plot(times, traj, '-', c='k')
         plt.plot(times[peaks], traj[peaks], 'o', c='red')
         plt.plot(times[valleys], traj[valleys], 'o', c='blue')
@@ -332,12 +344,12 @@ if __name__ == '__main__':
         r_choice = np.sin(2 * np.pi * times - 0)
 
     # 2) main detection call
-    ylow, yhigh = 1, 2
+    xlow, xhigh = 1, 2
     state_choice = 0
     #num_oscillations, events_idx, events_times, duration_cycles = detect_oscillations_scipy(
     #    times, r_choice, show=Tru, state_choice=state_choice)
     num_oscillations, events_idx, events_times, duration_cycles = detect_oscillations_manual(
-        times, r_choice, ylow=ylow, yhigh=yhigh, show=True, state_choice=state_choice)
+        times, r_choice, xlow=xlow, xhigh=xhigh, show=True, state_choice=state_choice)
 
     # 3) prints
     print('\nTimeseries has %d oscillations' % num_oscillations)
@@ -355,7 +367,7 @@ if __name__ == '__main__':
         times = times[idx_restart:]
         #num_oscillations, events_idx, events_times, duration_cycles = detect_oscillations_scipy(times, r_choice, show=True, state_choice=state_choice)
         num_oscillations, events_idx, events_times, duration_cycles = detect_oscillations_manual(
-            times, r_choice, ylow=ylow, yhigh=yhigh, show=True, state_choice=state_choice)
+            times, r_choice, xlow=xlow, xhigh=xhigh, show=True, state_choice=state_choice)
 
         print('\nTimeseries has %d oscillations' % num_oscillations)
         print('Oscillation info:')

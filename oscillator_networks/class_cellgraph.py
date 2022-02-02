@@ -349,7 +349,11 @@ class CellGraph():
             pass
         else:
             detect_fn, detect_kwargs = detection_args_given_style()
-            print(detect_kwargs)
+            print()
+            print("=========== Detection call outer print ===========")
+            print("\tdetect_fn", detect_fn)
+            print("\tdetect_kwargs", detect_kwargs)
+
             traj_rectangle = self.state_to_rectangle(traj)
             for idx in range(self.num_cells):
                 # for each cell, check the trajectory since its last division to look for oscillation event
@@ -360,7 +364,7 @@ class CellGraph():
                 print('detect_osc().. step 2')
                 slice_times = times[time_idx_last_div_specific_cell:]
                 print('detect_osc().. step 1')
-                print('detect_osc().. before enter detect_oscillations_scipy()...', time_idx_last_div_specific_cell, times[0:3], times[-3:])
+                print('detect_osc().. before enter detect_fn()...', time_idx_last_div_specific_cell, times[0:3], times[-3:])
                 detect_args = (slice_times, slice_traj)
                 num_oscillations, events_idx, events_times, duration_cycles = detect_fn(*detect_args, **detect_kwargs)
 
@@ -424,7 +428,12 @@ class CellGraph():
             if verbose:
                 # event_detected, cellgraph = cellgraph.graph_trajectory(**solver_kwargs)
                 print("wrapper_graph_trajectory(): ===========CORE LOOP PRINT========")
-                print(cellgraph.num_cells, cellgraph.times_history[0:5], '...', cellgraph.times_history[-5:])
+                for idx in range(5):
+                    print(cellgraph.num_cells, idx, cellgraph.times_history[idx], '\n\t', cellgraph.state_history[:, idx])
+                print('...')
+                for idx in range(5):
+                    shiftidx = len(cellgraph.times_history) - 5 + idx
+                    print(cellgraph.num_cells, shiftidx, cellgraph.times_history[shiftidx], '\n\t', cellgraph.state_history[:, shiftidx])
                 print("wrapper_graph_trajectory(): ===========CORE LOOP END========")
             division_counter += 1
             print("wrapper_graph_trajectory(), before printer: cellgraph.cell_stats.shape", cellgraph.cell_stats.shape)
@@ -599,9 +608,6 @@ class CellGraph():
             nrows = 1 + (self.num_cells - 1) // ncols
             sharex = False
 
-        #print("in plot_state():", self.num_cells, ncols, nrows)
-
-        # TODO other function which up to 16 cells does 4x4 grid of xyz traj plots  ---- or ----- x,y phase plots - SUBPLOTS or GRIDSPEC
         fig, axarr = plt.subplots(ncols=ncols, nrows=nrows, figsize=(8, 8), constrained_layout=True, squeeze=False, sharex=sharex)
         state_tensor = self.state_to_rectangle(self.state_history)
         times = self.times_history
@@ -613,7 +619,7 @@ class CellGraph():
             else:
                 i = idx // 4
                 j = idx % 4
-            #print("idx, i, j", idx, i, j)
+                #print("idx, i, j", idx, i, j)
 
             r = np.transpose(state_tensor[:, idx, :])
             # start at different points for each cell (based on "birthday")
@@ -825,6 +831,7 @@ if __name__ == '__main__':
     # TODO resolve issue where if t0 != 0, then we have gap in times history [0, t0, ...] -- another issue where t0 is skipped, start t0+dt
     solver_kwargs = {}
     solver_kwargs['t_eval'] = None  # None or np.linspace(0, 50, 2000)  np.linspace(15, 50, 2000)
+    solver_kwargs['max_step'] = None  # try 1e-1 or 1e-2 if division times-equence is buggy as a result of large adaptive steps
 
     # Prepare io_dict
     io_dict = run_subdir_setup(run_subfolder='cellgraph')
@@ -861,7 +868,6 @@ if __name__ == '__main__':
 
     # From the initialized graph (after all divisions above), simulate graph trajectory
     print('\nExample trajectory for the graph...')
-    # TODO division event detection issues
     event_detected, cellgraph = cellgraph.wrapper_graph_trajectory(verbose=True, **solver_kwargs)
     print("\n in main: num cells after wrapper trajectory =", cellgraph.num_cells)
 

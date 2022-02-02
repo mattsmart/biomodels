@@ -119,7 +119,7 @@ def set_ode_params(style_ode):
         assert 0 <= p['epsilon']
     elif style_ode == 'PWL3_swap':
         p = {
-            'C': 1e-1,              # speed scale for fast variable Cyc_act
+            'C': 1e-2,              # speed scale for fast variable Cyc_act
             'a': 4,                 # defines the corners of PWL function for x
             'd': 2,                 # defines the corners of PWL function for x
             'b': 0,                 # [Not needed] defines the y-intercept of the dy/dt=0 nullcline, y(x) = 1/gamma * (-x + b)
