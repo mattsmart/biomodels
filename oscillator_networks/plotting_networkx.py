@@ -4,17 +4,31 @@ import numpy as np
 
 
 def draw_from_adjacency(A, node_color=None, labels=None, draw_edge_labels=False, cmap='Pastel1', title='Cell graph',
-                        seed=1, fpath=None):
+                        seed=None, fpath=None):
     """
     create_using=nx.DiGraph -- store as directed graph with possible self-loops
     create_using=nx.DiGrapsh -- store as undirected graph with possible self-loops
 
     cmap options: 'Blues', 'Pastel1', 'Spectral_r'
     """
+    def pick_seed_using_num_cells():
+        seed_predefined = {
+            1: 0,
+            2: 0,
+            4: 0,
+            8: 0,
+            16: 0,
+            32: 0,
+        }
+        seed = seed_predefined.get(A.shape[0], 0)  # M = A.shape[0] and seed_default = 0
+        return seed
+
     # plot settings
     ns = 800
     alpha = 1.0
     font_color = 'k'  # options: 'whitesmoke', 'k'
+    if seed is None:
+        seed = pick_seed_using_num_cells()
 
     # initialize the figure
     plt.figure(figsize=(8, 8))
