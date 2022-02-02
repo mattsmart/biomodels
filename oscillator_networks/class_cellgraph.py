@@ -280,10 +280,10 @@ class CellGraph():
         if self.style_detection == 'ignore':
             pass
         else:
-            #state_choice = 1
-            #assert self.sc_template.variables_short[state_choice] == 'Cyc_tot_template'  # not tested for other variables
-            state_choice = 0
-            assert self.sc_template.variables_short[state_choice] == 'Cyc_act_template'  # not tested for other variables
+            state_choice = 1
+            assert self.sc_template.variables_short[state_choice] == 'Cyc_tot_template'  # not tested for other variables
+            #state_choice = 0
+            #assert self.sc_template.variables_short[state_choice] == 'Cyc_act_template'  # not tested for other variables
             detector = {
                 'scipy_peaks': {
                     'fn': detect_oscillations_scipy,
@@ -292,19 +292,20 @@ class CellGraph():
                 },
                 'manual_crossings': {
                     'fn': detect_oscillations_manual,
-                    'kwargs': {'show': False,
-                               'expect_lower': 0,
-                               'expect_upper': 0}
+                    'kwargs': {'show': False}
                 }
             }
+            # TODO only know midpoint for some models currently (add method to get this for diff models later?)
+            if self.style_ode == 'PWL3_swap' and self.style_detection == 'manual_crossings':
+                pp = self.sc_template.params_ode
+                detector['manual_crossings']['kwargs']['xlow'] = 0.5 * pp['a']
+                detector['manual_crossings']['kwargs']['xhigh'] = 0.5 * (pp['a'] + pp['d'])
+                detector['manual_crossings']['kwargs']['ylow'] = 0.5 * (pp['a'] - pp['d'])
+                detector['manual_crossings']['kwargs']['yhigh'] = 0.5 * pp['a']
+
             detect_fn = detector[self.style_detection]['fn']
             detect_kwargs = detector[self.style_detection]['kwargs']
-
-            # TODO only know midpoint for some models currently (add method to get this for diff models later?)
-            if self.style_ode == 'PWL_3':
-                pp = self.sc_template.params_ode
-                detector['manual_crossings']['expect_lower'] = 0.5 * pp['a']
-                detector['manual_crossings']['expect_upper'] = 0.5 * (pp['a'] + pp['d'])
+            print(detect_kwargs)
 
             traj_rectangle = self.state_to_rectangle(traj)
             for idx in range(self.num_cells):
@@ -540,25 +541,30 @@ class CellGraph():
             labels = {idx: r'$c_{%d}: %d$' % (idx, val) for idx, val in enumerate(birthdays)}
             draw_from_adjacency(self.adjacency, title=tvar, node_color=birthdays, labels=labels, cmap='GnBu',
                                 seed=seed, fpath=fpathvar)
+        plt.close()
         return
 
-    def plot_state_each_cell(self, fmod='', arrange_vertical=True):
+    def plot_state_unified(self, fmod='', arrange_vertical=True):
 
         if arrange_vertical:
             # subplots as M x 1 grid
             ncols = 1
             nrows = self.num_cells
+            sharex = True
         else:
             # subplots as k x 4 grid
             assert self.num_cells <= 16  # for now
             ncols = 4
             nrows = 1 + (self.num_cells - 1) // ncols
+            sharex = False
+
         #print("in plot_state():", self.num_cells, ncols, nrows)
 
         # TODO other function which up to 16 cells does 4x4 grid of xyz traj plots  ---- or ----- x,y phase plots - SUBPLOTS or GRIDSPEC
-        fig, axarr = plt.subplots(ncols=ncols, nrows=nrows, figsize=(8, 8), constrained_layout=True, squeeze=False)
+        fig, axarr = plt.subplots(ncols=ncols, nrows=nrows, figsize=(8, 8), constrained_layout=True, squeeze=False, sharex=sharex)
         state_tensor = self.state_to_rectangle(self.state_history)
         times = self.times_history
+        birthdays = self.cell_stats[:, 2]
 
         for idx in range(self.num_cells):
             if arrange_vertical:
@@ -569,13 +575,15 @@ class CellGraph():
             #print("idx, i, j", idx, i, j)
 
             r = np.transpose(state_tensor[:, idx, :])
-
+            # start at different points for each cell (based on "birthday")
+            init_idx = birthdays[idx]
+            # peform plotting
             axarr[i, j].plot(
-                times, r, label=[self.sc_template.variables_short[i] for i in range(self.sc_dim_ode)])
-            # axarr[i, j].set_xlabel(r'$t$ [min]')
-            # axarr[i, j].set_ylabel(r'concentration [nM]')
-            axarr[i, j].set_xlabel(r'$t$')
-            axarr[i, j].set_ylabel(r'$x_{%d}$' % idx)
+                times[init_idx:], r[init_idx:, :], label=[self.sc_template.variables_short[i] for i in range(self.sc_dim_ode)])
+            # set labels for axes
+            axarr[i, j].set_ylabel(r'$x_{%d}$' % idx)  # (r'concentration [nM]')
+            if not arrange_vertical or i == self.num_cells - 1:
+                axarr[i, j].set_xlabel(r'$t$')  # (r'$t$ [min]')
 
         plt.legend()
         plt.suptitle('plot_state_each_cell() - %s' % fmod)
@@ -585,6 +593,76 @@ class CellGraph():
             fpath += '_' + fmod
         plt.savefig(fpath + '.pdf')
         return
+
+    def plot_xy_separate(self, quiver=True, decorate=True, fmod=''):
+        state_tensor = self.state_to_rectangle(self.state_history)
+        times = self.times_history
+        birthdays = self.cell_stats[:, 2]
+
+        fixed_cmap = plt.get_cmap('Spectral')
+
+        for idx in range(self.num_cells):
+
+            fig = plt.figure(figsize=(8, 8))
+            ax = plt.gca()
+
+            r = np.transpose(state_tensor[:, idx, :])
+            # start at different points for each cell (based on "birthday")
+            init_idx = birthdays[idx]
+            times_slice = times[init_idx:]
+            r_slice = r[init_idx:, :]
+
+            # perform plotting
+            sc = plt.scatter(r_slice[:, 0], r_slice[:, 1], c=times_slice, cmap=fixed_cmap)  # draw scatter points
+            plt.plot(r_slice[:, 0], r_slice[:, 1], '-k', linewidth=0.5)  # draw connections between points
+
+            if quiver:
+                # TODO try midpoints instead
+                weighted_start = 0.5  # default: 0
+                weighted_shrink = 0.5 # default: 1
+                x0 = (r_slice[:-1, 0] + weighted_start * r_slice[1:, 0]) / (1 + weighted_start)
+                y0 = (r_slice[:-1, 1] + weighted_start * r_slice[1:, 1]) / (1 + weighted_start)
+                u0 = weighted_shrink * (r_slice[1:, 0] - r_slice[:-1, 0])
+                v0 = weighted_shrink * (r_slice[1:, 1] - r_slice[:-1, 1])
+                #plt.quiver(x0, y0, u0, v0, angles='xy', scale=1, scale_units='xy', color=fixed_cmap(times_slice))
+                plt.quiver(x0, y0, u0, v0, angles='xy', scale=1, scale_units='xy', color='k')
+
+            if decorate:
+                if self.style_ode == 'PWL3_swap':
+                    pp = self.sc_template.params_ode
+                    xlow = 0.5 * pp['a']
+                    xhigh = 0.5 * (pp['a'] + pp['d'])
+                    plt.axvline(xlow, linestyle='--', c='gray')
+                    plt.axvline(xhigh, linestyle='--', c='gray')
+                    ylow = 0.5 * pp['a']
+                    yhigh = 0.5 * (pp['a'] - pp['d'])
+                    plt.axhline(ylow, linestyle='-.', c='gray')
+                    plt.axhline(yhigh, linestyle='-.', c='gray')
+
+                # plot points in phase space where division event occurred
+                event_acted_as_mother = np.argwhere(self.division_events[:, 0] == idx)
+                if len(event_acted_as_mother) > 0:
+                    events_idx = self.division_events[event_acted_as_mother, 2]
+                    xdiv = state_tensor[0, idx, events_idx]
+                    ydiv = state_tensor[1, idx, events_idx]
+                    plt.scatter(xdiv, ydiv, marker='*', c='gold')
+
+            # set labels for axes
+            ax.set_xlabel(r'$x_{0}$')
+            ax.set_ylabel(r'$x_{1}$')
+            cbar = plt.colorbar(sc)
+            plt.clim(times[0], times[-1])
+            cbar.set_label(r'$t$')
+
+            #plt.legend()
+            plt.title('Cell %d trajectory - %s' % (idx, fmod))
+
+            fpath = self.io_dict['plotdatadir'] + os.sep + 'traj_cell_%d' % idx
+            if fmod is not None:
+                fpath += '_' + fmod
+            plt.savefig(fpath + '.pdf')
+        return
+
 
     def state_to_stacked(self, x):
         """
@@ -669,7 +747,8 @@ class CellGraph():
         np.savetxt(outdir + os.sep + 'division_events' + suffix, self.division_events, fmt="%d")
         return
 
-    def pickle_save(self, fpath):
+    def pickle_save(self, fname='classdump.pkl'):
+        fpath = self.io_dict['basedir'] + os.sep + fname
         with open(fpath, 'wb') as pickle_file:
             pickle.dump(self, pickle_file)
         return
@@ -678,8 +757,8 @@ class CellGraph():
 if __name__ == '__main__':
 
     # High-level initialization & graph settings
-    style_ode = 'PWL3_swap'     # styles: ['PWL2', 'PWL3', 'Yang2013', 'toy_flow']
-    style_detection = 'scipy_peaks'  # styles: ['ignore', 'scipy_peaks']
+    style_ode = 'PWL3_swap'                # styles: ['PWL2', 'PWL3', 'Yang2013', 'toy_flow']
+    style_detection = 'manual_crossings'   # styles: ['ignore', 'scipy_peaks', 'manual_crossings']
     style_division = 'copy'     # styles: ['copy', 'partition_equal']
     M = 1
     state_history = np.array([[0, 0, 0]]).T  # None or array of shape (NM x times)
@@ -739,7 +818,10 @@ if __name__ == '__main__':
     print("\n in main: num cells after wrapper trajectory =", cellgraph.num_cells)
 
     # Plot the timeseries for each cell
-    cellgraph.plot_state_each_cell(arrange_vertical=True, fmod='final')
+    cellgraph.plot_state_unified(arrange_vertical=True, fmod='final')
     cellgraph.plot_graph(fmod='final')
+    if cellgraph.sc_dim_ode > 1:
+        cellgraph.plot_xy_separate(fmod='final')
 
-    cellgraph.pickle_save('foo.pkl')
+    # Save class state as pickle object
+    cellgraph.pickle_save('classdump.pkl')
