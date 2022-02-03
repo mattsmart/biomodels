@@ -140,7 +140,7 @@ if __name__ == '__main__':
     # A) High-level initialization & graph settings
     style_ode = 'PWL3_swap'                # styles: ['PWL2', 'PWL3', 'PWL3_swap', 'Yang2013', 'toy_flow', 'toy_clock']
     style_detection = 'manual_crossings'   # styles: ['ignore', 'scipy_peaks', 'manual_crossings', 'manual_crossings_2d']
-    style_division = 'copy'     # styles: ['copy', 'partition_equal']
+    style_division = 'copy'                # styles: ['copy', 'partition_equal']
     M = 1
     # B) Initialization modifications for different cases
     if style_ode == 'PWL2':

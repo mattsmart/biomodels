@@ -213,11 +213,17 @@ class CellGraph():
             if self.style_division == 'copy':
                 post_mother_state = current_mother_state
                 post_daughter_state = current_mother_state
-            else:
-                assert self.style_division == 'partition_equal'
+            elif self.style_division == 'partition_equal':
                 print("TODO - currently dividing perfectly by two")
                 post_mother_state = current_mother_state / 2.0
                 post_daughter_state = current_mother_state / 2.0
+            else:
+                assert self.style_division == 'partition_ndiv'
+                print("TODO - currently dividing asymmetrically based on ndiv")
+                ndiv = self.cell_stats[idx_dividing_cell, 0]
+                p_keep = 1 - 0.5/(1 + ndiv)   # e.g. if ndiv = 0, then its 50/50; if ndiv = 1, then its 75/25 etc.
+                post_mother_state = current_mother_state * p_keep
+                post_daughter_state = current_mother_state * (1 - p_keep)
 
             return post_mother_state, post_daughter_state, mother_idx_low, mother_idx_high
 
@@ -914,7 +920,7 @@ if __name__ == '__main__':
     # High-level initialization & graph settings
     style_ode = 'PWL3_swap'                # styles: ['PWL2', 'PWL3', 'PWL3_swap', 'Yang2013', 'toy_flow', 'toy_clock']
     style_detection = 'manual_crossings'   # styles: ['ignore', 'scipy_peaks', 'manual_crossings', 'manual_crossings_2d']
-    style_division = 'copy'     # styles: ['copy', 'partition_equal']
+    style_division = 'partition_ndiv'     # styles: ['copy', 'partition_equal', 'partition_ndiv']
     M = 1
     verbosity = 0  # in 0, 1, 2 (highest)
     # TODO - GLOBAL initiliazation style (predefined, random, other? -- the if else below is just an override to predefined ones)
@@ -959,8 +965,8 @@ if __name__ == '__main__':
         io_dict=io_dict,
         verbosity=verbosity)
     if cellgraph.style_ode in ['PWL2', 'PWL3', 'PWL3_swap']:
-        pass
-        #cellgraph.sc_template.params_ode['epsilon'] = 0.8
+        #pass
+        cellgraph.sc_template.params_ode['epsilon'] = 0.2
 
     # Add some cells through manual divisions (two different modes - linear or random) to augment initialization
     for idx in range(add_init_cells):
