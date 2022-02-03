@@ -462,7 +462,7 @@ class CellGraph():
             self.vprint(1, "wrapper_graph_trajectory(), subsequent line: cellgraph.cell_stats.shape", cellgraph.cell_stats.shape)
             if event_detected:
                 self.vprint(1, "wrapper_graph_trajectory(): ===========Division event detected===========")
-                time_last_division_idx = cellgraph.division_events[-1, 2]  # time index of most recent divison
+                time_last_division_idx = cellgraph.division_events[-1, 2]  # time index of most recent division
                 t0_shifted = cellgraph.times_history[time_last_division_idx]  # move the start time of the integration
             if self.verbose:
                 # event_detected, cellgraph = cellgraph.graph_trajectory(**solver_kwargs)
@@ -719,8 +719,9 @@ class CellGraph():
             r_slice = r[init_idx:, :]
 
             # perform plotting
-            sc = plt.scatter(r_slice[:, 0], r_slice[:, 1], c=times_slice, cmap=fixed_cmap)  # draw scatter points
-            plt.plot(r_slice[:, 0], r_slice[:, 1], '-k', linewidth=0.5)  # draw connections between points
+            alpha = 0.5
+            sc = plt.scatter(r_slice[:, 0], r_slice[:, 1], c=times_slice, cmap=fixed_cmap, alpha=alpha)  # draw scatter points
+            plt.plot(r_slice[:, 0], r_slice[:, 1], '-k', linewidth=0.5, alpha=alpha)  # draw connections between points
 
             if quiver:
                 # TODO try midpoints instead
@@ -731,7 +732,7 @@ class CellGraph():
                 u0 = weighted_shrink * (r_slice[1:, 0] - r_slice[:-1, 0])
                 v0 = weighted_shrink * (r_slice[1:, 1] - r_slice[:-1, 1])
                 #plt.quiver(x0, y0, u0, v0, angles='xy', scale=1, scale_units='xy', color=fixed_cmap(times_slice))
-                plt.quiver(x0, y0, u0, v0, angles='xy', scale=1, scale_units='xy', color='k')
+                plt.quiver(x0, y0, u0, v0, angles='xy', scale=1, scale_units='xy', color='k', alpha=alpha)
 
             if decorate:
                 if self.style_ode == 'PWL3_swap':
@@ -747,10 +748,16 @@ class CellGraph():
 
                 # plot points in phase space where division event occurred
                 events_idx = self.time_indices_where_acted_as_mother(idx)
+                star_kwargs = dict(
+                    marker='*', edgecolors='k', linewidths=0.5, zorder=10,
+                )
                 if len(events_idx) > 0:
                     xdiv = state_tensor[0, idx, events_idx]
                     ydiv = state_tensor[1, idx, events_idx]
-                    plt.scatter(xdiv, ydiv, marker='*', c='gold')
+                    plt.scatter(xdiv, ydiv, c='gold', **star_kwargs)  # immediately after division (xvec partitioned)
+                    xdiv = state_tensor[0, idx, events_idx - 1]
+                    ydiv = state_tensor[1, idx, events_idx - 1]
+                    plt.scatter(xdiv, ydiv, c='green', **star_kwargs)  # immediately before division
 
             # set labels for axes
             ax.set_xlabel(r'$x_{0}$')
@@ -948,7 +955,7 @@ if __name__ == '__main__':
     # TODO one option is to use dense_output to interpolate... another is to use non-adaptive stepping in the vicinity of an event
     solver_kwargs = {}
     solver_kwargs['t_eval'] = None  # None or np.linspace(0, 50, 2000)  np.linspace(15, 50, 2000)
-    solver_kwargs['max_step'] = np.Inf  # try 1e-1 or 1e-2 if division time-sequence is buggy as a result of large adaptive steps
+    solver_kwargs['max_step'] = 1e-1   # np.Inf ; try 1e-1 or 1e-2 if division time-sequence is buggy as a result of large adaptive steps
 
     # Prepare io_dict
     io_dict = run_subdir_setup(run_subfolder='cellgraph')

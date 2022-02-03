@@ -13,16 +13,18 @@ from file_io import pickle_load
 if __name__ == '__main__':
 
     flag_print_state = True
-    flag_replot = False
+    flag_replot = True
     flag_inspect = False
     flag_plotly = False
     flag_redetect = False
 
     runs_dir = 'runs' + os.sep + 'cellgraph'
-    specific_dir = runs_dir + os.sep + '2022-02-03_01.28.52PM' #'2022-02-02_02.47.01PM'
+    specific_dir = runs_dir + os.sep + '2022-02-03_05.32.09PM' #'2022-02-02_02.47.01PM'
+    #specific_dir = 'input'
+
+    # load classdump pickle file from "specific dir"
     fpath = specific_dir + os.sep + 'classdump.pkl'
-    #cellgraph = pickle_load(fpath)
-    cellgraph = pickle_load('input' + os.sep + 'classdump.pkl')
+    cellgraph = pickle_load(fpath)
 
     # Shorthands
     pp = cellgraph.sc_template.params_ode
@@ -47,12 +49,15 @@ if __name__ == '__main__':
     # manual plot to inspect trajectory
     if flag_inspect:
         # plot time slice for one cell
-        t0_idx = 18
-        t1_idx = 95
+        t0_idx = 13
+        t1_idx = 136
         cell_choice = 0
         times_slice = times[t0_idx:t1_idx]
         state_slice = state_tensor[:, 0, t0_idx:t1_idx]
-        plt.plot(times_slice, state_slice.T, 'o')
+        for i, t in enumerate(times_slice):
+            print(i, t, state_slice[:, i])
+
+        plt.plot(times_slice, state_slice.T, 'o', label=['x%d' % i for i in range(cellgraph.sc_dim_ode)])
         # add any axhline decorators
         clow = 0.5*(pp['a'])  # None
         chigh = 0.5*(pp['a'] - pp['d'])  # None
@@ -63,7 +68,8 @@ if __name__ == '__main__':
         # decorate any division events in window
         events_idx = cellgraph.time_indices_where_acted_as_mother(cell_choice)
         for event_idx in events_idx:
-            plt.axvline(times[event_idx], linestyle='--', c='gray')
+            plt.axvline(times[event_idx], linestyle=':', c='r')
+        plt.legend()
         plt.show()
 
     if flag_plotly:
