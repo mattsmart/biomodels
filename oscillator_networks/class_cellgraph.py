@@ -2,7 +2,11 @@ import csv
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import pandas as pd
 import pickle
+import plotly.express as px
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 from scipy.integrate import solve_ivp
 
 from class_singlecell import SingleCell
@@ -36,7 +40,9 @@ Attributes:
 - self.t1              - float           - final timepoint maintained through recursive traj
 - self.division_events - array (d x 3)   - for each division event, append row: [mother_idx, daughter_idx, time_idx] 
 - self.cell_stats      - array (M x 3)   - stores cell metadata: [n_div, time_idx_last_div, time_idx_birth]
-- self.io_dict         - dict            - [see file_io.py] io_dict = run_subdir_setup(run_subfolder='cellgraph')
+- self.io_dict         - dict            - [see file_io.py] 
+                                              if None  -  io_dict = run_subdir_setup(run_subfolder='cellgraph')
+                                              if False -  io_dict = False (do not generate new directories)
 
 Utility methods:
 - self.state_to_stacked(x):    converts array x from shape [N x M] to [NM] 
@@ -108,9 +114,13 @@ class CellGraph():
             self.style_division = STYLE_DIVISION
         if io_dict is None:
             self.io_dict = run_subdir_setup(run_subfolder='cellgraph')
+        elif not io_dict:
+            self.io_dict = False  # do not generate a directory; used for base model before param sweep
+        else:
+            assert isinstance(io_dict, dict)
         # initialize single cell template which exposes dx/dt=f(x) for internal gene regulation components of network
         if sc_template is None:
-            self.sc_template = SingleCell(style_ode=self.style_ode, label='template')
+            self.sc_template = SingleCell(style_ode=self.style_ode, label='')
         assert self.sc_template.style_ode == self.style_ode
 
         # construct graph matrices based on adjacency
@@ -336,12 +346,12 @@ class CellGraph():
                     state_choice_local = 1
                     detector['manual_crossings']['kwargs']['state_choice'] = state_choice_local
                     if state_choice_local == 1:
-                        assert self.sc_template.variables_short[state_choice_local] == 'Cyc_tot_template'
+                        assert self.sc_template.variables_short[state_choice_local] == 'Cyc_tot'
                         detector['manual_crossings']['kwargs']['xlow'] = 0.5 * (pp['a'] - pp['d'])
                         detector['manual_crossings']['kwargs']['xhigh'] = 0.5 * pp['a']
                     else:
                         assert state_choice_local == 0
-                        assert self.sc_template.variables_short[state_choice_local] == 'Cyc_act_template'
+                        assert self.sc_template.variables_short[state_choice_local] == 'Cyc_act'
                         detector['manual_crossings']['kwargs']['xlow'] = 0.5 * pp['a']
                         detector['manual_crossings']['kwargs']['xhigh'] = 0.5 * (pp['a'] + pp['d'])
                 elif self.style_ode == 'toy_clock':
@@ -752,6 +762,64 @@ class CellGraph():
             plt.savefig(fpath + '.pdf')
         return
 
+    def plotly_traj(self, fmod=None, write=True, show=True):
+        times = self.times_history
+        state = self.state_history
+        state_tensor = self.state_to_rectangle(state)
+        birthdays = self.cell_stats[:, 2]
+
+        column_names = ['cell', 'time_index', 'time'] + ['x%d' % i for i in range(self.sc_dim_ode)]
+        df = pd.DataFrame(columns=column_names)
+        i = 0
+        for cell in range(self.num_cells):
+            init_idx = birthdays[cell]
+            looptot = len(times) - init_idx
+            for idx, t in enumerate(range(init_idx, len(times))):
+                row = ['cell%d' % cell,
+                       t,
+                       times[t]]
+                row = row + [state_tensor[i, cell, t] for i in range(self.sc_dim_ode)]
+                df.loc[idx + i] = row
+            i += looptot
+
+        cmap_list = px.colors.qualitative.Plotly
+        fig = make_subplots(rows=self.sc_dim_ode,
+                            cols=1,
+                            x_title=r'$t$')
+
+        for i in range(self.sc_dim_ode):
+            if i == 0:
+                showlegend = True
+            else:
+                showlegend = False
+            for cell in range(self.num_cells):
+                cell_color = cmap_list[cell % len(cmap_list)]
+                fig.append_trace(
+                    go.Scatter(
+                        x=df[df['cell'] == 'cell%d' % cell]['time'],
+                        y=df[df['cell'] == 'cell%d' % cell]['x%d' % i],
+                        mode='lines+markers',
+                        name='c%d' % (cell),
+                        line=dict(color=cell_color),
+                        marker_color=cell_color,
+                        legendgroup=cell,
+                        showlegend=showlegend,
+                    ),
+                    row=i + 1, col=1)
+            fig.update_yaxes(title_text=self.sc_template.variables_short[i], row=i + 1, col=1)
+
+        #fig.update_layout(height=600, width=600, title_text="Cell state trajectoriers for each variable")
+        fig.update_layout(title_text="Cell state trajectoriers for each variable")
+
+        fpath = self.io_dict['plotdatadir'] + os.sep + 'plotly_traj'
+        if fmod is not None:
+            #title = title + ' ' + fmod
+            fpath += 'networkx_%s' % fmod
+        if write:
+            fig.write_html(fpath + '.html', include_mathjax='cdn')
+        if show:
+            fig.show()
+
     def state_to_stacked(self, x):
         """
         converts array x from shape [N x M] to [NM]
@@ -865,7 +933,7 @@ if __name__ == '__main__':
 
     # Specify time interval which is separate from solver kwargs (used in graph_trajectory explicitly)
     #time_interval = [10, 100]  # None or [t0, t1]
-    t0 = 10
+    t0 = 00
     t1 = 65
 
     # Setup solver kwargs for the graph trajectory wrapper
@@ -874,7 +942,7 @@ if __name__ == '__main__':
     # TODO one option is to use dense_output to interpolate... another is to use non-adaptive stepping in the vicinity of an event
     solver_kwargs = {}
     solver_kwargs['t_eval'] = None  # None or np.linspace(0, 50, 2000)  np.linspace(15, 50, 2000)
-    solver_kwargs['max_step'] = np.Inf  # try 1e-1 or 1e-2 if division times-equence is buggy as a result of large adaptive steps
+    solver_kwargs['max_step'] = np.Inf  # try 1e-1 or 1e-2 if division time-sequence is buggy as a result of large adaptive steps
 
     # Prepare io_dict
     io_dict = run_subdir_setup(run_subfolder='cellgraph')
@@ -886,7 +954,8 @@ if __name__ == '__main__':
         style_detection=style_detection,
         style_division=style_division,
         state_history=state_history,
-        t0=t0, t1=t1,
+        t0=t0,
+        t1=t1,
         io_dict=io_dict,
         verbosity=verbosity)
     if cellgraph.style_ode in ['PWL2', 'PWL3', 'PWL3_swap']:
@@ -921,6 +990,7 @@ if __name__ == '__main__':
     cellgraph.plot_graph(fmod='final')
     if cellgraph.sc_dim_ode > 1:
         cellgraph.plot_xy_separate(fmod='final')
+    cellgraph.plotly_traj(fmod='final', show=True, write=True)
 
     # Save class state as pickle object
     cellgraph.pickle_save('classdump.pkl')

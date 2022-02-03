@@ -12,23 +12,30 @@ from file_io import pickle_load
 
 if __name__ == '__main__':
 
+    flag_print_state = True
     flag_replot = False
     flag_inspect = False
-    flag_plotly = True
+    flag_plotly = False
     flag_redetect = False
 
     runs_dir = 'runs' + os.sep + 'cellgraph'
-    specific_dir = runs_dir + os.sep + '2022-02-02_03.35.19PM' #'2022-02-02_02.47.01PM'
+    specific_dir = runs_dir + os.sep + '2022-02-03_01.28.52PM' #'2022-02-02_02.47.01PM'
     fpath = specific_dir + os.sep + 'classdump.pkl'
-    cellgraph = pickle_load(fpath)
+    #cellgraph = pickle_load(fpath)
+    cellgraph = pickle_load('input' + os.sep + 'classdump.pkl')
 
-    # shorthands
+    # Shorthands
     pp = cellgraph.sc_template.params_ode
     times = cellgraph.times_history
     state = cellgraph.state_history
     state_tensor = cellgraph.state_to_rectangle(state)
     div_events = cellgraph.division_events
     birthdays = cellgraph.cell_stats[:, 2]
+
+    # Print method of CellGraph
+    if flag_print_state:
+        cellgraph.print_state()
+        print(times[0:5])
 
     # "replot" standard cellgraph trajectory outputs with minor adjustments
     if flag_replot:
@@ -63,50 +70,7 @@ if __name__ == '__main__':
         # Example dataframe
         #df = px.data.gapminder().query("country in ['Canada', 'Botswana']")
         #print(df)
-
-        column_names = ['cell', 'time_index', 'time'] + ['x%d' % i for i in range(cellgraph.sc_dim_ode)]
-        df = pd.DataFrame(columns=column_names)
-        i = 0
-        for cell in range(cellgraph.num_cells):
-            init_idx = birthdays[cell]
-            looptot = len(times) - init_idx
-            for idx, t in enumerate(range(init_idx, len(times))):
-                row = ['cell%d' % cell,
-                       t,
-                       times[t]]
-                row = row + [state_tensor[i, cell, t] for i in range(cellgraph.sc_dim_ode)]
-                df.loc[idx + i] = row
-            i += looptot
-
-        cmap_list = px.colors.qualitative.Plotly
-        fig = make_subplots(rows=cellgraph.sc_dim_ode,
-                            cols=1,
-                            x_title=r'$t$')
-
-        for i in range(cellgraph.sc_dim_ode):
-            if i == 0:
-                showlegend = True
-            else:
-                showlegend = False
-            for cell in range(cellgraph.num_cells):
-                cell_color = cmap_list[cell % len(cmap_list)]
-                fig.append_trace(
-                    go.Scatter(
-                        x=df[df['cell'] == 'cell%d' % cell]['time'],
-                        y=df[df['cell'] == 'cell%d' % cell]['x%d' % i],
-                        mode='lines+markers',
-                        name='c%d' % (cell),
-                        line=dict(color=cell_color),
-                        marker_color=cell_color,
-                        legendgroup=cell,
-                        showlegend=showlegend,
-                    ),
-                    row=i + 1, col=1)
-            fig.update_yaxes(title_text=cellgraph.sc_template.variables_short[i], row=i + 1, col=1)
-
-        #fig.update_layout(height=600, width=600, title_text="Cell state trajectoriers for each variable")
-        fig.update_layout(title_text="Cell state trajectoriers for each variable")
-        fig.show()
+        cellgraph.plotly_traj(fmod='replot', show=True, write=True)
 
     if flag_redetect:
         # reset division trackers (so that early ones can be identified)
