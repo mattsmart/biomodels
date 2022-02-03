@@ -11,6 +11,8 @@ def draw_from_adjacency(A, node_color=None, labels=None, draw_edge_labels=False,
 
     cmap options: 'Blues', 'Pastel1', 'Spectral_r'
     """
+    # TODO alternative visualization wth legend for discrete data (nDiv) and colorbar for continuous data (birth times)
+
     def pick_seed_using_num_cells():
         seed_predefined = {
             1: 0,
@@ -42,8 +44,13 @@ def draw_from_adjacency(A, node_color=None, labels=None, draw_edge_labels=False,
     # draw the nodes
     nx.draw(G, layout, node_color=node_color, cmap=cmap, node_size=ns, alpha=alpha)
     # write node labels
+    #cell_labels = {idx: r'$c_{%d}$' % (idx) for idx in range(A.shape[0])}
+    cell_labels = {idx: r'Cell $%d$' % (idx) for idx in range(A.shape[0])}
     if labels is not None:
-        nx.draw_networkx_labels(G, layout, labels, font_size=8, font_color=font_color)
+        nx.draw_networkx_labels(G, layout, labels, font_size=6, font_color=font_color, verticalalignment='bottom')
+        nx.draw_networkx_labels(G, layout, cell_labels, font_size=6, font_color=font_color, verticalalignment='top')
+    else:
+        nx.draw_networkx_labels(G, layout, cell_labels, font_size=6, font_color=font_color)
     # write edge labels
     if draw_edge_labels:
         nx.draw_networkx_edge_labels(G, pos=layout)
@@ -56,19 +63,19 @@ def draw_from_adjacency(A, node_color=None, labels=None, draw_edge_labels=False,
 
 
 if __name__ == '__main__':
-    A = [
+    A = np.array([
         [0, 1, 0, .8, 0],
         [0, 0, .4, 0, .3],
         [0, 0, 0, 0, 0],
         [0, 0, .6, 0, .7],
         [0, 0, 0, .2, 0]
-    ]
+    ])
 
-    A2 = [
+    A2 = np.array([
         [0, 1, 0, 0],
         [1, 0, 1, 0],
         [0, 1, 0, 1],
         [0, 0, 1, 0]
-    ]
+    ])
 
     draw_from_adjacency(A2, fpath='foo.pdf')

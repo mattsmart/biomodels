@@ -574,22 +574,27 @@ class CellGraph():
             tvar = title + ' (number of divisions)'
             fpathvar = fpath + '_nDiv.pdf'
             n_divisions = self.cell_stats[:, 0]
-            labels = {idx: r'$c_{%d}: %d$' % (idx, val) for idx, val in enumerate(n_divisions)}
+            #labels = {idx: r'$c_{%d}: %d$' % (idx, val) for idx, val in enumerate(n_divisions)}
+            labels = {idx: r'$%d$' % (val) for idx, val in enumerate(n_divisions)}
             draw_from_adjacency(self.adjacency, title=tvar, node_color=n_divisions, labels=labels, cmap='Pastel1',
                                 seed=seed, fpath=fpathvar)
         if by_last_div:
             tvar = title + ' (time of last division)'
             fpathvar = fpath + '_tLastEvent.pdf'
             t_last_div = self.cell_stats[:, 1]
-            labels = {idx: r'$c_{%d}: %d$' % (idx, val) for idx, val in enumerate(t_last_div)}
-            draw_from_adjacency(self.adjacency, title=tvar, node_color=t_last_div, labels=labels, cmap='GnBu',
+            t_last_div_abs = self.times_history[t_last_div]
+            #labels = {idx: r'$c_{%d}: %d$' % (idx, val) for idx, val in enumerate(t_last_div)}
+            labels = {idx: r'$%.1f$' % (val) for idx, val in enumerate(t_last_div_abs)}
+            draw_from_adjacency(self.adjacency, title=tvar, node_color=t_last_div_abs, labels=labels, cmap='GnBu',
                                 seed=seed, fpath=fpathvar)
         if by_age:
             tvar = title + ' (time of birth)'
             fpathvar = fpath + '_tBirth.pdf'
             birthdays = self.cell_stats[:, 2]
-            labels = {idx: r'$c_{%d}: %d$' % (idx, val) for idx, val in enumerate(birthdays)}
-            draw_from_adjacency(self.adjacency, title=tvar, node_color=birthdays, labels=labels, cmap='GnBu',
+            birthdays_abs = self.times_history[birthdays]
+            #labels = {idx: r'$c_{%d}: %d$' % (idx, val) for idx, val in enumerate(birthdays)}
+            labels = {idx: r'$%.1f$' % (val) for idx, val in enumerate(birthdays_abs)}
+            draw_from_adjacency(self.adjacency, title=tvar, node_color=birthdays_abs, labels=labels, cmap='GnBu',
                                 seed=seed, fpath=fpathvar)
         plt.close()
         return
@@ -829,9 +834,10 @@ if __name__ == '__main__':
     # Setup solver kwargs for the graph trajectory wrapper
     # TODO ensure solver kwargs can be passed properly -- note wrapper is recursive so some kwargs MUST be updated...
     # TODO resolve issue where if t0 != 0, then we have gap in times history [0, t0, ...] -- another issue where t0 is skipped, start t0+dt
+    # TODO one option is to use dense_output to interpolate... another is to use non-adaptive stepping in the vicinity of an event
     solver_kwargs = {}
     solver_kwargs['t_eval'] = None  # None or np.linspace(0, 50, 2000)  np.linspace(15, 50, 2000)
-    solver_kwargs['max_step'] = None  # try 1e-1 or 1e-2 if division times-equence is buggy as a result of large adaptive steps
+    solver_kwargs['max_step'] = np.Inf  # try 1e-1 or 1e-2 if division times-equence is buggy as a result of large adaptive steps
 
     # Prepare io_dict
     io_dict = run_subdir_setup(run_subfolder='cellgraph')
