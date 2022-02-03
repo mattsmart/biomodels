@@ -61,7 +61,8 @@ class CellGraph():
             times_history=None,
             division_events=None,
             cell_stats=None,
-            io_dict=None):
+            io_dict=None,
+            verbosity=2):
         self.num_cells = num_cells
         self.adjacency = adjacency
         self.labels = labels
@@ -71,6 +72,15 @@ class CellGraph():
         self.style_detection = style_detection
         self.style_division = style_division
         self.io_dict = io_dict
+        self.verbosity = verbosity
+
+        # set verbosity level
+        self.verbose = False
+        self.verbose_deep = False
+        if verbosity > 0:
+            self.verbose = True
+        if verbosity > 1:
+            self.verbose_deep = True
 
         # dynamics tracking variables
         self.state_history = state_history          # array NM x t - graph state
@@ -201,11 +211,13 @@ class CellGraph():
 
         # update new initial state based on extra cell and dispersion of maternal variables
         updated_state_history = np.zeros((updated_graph_dim_ode, len(self.times_history)))
-        print("division_event() CHECK", updated_state_history.shape, updated_state_history.shape, self.state_history.shape, self.times_history.shape)
+        if self.verbose_deep:
+            print("division_event() CHECK", updated_state_history.shape, updated_state_history.shape, self.state_history.shape, self.times_history.shape)
         updated_state_history[0:self.graph_dim_ode, :] = self.state_history
         post_mother_state, post_daughter_state, mlow, mhigh = split_mother_and_daughter_state()
-        print("division_event()", updated_graph_dim_ode, self.graph_dim_ode, len(post_daughter_state))
-        print("division_event()", post_mother_state, post_daughter_state, mlow, mhigh)
+        if self.verbose_deep:
+            print("division_event()", updated_graph_dim_ode, self.graph_dim_ode, len(post_daughter_state))
+            print("division_event()", post_mother_state, post_daughter_state, mlow, mhigh)
         updated_state_history[mlow:mhigh, -1] = post_mother_state
         updated_state_history[self.graph_dim_ode:, -1] = post_daughter_state
 
@@ -236,9 +248,9 @@ class CellGraph():
             state_history=updated_state_history,
             times_history=self.times_history,
             division_events=updated_division_events,
-            cell_stats=updated_cell_stats
+            cell_stats=updated_cell_stats,
+            verbosity=self.verbosity
         )
-        print("division_event(): new_cellgraph.cell_stats.shape", new_cellgraph.cell_stats.shape)
         return new_cellgraph
 
     def graph_trajectory_TOYFLOW(self, init_cond=None, t0=None, t1=None, **solver_kwargs):
@@ -290,16 +302,15 @@ class CellGraph():
             detector = {
                 'scipy_peaks': {
                     'fn': detect_oscillations_scipy,
-                    'kwargs': {'show': False,
-                               'buffer': 1}
+                    'kwargs': {'show': False, 'verbose': self.verbose_deep, 'buffer': 1}
                 },
                 'manual_crossings': {
                     'fn': detect_oscillations_manual,
-                    'kwargs': {'show': False}
+                    'kwargs': {'show': False, 'verbose': self.verbose_deep}
                 },
                 'manual_crossings_2d': {
                     'fn': detect_oscillations_manual_2d,
-                    'kwargs': {'show': False}
+                    'kwargs': {'show': False, 'verbose': self.verbose_deep}
                 }
             }
             # specify kwargs for each detection + style_ode curated ase combo
@@ -349,32 +360,38 @@ class CellGraph():
             pass
         else:
             detect_fn, detect_kwargs = detection_args_given_style()
-            print()
-            print("=========== Detection call outer print ===========")
-            print("\tdetect_fn", detect_fn)
-            print("\tdetect_kwargs", detect_kwargs)
+            if self.verbose_deep:
+                print("\n=========== Detection call outer print ===========")
+                print("\tdetect_fn", detect_fn)
+                print("\tdetect_kwargs", detect_kwargs)
 
             traj_rectangle = self.state_to_rectangle(traj)
             for idx in range(self.num_cells):
                 # for each cell, check the trajectory since its last division to look for oscillation event
-                print('detect_osc().. step 4 - accessing cell last division time (idx, t_absolute) tuple for cell idx', (idx))
+                if self.verbose_deep:
+                    print('detect_osc().. step 4 - accessing cell last division time (idx, t_absolute) tuple for cell idx', (idx))
                 time_idx_last_div_specific_cell = self.cell_last_division_time_idx(idx)
-                print('detect_osc().. step 3')
+                if self.verbose_deep:
+                    print('detect_osc().. step 3')
                 slice_traj = traj_rectangle[:, idx, time_idx_last_div_specific_cell:]
-                print('detect_osc().. step 2')
+                if self.verbose_deep:
+                    print('detect_osc().. step 2')
                 slice_times = times[time_idx_last_div_specific_cell:]
-                print('detect_osc().. step 1')
-                print('detect_osc().. before enter detect_fn()...', time_idx_last_div_specific_cell, times[0:3], times[-3:])
+                if self.verbose_deep:
+                    print('detect_osc().. step 1')
+                    print('detect_osc().. before enter detect_fn()...', time_idx_last_div_specific_cell, times[0:3], times[-3:])
                 detect_args = (slice_times, slice_traj)
                 num_oscillations, events_idx, events_times, duration_cycles = detect_fn(*detect_args, **detect_kwargs)
 
                 if num_oscillations > 0:
-                    print('EVENT: %d oscillations detected for cell %d' % (num_oscillations, idx))
+                    if self.verbose:
+                        print('EVENT: %d oscillations detected for cell %d' % (num_oscillations, idx))
                     event_detected = True
                     # TODO Edge case - decide how to handle simultaneous division events - although, it may already be handled (inefficiently) by current approach
                     if events_times[0] == first_event_time:
-                        print('Note - two cells are dividing at the same time, we are '
-                              'picking the one with the earlier index to divide... why not have all divide?')
+                        if self.verbose:
+                            print('Note - two cells are dividing at the same time, we are '
+                                  'picking the one with the earlier index to divide... why not have all divide?')
                         continue
 
                     # This is the earliest division event identified so far -- record it (and possibly return it)
@@ -384,17 +401,19 @@ class CellGraph():
                         first_event_idx = events_idx[0] + time_idx_last_div_specific_cell  # need to shift because of slice
                         first_event_cell = idx
                 else:
-                    print('No oscillation detected for cell %d' % idx)
+                    if self.verbose:
+                        print('No oscillation detected for cell %d' % idx)
 
         if event_detected:
             buffer = 1
-            print('TODO remove buffer event detected')  # TODO
+            if self.verbose_deep:
+                print('TODO remove buffer event detected')  # TODO
             truncated_times = times[0:(first_event_idx + buffer)]
             truncated_traj = traj[:, 0:(first_event_idx + buffer)]
 
         return event_detected, first_event_cell, first_event_idx, truncated_times, truncated_traj
 
-    def wrapper_graph_trajectory(self, time_interval=None, verbose=False, **solver_kwargs):
+    def wrapper_graph_trajectory(self, time_interval=None, **solver_kwargs):
         """
         Iteratively runs graph_trajectory() to integrate from time t0 to t1, expanding the graph at each cell divisions
         """
@@ -408,7 +427,7 @@ class CellGraph():
         t0_shifted = t0
         cellgraph = self  # care: all self.foo should be cellgraph.foo below
 
-        if verbose:
+        if self.verbose:
             print("\nwrapper_graph_trajectory(): Input number of cells", cellgraph.num_cells)
             print("wrapper_graph_trajectory(): Input times shape", cellgraph.times_history.shape)
             print("wrapper_graph_trajectory(): Input state shape", cellgraph.state_history.shape)
@@ -417,15 +436,17 @@ class CellGraph():
         division_counter = 0
         while event_detected:
             sub_interval = [t0_shifted, t1]
-            print("\nwrapper_graph_trajectory(): division_counter, time interval", division_counter, sub_interval)
+            if self.verbose:
+                print("\nwrapper_graph_trajectory(): division_counter, time interval", division_counter, sub_interval)
             event_detected, cellgraph = cellgraph.graph_trajectory(time_interval=sub_interval, **solver_kwargs)
-            print("wrapper_graph_trajectory(), subsequent line: cellgraph.cell_stats.shape", cellgraph.cell_stats.shape)
+            if self.verbose:
+                print("wrapper_graph_trajectory(), subsequent line: cellgraph.cell_stats.shape", cellgraph.cell_stats.shape)
             if event_detected:
-                if verbose:
+                if self.verbose:
                     print("wrapper_graph_trajectory(): ===========Division event detected===========")
                 time_last_division_idx = cellgraph.division_events[-1, 2]  # time index of most recent divison
                 t0_shifted = cellgraph.times_history[time_last_division_idx]  # move the start time of the integration
-            if verbose:
+            if self.verbose:
                 # event_detected, cellgraph = cellgraph.graph_trajectory(**solver_kwargs)
                 print("wrapper_graph_trajectory(): ===========CORE LOOP PRINT========")
                 for idx in range(5):
@@ -435,13 +456,16 @@ class CellGraph():
                     shiftidx = len(cellgraph.times_history) - 5 + idx
                     print(cellgraph.num_cells, shiftidx, cellgraph.times_history[shiftidx], '\n\t', cellgraph.state_history[:, shiftidx])
                 print("wrapper_graph_trajectory(): ===========CORE LOOP END========")
+
             division_counter += 1
-            print("wrapper_graph_trajectory(), before printer: cellgraph.cell_stats.shape", cellgraph.cell_stats.shape)
+            print("\nDivision event in wrapper_graph_trajectory():")
+            if self.verbose_deep:
+                print("wrapper_graph_trajectory(), before printer: cellgraph.cell_stats.shape", cellgraph.cell_stats.shape)
             cellgraph.print_state()
             cellgraph.write_state(fmod='iter%d' % division_counter)
             cellgraph.plot_graph(fmod='iter%d' % division_counter)
 
-        if verbose:
+        if self.verbose:
             print("wrapper_graph_trajectory(): Output number of cells", cellgraph.num_cells)
             print("wrapper_graph_trajectory(): Output times shape", cellgraph.times_history.shape)
             print("wrapper_graph_trajectory(): Output state shape", cellgraph.state_history.shape)
@@ -517,11 +541,13 @@ class CellGraph():
         r = sol.y
         times = sol.t
 
-        print("graph_trajectory() CHECK solve_ivp output: r.shape t.shape, t[0], self.times_history[0] ---", r.shape, times.shape, times[0], self.times_history[0])
-        print("graph_trajectory() CHECK HISTORY before np.concatenate()", self.state_history.shape, self.times_history.shape)
+        if self.verbose_deep:
+            print("graph_trajectory() CHECK solve_ivp output: r.shape t.shape, t[0], self.times_history[0] ---", r.shape, times.shape, times[0], self.times_history[0])
+            print("graph_trajectory() CHECK HISTORY before np.concatenate()", self.state_history.shape, self.times_history.shape)
         state_history_extended = np.concatenate((self.state_history, r[:, 1:]), axis=1)
         times_history_extended = np.concatenate((self.times_history, times[1:]), axis=0)
-        print("graph_trajectory() CHECK HISTORY after np.concatenate()", state_history_extended.shape, times_history_extended.shape)
+        if self.verbose_deep:
+            print("graph_trajectory() CHECK HISTORY after np.concatenate()", state_history_extended.shape, times_history_extended.shape)
 
         # Module: Oscillation detection (no event detected if self.style_detection is 'ignore')
         event_detected, mother_cell, event_time_idx, times_history_truncated, state_history_truncated = \
@@ -529,43 +555,46 @@ class CellGraph():
         if event_detected:
             state_history_extended = state_history_truncated
             times_history_extended = times_history_truncated
-        print("Updating state, time history in graph_trajectory()")
+        if self.verbose_deep:
+            print("Updating state, time history in graph_trajectory()")
         self.state_history = state_history_extended
         self.times_history = times_history_extended
-        print("\tnew dimensions time", self.times_history.shape)
-        print("\tnew dimensions state", self.state_history.shape)
-        print("graph_trajectory() CHECK HISTORY before div event...", self.state_history.shape, self.times_history.shape)
-        print("Note the reported time event idx is", event_time_idx)
+        if self.verbose_deep:
+            print("\tnew dimensions time", self.times_history.shape)
+            print("\tnew dimensions state", self.state_history.shape)
+            print("graph_trajectory() CHECK HISTORY before div event...", self.state_history.shape, self.times_history.shape)
+            print("Note the reported time event idx is", event_time_idx)
 
         if event_detected:
             new_cellgraph = self.division_event(mother_cell, event_time_idx)
         else:
             new_cellgraph = self
 
-        print("graph_trajectory(), final line: new_cellgraph.cell_stats.shape", new_cellgraph.cell_stats.shape)
+        if self.verbose_deep:
+            print("graph_trajectory(), final line: new_cellgraph.cell_stats.shape", new_cellgraph.cell_stats.shape)
         return event_detected, new_cellgraph
 
     def print_state(self):
         print("CellGraph print_state()")
         print("\tself.adjacency\n", self.adjacency)
-        print("\tself.labels", self.labels)
-        print("\tself.num_cells, self.sc_dim_ode, self.graph_dim_ode", self.num_cells, self.graph_dim_ode, self.sc_dim_ode)
-        print("\tself.style_ode", self.style_ode)
-        print("\tself.style_dynamics", self.style_dynamics)
-        print("\tself.style_detection", self.style_detection)
-        print("\tself.style_division", self.style_division)
-        print("\tself.diffusion_rate", self.diffusion)
-        print("\tself.state_history.shape, self.time_history.shape", self.state_history.shape, self.times_history.shape)
-        print("\ttimepoints: t_start, t_end, npts:", self.times_history[0], self.times_history[-1])
-        print("\tself.division_events.shape:", self.division_events.shape)
-        print("\tself.cell_stats.shape:", self.cell_stats.shape)
+        print("\tself.labels -", self.labels)
+        print("\tself.num_cells, self.sc_dim_ode, self.graph_dim_ode -", self.num_cells, self.graph_dim_ode, self.sc_dim_ode)
+        print("\tself.style_ode -", self.style_ode)
+        print("\tself.style_dynamics -", self.style_dynamics)
+        print("\tself.style_detection -", self.style_detection)
+        print("\tself.style_division -", self.style_division)
+        print("\tself.diffusion_rate -", self.diffusion)
+        print("\tself.state_history.shape, self.time_history.shape -", self.state_history.shape, self.times_history.shape)
+        print("\ttimepoints: t0, t1: -", self.times_history[0], self.times_history[-1])
+        print("\tself.division_events.shape: -", self.division_events.shape)
+        print("\tself.cell_stats.shape: -", self.cell_stats.shape)
         print("\tCurrent [state] and [ndiv, time last division, time birth]:")
         X = self.state_to_rectangle(self.state_history)
         for cell in range(self.num_cells):
             print('\t\tCell #%d' % cell, X[:, cell, -1].flatten(), 'stats:', self.cell_stats[cell, :])
         return
 
-    def plot_graph(self, fmod=None, title='Cell graph', by_ndiv=True, by_last_div=True, by_age=True, seed=None):
+    def plot_graph(self, fmod=None, title='CellGraph', by_ndiv=True, by_last_div=True, by_age=True, seed=None):
         fpath = self.io_dict['plotlatticedir'] + os.sep + 'networkx'
         if fmod is not None:
             title = title + ' ' + fmod
@@ -817,6 +846,7 @@ if __name__ == '__main__':
     style_detection = 'manual_crossings'   # styles: ['ignore', 'scipy_peaks', 'manual_crossings', 'manual_crossings_2d']
     style_division = 'copy'     # styles: ['copy', 'partition_equal']
     M = 1
+    verbosity = 0  # in 0, 1, 2 (highest)
     # TODO - GLOBAL initiliazation style (predefined, random, other? -- the if else below is just an override to predefined ones)
     # TODO external parameter/init arguments for this DIFFUSION style
 
@@ -827,9 +857,12 @@ if __name__ == '__main__':
     if style_ode == 'PWL2':
         state_history = np.array([[100, 100]]).T     # None or array of shape (NM x times)
     elif style_ode == 'PWL3_swap':
-        state_history = np.array([[0, 0, 0]]).T  # None or array of shape (NM x times)
+        state_history = np.array([[0, 0, 10]]).T  # None or array of shape (NM x times)
     else:
         state_history = None
+
+    # Specify time interval which is separate from solver kwargs (used in graph_trajectory explicitly)
+    time_interval = [10, 100]  # None or [t0, t1]
 
     # Setup solver kwargs for the graph trajectory wrapper
     # TODO ensure solver kwargs can be passed properly -- note wrapper is recursive so some kwargs MUST be updated...
@@ -849,7 +882,8 @@ if __name__ == '__main__':
         style_detection=style_detection,
         style_division=style_division,
         state_history=state_history,
-        io_dict=io_dict)
+        io_dict=io_dict,
+        verbosity=verbosity)
     if cellgraph.style_ode in ['PWL2', 'PWL3', 'PWL3_swap']:
         pass
         #cellgraph.sc_template.params_ode['epsilon'] = 0.8
@@ -874,7 +908,7 @@ if __name__ == '__main__':
 
     # From the initialized graph (after all divisions above), simulate graph trajectory
     print('\nExample trajectory for the graph...')
-    event_detected, cellgraph = cellgraph.wrapper_graph_trajectory(verbose=True, **solver_kwargs)
+    event_detected, cellgraph = cellgraph.wrapper_graph_trajectory(time_interval=time_interval, **solver_kwargs)
     print("\n in main: num cells after wrapper trajectory =", cellgraph.num_cells)
 
     # Plot the timeseries for each cell

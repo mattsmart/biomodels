@@ -95,10 +95,10 @@ def detect_oscillations_manual_v1(times, traj, expect_lower=0, expect_upper=0, s
     return num_oscillations, events_idx, events_times, duration_cycles
 
 
-def detect_oscillations_manual_2d(times, traj, xlow=0, xhigh=0, ylow=0, yhigh=0, state_xy=[0,1], show=False):
-    show=True
-    print("detect_oscillations_manual", xlow, xhigh, ylow, yhigh)
-    print("todo implement detect_oscillations_manual_2d()")
+def detect_oscillations_manual_2d(times, traj, xlow=0, xhigh=0, ylow=0, yhigh=0, state_xy=(0, 1), verbose=True, show=False):
+    if verbose:
+        print("detect_oscillations_manual", xlow, xhigh, ylow, yhigh)
+        print("todo implement detect_oscillations_manual_2d()")
     assert 1==2
     """
     Inputs:
@@ -199,9 +199,7 @@ def detect_oscillations_manual_2d(times, traj, xlow=0, xhigh=0, ylow=0, yhigh=0,
     return num_oscillations, events_idx, events_times, duration_cycles
 
 
-def detect_oscillations_manual(times, traj, xlow=0, xhigh=0, state_choice=None, show=False):
-    show = True
-    print("detect_oscillations_manual():", "xlow", xlow, "xhigh", xhigh)
+def detect_oscillations_manual(times, traj, xlow=0, xhigh=0, state_choice=None, verbose=False, show=False):
     """
     Inputs:
         time: 1D arr
@@ -223,6 +221,9 @@ def detect_oscillations_manual(times, traj, xlow=0, xhigh=0, state_choice=None, 
     assert xlow <= xhigh
     xmid = 0.5 * (xlow + xhigh)
 
+    if verbose:
+        print("detect_oscillations_manual():", "xlow", xlow, "xhigh", xhigh)
+
     def get_cross_indices(traj_1d, threshold, from_below=True):
         traj_shifted_threshold = traj_1d - threshold
         traj_diff_prod_threshold = traj_shifted_threshold[0:-1] * traj_shifted_threshold[1:]
@@ -230,22 +231,25 @@ def detect_oscillations_manual(times, traj, xlow=0, xhigh=0, state_choice=None, 
 
         cross_indices_pruned = []
         if from_below:
-            print("From below TRUE")
-            print("idx, traj_shifted_threshold[idx], traj_shifted_threshold[idx + 1]")
+            if verbose:
+                print("From below TRUE")
+                print("idx, traj_shifted_threshold[idx], traj_shifted_threshold[idx + 1]")
             for idx in cross_indices_threshold:
-                print(idx, traj_shifted_threshold[idx], traj_shifted_threshold[idx + 1])  # toDO remove
-                print(idx, traj_1d[idx], traj_1d[idx + 1])  # toDO remove
+                if verbose:
+                    print(idx, traj_shifted_threshold[idx], traj_shifted_threshold[idx + 1])  # toDO remove
+                    print(idx, traj_1d[idx], traj_1d[idx + 1])  # toDO remove
 
                 if traj_shifted_threshold[idx] < traj_shifted_threshold[idx + 1]:
                     assert np.sign(traj_shifted_threshold[idx + 1]) == 1  # toDO remove
                     cross_indices_pruned += [idx]
         else:
-            print("From below FALSE")
-            print("idx, traj_shifted_threshold[idx], traj_shifted_threshold[idx + 1]")
+            if verbose:
+                print("From below FALSE")
+                print("idx, traj_shifted_threshold[idx], traj_shifted_threshold[idx + 1]")
             for idx in cross_indices_threshold:
-                print(idx, traj_shifted_threshold[idx], traj_shifted_threshold[idx + 1])  # toDO remove
-                print(idx, traj_1d[idx], traj_1d[idx + 1])  # toDO remove
-
+                if verbose:
+                    print(idx, traj_shifted_threshold[idx], traj_shifted_threshold[idx + 1])  # toDO remove
+                    print(idx, traj_1d[idx], traj_1d[idx + 1])  # toDO remove
                 if traj_shifted_threshold[idx] > traj_shifted_threshold[idx + 1]:
                     assert np.sign(traj_shifted_threshold[idx + 1]) == -1  # toDO remove
                     cross_indices_pruned += [idx]
@@ -253,9 +257,11 @@ def detect_oscillations_manual(times, traj, xlow=0, xhigh=0, state_choice=None, 
         return cross_indices_pruned
 
     traj_1d = np.squeeze(traj[state_choice, :])
-    print("Collecting A events...")
+    if verbose:
+        print("Collecting A events...")
     A_events = get_cross_indices(traj_1d, xhigh, from_below=True)
-    print("Collecting B events...")
+    if verbose:
+        print("Collecting B events...")
     B_events = get_cross_indices(traj_1d, xlow, from_below=False)
 
     # RULES:
@@ -282,7 +288,8 @@ def detect_oscillations_manual(times, traj, xlow=0, xhigh=0, state_choice=None, 
     num_oscillations = len(events_idx)
 
     if show:
-        print("in show...", times.shape, times[0:3], times[-3:])
+        if verbose:
+            print("in detect() show...", times.shape, times[0:3], times[-3:])
         plt.figure(figsize=(5,5))
         plt.plot(times, traj_1d, 'o', linewidth=0.1, c='k')
         plt.plot(times[events_idx], traj_1d[events_idx], 'o', c='red')
@@ -295,7 +302,7 @@ def detect_oscillations_manual(times, traj, xlow=0, xhigh=0, state_choice=None, 
     return num_oscillations, events_idx, events_times, duration_cycles
 
 
-def detect_oscillations_scipy(times, traj, state_choice=None, min_height=None, max_valley=None, show=False, buffer=1):
+def detect_oscillations_scipy(times, traj, state_choice=None, min_height=None, max_valley=None, verbose=False, show=False, buffer=1):
     """
     Uses scipy "find_peaks" https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.find_peaks.html
     Returns:
@@ -319,7 +326,8 @@ def detect_oscillations_scipy(times, traj, state_choice=None, min_height=None, m
     num_oscillations = len(events_idx)
 
     if show:
-        print("in show...", times.shape, times[0:3], times[-3:])
+        if verbose:
+            print("in show...", times.shape, times[0:3], times[-3:])
         plt.figure(figsize=(5,5))
         plt.plot(times, traj, '-', c='k')
         plt.plot(times[peaks], traj[peaks], 'o', c='red')
