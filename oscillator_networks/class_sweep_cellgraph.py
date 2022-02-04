@@ -1,11 +1,10 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pickle
 
-from class_cellgraph import CellGraph
 from file_io import run_subdir_setup
 from settings import SWEEP_VARIETY_VALID
+from run_cellgraph import create_cellgraph, mod_cellgraph_ode_params
 
 """
 class SweepCellGraph structure
@@ -35,12 +34,12 @@ Important notes:
 class SweepCellGraph():
 
     def __init__(self,
-                 sweep_label,
-                 base_cellgraph_kwargs,
-                 params_name,
-                 params_values,
-                 params_variety,
-                 solver_kwargs):
+                 sweep_label=None,
+                 base_cellgraph_kwargs=None,
+                 params_name=None,
+                 params_values=None,
+                 params_variety=None,
+                 solver_kwargs=None):
         self.sweep_label = sweep_label
         self.base_kwargs = base_cellgraph_kwargs
         self.solver_kwargs = solver_kwargs
@@ -65,56 +64,13 @@ class SweepCellGraph():
         self.sweep_dir = path_run_subfolder
 
         # create base cellgraph for sweep speedups
-        self.base_cellgraph = self.create_cellgraph(**self.base_kwargs)
+        self.base_cellgraph = create_cellgraph(**self.base_kwargs)
 
         # set inferred attributes
         self.k_vary = k
         self.sizes = [len(params_values[j]) for j in range(k)]
         self.total_runs = np.prod(self.sizes)
         return
-
-    def create_cellgraph(self,
-                         style_ode=None,
-                         style_detection=None,
-                         style_division=None,
-                         M=None,
-                         t0=None,
-                         t1=None,
-                         state_history=None,
-                         mods_params_ode={},
-                         io_dict=False,
-                         verbosity=0):
-        # Instantiate the graph and modify ode params if needed
-        cellgraph = CellGraph(
-            num_cells=M,
-            style_ode=style_ode,
-            style_detection=style_detection,
-            style_division=style_division,
-            state_history=state_history,
-            t0=t0,
-            t1=t1,
-            io_dict=io_dict,
-            verbosity=verbosity)
-
-        # Post-processing as in class_cellgraph.py main() call
-        for k, v in mods_params_ode.items():
-            cellgraph.sc_template.params_ode[k] = v
-
-        return cellgraph
-
-    def mod_cellgraph_ode_params(self, base_cellgraph, mods_params_ode):
-        """
-        Args:
-            base_cellgraph    - an instance of CellGraph
-            mods_params_ode   - dict of form {single cell params ode name: new_attribute_value}
-        Returns:
-            new CellGraph with all attirbutes same as base except those specified in attribute_mods
-        Currently, unused in favor of simply recreating CellGraph each loop (this would be faster, just more bug risk)
-        """
-        for k, v in mods_params_ode.items():
-            #setattr(base_cellgraph.sc_template.params_ode[k] = v, k, v)
-            base_cellgraph.sc_template.params_ode[k] = v
-        return base_cellgraph
 
     def basic_run(self, cellgraph):
         """
@@ -185,11 +141,11 @@ class SweepCellGraph():
                     mod_key = self.params_name[j]
                     mod_val = self.params_values[j][run_id_list[j]]
                     mods_params_ode[mod_key] = mod_val
-                modified_cellgraph = self.mod_cellgraph_ode_params(self.base_cellgraph, mods_params_ode)
+                modified_cellgraph = mod_cellgraph_ode_params(self.base_cellgraph, mods_params_ode)
                 modified_cellgraph['io_dict'] = io_dict
             else:
                 mods_params_ode = {}
-                modified_cellgraph_kwargs = base_kwargs.copy()
+                modified_cellgraph_kwargs = self.base_kwargs.copy()
                 modified_cellgraph_kwargs['io_dict'] = io_dict
                 for j in range(self.k_vary):
                     pname = self.params_name[j]
@@ -201,7 +157,7 @@ class SweepCellGraph():
                     else:
                         assert pvariety == 'meta_cellgraph'
                         modified_cellgraph_kwargs[pname] = pval
-                modified_cellgraph = self.create_cellgraph(**modified_cellgraph_kwargs, mods_params_ode=mods_params_ode)
+                modified_cellgraph = create_cellgraph(**modified_cellgraph_kwargs, mods_params_ode=mods_params_ode)
 
             # 3) Perform the run
             output_results = self.basic_run(modified_cellgraph)
@@ -232,53 +188,3 @@ class SweepCellGraph():
         with open(fpath, 'wb') as pickle_file:
             pickle.dump(self, pickle_file)
         return
-
-
-if __name__ == '__main__':
-    params_name = ['t0']
-    params_variety = ['meta_cellgraph']  # must be in ['meta_cellgraph', 'sc_ode']
-    params_values = [
-        [0, 2.0, 10.0]
-    ]
-    sweep_label = 'sweep_A'   #%s_%.2f_%.2f_%d' % (
-
-    # Initialize the base CellGraph which will be varied during the sweep
-    # A) High-level initialization & graph settings
-    style_ode = 'PWL3_swap'                # styles: ['PWL2', 'PWL3', 'PWL3_swap', 'Yang2013', 'toy_flow', 'toy_clock']
-    style_detection = 'manual_crossings'   # styles: ['ignore', 'scipy_peaks', 'manual_crossings', 'manual_crossings_2d']
-    style_division = 'copy'                # styles: ['copy', 'partition_equal']
-    M = 1
-    # B) Initialization modifications for different cases
-    if style_ode == 'PWL2':
-        state_history = np.array([[100, 100]]).T     # None or array of shape (NM x times)
-    elif style_ode == 'PWL3_swap':
-        state_history = np.array([[0, 0, 0]]).T  # None or array of shape (NM x times)
-    else:
-        state_history = None
-    # C) Specify time interval which is separate from solver kwargs (used in graph_trajectory explicitly)
-    t0 = 00  # None ot float
-    t1 = 65  # None ot float
-    # D) Setup solver kwargs for the graph trajectory wrapper
-    solver_kwargs = {}
-    solver_kwargs['t_eval'] = None  # None or np.linspace(0, 50, 2000)  np.linspace(15, 50, 2000)
-    solver_kwargs['max_step'] = np.Inf  # try 1e-1 or 1e-2 if division time-sequence is buggy as a result of large adaptive steps
-    base_kwargs = dict(
-        style_ode=style_ode,
-        style_detection=style_detection,
-        style_division=style_division,
-        M=M,
-        t0=t0,
-        t1=t1,
-        state_history=state_history)
-
-    # Initialize the sweep object
-    sweep_cellgraph = SweepCellGraph(
-        sweep_label,
-        base_kwargs,
-        params_name,
-        params_values,
-        params_variety,
-        solver_kwargs)
-
-    # Perform the sweep
-    sweep_cellgraph.sweep()
