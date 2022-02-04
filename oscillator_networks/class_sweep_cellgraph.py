@@ -54,9 +54,9 @@ class SweepCellGraph():
         assert k == len(params_variety)
         assert all(a in SWEEP_VARIETY_VALID for a in params_variety)
 
-        self.fast_mod_mode = False
-        if all([a == 'sc_ode' for a in params_variety]):
-            self.fast_mod_mode = True
+        #self.fast_mod_mode = False  # can't use bc need to reset all tracking variables
+        #if all([a == 'sc_ode' for a in params_variety]):
+        #    self.fast_mod_mode = True
 
         path_run_subfolder = 'runs' + os.sep + self.sweep_label
         assert not os.path.exists(path_run_subfolder)
@@ -135,29 +135,20 @@ class SweepCellGraph():
             io_dict = run_subdir_setup(run_subfolder=self.sweep_label, timedir_override=timedir_override)
 
             # 2) create modified form of the base_cellgraph -- approach depends on self.fast_mod_mode
-            if self.fast_mod_mode:
-                mods_params_ode = {}
-                for j in range(self.k_vary):
-                    mod_key = self.params_name[j]
-                    mod_val = self.params_values[j][run_id_list[j]]
-                    mods_params_ode[mod_key] = mod_val
-                modified_cellgraph = mod_cellgraph_ode_params(self.base_cellgraph, mods_params_ode)
-                modified_cellgraph.io_dict = io_dict
-            else:
-                mods_params_ode = {}
-                modified_cellgraph_kwargs = self.base_kwargs.copy()
-                modified_cellgraph_kwargs['io_dict'] = io_dict
-                for j in range(self.k_vary):
-                    pname = self.params_name[j]
-                    pvariety = self.params_variety[j]
-                    pval = self.params_values[j][run_id_list[j]]
-                    if pvariety == 'sc_ode':
-                        mods_params_ode[pname] = pval
-                        modified_cellgraph_kwargs['mods_params_ode'] = mods_params_ode
-                    else:
-                        assert pvariety == 'meta_cellgraph'
-                        modified_cellgraph_kwargs[pname] = pval
-                modified_cellgraph = create_cellgraph(**modified_cellgraph_kwargs, mods_params_ode=mods_params_ode)
+            mods_params_ode = self.base_kwargs.get('mods_params_ode', {})
+            modified_cellgraph_kwargs = self.base_kwargs.copy()
+            modified_cellgraph_kwargs['io_dict'] = io_dict
+            for j in range(self.k_vary):
+                pname = self.params_name[j]
+                pvariety = self.params_variety[j]
+                pval = self.params_values[j][run_id_list[j]]
+                if pvariety == 'sc_ode':
+                    mods_params_ode[pname] = pval
+                else:
+                    assert pvariety == 'meta_cellgraph'
+                    modified_cellgraph_kwargs[pname] = pval
+            modified_cellgraph_kwargs['mods_params_ode'] = mods_params_ode
+            modified_cellgraph = create_cellgraph(**modified_cellgraph_kwargs)
 
             # 3) Perform the run
             output_results = self.basic_run(modified_cellgraph)
