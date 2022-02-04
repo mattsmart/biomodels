@@ -1,10 +1,16 @@
 import os
 
+from class_sweep_cellgraph import SweepCellGraph
+from file_io import pickle_load
 
-def analyze_sweep_1D(dir_sweep, param_name):
+
+def visualize_sweep(sweep):
+
+    print("Visualizing data for sweep label:", sweep.sweep_label)
+    sweep.printer()
 
     for subdir in dir_sweep:
-
+        pass
         # A) load classdump
 
         # B) extract useful info and add to collection
@@ -15,6 +21,8 @@ def analyze_sweep_1D(dir_sweep, param_name):
 
 
 if __name__ == '__main__':
-    dir_sweep = 'runs' + os.sep + 'sweep_1d_epsilon_0.0_0.5_20'
-    param_name = 'epsilon'
-    analyze_sweep_1D(dir_sweep, param_name)
+    dir_sweep = 'runs' + os.sep + 'sweep_A'
+    fpath_pickle = dir_sweep + os.sep + 'sweep.pkl'
+    sweep_cellgraph = pickle_load(fpath_pickle)
+
+    visualize_sweep(sweep_cellgraph)

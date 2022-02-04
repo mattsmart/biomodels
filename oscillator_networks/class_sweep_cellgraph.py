@@ -193,8 +193,8 @@ class SweepCellGraph():
                 modified_cellgraph_kwargs['io_dict'] = io_dict
                 for j in range(self.k_vary):
                     pname = self.params_name[j]
-                    pval = self.params_values[j]
                     pvariety = self.params_variety[j]
+                    pval = self.params_values[j][run_id_list[j]]
                     if pvariety == 'sc_ode':
                         mods_params_ode[pname] = pval
                         modified_cellgraph_kwargs['mods_params_ode'] = mods_params_ode
@@ -214,6 +214,19 @@ class SweepCellGraph():
         self.pickle_save()
         return
 
+    def printer(self):
+        print('self.sweep_label -', self.sweep_label)
+        print('self.sweep_dir -', self.sweep_dir)
+        print('self.k_vary -', self.k_vary)
+        print('self.sizes -', self.sizes)
+        print('self.total_runs -', self.total_runs)
+        print('Parameters in sweep:')
+        for idx in range(self.k_vary):
+            pname = self.params_name[idx]
+            pvar = self.params_variety[idx]
+            pv = self.params_values[idx]
+            print('\tname: %s, variety: %s, npts: %d, low: %.4f, high: %.4f' % (pname, pvar, len(pv), pv[0], pv[-1]))
+
     def pickle_save(self, fname='sweep.pkl'):
         fpath = self.sweep_dir + os.sep + fname
         with open(fpath, 'wb') as pickle_file:
@@ -227,7 +240,7 @@ if __name__ == '__main__':
     params_values = [
         [0, 2.0, 10.0]
     ]
-    sweep_label = 'sweeps_A'   #%s_%.2f_%.2f_%d' % (
+    sweep_label = 'sweep_A'   #%s_%.2f_%.2f_%d' % (
 
     # Initialize the base CellGraph which will be varied during the sweep
     # A) High-level initialization & graph settings
