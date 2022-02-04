@@ -203,27 +203,40 @@ class CellGraph():
         """
         Returns a new instance of the CellGraph with updated state variables (as a result of adding one cell)
         """
+
+        def partition_ndiv(mother_ndiv, current_mother_state, partition_ndiv_indices):
+            r_keep = 1 - 0.5 / (1 + mother_ndiv)  # e.g. if ndiv = 0, then its 50/50; if ndiv = 1, then its 75/25 etc.
+            post_mother_state = np.copy(current_mother_state)
+            post_daughter_state = np.copy(current_mother_state)
+            post_mother_state[partition_ndiv_indices] = post_mother_state[partition_ndiv_indices] * r_keep
+            post_daughter_state[partition_ndiv_indices] = post_daughter_state[partition_ndiv_indices] * (1 - r_keep)
+            return post_mother_state, post_daughter_state
+
         def split_mother_and_daughter_state():
-            # TODO what choices here for splitting materials? copy or divide by two?
             current_graph_state = self.state_history[:, -1]
             mother_idx_low = self.sc_dim_ode * idx_dividing_cell
             mother_idx_high = self.sc_dim_ode * (idx_dividing_cell + 1)
             current_mother_state = current_graph_state[mother_idx_low : mother_idx_high]
+            mother_ndiv = self.cell_stats[idx_dividing_cell, 0]
 
             if self.style_division == 'copy':
                 post_mother_state = current_mother_state
                 post_daughter_state = current_mother_state
             elif self.style_division == 'partition_equal':
-                print("TODO - currently dividing perfectly by two")
+                print("TODO - currently dividing perfectly by two (50/50)")
                 post_mother_state = current_mother_state / 2.0
                 post_daughter_state = current_mother_state / 2.0
-            else:
-                assert self.style_division == 'partition_ndiv'
+            elif self.style_division == 'partition_ndiv_all':
                 print("TODO - currently dividing asymmetrically based on ndiv")
-                ndiv = self.cell_stats[idx_dividing_cell, 0]
-                p_keep = 1 - 0.5/(1 + ndiv)   # e.g. if ndiv = 0, then its 50/50; if ndiv = 1, then its 75/25 etc.
-                post_mother_state = current_mother_state * p_keep
-                post_daughter_state = current_mother_state * (1 - p_keep)
+                partition_ndiv_indices = [i for i in range(self.sc_dim_ode)]
+                post_mother_state, post_daughter_state = \
+                    partition_ndiv(mother_ndiv, current_mother_state, partition_ndiv_indices)
+            else:
+                assert self.style_division == 'partition_ndiv_bam'
+                assert self.sc_template.variables_short[2] == 'Bam'
+                partition_ndiv_indices = [2]
+                post_mother_state, post_daughter_state = \
+                    partition_ndiv(mother_ndiv, current_mother_state, partition_ndiv_indices)
 
             return post_mother_state, post_daughter_state, mother_idx_low, mother_idx_high
 
@@ -822,7 +835,7 @@ class CellGraph():
             fig.update_yaxes(title_text=self.sc_template.variables_short[i], row=i + 1, col=1)
 
         #fig.update_layout(height=600, width=600, title_text="Cell state trajectoriers for each variable")
-        fig.update_layout(title_text="Cell state trajectoriers for each variable")
+        fig.update_layout(title_text="Cell state trajectories for each variable")
 
         fpath = self.io_dict['plotdatadir'] + os.sep + 'plotly_traj'
         if fmod is not None:
@@ -927,7 +940,7 @@ if __name__ == '__main__':
     # High-level initialization & graph settings
     style_ode = 'PWL3_swap'                # styles: ['PWL2', 'PWL3', 'PWL3_swap', 'Yang2013', 'toy_flow', 'toy_clock']
     style_detection = 'manual_crossings'   # styles: ['ignore', 'scipy_peaks', 'manual_crossings', 'manual_crossings_2d']
-    style_division = 'partition_ndiv'     # styles: ['copy', 'partition_equal', 'partition_ndiv']
+    style_division = 'partition_ndiv_all'  # styles: ['copy', 'partition_equal', 'partition_ndiv_all', 'partition_ndiv_bam']
     M = 1
     verbosity = 0  # in 0, 1, 2 (highest)
     # TODO - GLOBAL initiliazation style (predefined, random, other? -- the if else below is just an override to predefined ones)
