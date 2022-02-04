@@ -3,8 +3,7 @@ import numpy as np
 from preset_cellgraph import PRESET_CELLGRAPH
 from preset_solver import PRESET_SOLVER
 
-# TODO
-###base_cellgraph_kwargs
+
 SWEEP_SOLVER = PRESET_SOLVER['solve_ivp_radau_default']
 SWEEP_BASE_CELLGRAPH = PRESET_CELLGRAPH['PWL3_swap_copy']
 

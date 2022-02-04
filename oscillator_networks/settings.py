@@ -26,7 +26,7 @@ STYLE_DETECTION_VALID = ['ignore', 'scipy_peaks', 'manual_crossings', 'manual_cr
 
 # DEFAULTS: module 3 - Coupled cell graph dynamical system - division rules
 STYLE_DIVISION = 'copy'
-STYLE_DIVISION_VALID = ['copy', 'partition_equal', 'partition_ndiv_all', 'partition_ndiv_bam']  # TODO partition_ndiv; partition_random; more?
+STYLE_DIVISION_VALID = ['copy', 'partition_equal', 'partition_ndiv_all', 'partition_ndiv_bam']  # TODO partition_random; more?
 
 # DEFAULTS: module 4 - Coupled cell graph dynamical system - diffusion rules
 DIFFUSION_RATE = 0.0

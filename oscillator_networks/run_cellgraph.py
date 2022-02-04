@@ -6,6 +6,13 @@ from file_io import run_subdir_setup
 from preset_solver import PRESET_SOLVER
 from preset_cellgraph import PRESET_CELLGRAPH
 
+"""
+To run a cellgraph trajectory, need
+1) the cellgraph kwargs (can get from preset_cellgraph.py)
+2) the solver kwargs (can get from preset_solver.py) -- currently hard-coded to be used with solve_ivp() by default
+3) an io_dict instance, which can be tacked on to cellgraph_kwargs before passing to create_cellgraph()
+"""
+
 
 def create_cellgraph(style_ode=None,
                      style_detection=None,
