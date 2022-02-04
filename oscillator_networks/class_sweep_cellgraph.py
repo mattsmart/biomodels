@@ -142,7 +142,7 @@ class SweepCellGraph():
                     mod_val = self.params_values[j][run_id_list[j]]
                     mods_params_ode[mod_key] = mod_val
                 modified_cellgraph = mod_cellgraph_ode_params(self.base_cellgraph, mods_params_ode)
-                modified_cellgraph['io_dict'] = io_dict
+                modified_cellgraph.io_dict = io_dict
             else:
                 mods_params_ode = {}
                 modified_cellgraph_kwargs = self.base_kwargs.copy()
