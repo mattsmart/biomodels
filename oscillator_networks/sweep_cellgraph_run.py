@@ -122,11 +122,13 @@ def sweep_1D(base_kwargs, param_variety, param_name, param_values, solver_kwargs
         output_results = basic_run(modified_cellgraph, solver_kwargs)
 
         # 4) Extract relevant output
-        sweep_data[p_idx, :] = [p_val, output_results[:]]
+        sweep_data[p_idx, :] = [output_results[:]]
 
     fpath_results = path_run_subfolder + os.sep + 'results' + '.txt'
-    print('1D sweep is done. Writing results to file %s' % fpath_results)
+    fpath_params = path_run_subfolder + os.sep + 'param_values' + '.txt'
+    print('1D sweep is done. Writing results to file...')
     np.savetxt(fpath_results, sweep_data)
+    np.savetxt(fpath_params, param_values)
 
     return sweep_data
 
