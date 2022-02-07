@@ -10,7 +10,7 @@ from plotly.subplots import make_subplots
 from scipy.integrate import solve_ivp
 
 from class_singlecell import SingleCell
-from dynamics_detect_cycles import detect_oscillations_scipy, detect_oscillations_manual, detect_oscillations_manual_2d
+from dynamics_detect_cycles import detection_args_given_style
 from dynamics_vectorfields import set_ode_attributes, ode_integration_defaults
 from file_io import run_subdir_setup
 from plotting_networkx import draw_from_adjacency
@@ -343,68 +343,11 @@ class CellGraph():
         truncated_times = None
         truncated_traj = None
 
-        def detection_args_given_style():
-            detector = {
-                'scipy_peaks': {
-                    'fn': detect_oscillations_scipy,
-                    'kwargs': {'show': False, 'verbose': self.verbose_deep, 'buffer': 1}
-                },
-                'manual_crossings': {
-                    'fn': detect_oscillations_manual,
-                    'kwargs': {'show': False, 'verbose': self.verbose_deep}
-                },
-                'manual_crossings_2d': {
-                    'fn': detect_oscillations_manual_2d,
-                    'kwargs': {'show': False, 'verbose': self.verbose_deep}
-                }
-            }
-            # specify kwargs for each detection + style_ode curated ase combo
-            pp = self.sc_template.params_ode
-            if self.style_detection == 'manual_crossings':
-                if self.style_ode == 'PWL3_swap':
-                    state_choice_local = 1
-                    detector['manual_crossings']['kwargs']['state_choice'] = state_choice_local
-                    if state_choice_local == 1:
-                        assert self.sc_template.variables_short[state_choice_local] == 'Cyc_tot'
-                        detector['manual_crossings']['kwargs']['xlow'] = 0.5 * (pp['a'] - pp['d'])
-                        detector['manual_crossings']['kwargs']['xhigh'] = 0.5 * pp['a']
-                    else:
-                        assert state_choice_local == 0
-                        assert self.sc_template.variables_short[state_choice_local] == 'Cyc_act'
-                        detector['manual_crossings']['kwargs']['xlow'] = 0.5 * pp['a']
-                        detector['manual_crossings']['kwargs']['xhigh'] = 0.5 * (pp['a'] + pp['d'])
-                elif self.style_ode == 'toy_clock':
-                    threshold = 0.9
-                    detector['manual_crossings']['kwargs']['state_choice'] = 0
-                    detector['manual_crossings']['kwargs']['xlow'] = -1.0 * threshold
-                    detector['manual_crossings']['kwargs']['xhigh'] = 1.0 * threshold
-                else:
-                    print("style_ode %s is not yet supported for manual_crossings detection style" % self.style_ode)
-                    assert 1==2
-
-            if self.style_detection == 'manual_crossings_2d':
-                if self.style_ode == 'PWL3_swap':
-                    detector['manual_crossings']['kwargs']['xlow'] = 0.5 * pp['a']
-                    detector['manual_crossings']['kwargs']['xhigh'] = 0.5 * (pp['a'] + pp['d'])
-                    detector['manual_crossings']['kwargs']['ylow'] = 0.5 * (pp['a'] - pp['d'])
-                    detector['manual_crossings']['kwargs']['yhigh'] = 0.5 * pp['a']
-                    detector['manual_crossings']['kwargs']['state_xy'] = (0, 1)
-                else:
-                    print("style_ode %s is not yet supported for manual_crossings_2d detection style" % self.style_ode)
-                    assert 1==2
-
-            if self.style_detection == 'detect_scipy':
-                if self.style_ode == 'PWL3_swap':
-                    detector['detect_scipy']['kwargs']['state_choice'] = 1
-
-            detect_fn = detector[self.style_detection]['fn']
-            detect_kwargs = detector[self.style_detection]['kwargs']
-            return detect_fn, detect_kwargs
-
         if self.style_detection == 'ignore':
             pass
         else:
-            detect_fn, detect_kwargs = detection_args_given_style()
+            detect_fn, detect_kwargs = detection_args_given_style(
+                self.style_detection, self.sc_template, verbose=self.verbose_deep)
             self.vprint(2, "\n=========== Detection call outer print ===========")
             self.vprint(2, "\tdetect_fn %s" % detect_fn)
             self.vprint(2, "\tdetect_kwargs %s" % detect_kwargs)

@@ -5,7 +5,7 @@ PRESET_CELLGRAPH = {
     'PWL3_swap_copy': dict(
         num_cells=1,
         style_ode='PWL3_swap',
-        style_detection='manual_crossings',
+        style_detection='manual_crossings_1d_mid',
         style_division='copy',
         t0=0,
         t1=65,
