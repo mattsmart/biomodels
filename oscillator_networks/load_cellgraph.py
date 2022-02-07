@@ -13,14 +13,14 @@ from file_io import pickle_load
 if __name__ == '__main__':
 
     flag_print_state = True
-    flag_replot = True
-    flag_inspect = False
+    flag_replot = False
+    flag_inspect = True
     flag_plotly = False
     flag_redetect = False
 
     runs_dir = 'runs' + os.sep + 'cellgraph'
-    specific_dir = runs_dir + os.sep + '2022-02-03_05.32.09PM' #'2022-02-02_02.47.01PM'
-    #specific_dir = 'input'
+    #specific_dir = runs_dir + os.sep + '2022-02-03_05.32.09PM' #'2022-02-02_02.47.01PM'
+    specific_dir = 'input'
 
     # load classdump pickle file from "specific dir"
     fpath = specific_dir + os.sep + 'classdump.pkl'
@@ -37,7 +37,6 @@ if __name__ == '__main__':
     # Print method of CellGraph
     if flag_print_state:
         cellgraph.print_state()
-        print(times[0:5])
 
     # "replot" standard cellgraph trajectory outputs with minor adjustments
     if flag_replot:
@@ -49,27 +48,38 @@ if __name__ == '__main__':
     # manual plot to inspect trajectory
     if flag_inspect:
         # plot time slice for one cell
-        t0_idx = 13
-        t1_idx = 136
+        t0_idx = 0
+        t1_idx = -1
         cell_choice = 0
         times_slice = times[t0_idx:t1_idx]
         state_slice = state_tensor[:, 0, t0_idx:t1_idx]
         for i, t in enumerate(times_slice):
             print(i, t, state_slice[:, i])
 
-        plt.plot(times_slice, state_slice.T, 'o', label=['x%d' % i for i in range(cellgraph.sc_dim_ode)])
-        # add any axhline decorators
-        clow = 0.5*(pp['a'])  # None
-        chigh = 0.5*(pp['a'] - pp['d'])  # None
-        if clow is not None:
-            plt.axhline(clow, linestyle='--', c='gray')
-        if chigh is not None:
-            plt.axhline(chigh, linestyle='--', c='gray')
-        # decorate any division events in window
-        events_idx = cellgraph.time_indices_where_acted_as_mother(cell_choice)
-        for event_idx in events_idx:
-            plt.axvline(times[event_idx], linestyle=':', c='r')
-        plt.legend()
+        fig, axarr = plt.subplots(ncols=1, nrows=3, figsize=(8, 8), constrained_layout=True, squeeze=False, sharex=True)
+
+        for idx in range(3):
+            axarr[idx, 0].plot(times_slice, state_slice[idx, :].T, '--o',
+                               linewidth=0.4,
+                               label=['x%d' % i for i in range(cellgraph.sc_dim_ode)][idx])
+            if idx == 0:
+                # add any axhline decorators
+                clow = 0.5*(pp['a'])  # None
+                chigh = 0.5*(pp['a'] + pp['d'])  # None
+            if idx == 1:
+                # add any axhline decorators
+                clow = 0.5*(pp['a'])  # None
+                chigh = 0.5*(pp['a'] - pp['d'])  # None
+            if clow is not None:
+                axarr[idx, 0].axhline(clow, linestyle='--', c='gray')
+            if chigh is not None:
+                axarr[idx, 0].axhline(chigh, linestyle='--', c='gray')
+            # decorate any division events in window
+            events_idx = cellgraph.time_indices_where_acted_as_mother(cell_choice)
+            for event_idx in events_idx:
+                axarr[idx, 0].axvline(times[event_idx], linestyle=':', c='r')
+            axarr[idx, 0].legend()
+        #plt.xlim(23,23.5)
         plt.show()
 
     if flag_plotly:

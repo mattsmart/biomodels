@@ -63,21 +63,21 @@ if __name__ == '__main__':
     flag_preset = True
 
     if flag_preset:
-        cellgraph_preset_choice = 'PWL3_swap_partition_ndiv_bam'
+        cellgraph_preset_choice = 'PWL3_swap_partition_ndiv_bam'  # PWL3_swap_partition_ndiv_bam, PWL3_swap_copy
         io_dict = run_subdir_setup(run_subfolder='cellgraph')
         solver_kwargs = PRESET_SOLVER['solve_ivp_radau_default']
 
         cellgraph_preset = PRESET_CELLGRAPH[cellgraph_preset_choice]
         cellgraph_preset['io_dict'] = io_dict
-        cellgraph_preset['mods_params_ode']['epsilon'] = 0.2
-        cellgraph_preset['style_detection'] = 'manual_crossings_1d'
+        #cellgraph_preset['mods_params_ode']['epsilon'] = 0.2
+        #cellgraph_preset['style_detection'] = 'manual_crossings_1d_mid'
         cellgraph = create_cellgraph(**cellgraph_preset)
 
     else:
         # High-level initialization & graph settings
-        style_ode = 'PWL3_swap'                   # styles: ['PWL2', 'PWL3', 'PWL3_swap', 'Yang2013', 'toy_flow', 'toy_clock']
-        style_detection = 'manual_crossings_1d'   # styles: ['ignore', 'scipy_peaks', 'manual_crossings_1d', 'manual_crossings_2d']
-        style_division = 'partition_ndiv_all'     # styles: ['copy', 'partition_equal', 'partition_ndiv_all', 'partition_ndiv_bam']
+        style_ode = 'PWL3_swap'                      # styles: ['PWL2', 'PWL3', 'PWL3_swap', 'Yang2013', 'toy_flow', 'toy_clock']
+        style_detection = 'manual_crossings_1d_mid'  # styles: ['ignore', 'scipy_peaks', 'manual_crossings_1d_mid', 'manual_crossings_1d_hl', 'manual_crossings_2d']
+        style_division = 'partition_ndiv_all'        # styles: ['copy', 'partition_equal', 'partition_ndiv_all', 'partition_ndiv_bam']
         M = 1
         verbosity = 0  # in 0, 1, 2 (highest)
         # TODO - GLOBAL initiliazation style (predefined, random, other? -- the if else below is just an override to predefined ones)
