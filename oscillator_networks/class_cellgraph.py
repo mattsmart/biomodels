@@ -13,7 +13,7 @@ from class_singlecell import SingleCell
 from dynamics_detect_cycles import detection_args_given_style
 from dynamics_vectorfields import set_ode_attributes, ode_integration_defaults
 from file_io import run_subdir_setup
-from plotting_networkx import draw_from_adjacency
+from utils_networkx import draw_from_adjacency
 from settings import *
 
 """

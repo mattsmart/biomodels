@@ -91,7 +91,7 @@ if __name__ == '__main__':
     sc = SingleCell(label='c1', style_ode=style_ode)
     if style_ode in ['PWL2', 'PWL3', 'PWL3_swap']:
         sc.params_ode['C'] = 1e-2
-        sc.params_ode['epsilon'] = 0.1
+        sc.params_ode['epsilon'] = 0.37
         sc.params_ode['t_pulse_switch'] = 25
     if style_ode in ['PWL4_auto_linear']:
         sc.params_ode['a'] = 2

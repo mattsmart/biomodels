@@ -4,6 +4,7 @@ import os
 
 from class_sweep_cellgraph import SweepCellGraph
 from file_io import pickle_load
+from utils_networkx import check_tree_isomorphism
 
 
 def visualize_sweep(sweep):
@@ -24,6 +25,7 @@ def visualize_sweep(sweep):
         param_name = sweep.params_name[0]
         param_variety = sweep.params_variety[0]
 
+        # Part 1) plot num of cells as function of varying parameter
         M_of_theta = np.zeros(sweep.total_runs)
         for run_idx in range(sweep.total_runs):
             run_dir = sweep.sweep_dir + os.sep + '%d' % run_idx
@@ -34,6 +36,35 @@ def visualize_sweep(sweep):
         plt.ylabel('num_cells')
         plt.xlabel('%s' % param_name)
         plt.show()
+
+        # Part 2) plot adjacency matrix variety TODO - on top of the 1D, M(theta) plot ?
+        A_uniques = {}
+        for run_idx in range(sweep.total_runs):
+            A_run = results[(run_idx,)]['adjacency']
+            num_cells = results[(run_idx,)]['num_cells']
+            # Case A - have we seen a graph of this size yet? if no it's unique
+            if num_cells not in A_uniques.keys():
+                A_id = 'g%s_v0' % num_cells
+                A_uniques[num_cells] = {A_id: A_run}
+            else:
+                # Need now to compare the adjacency matrix to those observed before, to see if it is unique
+                # - necessary condition for uniqueness is unique Degree matrix, D -- if D is unique, then A is unique
+                is_iso = False
+                for k, v in A_uniques[num_cells].items():
+                    is_iso, iso_swaps = check_tree_isomorphism(A_run, v)
+                    if is_iso:
+                        break
+                if not is_iso:
+                    nunique = len(A_uniques[num_cells].keys())
+                    A_id = 'g%s_v%d' % (num_cells, nunique)
+                    A_uniques[num_cells][A_id] = A_run
+
+        keys_sorted = sorted(A_uniques.keys())
+        for k in keys_sorted:
+            q = len(A_uniques[k].keys())
+            print("Num cells: %d observed %d unique adjacencies" % (k, q))
+            if q > 1:
+                print("\t", A_uniques[k].keys())
     else:
         assert sweep.k_vary == 2
         # TODO test this k=2 case

@@ -21,11 +21,11 @@ STYLE_ODE_VALID = ['Yang2013', 'PWL2', 'PWL3', 'PWL3_swap', 'PWL4_auto_wz', 'PWL
                    'toy_flow', 'toy_clock']
 
 # DEFAULTS: module 2 - Oscillation detection
-STYLE_DETECTION = 'manual_crossings'
+STYLE_DETECTION = 'manual_crossings_1d_mid'
 STYLE_DETECTION_VALID = ['ignore', 'scipy_peaks', 'manual_crossings_1d_mid', 'manual_crossings_1d_hl', 'manual_crossings_2d']
 
 # DEFAULTS: module 3 - Coupled cell graph dynamical system - division rules
-STYLE_DIVISION = 'copy'
+STYLE_DIVISION = 'partition_ndiv_bam'
 STYLE_DIVISION_VALID = ['copy', 'partition_equal', 'partition_ndiv_all', 'partition_ndiv_bam']  # TODO partition_random; more?
 
 # DEFAULTS: module 4 - Coupled cell graph dynamical system - diffusion rules

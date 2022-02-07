@@ -15,7 +15,7 @@ PRESET_SWEEP = {
             'epsilon'
         ],
         params_values=[
-            np.linspace(0.01, 0.3, 20)
+            np.linspace(0.01, 0.4, 40)
         ],
         params_variety=[
             'sc_ode'

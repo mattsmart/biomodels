@@ -1,0 +1,144 @@
+import matplotlib.pyplot as plt
+import networkx as nx
+import numpy as np
+from networkx.algorithms.isomorphism.tree_isomorphism import rooted_tree_isomorphism, tree_isomorphism
+
+
+def draw_from_adjacency(A, node_color=None, labels=None, draw_edge_labels=False, cmap='Pastel1', title='Cell graph',
+                        seed=None, fpath=None):
+    """
+    create_using=nx.DiGraph -- store as directed graph with possible self-loops
+    create_using=nx.DiGrapsh -- store as undirected graph with possible self-loops
+
+    cmap options: 'Blues', 'Pastel1', 'Spectral_r'
+    """
+    # TODO alternative visualization wth legend for discrete data (nDiv) and colorbar for continuous data (birth times)
+
+    def pick_seed_using_num_cells():
+        seed_predefined = {
+            1: 0,
+            2: 0,
+            4: 0,
+            8: 0,
+            16: 0,
+            32: 0,
+        }
+        seed = seed_predefined.get(A.shape[0], 0)  # M = A.shape[0] and seed_default = 0
+        return seed
+
+    # plot settings
+    ns = 800
+    alpha = 1.0
+    font_color = 'k'  # options: 'whitesmoke', 'k'
+    if seed is None:
+        seed = pick_seed_using_num_cells()
+
+    # initialize the figure
+    plt.figure(figsize=(8, 8))
+    ax = plt.gca()
+    ax.set_title(title)
+
+    # initialize the graph
+    G = nx.from_numpy_matrix(np.matrix(A), create_using=nx.Graph)
+    # determine node positions
+    layout = nx.spring_layout(G, seed=seed)
+    # draw the nodes
+    nx.draw(G, layout, node_color=node_color, cmap=cmap, node_size=ns, alpha=alpha)
+    # write node labels
+    #cell_labels = {idx: r'$c_{%d}$' % (idx) for idx in range(A.shape[0])}
+    cell_labels = {idx: r'Cell $%d$' % (idx) for idx in range(A.shape[0])}
+    if labels is not None:
+        nx.draw_networkx_labels(G, layout, labels, font_size=6, font_color=font_color, verticalalignment='bottom')
+        nx.draw_networkx_labels(G, layout, cell_labels, font_size=6, font_color=font_color, verticalalignment='top')
+    else:
+        nx.draw_networkx_labels(G, layout, cell_labels, font_size=6, font_color=font_color)
+    # write edge labels
+    if draw_edge_labels:
+        nx.draw_networkx_edge_labels(G, pos=layout)
+
+    if fpath is None:
+        plt.show()
+    else:
+        plt.savefig(fpath)
+    return ax
+
+
+def check_tree_isomorphism(A1, A2, root1=None, root2=None, rooted=False):
+    """
+    See documentation here: (fast methods for checking tree type graph ismorphism
+    https://networkx.org/documentation/stable/reference/algorithms/isomorphism.html?highlight=isomorphism#module-networkx.algorithms.isomorphism.tree_isomorphism
+    """
+    G1 = nx.from_numpy_matrix(np.matrix(A1), create_using=nx.Graph)
+    G2 = nx.from_numpy_matrix(np.matrix(A2), create_using=nx.Graph)
+    if rooted:
+        print("WARNING - Use tree_isomorphism, not the rooted variant, as it seems to give incorrect results")
+        # issue 2022_0207 - why is this giving diff results from tree_isomorphism?
+        iso_list = rooted_tree_isomorphism(G1, root1, G2, root2)
+    else:
+        iso_list = tree_isomorphism(G1, G2)
+
+    if not iso_list:
+        is_isomorphic = False  # i.e. it is an empty list, so no isomorphism found
+    else:
+        is_isomorphic = True
+    return is_isomorphic, iso_list
+
+if __name__ == '__main__':
+
+    flag_draw = False
+    flag_isomorphism_check = True
+
+    if flag_draw:
+        A1 = np.array([
+            [0, 1, 0, .8, 0],
+            [0, 0, .4, 0, .3],
+            [0, 0, 0, 0, 0],
+            [0, 0, .6, 0, .7],
+            [0, 0, 0, .2, 0]
+        ])
+
+        A2 = np.array([
+            [0, 1, 0, 0],
+            [1, 0, 1, 0],
+            [0, 1, 0, 1],
+            [0, 0, 1, 0]
+        ])
+        draw_from_adjacency(A2, fpath='foo.pdf')
+
+    if flag_isomorphism_check:
+        #from networkx.algorithms import isomorphism
+        # isomorphism.tree_isomorphism.rooted_tree_isomorphism(A1, 0, A2, 0)
+
+        A1 = np.array([
+            [0, 1, 0, 0],
+            [1, 0, 1, 0],
+            [0, 1, 0, 1],
+            [0, 0, 1, 0]
+        ])
+
+        A2_iso_to_A1 = np.array([
+            [0, 1, 1, 0],
+            [1, 0, 0, 0],
+            [1, 0, 0, 1],
+            [0, 0, 1, 0]
+        ])
+
+        A3_distinct = np.array([
+            [0, 1, 1, 1],
+            [1, 0, 0, 0],
+            [1, 0, 0, 0],
+            [1, 0, 0, 0]
+        ])
+
+
+
+        print("Empty list means its found to be NOT isomorphic (no mapping)")
+        print('Check A1, A1 - trivially isomorphic')
+        print(check_tree_isomorphism(A1, A1, root1=0, root2=0, rooted=True))
+        print(check_tree_isomorphism(A1, A1))
+        print('Check A1, A2 - expect isomorphism by swap node 0 and node 1')
+        print(check_tree_isomorphism(A1, A2_iso_to_A1, root1=0, root2=0, rooted=True))
+        print(check_tree_isomorphism(A1, A2_iso_to_A1))
+        print('Repeat for A1, A3 - expect distinct')
+        print(check_tree_isomorphism(A1, A3_distinct, root1=0, root2=0, rooted=True))
+        print(check_tree_isomorphism(A1, A3_distinct))
