@@ -29,7 +29,9 @@ STYLE_DIVISION = 'partition_ndiv_bam'
 STYLE_DIVISION_VALID = ['copy', 'partition_equal', 'partition_ndiv_all', 'partition_ndiv_bam']  # TODO partition_random; more?
 
 # DEFAULTS: module 4 - Coupled cell graph dynamical system - diffusion rules
-DIFFUSION_RATE = 0.0
+DIFFUSION_RATE = 0.0  # default diffusion_rate attribute of cellgraph; also induces the diffusion vector attribute
+STYLE_DIFFUSION = 'xy'
+STYLE_DIFFUSION_VALID = ['all', 'xy']
 
 # Parameter sweep settings
 SWEEP_VARIETY_VALID = ['meta_cellgraph', 'sc_ode']

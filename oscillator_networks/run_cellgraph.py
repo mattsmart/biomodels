@@ -17,7 +17,9 @@ To run a cellgraph trajectory, need
 def create_cellgraph(style_ode=None,
                      style_detection=None,
                      style_division=None,
+                     style_diffusion=None,
                      num_cells=None,
+                     diffusion_rate=None,
                      t0=None,
                      t1=None,
                      state_history=None,
@@ -30,7 +32,9 @@ def create_cellgraph(style_ode=None,
         style_ode=style_ode,
         style_detection=style_detection,
         style_division=style_division,
+        style_diffusion=style_diffusion,
         state_history=state_history,
+        diffusion_rate=diffusion_rate,
         t0=t0,
         t1=t1,
         io_dict=io_dict,
@@ -69,8 +73,10 @@ if __name__ == '__main__':
 
         cellgraph_preset = PRESET_CELLGRAPH[cellgraph_preset_choice]
         cellgraph_preset['io_dict'] = io_dict
-        cellgraph_preset['mods_params_ode']['epsilon'] = 0.3
+        cellgraph_preset['mods_params_ode']['epsilon'] = 0.2
         #cellgraph_preset['style_detection'] = 'manual_crossings_1d_mid'
+        #cellgraph_preset['style_diffusion'] = 'all'
+        #cellgraph_preset['diffusion_rate'] = 0.0
         cellgraph = create_cellgraph(**cellgraph_preset)
 
     else:
@@ -78,7 +84,9 @@ if __name__ == '__main__':
         style_ode = 'PWL3_swap'                      # styles: ['PWL2', 'PWL3', 'PWL3_swap', 'Yang2013', 'toy_flow', 'toy_clock']
         style_detection = 'manual_crossings_1d_mid'  # styles: ['ignore', 'scipy_peaks', 'manual_crossings_1d_mid', 'manual_crossings_1d_hl', 'manual_crossings_2d']
         style_division = 'partition_ndiv_all'        # styles: ['copy', 'partition_equal', 'partition_ndiv_all', 'partition_ndiv_bam']
+        style_diffusion = 'all'                      # styles: ['all', 'xy']
         M = 1
+        diffusion_rate = 0
         verbosity = 0  # in 0, 1, 2 (highest)
         # TODO - GLOBAL initiliazation style (predefined, random, other? -- the if else below is just an override to predefined ones)
         # TODO external parameter/init arguments for this DIFFUSION style
@@ -108,7 +116,9 @@ if __name__ == '__main__':
             style_ode=style_ode,
             style_detection=style_detection,
             style_division=style_division,
+            style_diffusion=style_diffusion,
             state_history=state_history,
+            diffusion_rate=diffusion_rate,
             t0=t0,
             t1=t1,
             io_dict=io_dict,

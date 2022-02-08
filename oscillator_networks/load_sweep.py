@@ -35,6 +35,8 @@ def visualize_sweep(sweep):
         plt.title(r'$M(\theta)$ for $\theta=$%s' % param_name)
         plt.ylabel('num_cells')
         plt.xlabel('%s' % param_name)
+        fpath = sweep.sweep_dir + os.sep + 'num_cells_1d_vary_%s.pdf' % (param_name)
+        plt.savefig(fpath)
         plt.show()
 
         # Part 2) plot adjacency matrix variety TODO - on top of the 1D, M(theta) plot ?

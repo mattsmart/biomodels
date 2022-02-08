@@ -65,8 +65,10 @@ class CellGraph():
             style_dynamics=None,
             style_detection=None,
             style_division=None,
+            style_diffusion=None,
             state_history=None,
             times_history=None,
+            diffusion_rate=None,
             t0=None,
             t1=None,
             division_events=None,
@@ -81,8 +83,10 @@ class CellGraph():
         self.style_dynamics = style_dynamics
         self.style_detection = style_detection
         self.style_division = style_division
+        self.style_diffusion = style_diffusion
         self.io_dict = io_dict
         self.verbosity = verbosity
+        self.diffusion_rate = diffusion_rate
 
         # set verbosity level
         self.verbose = False
@@ -112,6 +116,10 @@ class CellGraph():
             self.style_detection = STYLE_DETECTION
         if style_division is None:
             self.style_division = STYLE_DIVISION
+        if style_diffusion is None:
+            self.style_diffusion = STYLE_DIFFUSION
+        if diffusion_rate is None:
+            self.diffusion_rate = DIFFUSION_RATE
         if io_dict is None:
             self.io_dict = run_subdir_setup(run_subfolder='cellgraph')
         elif not io_dict:
@@ -130,8 +138,16 @@ class CellGraph():
         sc_dim_ode, sc_dim_misc, variables_short, variables_long = set_ode_attributes(style_ode)
         self.graph_dim_ode = sc_dim_ode * self.num_cells
         self.sc_dim_ode = sc_dim_ode
-        # TODO external parameter/init arguments for this
-        self.diffusion = np.array([DIFFUSION_RATE for i in range(sc_dim_ode)])  # internal variable have own rates
+
+        if self.style_diffusion == 'all':
+            self.diffusion = np.array([self.diffusion_rate for _ in range(sc_dim_ode)])  # internal vars have own rates
+        else:
+            assert self.style_diffusion == 'xy'
+            assert variables_short[0] == 'Cyc_act'
+            assert variables_short[1] == 'Cyc_tot'
+            self.diffusion = np.array([0 for _ in range(sc_dim_ode)])
+            self.diffusion[0] = self.diffusion_rate
+            self.diffusion[1] = self.diffusion_rate
 
         sc_t0, sc_t1, sc_num_steps, sc_init_cond = ode_integration_defaults(self.style_ode)
         if state_history is None:
@@ -163,6 +179,7 @@ class CellGraph():
         assert self.style_dynamics in STYLE_DYNAMICS_VALID
         assert self.style_detection in STYLE_DETECTION_VALID
         assert self.style_division in STYLE_DIVISION_VALID
+        assert self.style_diffusion in STYLE_DIFFUSION_VALID
         assert all([c >= 0.0 for c in self.diffusion])
         assert self.division_events.shape[1] == 3
         assert self.cell_stats.shape[0] == self.num_cells and self.cell_stats.shape[1] == 3
@@ -283,6 +300,7 @@ class CellGraph():
             style_dynamics=self.style_dynamics,
             style_detection=self.style_detection,
             style_division=self.style_division,
+            style_diffusion=self.style_diffusion,
             io_dict=self.io_dict,
             sc_template=self.sc_template,
             num_cells=updated_num_cells,
@@ -290,6 +308,7 @@ class CellGraph():
             labels=updated_labels,
             state_history=updated_state_history,
             times_history=self.times_history,
+            diffusion_rate=self.diffusion_rate,
             t0=self.t0,
             t1=self.t1,
             division_events=updated_division_events,
@@ -514,7 +533,7 @@ class CellGraph():
 
         if 'vectorized' not in solver_kwargs.keys():
             solver_kwargs['vectorized'] = False  # TODO how to vectorize our graph ODE?
-        assert self.style_dynamics == 'solve_ivp'  # TODO test other integration methods + consider impact of noise on detection
+        assert self.style_dynamics == 'solve_ivp'  # TODO test other integration methods (speed/scaling?) + consider impact of noise on detection
         sol = solve_ivp(fn, time_interval, init_cond, method='Radau', args=(single_cell,), **solver_kwargs)
         r = sol.y
         times = sol.t
@@ -556,7 +575,9 @@ class CellGraph():
         print("\tself.style_dynamics -", self.style_dynamics)
         print("\tself.style_detection -", self.style_detection)
         print("\tself.style_division -", self.style_division)
-        print("\tself.diffusion_rate -", self.diffusion)
+        print("\tself.style_diffusion -", self.style_diffusion)
+        print("\tself.diffusion_rate -", self.diffusion_rate)
+        print("\tself.diffusion -", self.diffusion)
         print("\tself.state_history.shape, self.time_history.shape -", self.state_history.shape, self.times_history.shape)
         print("\tself.t0", self.t0)
         print("\tself.t1", self.t1)
@@ -838,12 +859,14 @@ class CellGraph():
             writer.writerow(['style_ode', self.style_ode])
             writer.writerow(['style_dynamics', self.style_dynamics])
             writer.writerow(['style_detection', self.style_detection])
-            writer.writerow(['style_detection', self.style_division])
+            writer.writerow(['style_division', self.style_division])
+            writer.writerow(['style_diffusion', self.style_diffusion])
             # dimensionality
             writer.writerow(['num_cells', self.num_cells])
             writer.writerow(['sc_dim_ode', self.graph_dim_ode])
             writer.writerow(['graph_dim_ode', self.sc_dim_ode])
             # coupling settings
+            writer.writerow(['diffusion_rate', self.diffusion_rate])
             writer.writerow(['diffusion', self.diffusion])
             # integration settings
             writer.writerow(['t0', self.t0])
