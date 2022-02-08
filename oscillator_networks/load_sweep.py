@@ -4,7 +4,7 @@ import os
 
 from class_sweep_cellgraph import SweepCellGraph
 from file_io import pickle_load
-from utils_networkx import check_tree_isomorphism
+from utils_networkx import check_tree_isomorphism, draw_from_adjacency
 
 
 def visualize_sweep(sweep):
@@ -44,20 +44,20 @@ def visualize_sweep(sweep):
             num_cells = results[(run_idx,)]['num_cells']
             # Case A - have we seen a graph of this size yet? if no it's unique
             if num_cells not in A_uniques.keys():
-                A_id = 'g%s_v0' % num_cells
-                A_uniques[num_cells] = {A_id: A_run}
+                A_id = 'M%s_v0' % num_cells
+                A_uniques[num_cells] = {A_id: {'adjacency': A_run, 'run': run_idx}}
             else:
                 # Need now to compare the adjacency matrix to those observed before, to see if it is unique
                 # - necessary condition for uniqueness is unique Degree matrix, D -- if D is unique, then A is unique
                 is_iso = False
                 for k, v in A_uniques[num_cells].items():
-                    is_iso, iso_swaps = check_tree_isomorphism(A_run, v)
+                    is_iso, iso_swaps = check_tree_isomorphism(A_run, v['adjacency'])
                     if is_iso:
                         break
                 if not is_iso:
                     nunique = len(A_uniques[num_cells].keys())
-                    A_id = 'g%s_v%d' % (num_cells, nunique)
-                    A_uniques[num_cells][A_id] = A_run
+                    A_id = 'M%s_v%d' % (num_cells, nunique)
+                    A_uniques[num_cells][A_id] = {'adjacency': A_run, 'run': run_idx}
 
         keys_sorted = sorted(A_uniques.keys())
         for k in keys_sorted:
@@ -65,6 +65,13 @@ def visualize_sweep(sweep):
             print("Num cells: %d observed %d unique adjacencies" % (k, q))
             if q > 1:
                 print("\t", A_uniques[k].keys())
+            for unique_graph_id in A_uniques[k].keys():
+                A_run = A_uniques[k][unique_graph_id]['adjacency']
+                run_idx = A_uniques[k][unique_graph_id]['run']
+                fpath = sweep.sweep_dir + os.sep + 'run_%d_id_%s.jpg' % (run_idx, unique_graph_id)
+                degree = np.diag(np.sum(A_run, axis=1))
+                draw_from_adjacency(A_run, node_color=np.diag(degree), labels=None, cmap='Pastel1',
+                                    title=unique_graph_id, spring=False, seed=None, fpath=fpath)
     else:
         assert sweep.k_vary == 2
         # TODO test this k=2 case

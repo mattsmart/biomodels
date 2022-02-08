@@ -5,7 +5,7 @@ from networkx.algorithms.isomorphism.tree_isomorphism import rooted_tree_isomorp
 
 
 def draw_from_adjacency(A, node_color=None, labels=None, draw_edge_labels=False, cmap='Pastel1', title='Cell graph',
-                        seed=None, fpath=None):
+                        spring=False, seed=None, fpath=None):
     """
     create_using=nx.DiGraph -- store as directed graph with possible self-loops
     create_using=nx.DiGrapsh -- store as undirected graph with possible self-loops
@@ -27,8 +27,11 @@ def draw_from_adjacency(A, node_color=None, labels=None, draw_edge_labels=False,
         return seed
 
     # plot settings
-    ns = 800
+    ns = 400  # 800
     alpha = 1.0
+    fs = 10  # 6
+    if labels is not None:
+        fs = 6
     font_color = 'k'  # options: 'whitesmoke', 'k'
     if seed is None:
         seed = pick_seed_using_num_cells()
@@ -41,21 +44,33 @@ def draw_from_adjacency(A, node_color=None, labels=None, draw_edge_labels=False,
     # initialize the graph
     G = nx.from_numpy_matrix(np.matrix(A), create_using=nx.Graph)
     # determine node positions
-    layout = nx.spring_layout(G, seed=seed)
+    if spring:
+        layout = nx.spring_layout(G, seed=seed)
+    else:
+        # prog options: twopi, circo, dot
+        layout = nx.nx_agraph.graphviz_layout(G, prog="twopi", args="")
+
     # draw the nodes
-    nx.draw(G, layout, node_color=node_color, cmap=cmap, node_size=ns, alpha=alpha)
+    #nx.draw(G, layout, node_color=node_color, cmap=cmap, node_size=ns, alpha=alpha)
+    nx.draw_networkx(G, layout, with_labels=False,
+                     node_color=node_color, cmap=cmap, node_size=ns, alpha=alpha,
+                     width=1.0, linewidths=2.0, edgecolors='black')
     # write node labels
     #cell_labels = {idx: r'$c_{%d}$' % (idx) for idx in range(A.shape[0])}
-    cell_labels = {idx: r'Cell $%d$' % (idx) for idx in range(A.shape[0])}
+    #cell_labels = {idx: r'Cell $%d$' % (idx) for idx in range(A.shape[0])}
+    cell_labels = {idx: r'$%d$' % (idx) for idx in range(A.shape[0])}
     if labels is not None:
-        nx.draw_networkx_labels(G, layout, labels, font_size=6, font_color=font_color, verticalalignment='bottom')
-        nx.draw_networkx_labels(G, layout, cell_labels, font_size=6, font_color=font_color, verticalalignment='top')
+        nx.draw_networkx_labels(G, layout, labels, font_size=fs, font_color=font_color, verticalalignment='bottom')
+        cell_labels = {idx: r'Cell $%d$' % (idx) for idx in range(A.shape[0])}
+        nx.draw_networkx_labels(G, layout, cell_labels, font_size=fs, font_color=font_color, verticalalignment='top')
     else:
-        nx.draw_networkx_labels(G, layout, cell_labels, font_size=6, font_color=font_color)
+        cell_labels = {idx: r'$%d$' % (idx) for idx in range(A.shape[0])}
+        nx.draw_networkx_labels(G, layout, cell_labels, font_size=fs, font_color=font_color)
     # write edge labels
     if draw_edge_labels:
         nx.draw_networkx_edge_labels(G, pos=layout)
 
+    ax.axis("off")
     if fpath is None:
         plt.show()
     else:

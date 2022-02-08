@@ -14,9 +14,10 @@ if __name__ == '__main__':
 
     flag_print_state = True
     flag_replot = False
-    flag_inspect = True
+    flag_inspect = False
     flag_plotly = False
     flag_redetect = False
+    flag_nx_tree = True
 
     runs_dir = 'runs' + os.sep + 'cellgraph'
     #specific_dir = runs_dir + os.sep + '2022-02-03_05.32.09PM' #'2022-02-02_02.47.01PM'
@@ -97,3 +98,16 @@ if __name__ == '__main__':
             cellgraph.detect_oscillations_graph_trajectory(times, state)
         print("\nRE-DETECTION RESULTS: \nevent_detected, mother_cell, event_time_idx, abs time")
         print(event_detected, mother_cell, event_time_idx, times[event_time_idx])
+
+    if flag_nx_tree:
+        import networkx as nx
+
+        #G = nx.balanced_tree(3, 5)
+        #G = nx.balanced_tree(2, 5)
+        G = nx.from_numpy_matrix(np.matrix(cellgraph.adjacency), create_using=nx.Graph)
+        # prog options: twopi, dot, circo
+        pos = nx.nx_agraph.graphviz_layout(G, prog="circo", args="")
+        plt.figure(figsize=(8, 8))
+        nx.draw(G, pos, node_size=100, alpha=0.5, node_color="blue", with_labels=False)
+        plt.axis("equal")
+        plt.show()
