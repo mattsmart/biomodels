@@ -20,8 +20,8 @@ PRESET_CELLGRAPH = {
 # Variant of 'PWL3_swap_copy'
 PRESET_CELLGRAPH['PWL3_swap_partition_ndiv_bam'] = PRESET_CELLGRAPH['PWL3_swap_copy'].copy()
 PRESET_CELLGRAPH['PWL3_swap_partition_ndiv_bam']['style_division'] = 'partition_ndiv_bam'
-PRESET_CELLGRAPH['PWL3_swap_partition_ndiv_bam']['mods_params_ode']['epsilon'] = 0.2
+PRESET_CELLGRAPH['PWL3_swap_partition_ndiv_bam']['mods_params_ode']['epsilon'] = 0.25
 
 PRESET_CELLGRAPH['PWL3_swap_partition_ndiv_all'] = PRESET_CELLGRAPH['PWL3_swap_copy'].copy()
 PRESET_CELLGRAPH['PWL3_swap_partition_ndiv_all']['style_division'] = 'partition_ndiv_all'
-PRESET_CELLGRAPH['PWL3_swap_partition_ndiv_all']['mods_params_ode']['epsilon'] = 0.2
+PRESET_CELLGRAPH['PWL3_swap_partition_ndiv_all']['mods_params_ode']['epsilon'] = 0.25

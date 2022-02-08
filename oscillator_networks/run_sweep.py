@@ -1,7 +1,4 @@
-import matplotlib.pyplot as plt
 import numpy as np
-import os
-import pickle
 
 from class_sweep_cellgraph import SweepCellGraph
 from preset_sweep import PRESET_SWEEP
@@ -11,7 +8,7 @@ if __name__ == '__main__':
     flag_preset = True  # use preset defined in SWEEP_PRESETS, or prepare own custom sweep run
 
     if flag_preset:
-        preset_choice = '1d_epsilon_ndiv_bam'
+        preset_choice = '1d_diffusion_ndiv_bam'
         sweep_preset = PRESET_SWEEP[preset_choice]
         sweep_cellgraph = SweepCellGraph(**sweep_preset)
 
@@ -28,7 +25,9 @@ if __name__ == '__main__':
         style_ode = 'PWL3_swap'                # styles: ['PWL2', 'PWL3', 'PWL3_swap', 'Yang2013', 'toy_flow', 'toy_clock']
         style_detection = 'manual_crossings'   # styles: ['ignore', 'scipy_peaks', 'manual_crossings', 'manual_crossings_2d']
         style_division = 'copy'                # styles: ['copy', 'partition_equal']
+        style_diffusion = 'xy'                 # styles: ['all', 'xy']
         M = 1
+        diffusion_rate = 0.0
         # B) Initialization modifications for different cases
         if style_ode == 'PWL2':
             state_history = np.array([[100, 100]]).T     # None or array of shape (NM x times)
@@ -47,7 +46,9 @@ if __name__ == '__main__':
             style_ode=style_ode,
             style_detection=style_detection,
             style_division=style_division,
+            style_diffusion=style_diffusion,
             M=M,
+            diffusion_rate=diffusion_rate,
             t0=t0,
             t1=t1,
             state_history=state_history,
