@@ -40,7 +40,7 @@ PRESET_SWEEP = {
             'diffusion_rate'
         ],
         params_values=[
-            np.linspace(0.0, 10, 40)
+            np.linspace(0.0, 10, 41)
         ],
         params_variety=[
             'meta_cellgraph'

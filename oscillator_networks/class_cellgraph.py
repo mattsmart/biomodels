@@ -675,6 +675,7 @@ class CellGraph():
         if fmod is not None:
             fpath += '_' + fmod
         plt.savefig(fpath + '.pdf')
+        plt.close()
         return
 
     def plot_xy_separate(self, quiver=True, decorate=True, fmod=''):
@@ -750,6 +751,7 @@ class CellGraph():
             if fmod is not None:
                 fpath += '_' + fmod
             plt.savefig(fpath + '.pdf')
+            plt.close()
         return
 
     def plotly_traj(self, fmod=None, write=True, show=True):
@@ -809,6 +811,7 @@ class CellGraph():
             fig.write_html(fpath + '.html', include_mathjax='cdn')
         if show:
             fig.show()
+        plt.close()
 
     def state_to_stacked(self, x):
         """

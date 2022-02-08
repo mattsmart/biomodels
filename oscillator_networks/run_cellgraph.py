@@ -73,10 +73,10 @@ if __name__ == '__main__':
 
         cellgraph_preset = PRESET_CELLGRAPH[cellgraph_preset_choice]
         cellgraph_preset['io_dict'] = io_dict
-        cellgraph_preset['mods_params_ode']['epsilon'] = 0.2
+        cellgraph_preset['mods_params_ode']['epsilon'] = 0.25
         #cellgraph_preset['style_detection'] = 'manual_crossings_1d_mid'
-        #cellgraph_preset['style_diffusion'] = 'all'
-        #cellgraph_preset['diffusion_rate'] = 0.0
+        cellgraph_preset['style_diffusion'] = 'xy'
+        cellgraph_preset['diffusion_rate'] = 1.0
         cellgraph = create_cellgraph(**cellgraph_preset)
 
     else:

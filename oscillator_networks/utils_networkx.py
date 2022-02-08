@@ -75,6 +75,7 @@ def draw_from_adjacency(A, node_color=None, labels=None, draw_edge_labels=False,
         plt.show()
     else:
         plt.savefig(fpath)
+    plt.close()  # TODO to avoid 20 figures open warning
     return ax
 
 
