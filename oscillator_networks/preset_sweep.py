@@ -7,22 +7,21 @@ from preset_solver import PRESET_SOLVER
 SWEEP_SOLVER = PRESET_SOLVER['solve_ivp_radau_default']
 SWEEP_BASE_CELLGRAPH = PRESET_CELLGRAPH['PWL3_swap_copy']
 
-PRESET_SWEEP = {
-    '1d_epsilon_copy': dict(
-        sweep_label='sweep_preset_1d_epsilon',
-        base_cellgraph_kwargs=SWEEP_BASE_CELLGRAPH,
-        params_name=[
-            'epsilon'
-        ],
-        params_values=[
-            np.linspace(0.01, 0.4, 40)
-        ],
-        params_variety=[
-            'sc_ode'
-        ],
-        solver_kwargs=SWEEP_SOLVER
-    )
-}
+PRESET_SWEEP = {}
+PRESET_SWEEP['1d_epsilon_copy'] = dict(
+	sweep_label='sweep_preset_1d_epsilon',
+	base_cellgraph_kwargs=SWEEP_BASE_CELLGRAPH,
+	params_name=[
+		'epsilon'
+	],
+	params_values=[
+		np.linspace(0.01, 0.4, 100)
+	],
+	params_variety=[
+		'sc_ode'
+	],
+	solver_kwargs=SWEEP_SOLVER
+)
 
 # Variants of '1d_epsilon_copy'
 PRESET_SWEEP['1d_epsilon_ndiv_bam'] = PRESET_SWEEP['1d_epsilon_copy'].copy()
@@ -32,22 +31,20 @@ PRESET_SWEEP['1d_epsilon_ndiv_all'] = PRESET_SWEEP['1d_epsilon_copy'].copy()
 PRESET_SWEEP['1d_epsilon_ndiv_all']['base_cellgraph_kwargs'] = PRESET_CELLGRAPH['PWL3_swap_partition_ndiv_all']
 
 
-PRESET_SWEEP = {
-    '1d_diffusion_copy': dict(
-        sweep_label='sweep_preset_1d_diffusion',
-        base_cellgraph_kwargs=SWEEP_BASE_CELLGRAPH,
-        params_name=[
-            'diffusion_rate'
-        ],
-        params_values=[
-            np.linspace(0.0, 10, 41)
-        ],
-        params_variety=[
-            'meta_cellgraph'
-        ],
-        solver_kwargs=SWEEP_SOLVER
-    )
-}
+PRESET_SWEEP['1d_diffusion_copy'] = dict(
+	sweep_label='sweep_preset_1d_diffusion',
+	base_cellgraph_kwargs=SWEEP_BASE_CELLGRAPH,
+	params_name=[
+		'diffusion_rate'
+	],
+	params_values=[
+		np.linspace(0.0, 10, 101)
+	],
+	params_variety=[
+		'meta_cellgraph'
+	],
+	solver_kwargs=SWEEP_SOLVER
+)
 
 # Variants of '1d_diffusion_copy'
 PRESET_SWEEP['1d_diffusion_ndiv_bam'] = PRESET_SWEEP['1d_diffusion_copy'].copy()
@@ -55,3 +52,21 @@ PRESET_SWEEP['1d_diffusion_ndiv_bam']['base_cellgraph_kwargs'] = PRESET_CELLGRAP
 
 PRESET_SWEEP['1d_diffusion_ndiv_all'] = PRESET_SWEEP['1d_diffusion_copy'].copy()
 PRESET_SWEEP['1d_diffusion_ndiv_all']['base_cellgraph_kwargs'] = PRESET_CELLGRAPH['PWL3_swap_partition_ndiv_all']
+
+# TODO remove debug variant
+PRESET_SWEEP['1d_diffusion_debug'] = dict(
+	sweep_label='sweep_preset_1d_diffusion_debug',
+	base_cellgraph_kwargs=SWEEP_BASE_CELLGRAPH,
+	params_name=[
+		'diffusion_rate'
+	],
+	params_values=[
+		np.linspace(0.5, 10, 21)
+	],
+	params_variety=[
+		'meta_cellgraph'
+	],
+	solver_kwargs=SWEEP_SOLVER
+)
+
+PRESET_SWEEP['1d_diffusion_debug']['base_cellgraph_kwargs'] = PRESET_CELLGRAPH['PWL3_swap_partition_ndiv_bam']

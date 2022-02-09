@@ -500,7 +500,7 @@ class CellGraph():
                 term_1[a:b] = f_of_x_single_cell(t_scalar, xvec_matrix[:, cell_idx], single_cell)
 
             # TODO check that slicing is correct
-            # TODO this can be parallelized as one liner Dvec * np.dot(X, L^T)
+            # TODO this can be parallelized as one linear Dvec * np.dot(X, L^T)
             # Term 2: stores the cell-cell coupling which is just laplacian diffusion -c * L * x
             # Note: we consider each reactant separately with own diffusion rate
             term_2 = np.zeros(self.graph_dim_ode)

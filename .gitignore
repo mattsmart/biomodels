@@ -58,3 +58,4 @@ RBM/output/recall/
 RBM/output/reversemap/
 celltypes/runs/
 oscillator_networks/runs/
+oscillator_networks/sweeps/

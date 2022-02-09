@@ -95,8 +95,12 @@ def visualize_sweep(sweep):
 
 
 if __name__ == '__main__':
-    dir_sweep = 'runs' + os.sep + 'sweep_preset_1d_epsilon'
+    dir_sweep = 'sweeps' + os.sep + 'sweep_preset_1d_diffusion'
     fpath_pickle = dir_sweep + os.sep + 'sweep.pkl'
     sweep_cellgraph = pickle_load(fpath_pickle)
+
+    # hotswap directory attribute in case sweep folder was archived
+    if dir_sweep != sweep_cellgraph.dir_sweep:
+        sweep_cellgraph.dir_sweep = dir_sweep
 
     visualize_sweep(sweep_cellgraph)

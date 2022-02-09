@@ -247,7 +247,7 @@ def contourplot_general(sc_template, delta=0.1, axlow=0.0, axhigh=120.0, **ode_k
 
 
 def nullclines_general(sc_template, flip_axis=False, contour_labels=True,
-                       delta=0.1, axlow=0.0, axhigh=120.0, **ode_kwargs):
+                       delta=0.1, axlow=0.0, axhigh=120.0, ax=None, **ode_kwargs):
     """
     ode_kwargs
         't': optional parameter for PWL
@@ -288,8 +288,10 @@ def nullclines_general(sc_template, flip_axis=False, contour_labels=True,
         label_x = PLOT_XLABEL
         label_y = PLOT_YLABEL
 
-    plt.figure(figsize=(5, 5))
-    ax = plt.gca()
+    if ax is None:
+        plt.figure(figsize=(5, 5))
+        ax = plt.gca()
+
     # plot nullclines
     nullcline_u = ax.contour(X, Y, U, (0,), colors='b', linewidths=1.5)
     nullcline_v = ax.contour(X, Y, V, (0,), colors='r', linewidths=1.5)
@@ -303,7 +305,8 @@ def nullclines_general(sc_template, flip_axis=False, contour_labels=True,
     ax.set_title('%s nullclines (blue=%s, red=%s)' % (sc_template.style_ode, PLOT_XLABEL, PLOT_YLABEL))
     ax.set_xlabel(label_x)
     ax.set_ylabel(label_y)
-    plt.show()
+    #plt.show()
+    return ax
 
 
 if __name__ == '__main__':
