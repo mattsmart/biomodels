@@ -22,10 +22,10 @@ if __name__ == '__main__':
 
         # Initialize the base CellGraph which will be varied during the sweep
         # A) High-level initialization & graph settings
-        style_ode = 'PWL3_swap'                # styles: ['PWL2', 'PWL3', 'PWL3_swap', 'Yang2013', 'toy_flow', 'toy_clock']
-        style_detection = 'manual_crossings'   # styles: ['ignore', 'scipy_peaks', 'manual_crossings', 'manual_crossings_2d']
-        style_division = 'copy'                # styles: ['copy', 'partition_equal']
-        style_diffusion = 'xy'                 # styles: ['all', 'xy']
+        style_ode = 'PWL3_swap'                       # styles: ['PWL2', 'PWL3', 'PWL3_swap', 'Yang2013', 'toy_flow', 'toy_clock']
+        style_detection = 'manual_crossings_1d_mid'   # styles: ['ignore', 'scipy_peaks', 'manual_crossings_1d_mid', 'manual_crossings_1d_hl']
+        style_division = 'copy'                       # styles: ['copy', 'partition_equal']
+        style_diffusion = 'xy'                        # styles: ['all', 'xy']
         M = 1
         diffusion_rate = 0.0
         # B) Initialization modifications for different cases

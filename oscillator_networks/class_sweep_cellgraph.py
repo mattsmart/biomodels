@@ -72,7 +72,7 @@ class SweepCellGraph():
         self.total_runs = np.prod(self.sizes)
         return
 
-    def basic_run(self, cellgraph):
+    def basic_run(self, cellgraph, plotting=False):
         """
         Given a cellgraph, performs some basic operations (e.g. a trajectory) and outputs a 'results' array
         Returns:
@@ -82,19 +82,21 @@ class SweepCellGraph():
         cellgraph.print_state()
         cellgraph.write_metadata()
         cellgraph.write_state(fmod='init')
-        cellgraph.plot_graph(fmod='init')
+        if plotting:
+            cellgraph.plot_graph(fmod='init')
 
         # From the initialized graph (after all divisions above), simulate graph trajectory
         print('\nExample trajectory for the graph...')
-        event_detected, cellgraph = cellgraph.wrapper_graph_trajectory(**self.solver_kwargs)
+        event_detected, cellgraph = cellgraph.wrapper_graph_trajectory(plotting=plotting, **self.solver_kwargs)
         print("\n in main: num cells after wrapper trajectory =", cellgraph.num_cells)
 
         # Plot the timeseries for each cell
-        cellgraph.plot_state_unified(arrange_vertical=True, fmod='final')
-        cellgraph.plot_graph(fmod='final')
-        if cellgraph.sc_dim_ode > 1:
-            cellgraph.plot_xy_separate(fmod='final')
-        cellgraph.plotly_traj(fmod='final', show=False, write=True)
+        if plotting:
+            cellgraph.plot_state_unified(arrange_vertical=True, fmod='final')
+            cellgraph.plot_graph(fmod='final')
+            if cellgraph.sc_dim_ode > 1:
+                cellgraph.plot_xy_separate(fmod='final')
+            cellgraph.plotly_traj(fmod='final', show=False, write=True)
 
         # Save class state as pickle object
         cellgraph.pickle_save('classdump.pkl')

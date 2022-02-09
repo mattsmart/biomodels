@@ -410,7 +410,7 @@ class CellGraph():
 
         return event_detected, first_event_cell, first_event_idx, truncated_times, truncated_traj
 
-    def wrapper_graph_trajectory(self, t0=None, t1=None, **solver_kwargs):
+    def wrapper_graph_trajectory(self, t0=None, t1=None, plotting=False, **solver_kwargs):
         """
         Iteratively runs graph_trajectory() to integrate from time t0 to t1, expanding the graph at each cell divisions
         """
@@ -455,7 +455,8 @@ class CellGraph():
             self.vprint(2, "wrapper_graph_trajectory(), before printer: cellgraph.cell_stats.shape", cellgraph.cell_stats.shape)
             cellgraph.print_state()
             cellgraph.write_state(fmod='iter%d' % division_counter)
-            cellgraph.plot_graph(fmod='iter%d' % division_counter)
+            if plotting:
+                cellgraph.plot_graph(fmod='iter%d' % division_counter)
 
         self.vprint(1, "wrapper_graph_trajectory(): Output number of cells", cellgraph.num_cells)
         self.vprint(1, "wrapper_graph_trajectory(): Output times shape", cellgraph.times_history.shape)

@@ -11,6 +11,10 @@ def draw_from_adjacency(A, node_color=None, labels=None, draw_edge_labels=False,
     create_using=nx.DiGrapsh -- store as undirected graph with possible self-loops
 
     cmap options: 'Blues', 'Pastel1', 'Spectral_r'
+
+    Note: observed issues on Windows when sweeps performed with draw_from_adjacency(spring=False) on each run
+    ====== Process finished with exit code -1073740791 (0xC0000409) ======
+        - think too many calls to layout = nx.nx_agraph.graphviz_layout(G, prog="twopi", args="")
     """
     # TODO alternative visualization wth legend for discrete data (nDiv) and colorbar for continuous data (birth times)
 
@@ -37,7 +41,7 @@ def draw_from_adjacency(A, node_color=None, labels=None, draw_edge_labels=False,
         seed = pick_seed_using_num_cells()
 
     # initialize the figure
-    plt.figure(figsize=(8, 8))
+    plt.figure(figsize=(4, 4))  # default 8,8; try 4,4 for diffusion slide
     ax = plt.gca()
     ax.set_title(title)
 
