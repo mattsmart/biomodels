@@ -69,9 +69,13 @@ def visualize_sweep(sweep):
                     nunique = len(A_uniques[num_cells].keys())
                     A_id = 'M%s_v%d' % (num_cells, nunique)
                     A_uniques[num_cells][A_id] = {'adjacency': A_run, 'runs': [run_idx], 'iso': nunique}
-                    iso_labels_to_run_idx[nunique] = [run_idx]
+                    if nunique in iso_labels_to_run_idx.keys():
+                        iso_labels_to_run_idx[nunique] += [run_idx]
+                    else:
+                        iso_labels_to_run_idx[nunique] = [run_idx]
 
         keys_sorted = sorted(A_uniques.keys())
+        print('Plotting unique graphs: nodes are colored by degree')
         for k in keys_sorted:
             q = len(A_uniques[k].keys())
             print("Num cells: %d observed %d unique adjacencies" % (k, q))
@@ -84,17 +88,31 @@ def visualize_sweep(sweep):
                 degree = np.diag(np.sum(A_run, axis=1))
                 draw_from_adjacency(A_run, node_color=np.diag(degree), labels=None, cmap='Pastel1',
                                     title=unique_graph_id, spring=False, seed=None, fpath=fpath)
+        """
+        # Alternate block to simply plot adjacency from all runs, ignoring uniqueness 
+        for run_idx in range(sweep.total_runs):
+            A_run = results[(run_idx,)]['adjacency']
+            fpath = sweep.sweep_dir + os.sep + 'run_%d.jpg' % (run_idx)
+            title = r'$\epsilon = %.3f$ (%d cells)' % (param_values[run_idx], A_run.shape[0])
+            degree = np.diag(np.sum(A_run, axis=1))
+            draw_from_adjacency(A_run, node_color=np.diag(degree), labels=None, cmap='Pastel1',
+                                title=title, spring=False, seed=None, fpath=fpath, figsize=(8,8))
+        """
         print("iso_labels_to_run_idx:")
         print(iso_labels_to_run_idx)
-
         # Create fancier M(theta) plot using unique graphs as diff colors
-        plt.figure(figsize=(4, 4))  # (4,4) used for 100 diffusion 1D
-        plt.plot(param_values, M_of_theta, '--o')
+        kwargs = dict(
+            markersize=6,
+            markeredgecolor='k',
+            markeredgewidth=0.4,
+        )
+        plt.figure(figsize=(4, 4), dpi=600)  # (4,4) used for 100 diffusion 1D
+        plt.plot(param_values, M_of_theta, '--o', **kwargs)
         # plot separate points on top for the special runs with graph isomorphisms
         for iso in sorted(iso_labels_to_run_idx.keys()):
             if iso > 0:
                 specific_runs = iso_labels_to_run_idx[iso]
-                plt.plot(param_values[specific_runs], M_of_theta[specific_runs], 'o')
+                plt.plot(param_values[specific_runs], M_of_theta[specific_runs], 'o', **kwargs)
                 plt.plot()
         plt.title(r'$M(\theta)$ for $\theta=$%s' % param_name)
         plt.ylabel('num_cells')
@@ -124,7 +142,8 @@ def visualize_sweep(sweep):
 
 
 if __name__ == '__main__':
-    sweep_dir = 'sweeps' + os.sep + 'sweep_preset_1d_diffusion'
+    sweep_dir = 'sweeps' + os.sep + 'sweep_preset_1d_epsilon_ndiv_bam'
+    #sweep_dir = 'sweeps' + os.sep + 'sweep_preset_1d_diffusion_ndiv_bam'
     fpath_pickle = sweep_dir + os.sep + 'sweep.pkl'
     sweep_cellgraph = pickle_load(fpath_pickle)
 

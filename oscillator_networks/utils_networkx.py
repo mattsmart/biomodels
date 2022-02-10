@@ -5,7 +5,7 @@ from networkx.algorithms.isomorphism.tree_isomorphism import rooted_tree_isomorp
 
 
 def draw_from_adjacency(A, node_color=None, labels=None, draw_edge_labels=False, cmap='Pastel1', title='Cell graph',
-                        spring=False, seed=None, fpath=None):
+                        spring=False, seed=None, fpath=None, figsize=(4,4)):
     """
     create_using=nx.DiGraph -- store as directed graph with possible self-loops
     create_using=nx.DiGrapsh -- store as undirected graph with possible self-loops
@@ -41,7 +41,7 @@ def draw_from_adjacency(A, node_color=None, labels=None, draw_edge_labels=False,
         seed = pick_seed_using_num_cells()
 
     # initialize the figure
-    plt.figure(figsize=(4, 4))  # default 8,8; try 4,4 for diffusion slide
+    plt.figure(figsize=figsize)  # default 8,8; try 4,4 for quarter slide, or 6,6 for half a slide
     ax = plt.gca()
     ax.set_title(title)
 
@@ -55,6 +55,8 @@ def draw_from_adjacency(A, node_color=None, labels=None, draw_edge_labels=False,
         layout = nx.nx_agraph.graphviz_layout(G, prog="twopi", args="")
 
     # draw the nodes
+    if isinstance(cmap, str):
+        cmap = plt.get_cmap(cmap)
     #nx.draw(G, layout, node_color=node_color, cmap=cmap, node_size=ns, alpha=alpha)
     nx.draw_networkx(G, layout, with_labels=False,
                      node_color=node_color, cmap=cmap, node_size=ns, alpha=alpha,
