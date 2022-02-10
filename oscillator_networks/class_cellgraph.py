@@ -591,7 +591,7 @@ class CellGraph():
             print('\t\tCell #%d' % cell, X[:, cell, -1].flatten(), 'stats:', self.cell_stats[cell, :])
         return
 
-    def plot_graph(self, fmod=None, title='CellGraph', by_ndiv=True, by_last_div=True, by_age=True, seed=None):
+    def plot_graph(self, fmod=None, title='CellGraph', by_ndiv=True, by_degree=True, by_last_div=True, by_age=True, seed=None):
         fpath = self.io_dict['plotlatticedir'] + os.sep + 'networkx'
         if fmod is not None:
             title = title + ' ' + fmod
@@ -603,6 +603,15 @@ class CellGraph():
             #labels = {idx: r'$c_{%d}: %d$' % (idx, val) for idx, val in enumerate(n_divisions)}
             labels = {idx: r'$%d$' % (val) for idx, val in enumerate(n_divisions)}
             draw_from_adjacency(self.adjacency, title=tvar, node_color=n_divisions, labels=labels, cmap='Pastel1',
+                                seed=seed, fpath=fpathvar)
+        if by_degree:
+            tvar = title + ' (degree)'
+            fpathvar = fpath + '_Degree.pdf'
+            degree_vec = np.diag(self.degree)
+            #labels = {idx: r'$c_{%d}: %d$' % (idx, val) for idx, val in enumerate(degree_vec)}
+            #labels = {idx: r'$%d$' % (val) for idx, val in enumerate(degree_vec)}
+            labels = None
+            draw_from_adjacency(self.adjacency, title=tvar, node_color=degree_vec, labels=labels, cmap='Pastel1',
                                 seed=seed, fpath=fpathvar)
         if by_last_div:
             tvar = title + ' (time of last division)'
@@ -807,7 +816,7 @@ class CellGraph():
         fpath = self.io_dict['plotdatadir'] + os.sep + 'plotly_traj'
         if fmod is not None:
             #title = title + ' ' + fmod
-            fpath += 'networkx_%s' % fmod
+            fpath += '_%s' % fmod
         if write:
             fig.write_html(fpath + '.html', include_mathjax='cdn')
         if show:
