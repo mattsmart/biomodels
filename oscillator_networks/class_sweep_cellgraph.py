@@ -92,11 +92,12 @@ class SweepCellGraph():
 
         # Plot the timeseries for each cell
         if plotting:
-            cellgraph.plot_state_unified(arrange_vertical=True, fmod='final')
             cellgraph.plot_graph(fmod='final')
             if cellgraph.sc_dim_ode > 1:
                 cellgraph.plot_xy_separate(fmod='final')
             cellgraph.plotly_traj(fmod='final', show=False, write=True)
+        # this plot is simple and useful so always plot it
+        cellgraph.plot_state_unified(arrange_vertical=True, fmod='final')
 
         # Save class state as pickle object
         cellgraph.pickle_save('classdump.pkl')

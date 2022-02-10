@@ -140,12 +140,12 @@ class CellGraph():
         self.sc_dim_ode = sc_dim_ode
 
         if self.style_diffusion == 'all':
-            self.diffusion = np.array([self.diffusion_rate for _ in range(sc_dim_ode)])  # internal vars have own rates
+            self.diffusion = np.array([self.diffusion_rate for _ in range(sc_dim_ode)], dtype=float)  # internal vars have own rates
         else:
             assert self.style_diffusion == 'xy'
             assert variables_short[0] == 'Cyc_act'
             assert variables_short[1] == 'Cyc_tot'
-            self.diffusion = np.array([0 for _ in range(sc_dim_ode)])
+            self.diffusion = np.array([0 for _ in range(sc_dim_ode)], dtype=float)
             self.diffusion[0] = self.diffusion_rate
             self.diffusion[1] = self.diffusion_rate
 
