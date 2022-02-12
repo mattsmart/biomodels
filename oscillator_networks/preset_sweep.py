@@ -75,7 +75,7 @@ PRESET_SWEEP['2d_epsilon_diffusion_ndiv_bam'] = dict(
 
 # Variants of '2d_epsilon_diffusion_ndiv_bam'
 PRESET_SWEEP['2d_epsilon_diffusion_ndiv_bam'] = dict(
-	sweep_label='sweep_preset_1d_epsilon',
+	sweep_label='2d_epsilon_diffusion_ndiv_bam',
 	base_cellgraph_kwargs=PRESET_CELLGRAPH['PWL3_swap_partition_ndiv_bam'],
 	params_name=[
 		'epsilon',
@@ -83,7 +83,7 @@ PRESET_SWEEP['2d_epsilon_diffusion_ndiv_bam'] = dict(
 	],
 	params_values=[
 		np.linspace(0.01, 0.3, 41),
-		np.linspace(0.0, 10, 101)
+		np.linspace(0.0, 8, 101)
 	],
 	params_variety=[
 		'sc_ode',
