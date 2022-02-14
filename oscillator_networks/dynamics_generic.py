@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.integrate import ode, odeint, solve_ivp
 
+from dynamics_vectorfields import set_ode_jacobian
 from settings import STYLE_DYNAMICS_VALID, STYLE_DYNAMICS
 
 
@@ -108,7 +109,11 @@ def ode_solve_ivp(init_cond, times, single_cell, **solver_kwargs):
             solver_kwargs['vectorized'] = False
     fn = system_vector_obj_ode
     time_interval = [times[0], times[-1]]
-    sol = solve_ivp(fn, time_interval, init_cond, args=(single_cell,), **solver_kwargs)
+    jac = None  #set_ode_jacobian(single_cell.style_ode)  # TODO investigate why singlecell traj much slower with Jacobian supplied
+
+    # main solver call
+    sol = solve_ivp(fn, time_interval, init_cond, args=(single_cell,), jac=jac, **solver_kwargs)
+
     r = np.transpose(sol.y)
     times = sol.t
     return r, times

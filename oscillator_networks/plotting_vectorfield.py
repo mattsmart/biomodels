@@ -188,7 +188,8 @@ def vectorfield_general(sc_template, delta=0.1, axlow=0.0, axhigh=120.0, **ode_k
     X, Y = XY_meshgrid([axlow, axhigh], [axlow, axhigh], delta)
 
     params = sc_template.params_ode
-    U, V = set_ode_vectorfield(sc_template.style_ode, params, (X, Y), **ode_kwargs)
+    dxdt = set_ode_vectorfield(sc_template.style_ode, params, (X, Y), **ode_kwargs)
+    U, V = dxdt
     U = nan_mask(U)
     V = nan_mask(V)
 
@@ -220,7 +221,8 @@ def contourplot_general(sc_template, delta=0.1, axlow=0.0, axhigh=120.0, **ode_k
     X, Y = XY_meshgrid([axlow, axhigh], [axlow, axhigh], delta)
 
     params = sc_template.params_ode
-    U, V = set_ode_vectorfield(sc_template.style_ode, params, (X, Y), **ode_kwargs)  # TODO handler resize init cond sc_template.dim_ode
+    dxdt = set_ode_vectorfield(sc_template.style_ode, params, (X, Y), **ode_kwargs)  # TODO handler resize init cond sc_template.dim_ode
+    U, V = dxdt
     U = nan_mask(U)
     V = nan_mask(V)
 

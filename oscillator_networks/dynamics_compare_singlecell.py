@@ -1,12 +1,15 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import pandas as pd
+import seaborn as sns
+import time
 
 from preset_solver import PRESET_SOLVER
 from class_singlecell import SingleCell
 
 
-def compare_solvers_singlecell(single_cell, solver_presets, timer_mode=False):
+def compare_solvers_singlecell(single_cell, solver_presets, timer_mode=True, nrepeats=10):
     """
     Given a list of solvers, compute SingleCell trajectories for each.
 
@@ -21,10 +24,6 @@ def compare_solvers_singlecell(single_cell, solver_presets, timer_mode=False):
 
     Return trajectories for each as arrays
     """
-    if timer_mode:
-        print('TODO implement')
-        assert 1==2
-
     nrow = single_cell.dim_ode  # number of sc state variables
 
     nsolvers = len(solver_presets)
@@ -40,13 +39,45 @@ def compare_solvers_singlecell(single_cell, solver_presets, timer_mode=False):
 
         print("Computing traj for solver: %s" % solver_label)
         print('Timer mode:', timer_mode)
-        r, times = sc.trajectory(flag_info=True, dynamics_method=solver_dynamics_method, **solver_kwargs)
+        if timer_mode:
+            timings = [0] * nrepeats
+            for idx in range(nrepeats):
+                t1 = time.time()
+                r, times = sc.trajectory(flag_info=True, dynamics_method=solver_dynamics_method, **solver_kwargs)
+                t2 = time.time()
+                timings[idx] = t2-t1
+            solver_presets[solver_idx]['timings'] = timings
+        else:
+            r, times = sc.trajectory(flag_info=True, dynamics_method=solver_dynamics_method, **solver_kwargs)
         solver_times[solver_idx] = times
         solver_traj[solver_idx] = r.T
 
-    # plotting
-    fig, axarr = plt.subplots(ncols=1, nrows=nrow, figsize=(8, 8), constrained_layout=True, squeeze=False, sharex=True)
+    # Plot timing info if timer mode
+    if timer_mode:
+        column_names = ['solver', 'timing_index', 'timing']
+        df = pd.DataFrame(columns=column_names)
+        i = 0
+        for idx in range(nrepeats):
+            for solver_idx in range(nsolvers):
+                row = [solver_presets[solver_idx]['label'],
+                       idx,
+                       solver_presets[solver_idx]['timings'][idx]]
+                df.loc[i] = row
+                i += 1
+        plt.figure(figsize=(6, 6))
+        print(df)
+        colors = ['#78C850', '#F08030', '#6890F0', '#F8D030', '#F85888', '#705898', '#98D8D8']
+        #boxplot = sns.boxplot(x=df["timing"], y=df["solver"], palette=colors)
+        boxplot = sns.boxplot(y=df["timing"], x=df["solver"], palette=colors)
+        boxplot.set_ylabel("Runtime (s)", fontsize=12)
+        plt.tick_params(axis='x', which='major', labelsize=8)
+        plt.tight_layout()
+        plt.savefig("output" + os.sep + "solver_comparison_singlecell_timings.pdf", bbox_inches='tight')
+        plt.show(bbox_inches='tight')
+        plt.close()
 
+    # Plotting trajectory from each solver
+    fig, axarr = plt.subplots(ncols=1, nrows=nrow, figsize=(8, 8), constrained_layout=True, squeeze=False, sharex=True)
     """
     state_tensor = self.state_to_rectangle(self.state_history)
     times = self.times_history
@@ -66,8 +97,8 @@ def compare_solvers_singlecell(single_cell, solver_presets, timer_mode=False):
     ms = 4
     solver_to_kwargs = {
         0: dict(alpha=alpha, marker='s', linestyle='--', markersize=ms),
-        1: dict(alpha=alpha, marker='o', linestyle='--', markersize=ms),
-        2: dict(alpha=alpha, marker='^', linestyle='--', markersize=ms),
+        1: dict(alpha=alpha, marker='o', linestyle='-.', markersize=ms),
+        2: dict(alpha=alpha, marker='^', linestyle=':', markersize=ms),
         3: dict(alpha=alpha, marker='*', linestyle='--', markersize=ms),
     }
     assert nsolvers <= len(solver_to_kwargs.keys())
@@ -93,6 +124,7 @@ def compare_solvers_singlecell(single_cell, solver_presets, timer_mode=False):
     plt.legend()
     fpath = "output" + os.sep + "solver_comparison_singlecell"
     plt.savefig(fpath + '.pdf')
+    plt.show()
     plt.close()
     return traj_obj
 
@@ -108,7 +140,8 @@ if __name__ == '__main__':
 
     solver_presets = [
         PRESET_SOLVER['solve_ivp_radau_default'],
-        PRESET_SOLVER['solve_ivp_radau_minstep']
+        PRESET_SOLVER['solve_ivp_radau_minstep'],
+        PRESET_SOLVER['solve_ivp_radau_relaxed']
     ]
 
     compare_solvers_singlecell(sc, solver_presets)

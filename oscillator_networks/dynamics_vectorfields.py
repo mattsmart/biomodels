@@ -171,6 +171,10 @@ def set_ode_params(style_ode):
 
 
 def set_ode_vectorfield(style_ode, params, init_cond, **ode_kwargs):
+    """
+    Returns
+        dxdt, which is the output of vector field function call
+    """
     if style_ode == 'Yang2013':
         dxdt = vectorfield_Yang2013(params, init_cond, z=ode_kwargs.get('z', 0))
     elif style_ode == 'PWL2':
@@ -194,6 +198,18 @@ def set_ode_vectorfield(style_ode, params, init_cond, **ode_kwargs):
         print("Supported odes include:", STYLE_ODE_VALID)
         dxdt = None
     return dxdt
+
+
+def set_ode_jacobian(style_ode):
+    """
+    Returns
+        jac, which is pointer to fn or None
+    """
+    if style_ode == 'PWL3_swap':
+        jac = jacobian_PWL3_swap
+    else:
+        jac = None
+    return jac
 
 
 def ode_integration_defaults(style_ode):
@@ -316,6 +332,18 @@ def PWL_g_of_x(params, x):
     return g
 
 
+def PWL_g_of_x_derivative(params, x):
+    a = params['a']
+    d = params['d']
+    g1 = np.where(x < a/2, 1, 0)
+    g2 = np.where(
+        ((a/2) <= x) & (x < ((d+a)/2)),
+        -1, 0)
+    g3 = np.where(x >= ((d+a)/2), 1, 0)
+    g = g1 + g2 + g3
+    return g
+
+
 def PWL_I_of_t_pulse(params, t):
     """
     Generates a triangular pulse rising at t=0 with switch at t = params['t_pulse_switch']
@@ -430,6 +458,22 @@ def vectorfield_PWL3_swap(params, init_cond, t):
 
     out = [dxdt, dydt, dzdt]
     return out
+
+
+def jacobian_PWL3_swap(t, init_cond, singlecell):
+    params = singlecell.params_ode
+    df1_dx = PWL_g_of_x_derivative(params, init_cond[0])
+    df1_dy = 1/params['C']
+    df2_dx = -1.0
+    df2_dy = -params['gamma']
+    df2_dz = 1.0
+    df3_dz = 0.0  # note it's zero because the "external pulse" is not a function of z
+    jac = np.array([
+        [df1_dx, df1_dy, 0],
+        [df2_dx, df2_dy, df2_dz],
+        [0,      0,      df3_dz]
+    ])
+    return jac
 
 
 def PWL4_auto_helper(params, x, y, z, w):

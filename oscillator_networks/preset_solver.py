@@ -21,7 +21,7 @@ PRESET_SOLVER['solve_ivp_radau_minstep'] = dict(
 )
 
 PRESET_SOLVER['solve_ivp_radau_relaxed'] = dict(
-    label='solve_ivp_radau_minstep',
+    label='solve_ivp_radau_relaxed',
     dynamics_method='solve_ivp',
     kwargs=dict(method='Radau', atol=1e-5),
 )
