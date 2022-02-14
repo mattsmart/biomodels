@@ -69,7 +69,7 @@ if __name__ == '__main__':
     if flag_preset:
         cellgraph_preset_choice = 'PWL3_swap_partition_ndiv_bam'  # PWL3_swap_partition_ndiv_bam, PWL3_swap_copy
         io_dict = run_subdir_setup(run_subfolder='cellgraph')
-        solver_kwargs = PRESET_SOLVER['solve_ivp_radau_default']
+        solver_kwargs = PRESET_SOLVER['solve_ivp_radau_default']['kwargs']
 
         cellgraph_preset = PRESET_CELLGRAPH[cellgraph_preset_choice]
         cellgraph_preset['io_dict'] = io_dict
@@ -144,7 +144,8 @@ if __name__ == '__main__':
         # TODO ensure solver kwargs can be passed properly -- note wrapper is recursive so some kwargs MUST be updated...
         # TODO resolve issue where if t0 != 0, then we have gap in times history [0, t0, ...] -- another issue where t0 is skipped, start t0+dt
         # TODO one option is to use dense_output to interpolate... another is to use non-adaptive stepping in the vicinity of an event
-        solver_kwargs = {}
+        solver_kwargs = {}  # assume passing to solve_ivp for now
+        solver_kwargs['method'] = 'Radau'
         solver_kwargs['t_eval'] = None  # None or np.linspace(0, 50, 2000)  np.linspace(15, 50, 2000)
         solver_kwargs['max_step'] = 1e-1   # np.Inf ; try 1e-1 or 1e-2 if division time-sequence is buggy as a result of large adaptive steps
 

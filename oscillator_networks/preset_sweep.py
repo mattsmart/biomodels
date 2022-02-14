@@ -4,7 +4,7 @@ from preset_cellgraph import PRESET_CELLGRAPH
 from preset_solver import PRESET_SOLVER
 
 
-SWEEP_SOLVER = PRESET_SOLVER['solve_ivp_radau_default']
+SWEEP_SOLVER = PRESET_SOLVER['solve_ivp_radau_default']['kwargs']
 SWEEP_BASE_CELLGRAPH = PRESET_CELLGRAPH['PWL3_swap_copy']
 
 PRESET_SWEEP = {}

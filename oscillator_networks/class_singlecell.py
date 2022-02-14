@@ -63,7 +63,7 @@ class SingleCell():
             print("Init Cond:", init_cond)
             self.printer()
 
-        r, times = simulate_dynamics_general(init_cond, times, self, method=dynamics_method, **solver_kwargs)
+        r, times = simulate_dynamics_general(init_cond, times, self, dynamics_method=dynamics_method, **solver_kwargs)
         if flag_info:
             print('Done trajectory\n')
 

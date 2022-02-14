@@ -153,7 +153,7 @@ def phaseplot_general(sc_template, init_conds=None, dynamics_method=STYLE_DYNAMI
             init_cond_ode=init_cond,
             style_ode=sc_template.style_ode,
             params_ode=sc_template.params_ode, label='')
-        r, times = simulate_dynamics_general(init_cond, times, single_cell, method=dynamics_method, **solver_kwargs)
+        r, times = simulate_dynamics_general(init_cond, times, single_cell, dynamics_method=dynamics_method, **solver_kwargs)
         ax.plot(r[:, 0], r[:, 1], '-.', linewidth=0.5)
         # draw arrows every k points
         """

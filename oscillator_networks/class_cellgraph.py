@@ -330,7 +330,7 @@ class CellGraph():
 
         if 'vectorized' not in solver_kwargs.keys():
             solver_kwargs['vectorized'] = True
-        sol = solve_ivp(fn, time_interval, init_cond, method='Radau', args=(single_cell,), **solver_kwargs)
+        sol = solve_ivp(fn, time_interval, init_cond, args=(single_cell,), **solver_kwargs)
         r = np.transpose(sol.y)
         times = sol.t
         return r, times
@@ -535,7 +535,7 @@ class CellGraph():
         if 'vectorized' not in solver_kwargs.keys():
             solver_kwargs['vectorized'] = False  # TODO how to vectorize our graph ODE?
         assert self.style_dynamics == 'solve_ivp'  # TODO test other integration methods (speed/scaling?) + consider impact of noise on detection
-        sol = solve_ivp(fn, time_interval, init_cond, method='Radau', args=(single_cell,), **solver_kwargs)
+        sol = solve_ivp(fn, time_interval, init_cond, args=(single_cell,), **solver_kwargs)
         r = sol.y
         times = sol.t
 

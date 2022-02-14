@@ -4,19 +4,19 @@ from scipy.integrate import ode, odeint, solve_ivp
 from settings import STYLE_DYNAMICS_VALID, STYLE_DYNAMICS
 
 
-def simulate_dynamics_general(init_cond, times, single_cell, method="solve_ivp", **solver_kwargs):
+def simulate_dynamics_general(init_cond, times, single_cell, dynamics_method="solve_ivp", **solver_kwargs):
     """
     single_cell is an instance of SingleCell
     See documentation on SciPy mehods here
     - https://docs.scipy.org/doc/scipy/reference/integrate.html
     """
-    if method == 'solve_ivp':
+    if dynamics_method == 'solve_ivp':
         r, times = ode_solve_ivp(init_cond, times, single_cell, **solver_kwargs)
-    elif method == "libcall":
+    elif dynamics_method == "libcall":
         r, times = ode_libcall(init_cond, times, single_cell, **solver_kwargs)
-    elif method == "rk4":
+    elif dynamics_method == "rk4":
         r, times = ode_rk4(init_cond, times, single_cell, **solver_kwargs)
-    elif method == "euler":
+    elif dynamics_method == "euler":
         r, times = ode_euler(init_cond, times, single_cell, **solver_kwargs)
     else:
         raise ValueError("method arg invalid, must be one of %s" % STYLE_DYNAMICS_VALID)
@@ -89,7 +89,7 @@ def ode_libcall(init_cond, times, single_cell, **solver_kwargs):
     return r, times
 
 
-def ode_solve_ivp(init_cond, times, single_cell, method='Radau', **solver_kwargs):
+def ode_solve_ivp(init_cond, times, single_cell, **solver_kwargs):
     """
     single_cell is an instance of SingleCell
     method: see documentation here
@@ -108,7 +108,7 @@ def ode_solve_ivp(init_cond, times, single_cell, method='Radau', **solver_kwargs
             solver_kwargs['vectorized'] = False
     fn = system_vector_obj_ode
     time_interval = [times[0], times[-1]]
-    sol = solve_ivp(fn, time_interval, init_cond, method=method, args=(single_cell,), **solver_kwargs)
+    sol = solve_ivp(fn, time_interval, init_cond, args=(single_cell,), **solver_kwargs)
     r = np.transpose(sol.y)
     times = sol.t
     return r, times
