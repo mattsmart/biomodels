@@ -13,7 +13,7 @@ PLOT_YLABEL = r'Cyc$_{tot}$'
 
 # DEFAULTS: module 0 - Integrating the ODE trajectory
 STYLE_DYNAMICS = 'solve_ivp'
-STYLE_DYNAMICS_VALID = ['solve_ivp', 'libcall', 'rk4', 'euler']
+STYLE_DYNAMICS_VALID = ['solve_ivp', 'numba_lsoda', 'diffeqpy', 'libcall', 'rk4', 'euler']
 
 # DEFAULTS: module 1 - Single cell dynamical system
 STYLE_ODE = 'PWL3_swap'

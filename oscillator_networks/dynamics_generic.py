@@ -1,7 +1,10 @@
 import numpy as np
 from scipy.integrate import ode, odeint, solve_ivp
+from diffeqpy import de
+from NumbaLSODA import lsoda_sig, lsoda
+from numba import njit, cfunc
 
-from dynamics_vectorfields import set_ode_jacobian
+from dynamics_vectorfields import set_ode_jacobian, pointer_ode_vectorfield
 from settings import STYLE_DYNAMICS_VALID, STYLE_DYNAMICS
 
 
@@ -13,6 +16,10 @@ def simulate_dynamics_general(init_cond, times, single_cell, dynamics_method="so
     """
     if dynamics_method == 'solve_ivp':
         r, times = ode_solve_ivp(init_cond, times, single_cell, **solver_kwargs)
+    elif dynamics_method == "numba_lsoda":
+        r, times = ode_numba_lsoda(init_cond, times, single_cell, **solver_kwargs)
+    elif dynamics_method == "diffeqpy":
+        r, times = ode_diffeqpy(init_cond, times, single_cell, **solver_kwargs)
     elif dynamics_method == "libcall":
         r, times = ode_libcall(init_cond, times, single_cell, **solver_kwargs)
     elif dynamics_method == "rk4":
@@ -116,4 +123,53 @@ def ode_solve_ivp(init_cond, times, single_cell, **solver_kwargs):
 
     r = np.transpose(sol.y)
     times = sol.t
+    return r, times
+
+
+def ode_diffeqpy(init_cond, times, single_cell, **solver_kwargs):
+    """
+    See documentation here: https://github.com/SciML/diffeqpy
+    Also says to jit numba the vectorfield functions
+
+    Function has the following form
+    def f(u, p, t):
+        return -u
+    """
+    fn = pointer_ode_vectorfield(single_cell.style_ode)
+    time_interval = [times[0], times[-1]]
+
+    # main solver call
+    prob = de.ODEProblem(fn, init_cond, time_interval, single_cell.params_ode)
+    sol = de.solve(prob, de.RadauIIA5(), **solver_kwargs)  # RadauIIA5() or lsoda(); can't call lsoda() from python?
+    r = sol.u
+    times = sol.t
+    return r, times
+
+
+def ode_numba_lsoda(init_cond, times, single_cell, **solver_kwargs):
+    """ Docs: https://github.com/Nicholaswogan/NumbaLSODA
+    @cfunc(lsoda_sig)
+    def rhs(t, u, du, p):
+        du[0] = u[0] - u[0] * u[1]
+        du[1] = u[0] * u[1] - u[1] * p[0]
+
+    Possible issue: our current arg format is not aligned
+    def vectorfield_PWL3_swap(init_cond, params, t):
+
+    We currently get this error:
+    Untyped global name 'fn': Cannot determine Numba type of <class 'function'>
+    File "dynamics_generic.py", line 163:
+        def fn_mask(t, u, du, p):
+            return fn(u, p, t)
+            ^
+    """
+    fn = pointer_ode_vectorfield(single_cell.style_ode)
+
+    @cfunc(lsoda_sig)
+    def fn_mask(t, u, du, p):
+        return fn(u, p, t)
+
+    usol, success = lsoda(fn_mask, init_cond, times, data=single_cell.params_ode)
+    r = usol.u
+    times = usol.t
     return r, times

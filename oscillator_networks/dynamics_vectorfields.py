@@ -176,29 +176,58 @@ def set_ode_vectorfield(style_ode, params, init_cond, **ode_kwargs):
         dxdt, which is the output of vector field function call
     """
     if style_ode == 'Yang2013':
-        dxdt = vectorfield_Yang2013(params, init_cond, z=ode_kwargs.get('z', 0))
+        dxdt = vectorfield_Yang2013(init_cond, params, z=ode_kwargs.get('z', 0))
     elif style_ode == 'PWL2':
-        dxdt = vectorfield_PWL2(params, init_cond, ode_kwargs.get('t', 0), z=ode_kwargs.get('z', 0))
+        dxdt = vectorfield_PWL2(init_cond, params, ode_kwargs.get('t', 0), z=ode_kwargs.get('z', 0))
     elif style_ode == 'PWL3':
-        dxdt = vectorfield_PWL3(params, init_cond, ode_kwargs.get('t', 0))
+        dxdt = vectorfield_PWL3(init_cond, params, ode_kwargs.get('t', 0))
     elif style_ode == 'PWL3_swap':
-        dxdt = vectorfield_PWL3_swap(params, init_cond, ode_kwargs.get('t', 0))
+        dxdt = vectorfield_PWL3_swap(init_cond, params, ode_kwargs.get('t', 0))
     elif style_ode == 'PWL4_auto_ww':
-        dxdt = vectorfield_PWL4_autonomous_ww(params, init_cond, ode_kwargs.get('t', 0))
+        dxdt = vectorfield_PWL4_autonomous_ww(init_cond, params, ode_kwargs.get('t', 0))
     elif style_ode == 'PWL4_auto_wz':
-        dxdt = vectorfield_PWL4_autonomous_wz(params, init_cond, ode_kwargs.get('t', 0))
+        dxdt = vectorfield_PWL4_autonomous_wz(init_cond, params, ode_kwargs.get('t', 0))
     elif style_ode == 'PWL4_auto_linear':
-        dxdt = vectorfield_PWL4_autonomous_linear(params, init_cond, ode_kwargs.get('t', 0))
+        dxdt = vectorfield_PWL4_autonomous_linear(init_cond, params, ode_kwargs.get('t', 0))
     elif style_ode == 'toy_flow':
         dxdt = vectorfield_toy_flow()
     elif style_ode == 'toy_clock':
-        dxdt = vectorfield_toy_clock(params, init_cond, ode_kwargs.get('t', 0))
+        dxdt = vectorfield_toy_clock(init_cond, params, ode_kwargs.get('t', 0))
     else:
         print("Warning: style_ode %s is not supported by set_ode_vectorfield()" % style_ode)
         print("Supported odes include:", STYLE_ODE_VALID)
         dxdt = None
     return dxdt
 
+
+def pointer_ode_vectorfield(style_ode):
+    """
+    Returns
+        dxdt, which is the output of vector field function call
+    """
+    if style_ode == 'Yang2013':
+        fn = vectorfield_Yang2013
+    elif style_ode == 'PWL2':
+        fn = vectorfield_PWL2
+    elif style_ode == 'PWL3':
+        fn = vectorfield_PWL3
+    elif style_ode == 'PWL3_swap':
+        fn = vectorfield_PWL3_swap
+    elif style_ode == 'PWL4_auto_ww':
+        fn = vectorfield_PWL4_autonomous_ww
+    elif style_ode == 'PWL4_auto_wz':
+        fn = vectorfield_PWL4_autonomous_wz
+    elif style_ode == 'PWL4_auto_linear':
+        fn = vectorfield_PWL4_autonomous_linear
+    elif style_ode == 'toy_flow':
+        fn = vectorfield_toy_flow
+    elif style_ode == 'toy_clock':
+        fn = vectorfield_toy_clock
+    else:
+        print("Warning: style_ode %s is not supported by set_ode_vectorfield()" % style_ode)
+        print("Supported odes include:", STYLE_ODE_VALID)
+        fn = None
+    return fn
 
 def set_ode_jacobian(style_ode):
     """
@@ -263,13 +292,13 @@ def vectorfield_toy_flow():
     return [0]
 
 
-def vectorfield_toy_clock(params, init_cond, t):
+def vectorfield_toy_clock(init_cond, params, t):
     w = params['w']
     dxdt = w * np.cos(w * t)
     return [dxdt]
 
 
-def vectorfield_Yang2013(params, init_cond, z=0):
+def vectorfield_Yang2013(init_cond, params, z=0):
     """
     Args:
         params - dictionary of ODE parameters used by Yang2013
@@ -377,7 +406,7 @@ def PWL_derivative_I_of_t_pulse(params, z, t, eps=1e-6):
     return dIdt
 
 
-def vectorfield_PWL2(params, init_cond, t, z=0):
+def vectorfield_PWL2(init_cond, params, t, z=0):
     """
     Originally from slide 12 of Hayden ppt
     - Change #1: here the variables are relabelled (based on Jan 18 discussion)
@@ -408,7 +437,7 @@ def vectorfield_PWL2(params, init_cond, t, z=0):
     return out
 
 
-def vectorfield_PWL3(params, init_cond, t):
+def vectorfield_PWL3(init_cond, params, t):
     """
     3-dim variant of PWL2 where the modulator I(t), here z, has own differential equation
     Args:
@@ -434,7 +463,7 @@ def vectorfield_PWL3(params, init_cond, t):
     return out
 
 
-def vectorfield_PWL3_swap(params, init_cond, t):
+def vectorfield_PWL3_swap(init_cond, params, t):
     """
     3-dim variant of PWL2 where the modulator I(t) now affects the y nullcline (slides its y intercept)
     Args:
@@ -488,7 +517,7 @@ def PWL4_auto_helper(params, x, y, z, w):
     return dxdt, dydt, dwdt
 
 
-def vectorfield_PWL4_autonomous_ww(params, init_cond, t):
+def vectorfield_PWL4_autonomous_ww(init_cond, params, t):
     """
     4-dim variant of PWL3_swap where the modulator Bam is now autonomous and controlled by 4th parameter w
     Notes:
@@ -515,7 +544,7 @@ def vectorfield_PWL4_autonomous_ww(params, init_cond, t):
     return out
 
 
-def vectorfield_PWL4_autonomous_wz(params, init_cond, t):
+def vectorfield_PWL4_autonomous_wz(init_cond, params, t):
     """
     4-dim variant of PWL3_swap where the modulator Bam is now autonomous and controlled by 4th parameter w
     Notes:
@@ -543,7 +572,7 @@ def vectorfield_PWL4_autonomous_wz(params, init_cond, t):
     return out
 
 
-def vectorfield_PWL4_autonomous_linear(params, init_cond, t):
+def vectorfield_PWL4_autonomous_linear(init_cond, params, t):
     """
     4-dim variant of PWL3_swap where the modulator Bam is now autonomous and controlled by 4th parameter w
     Notes:

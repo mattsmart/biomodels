@@ -9,7 +9,7 @@ from preset_solver import PRESET_SOLVER
 from class_singlecell import SingleCell
 
 
-def compare_solvers_singlecell(single_cell, solver_presets, timer_mode=True, nrepeats=10):
+def compare_solvers_singlecell(single_cell, solver_presets, timer_mode=True, nrepeats=2):
     """
     Given a list of solvers, compute SingleCell trajectories for each.
 
@@ -139,9 +139,10 @@ if __name__ == '__main__':
         sc.params_ode['t_pulse_switch'] = 25
 
     solver_presets = [
+        PRESET_SOLVER['solve_ivp_BDF_default'],
         PRESET_SOLVER['solve_ivp_radau_default'],
         PRESET_SOLVER['solve_ivp_radau_minstep'],
-        PRESET_SOLVER['solve_ivp_radau_relaxed']
+        PRESET_SOLVER['solve_ivp_radau_relaxed'],
     ]
 
     compare_solvers_singlecell(sc, solver_presets)

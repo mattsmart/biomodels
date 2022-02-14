@@ -1,13 +1,5 @@
-""" options for solve_ivp
-
-Reference:
-
-solver_kwargs['t_eval'] = None  # None or np.linspace(0, 50, 2000)  np.linspace(15, 50, 2000)
-solver_kwargs['max_step'] = np.Inf  # try 1e-1 or 1e-2 if division time-sequence is buggy as a result of large adaptive steps
-"""
-
-
 PRESET_SOLVER = {}
+
 PRESET_SOLVER['solve_ivp_radau_default'] = dict(
     label='solve_ivp_radau_default',
     dynamics_method='solve_ivp',
@@ -24,4 +16,24 @@ PRESET_SOLVER['solve_ivp_radau_relaxed'] = dict(
     label='solve_ivp_radau_relaxed',
     dynamics_method='solve_ivp',
     kwargs=dict(method='Radau', atol=1e-5),
+)
+
+PRESET_SOLVER['solve_ivp_BDF_default'] = dict(
+    label='solve_ivp_BDF_default',
+    dynamics_method='solve_ivp',
+    kwargs=dict(method='BDF'),
+)
+
+# TODO - not working
+PRESET_SOLVER['diffeqpy_default'] = dict(
+    label='diffeqpy_default',
+    dynamics_method='diffeqpy',
+    kwargs=dict(abstol=1e-8, reltol=1e-3),  # assumes RadauIIA5 solver for now
+)
+
+# TODO - not working; also try to numba our other functions if possible?
+PRESET_SOLVER['numba_lsoda'] = dict(
+    label='numba_lsoda',
+    dynamics_method='numba_lsoda',
+    kwargs=dict(atol=1e-8, rtol=1e-3),
 )
