@@ -123,7 +123,12 @@ def visualize_sweep(sweep):
 
     else:
         assert sweep.k_vary == 2
-        # TODO test this k=2 case
+
+        param_y = sweep.params_values[0]  # note imshow reversal of x, y
+        param_x = sweep.params_values[1]
+        print(sweep.params_name[0])
+        print(sweep.params_name[1])
+
         run_int = 0
         M_of_theta = np.zeros(sweep.sizes)
         for run_id_list in np.ndindex(*sweep.sizes):
@@ -132,19 +137,47 @@ def visualize_sweep(sweep):
             M_of_theta[run_id_list] = results[run_id_list]['num_cells']
             run_int += 1
 
-        im = plt.imshow(M_of_theta)
-        plt.title(r'$M(\{theta})$ for $\{theta}=(%s, %s)$' % (sweep.params_name[0], sweep.params_name[1]))
+        # Plot settings to change extents, vmin/vmax
+        vmin = None
+        vmax = None
+        xlims = None
+        ylims = [0.15, 0.3]
+        extent = [param_x[0], param_x[-1], param_y[0], param_y[-1]]
+        print(M_of_theta.shape)
+        if xlims is not None:
+            extent[0] = xlims[0]
+            extent[1] = xlims[1]
+            start_idx = np.searchsorted(param_x, xlims[0])
+            end_idx = np.searchsorted(param_x, xlims[1])
+            M_of_theta = M_of_theta[:, start_idx:end_idx]   # note imshow reversal of x, y
+        if ylims is not None:
+            extent[2] = ylims[0]
+            extent[3] = ylims[1]
+            start_idx = np.searchsorted(param_y, ylims[0])
+            end_idx = np.searchsorted(param_y, ylims[1])
+            M_of_theta = M_of_theta[start_idx:end_idx, :]  # note imshow reversal of x, y
+        print(M_of_theta.shape)
+
+        im = plt.imshow(M_of_theta, interpolation='none', origin='lower', cmap='Spectral_r', aspect='auto',
+                        extent=extent,
+                        vmin=vmin,
+                        vmax=vmax)
+        plt.title(r'$M(\theta)$ for $\theta=$(%s, %s)' % (sweep.params_name[0], sweep.params_name[1]))
         plt.ylabel('%s' % sweep.params_name[0])
         plt.xlabel('%s' % sweep.params_name[1])
-        plt.colorbar(im)
+
+        cbar = plt.colorbar(im)
+        cbar.set_label('# of cells', rotation=90)
+        cbar.ax.get_yaxis().labelpad = 10
+
         plt.show()
     return M_of_theta
 
 
 if __name__ == '__main__':
     #sweep_dir = 'sweeps' + os.sep + 'sweep_preset_1d_epsilon_ndiv_bam'
-    sweep_dir = 'runs' + os.sep + 'sweep_preset_1d_epsilon'
-    #sweep_dir = 'runs' + os.sep + 'sweep_preset_2d_diffusion_ndiv_bam_test'
+    #sweep_dir = 'runs' + os.sep + 'sweep_preset_1d_epsilon'
+    sweep_dir = 'sweeps' + os.sep + 'sweep_preset_2d_diffusion_ndiv_bam'
     fpath_pickle = sweep_dir + os.sep + 'sweep.pkl'
     sweep_cellgraph = pickle_load(fpath_pickle)
 
