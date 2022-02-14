@@ -5,7 +5,7 @@ import os
 
 from dynamics_generic import simulate_dynamics_general
 from dynamics_vectorfields import set_ode_params, ode_integration_defaults, set_ode_vectorfield, set_ode_attributes
-from file_io import run_subdir_setup
+from utils_io import run_subdir_setup
 from settings import STYLE_DYNAMICS, STYLE_ODE
 
 

@@ -2,7 +2,7 @@ import numpy as np
 import os
 
 from class_cellgraph import CellGraph
-from file_io import run_subdir_setup
+from utils_io import run_subdir_setup
 from preset_solver import PRESET_SOLVER
 from preset_cellgraph import PRESET_CELLGRAPH
 
@@ -64,7 +64,7 @@ def mod_cellgraph_ode_params(base_cellgraph, mods_params_ode):
 
 if __name__ == '__main__':
 
-    flag_preset = True
+    flag_preset = False
 
     if flag_preset:
         cellgraph_preset_choice = 'PWL3_swap_partition_ndiv_bam'  # PWL3_swap_partition_ndiv_bam, PWL3_swap_copy
@@ -73,17 +73,17 @@ if __name__ == '__main__':
 
         cellgraph_preset = PRESET_CELLGRAPH[cellgraph_preset_choice]
         cellgraph_preset['io_dict'] = io_dict
-        cellgraph_preset['mods_params_ode']['epsilon'] = 0.25
+        cellgraph_preset['mods_params_ode']['epsilon'] = 0.20
         #cellgraph_preset['style_detection'] = 'manual_crossings_1d_mid'
         cellgraph_preset['style_diffusion'] = 'xy'
-        cellgraph_preset['diffusion_rate'] = 100.0
+        cellgraph_preset['diffusion_rate'] = 10.5
         cellgraph = create_cellgraph(**cellgraph_preset)
 
     else:
         # High-level initialization & graph settings
         style_ode = 'PWL3_swap'                      # styles: ['PWL2', 'PWL3', 'PWL3_swap', 'Yang2013', 'toy_flow', 'toy_clock']
         style_detection = 'manual_crossings_1d_mid'  # styles: ['ignore', 'scipy_peaks', 'manual_crossings_1d_mid', 'manual_crossings_1d_hl', 'manual_crossings_2d']
-        style_division = 'partition_ndiv_all'        # styles: ['copy', 'partition_equal', 'partition_ndiv_all', 'partition_ndiv_bam']
+        style_division = 'copy'        # styles: ['copy', 'partition_equal', 'partition_ndiv_all', 'partition_ndiv_bam']
         style_diffusion = 'all'                      # styles: ['all', 'xy']
         M = 1
         diffusion_rate = 0
@@ -125,7 +125,8 @@ if __name__ == '__main__':
             verbosity=verbosity)
         if cellgraph.style_ode in ['PWL2', 'PWL3', 'PWL3_swap']:
             #pass
-            cellgraph.sc_template.params_ode['epsilon'] = 0.2
+            cellgraph.sc_template.params_ode['epsilon'] = 0.1
+            cellgraph.sc_template.params_ode['C'] = 1
 
         # Add some cells through manual divisions (two different modes - linear or random) to augment initialization
         for idx in range(add_init_cells):

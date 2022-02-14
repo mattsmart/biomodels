@@ -12,7 +12,7 @@ from scipy.integrate import solve_ivp
 from class_singlecell import SingleCell
 from dynamics_detect_cycles import detection_args_given_style
 from dynamics_vectorfields import set_ode_attributes, ode_integration_defaults
-from file_io import run_subdir_setup
+from utils_io import run_subdir_setup
 from utils_networkx import draw_from_adjacency
 from settings import *
 
@@ -40,7 +40,7 @@ Attributes:
 - self.t1              - float           - final timepoint maintained through recursive traj
 - self.division_events - array (d x 3)   - for each division event, append row: [mother_idx, daughter_idx, time_idx] 
 - self.cell_stats      - array (M x 3)   - stores cell metadata: [n_div, time_idx_last_div, time_idx_birth]
-- self.io_dict         - dict            - [see file_io.py] 
+- self.io_dict         - dict            - [see utils_io.py] 
                                               if None  -  io_dict = run_subdir_setup(run_subfolder='cellgraph')
                                               if False -  io_dict = False (do not generate new directories)
 

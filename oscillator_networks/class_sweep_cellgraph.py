@@ -2,7 +2,7 @@ import numpy as np
 import os
 import pickle
 
-from file_io import run_subdir_setup
+from utils_io import run_subdir_setup
 from settings import SWEEP_VARIETY_VALID
 from run_cellgraph import create_cellgraph, mod_cellgraph_ode_params
 

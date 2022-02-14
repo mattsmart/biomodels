@@ -3,7 +3,7 @@ import numpy as np
 import os
 
 from class_sweep_cellgraph import SweepCellGraph
-from file_io import pickle_load
+from utils_io import pickle_load
 from utils_networkx import check_tree_isomorphism, draw_from_adjacency
 
 
@@ -142,8 +142,9 @@ def visualize_sweep(sweep):
 
 
 if __name__ == '__main__':
-    sweep_dir = 'sweeps' + os.sep + 'sweep_preset_1d_epsilon_ndiv_bam'
-    #sweep_dir = 'sweeps' + os.sep + 'sweep_preset_1d_diffusion_ndiv_bam'
+    #sweep_dir = 'sweeps' + os.sep + 'sweep_preset_1d_epsilon_ndiv_bam'
+    sweep_dir = 'runs' + os.sep + 'sweep_preset_1d_epsilon'
+    #sweep_dir = 'runs' + os.sep + 'sweep_preset_2d_diffusion_ndiv_bam_test'
     fpath_pickle = sweep_dir + os.sep + 'sweep.pkl'
     sweep_cellgraph = pickle_load(fpath_pickle)
 

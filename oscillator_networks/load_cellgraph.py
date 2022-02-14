@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from class_cellgraph import CellGraph
-from file_io import pickle_load
+from utils_io import pickle_load
 
 
 if __name__ == '__main__':
