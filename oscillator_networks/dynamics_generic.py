@@ -1,7 +1,5 @@
 import numpy as np
 from scipy.integrate import ode, odeint, solve_ivp
-from diffeqpy import de
-from NumbaLSODA import lsoda_sig, lsoda
 from numba import njit, cfunc
 
 from dynamics_vectorfields import set_ode_jacobian, pointer_ode_vectorfield
@@ -114,6 +112,9 @@ def ode_solve_ivp(init_cond, times, single_cell, **solver_kwargs):
             solver_kwargs['vectorized'] = True
         else:
             solver_kwargs['vectorized'] = False
+    if solver_kwargs['method'] == 'LSODA' and 't_eval' not in solver_kwargs.keys():
+        solver_kwargs['t_eval'] = times
+        print('SETTING TIMES BECAUSE METHOD = LSODA')
     fn = system_vector_obj_ode
     time_interval = [times[0], times[-1]]
     jac = None  #set_ode_jacobian(single_cell.style_ode)  # TODO investigate why singlecell traj much slower with Jacobian supplied
@@ -135,6 +136,8 @@ def ode_diffeqpy(init_cond, times, single_cell, **solver_kwargs):
     def f(u, p, t):
         return -u
     """
+    from diffeqpy import de  # TODO slow call, move out after debug
+
     fn = pointer_ode_vectorfield(single_cell.style_ode)
     time_interval = [times[0], times[-1]]
 
@@ -163,13 +166,18 @@ def ode_numba_lsoda(init_cond, times, single_cell, **solver_kwargs):
             return fn(u, p, t)
             ^
     """
+    from NumbaLSODA import lsoda_sig, lsoda  # TODO slow call, move out after debug
+
     fn = pointer_ode_vectorfield(single_cell.style_ode)
 
     @cfunc(lsoda_sig)
     def fn_mask(t, u, du, p):
         return fn(u, p, t)
 
-    usol, success = lsoda(fn_mask, init_cond, times, data=single_cell.params_ode)
+    #fnptr = fn_mask.address
+    fnptr = fn_mask
+
+    usol, success = lsoda(fnptr, init_cond, times, data=single_cell.params_ode)
     r = usol.u
     times = usol.t
     return r, times

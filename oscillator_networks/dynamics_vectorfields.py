@@ -1,4 +1,5 @@
 import numpy as np
+from numba import jit
 
 from settings import STYLE_ODE_VALID
 
@@ -349,9 +350,8 @@ def PWL_g_of_x_SCALAR(params, x):
     return g
 
 
-def PWL_g_of_x(params, x):
-    a = params['a']
-    d = params['d']
+@jit
+def PWL_g_of_x(x, a, d):
     g1 = np.where(x < a/2, x, 0)
     g2 = np.where(
         ((a/2) <= x) & (x < ((d+a)/2)),
@@ -389,15 +389,19 @@ def PWL_I_of_t_pulse(params, t):
     return I
 
 
-def PWL_derivative_I_of_t_pulse(params, z, t, eps=1e-6):
+# TODO Currently both decorators are slower than no decorator
+#@jit
+#@vectorize([float64(float64, float64, float64, float64)])
+def PWL_derivative_I_of_t_pulse(z, t, vel, t_half):
     """
     Generates a triangular pulse rising at t=0 with switch at t = params['t_pulse_switch']
       when t > 2 * params['t_pulse_switch'], there is no further change
     """
-    if t < params['t_pulse_switch']:
-        dIdt = params['epsilon']
-    elif t < 2 * params['t_pulse_switch']:
-        dIdt = -params['epsilon']
+    eps = 1e-6
+    if t < t_half:
+        dIdt = vel
+    elif t < 2 * t_half:
+        dIdt = -vel
         dIdt = np.where(z <= eps, 0, dIdt)
     else:
         dIdt = 0
@@ -428,7 +432,7 @@ def vectorfield_PWL2(init_cond, params, t, z=0):
     x, y = init_cond  # TODO note z is passed through init_cond but is unused; use static "external" z for now
 
     I_of_t = PWL_I_of_t_pulse(params, t)
-    g_of_x = PWL_g_of_x(params, x)
+    g_of_x = PWL_g_of_x(x, params['a'], params['d'])
 
     dxdt = 1/params['C'] * (y - g_of_x - I_of_t)
     dydt = params['b'] - x - params['gamma'] * y
@@ -451,8 +455,8 @@ def vectorfield_PWL3(init_cond, params, t):
     """
     x, y, z = init_cond
 
-    derivative_I_of_t = PWL_derivative_I_of_t_pulse(params, z, t)
-    g_of_x = PWL_g_of_x(params, x)
+    derivative_I_of_t = PWL_derivative_I_of_t_pulse(z, t, params['epsilon'], params['t_pulse_switch'])
+    g_of_x = PWL_g_of_x(x, params['a'], params['d'])
 
     dxdt = 1/params['C'] * (y - g_of_x - z)
     dydt = params['b'] - x - params['gamma'] * y
@@ -477,8 +481,8 @@ def vectorfield_PWL3_swap(init_cond, params, t):
     """
     x, y, z = init_cond
 
-    derivative_I_of_t = PWL_derivative_I_of_t_pulse(params, z, t)
-    g_of_x = PWL_g_of_x(params, x)
+    derivative_I_of_t = PWL_derivative_I_of_t_pulse(z, t, params['epsilon'], params['t_pulse_switch'])
+    g_of_x = PWL_g_of_x(x, params['a'], params['d'])
 
     dxdt = 1/params['C'] * (y - g_of_x)
     dydt = z - x - params['gamma'] * y
@@ -510,7 +514,7 @@ def PWL4_auto_helper(params, x, y, z, w):
     Common steps used by PWL4 autonomous vectorfields (note auto means autonomous)
     - the "dzdt" equation is what differs between the various PWL4 autonomous vectorfields
     """
-    g_of_x = PWL_g_of_x(params, x)
+    g_of_x = PWL_g_of_x(x, params['a'], params['d'])
     dxdt = 1/params['C'] * (y - g_of_x)
     dydt = z - x - params['gamma'] * y
     dwdt = -params['delta_w'] * w

@@ -125,8 +125,8 @@ if __name__ == '__main__':
             verbosity=verbosity)
         if cellgraph.style_ode in ['PWL2', 'PWL3', 'PWL3_swap']:
             #pass
-            cellgraph.sc_template.params_ode['epsilon'] = 0.1
-            cellgraph.sc_template.params_ode['C'] = 1
+            cellgraph.sc_template.params_ode['epsilon'] = 0.15
+            cellgraph.sc_template.params_ode['C'] = 1e-2
 
         # Add some cells through manual divisions (two different modes - linear or random) to augment initialization
         for idx in range(add_init_cells):
@@ -161,6 +161,7 @@ if __name__ == '__main__':
     print("\n in main: num cells after wrapper trajectory =", cellgraph.num_cells)
 
     # Plot the timeseries for each cell
+    """
     cellgraph.plot_state_unified(arrange_vertical=True, fmod='final')
     cellgraph.plot_graph(fmod='final')
     if cellgraph.sc_dim_ode > 1:
@@ -169,3 +170,4 @@ if __name__ == '__main__':
 
     # Save class state as pickle object
     cellgraph.pickle_save('classdump.pkl')
+    """

@@ -9,7 +9,7 @@ from preset_solver import PRESET_SOLVER
 from class_singlecell import SingleCell
 
 
-def compare_solvers_singlecell(single_cell, solver_presets, timer_mode=True, nrepeats=2):
+def compare_solvers_singlecell(single_cell, solver_presets, timer_mode=True, nrepeats=10):
     """
     Given a list of solvers, compute SingleCell trajectories for each.
 
@@ -72,6 +72,7 @@ def compare_solvers_singlecell(single_cell, solver_presets, timer_mode=True, nre
         boxplot.set_ylabel("Runtime (s)", fontsize=12)
         plt.tick_params(axis='x', which='major', labelsize=8)
         plt.tight_layout()
+        plt.gca().set_ylim([0, 0.3])
         plt.savefig("output" + os.sep + "solver_comparison_singlecell_timings.pdf", bbox_inches='tight')
         plt.show(bbox_inches='tight')
         plt.close()
@@ -124,7 +125,7 @@ def compare_solvers_singlecell(single_cell, solver_presets, timer_mode=True, nre
     plt.legend()
     fpath = "output" + os.sep + "solver_comparison_singlecell"
     plt.savefig(fpath + '.pdf')
-    plt.show()
+    #plt.show()
     plt.close()
     return traj_obj
 

@@ -24,6 +24,13 @@ PRESET_SOLVER['solve_ivp_BDF_default'] = dict(
     kwargs=dict(method='BDF'),
 )
 
+PRESET_SOLVER['solve_ivp_LSODA_default'] = dict(
+    label='solve_ivp_LSODA_default',
+    dynamics_method='solve_ivp',
+    kwargs=dict(method='LSODA'),
+)
+
+
 # TODO - not working
 PRESET_SOLVER['diffeqpy_default'] = dict(
     label='diffeqpy_default',
