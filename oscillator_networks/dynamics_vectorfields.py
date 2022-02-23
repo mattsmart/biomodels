@@ -20,6 +20,16 @@ def set_ode_attributes(style_ode):
     if style_ode == 'Yang2013':
         # currently, all methods share the same attributes above
         pass
+    elif style_ode == 'bpj2017':
+        dim_ode = 2
+        variables_short = {0: 'Cyc_act',
+                           1: 'Cyc_tot',
+                           2: 'n_div',
+                           3: 'fusome'}
+        variables_long = {0: 'Cyclin active',
+                          1: 'Cyclin total',
+                          2: 'Number of Divisions',
+                          3: 'Fusome content'}
     elif style_ode in ['PWL3', 'PWL3_swap']:
         # currently, all methods share the same attributes above
         pass
@@ -95,6 +105,22 @@ def set_ode_params(style_ode):
             'b_Wee1': 0.40,  # min^-1
             'EC50_Wee1': 30,  # nM
             'n_Wee1': 3.5,  # unitless
+        }
+        # add any extra parameters that are separate from Yang2013
+        p['Bam_activity'] = 1  # as indicated in SmallCellCluster review draft p7
+        p['Bam_deg'] = 0  # degradation rate; arbitrary, try 0 or 1e-2 to 1e-4
+    elif style_ode == 'bpj2017':
+        # reference is bpj2017 Table 2
+        # "The Design Space of the Embryonic Cell Cycle Oscillator"
+        p = {
+            'a1': 1,  # like time^-1
+            'a2': 1,  # like time^-1
+            'mu': 1,  # like time^-1
+            'epsilon': 0.01,  # like time
+            'n1': 10,    # unitless
+            'n2': 10,  # unitless
+            'gamma1': 0.5,  # concentration
+            'gamma2': 0.5,  # concentration
         }
         # add any extra parameters that are separate from Yang2013
         p['Bam_activity'] = 1  # as indicated in SmallCellCluster review draft p7
@@ -178,6 +204,8 @@ def set_ode_vectorfield(style_ode, params, init_cond, **ode_kwargs):
     """
     if style_ode == 'Yang2013':
         dxdt = vectorfield_Yang2013(init_cond, params, z=ode_kwargs.get('z', 0))
+    elif style_ode == 'bpj2017':
+        dxdt = vectorfield_bpj2017(init_cond, params, z=ode_kwargs.get('z', 0))
     elif style_ode == 'PWL2':
         dxdt = vectorfield_PWL2(init_cond, params, ode_kwargs.get('t', 0), z=ode_kwargs.get('z', 0))
     elif style_ode == 'PWL3':
@@ -208,6 +236,8 @@ def pointer_ode_vectorfield(style_ode):
     """
     if style_ode == 'Yang2013':
         fn = vectorfield_Yang2013
+    elif style_ode == 'bpj2017':
+        fn = vectorfield_bpj2017
     elif style_ode == 'PWL2':
         fn = vectorfield_PWL2
     elif style_ode == 'PWL3':
@@ -230,6 +260,7 @@ def pointer_ode_vectorfield(style_ode):
         fn = None
     return fn
 
+
 def set_ode_jacobian(style_ode):
     """
     Returns
@@ -245,6 +276,10 @@ def set_ode_jacobian(style_ode):
 def ode_integration_defaults(style_ode):
     t0 = 0.0
     if style_ode == 'Yang2013':
+        t1 = 800
+        num_steps = 2000
+        init_cond = [60.0, 0.0, 0.0]
+    elif style_ode == 'bpj2017':
         t1 = 800
         num_steps = 2000
         init_cond = [60.0, 0.0, 0.0]
@@ -333,6 +368,23 @@ def vectorfield_Yang2013(init_cond, params, z=0):
     dzdt = -p['Bam_deg'] * z
 
     out = [dxdt, dydt, dzdt]
+    return out
+
+
+def vectorfield_bpj2017(init_cond, params, z=0):
+    p = params
+    x, y = init_cond  # TODO note z is passed through init_cond but is unused; use static "external" z for now
+
+    ratio_pow_1 = (p['gamma1'] / x) ** p['n1']
+    ratio_pow_2 = (p['gamma2'] / x) ** p['n2']
+
+    A = 1 + p['a1'] * (1 / (ratio_pow_1 + 1))
+    Q = (p['mu'] + p['a2'] * (1 / (ratio_pow_2 + 1))) * (y-x) - x
+
+    dxdt = 1 - A*x + 1/(p['epsilon']) * Q
+    dydt = 1 - A*y
+
+    out = [dxdt, dydt]
     return out
 
 

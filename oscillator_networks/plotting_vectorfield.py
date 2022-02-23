@@ -5,6 +5,7 @@ import os
 from class_singlecell import SingleCell
 from dynamics_generic import simulate_dynamics_general
 from dynamics_vectorfields import set_ode_params, set_ode_vectorfield, ode_integration_defaults
+from preset_solver import PRESET_SOLVER
 from settings import STYLE_DYNAMICS, DIR_OUTPUT, PLOT_XLABEL, PLOT_YLABEL
 
 '''
@@ -169,8 +170,12 @@ def phaseplot_general(sc_template, init_conds=None, dynamics_method=STYLE_DYNAMI
         ax.plot(r[0, 0], r[0, 1], markerfacecolor='k', **kw_endpoint_markers)
         ax.plot(r[-1, 0], r[-1, 1], markerfacecolor='none', **kw_endpoint_markers)
 
+    # decorators
     ax.axhline(0, linestyle='--', color='k')
     ax.axvline(0, linestyle='--', color='k')
+    diagline = np.linspace(0, axhigh, 100)
+    ax.plot(diagline, diagline, linestyle='--', color='gray')
+
     ax.set_xlabel(PLOT_XLABEL)
     ax.set_ylabel(PLOT_YLABEL)
     ax.set_title('Example trajectories')
@@ -198,10 +203,13 @@ def vectorfield_general(sc_template, delta=0.1, axlow=0.0, axhigh=120.0, **ode_k
     lw = 5 * speed / speed.max()
 
     fig = plt.figure(figsize=(5, 5))
-    #  Varying density along a streamline
-    plt.axhline(0, linestyle='--', color='k')
-    plt.axvline(0, linestyle='--', color='k')
     ax0 = fig.gca()
+    # decorators
+    ax0.axhline(0, linewidth=1, linestyle='--', color='k')
+    ax0.axvline(0, linewidth=1, linestyle='--', color='k')
+    diagline = np.linspace(0, axhigh, 100)
+    ax0.plot(diagline, diagline, linewidth=1, linestyle='--', color='gray')
+
     strm = ax0.streamplot(X, Y, U, V, density=[0.5, 1], color=speed, linewidth=lw)
     fig.colorbar(strm.lines)
     ax0.set_title('%s Vector field' % sc_template.style_ode)
@@ -300,14 +308,16 @@ def nullclines_general(sc_template, flip_axis=False, contour_labels=True,
     if contour_labels:
         ax.clabel(nullcline_u, inline=1, fmt='X nc', fontsize=10)
         ax.clabel(nullcline_v, inline=1, fmt='Y nc', fontsize=10)
-    # gridlines
-    plt.axhline(0, linewidth=1, color='k', linestyle='--')
-    plt.axvline(0, linewidth=1, color='k', linestyle='--')
+    # decorators
+    ax.axhline(0, linewidth=1, linestyle='--', color='k')
+    ax.axvline(0, linewidth=1, linestyle='--', color='k')
+    diagline = np.linspace(0, axhigh, 100)
+    ax.plot(diagline, diagline, linewidth=1, linestyle='--', color='gray')
     # plot labels
     ax.set_title('%s nullclines (blue=%s, red=%s)' % (sc_template.style_ode, PLOT_XLABEL, PLOT_YLABEL))
     ax.set_xlabel(label_x)
     ax.set_ylabel(label_y)
-    #plt.show()
+    plt.show()
     return ax
 
 
@@ -315,35 +325,22 @@ if __name__ == '__main__':
 
     flag_Yang2013 = False
     flag_PWL2 = False
-    flag_PWL4_auto_linear = True
+    flag_PWL4_auto_linear = False
+    flag_bpj2017 = True
 
     flag_phaseplot = True
     flag_vectorfield = True
     flag_contourplot = False
     flag_nullclines = True
 
-    solver_kwargs = {
-        'atol': 1e-9,
-    }
-
-    sc_template_Yang2013 = SingleCell(style_ode='Yang2013')
-    kwargs_Yang2013 = {
-        'z': 0
-    }
-
-    sc_template_PWL2 = SingleCell(style_ode='PWL2')
-    kwargs_PWL2 = {
-        't': 0
-    }
-
-    sc_template_PWL4_auto_linear = SingleCell(style_ode='PWL4_auto_linear')
-    kwargs_PWL4_auto_linear = {
-        't': 0,    # this should have no affect on the autonomous equations
-        'z': 1.5,  # note z represents the x-intercept of the dydt=0 nullcline
-        'w': 0     # currently this has no affect
-    }
+    solver_kwargs = PRESET_SOLVER['solve_ivp_radau_default']['kwargs']
 
     if flag_Yang2013:
+        sc_template_Yang2013 = SingleCell(style_ode='Yang2013')
+        kwargs_Yang2013 = {
+            'z': 0
+        }
+
         axlow = 0
         axhigh = 120
         if flag_phaseplot:
@@ -356,6 +353,10 @@ if __name__ == '__main__':
             nullclines_general(sc_template_Yang2013, axlow=axlow, axhigh=axhigh, contour_labels=False, **kwargs_Yang2013)
 
     if flag_PWL2:
+        sc_template_PWL2 = SingleCell(style_ode='PWL2')
+        kwargs_PWL2 = {
+            't': 0
+        }
         axlow = 0
         axhigh = 12
         if flag_phaseplot:
@@ -368,15 +369,35 @@ if __name__ == '__main__':
             nullclines_general(sc_template_PWL2, delta=0.01, axlow=axlow, axhigh=axhigh, contour_labels=False, **kwargs_PWL2)
 
     if flag_PWL4_auto_linear:
+        sc_template_PWL4_auto_linear = SingleCell(style_ode='PWL4_auto_linear')
+        kwargs_PWL4_auto_linear = {
+            't': 0,  # this should have no affect on the autonomous equations
+            'z': 1.5,  # note z represents the x-intercept of the dydt=0 nullcline
+            'w': 0  # currently this has no affect
+        }
         axlow = 0
         axhigh = 5
         if flag_phaseplot:
             phaseplot_general(sc_template_PWL4_auto_linear, axlow=axlow, axhigh=axhigh, **solver_kwargs)
-        """
         if flag_vectorfield:
             vectorfield_general(sc_template_PWL4_auto_linear, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_PWL4_auto_linear)
         if flag_contourplot:
             contourplot_general(sc_template_PWL4_auto_linear, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_PWL4_auto_linear)
-        """
         if flag_nullclines:
             nullclines_general(sc_template_PWL4_auto_linear, delta=0.01, axlow=axlow, axhigh=axhigh, contour_labels=False, **kwargs_PWL4_auto_linear)
+
+    if flag_bpj2017:
+        sc_template_bpj2017 = SingleCell(style_ode='bpj2017')
+        kwargs_bpj2017 = {
+            'z': 1.5,  # currently no effect
+        }
+        axlow = 0
+        axhigh = 2
+        if flag_phaseplot:
+            phaseplot_general(sc_template_bpj2017, axlow=axlow, axhigh=axhigh, **solver_kwargs)
+        if flag_vectorfield:
+            vectorfield_general(sc_template_bpj2017, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_bpj2017)
+        if flag_contourplot:
+            contourplot_general(sc_template_bpj2017, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_bpj2017)
+        if flag_nullclines:
+            nullclines_general(sc_template_bpj2017, delta=0.01, axlow=axlow, axhigh=axhigh, contour_labels=False, **kwargs_bpj2017)
