@@ -110,17 +110,17 @@ def set_ode_params(style_ode):
         p['Bam_activity'] = 1  # as indicated in SmallCellCluster review draft p7
         p['Bam_deg'] = 0  # degradation rate; arbitrary, try 0 or 1e-2 to 1e-4
     elif style_ode == 'bpj2017':
-        # reference is bpj2017 Table 2
+        # reference is bpj2017 Table 3
         # "The Design Space of the Embryonic Cell Cycle Oscillator"
         p = {
-            'a1': 1,  # like time^-1
-            'a2': 1,  # like time^-1
-            'mu': 1,  # like time^-1
-            'epsilon': 0.01,  # like time
+            'a1': 7,  # like time^-1
+            'a2': 0.67,  # like time^-1
+            'mu': 0.4,  # like time^-1
+            'epsilon': 0.001,  # like time
             'n1': 10,    # unitless
             'n2': 10,  # unitless
-            'gamma1': 0.5,  # concentration
-            'gamma2': 0.5,  # concentration
+            'gamma1': 0.2,  # concentration
+            'gamma2': 0.2,  # concentration
         }
         # add any extra parameters that are separate from Yang2013
         p['Bam_activity'] = 1  # as indicated in SmallCellCluster review draft p7
@@ -280,7 +280,7 @@ def ode_integration_defaults(style_ode):
         num_steps = 2000
         init_cond = [60.0, 0.0, 0.0]
     elif style_ode == 'bpj2017':
-        t1 = 800
+        t1 = 10
         num_steps = 2000
         init_cond = [60.0, 0.0, 0.0]
     elif style_ode == 'PWL2':
