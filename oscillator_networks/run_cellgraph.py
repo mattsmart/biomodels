@@ -64,7 +64,7 @@ def mod_cellgraph_ode_params(base_cellgraph, mods_params_ode):
 
 if __name__ == '__main__':
 
-    flag_preset = False
+    flag_preset = True
 
     if flag_preset:
         cellgraph_preset_choice = 'PWL3_swap_partition_ndiv_bam'  # PWL3_swap_partition_ndiv_bam, PWL3_swap_copy
@@ -73,10 +73,10 @@ if __name__ == '__main__':
 
         cellgraph_preset = PRESET_CELLGRAPH[cellgraph_preset_choice]
         cellgraph_preset['io_dict'] = io_dict
-        cellgraph_preset['mods_params_ode']['epsilon'] = 0.20
+        cellgraph_preset['mods_params_ode']['epsilon'] = 0.30
         #cellgraph_preset['style_detection'] = 'manual_crossings_1d_mid'
         cellgraph_preset['style_diffusion'] = 'xy'
-        cellgraph_preset['diffusion_rate'] = 10.5
+        cellgraph_preset['diffusion_rate'] = 0
         cellgraph = create_cellgraph(**cellgraph_preset)
 
     else:
@@ -147,7 +147,7 @@ if __name__ == '__main__':
         solver_kwargs = {}  # assume passing to solve_ivp for now
         solver_kwargs['method'] = 'Radau'
         solver_kwargs['t_eval'] = None  # None or np.linspace(0, 50, 2000)  np.linspace(15, 50, 2000)
-        solver_kwargs['max_step'] = 1e-1   # np.Inf ; try 1e-1 or 1e-2 if division time-sequence is buggy as a result of large adaptive steps
+        solver_kwargs['max_step'] = np.Inf   # np.Inf ; try 1e-1 or 1e-2 if division time-sequence is buggy as a result of large adaptive steps
 
     # Write initial CellGraph info to file
     cellgraph.print_state()
