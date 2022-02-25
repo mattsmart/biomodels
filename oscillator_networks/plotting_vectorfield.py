@@ -120,7 +120,7 @@ def example_vectorfield():
     return
 
 
-def phaseplot_general(sc_template, init_conds=None, dynamics_method=STYLE_DYNAMICS, axlow=0., axhigh=120., ax=None,
+def phaseplot_general(sc_template, ode_kwargs, init_conds=None, dynamics_method=STYLE_DYNAMICS, axlow=0., axhigh=120., ax=None,
                       **solver_kwargs):
     """
     ode_kwargs:
@@ -144,10 +144,24 @@ def phaseplot_general(sc_template, init_conds=None, dynamics_method=STYLE_DYNAMI
 
     if init_conds is None:
         nn = 10
+        # random init conds
+        """
         np.random.seed(0)
         init_conds = np.random.uniform(low=axlow, high=axhigh, size=(nn, sc_template.dim_ode))
+        """
+        # just above diagonal init conds - test physical boundary of the state space y > x > 0
+        init_conds = np.zeros((2 * nn, sc_template.dim_ode))
+        yy = np.linspace(axlow, axhigh, nn)
+        init_conds[:nn, 0] = yy
+        init_conds[:nn, 1] = yy
+        # x = 0 boundary
+        init_conds[nn:, 0] = 0
+        init_conds[nn:, 1] = yy
+        # fill third column with z if needed
         if sc_template.dim_ode > 2:
-            init_conds[:, 2] = 0  # fix z = 0 for all trajectories
+            init_conds[:, 2] = ode_kwargs.get('z', 0)
+            print(sc_template.params_ode)
+            print(init_conds[:, 2])
 
     for init_cond in init_conds:
         single_cell = SingleCell(
@@ -186,17 +200,26 @@ def phaseplot_general(sc_template, init_conds=None, dynamics_method=STYLE_DYNAMI
     return ax
 
 
-def vectorfield_general(sc_template, delta=0.1, axlow=0.0, axhigh=120.0, **ode_kwargs):
+def vectorfield_general(sc_template, ode_kwargs, delta=0.1, axlow=0.0, axhigh=120.0):
     """
     ode_kwargs:
         'z': Scalar z represents static Bam concentration
         't': Scalar t represents time
     """
+    params = sc_template.params_ode
     X, Y = XY_meshgrid([axlow, axhigh], [axlow, axhigh], delta)
 
-    params = sc_template.params_ode
-    dxdt = set_ode_vectorfield(sc_template.style_ode, params, (X, Y), **ode_kwargs)
-    U, V = dxdt
+    if sc_template.dim_ode == 3:
+        z = ode_kwargs.get('z', 0)
+        init_cond_mesh = (X, Y, z * np.ones_like(X))
+        dxdt = set_ode_vectorfield(sc_template.style_ode, params, init_cond_mesh, **ode_kwargs)
+        U, V, _ = dxdt
+    else:
+        assert sc_template.dim_ode == 2
+        init_cond_mesh = (X, Y)
+        dxdt = set_ode_vectorfield(sc_template.style_ode, params, init_cond_mesh, **ode_kwargs)
+        U, V = dxdt
+
     U = nan_mask(U)
     V = nan_mask(V)
 
@@ -222,7 +245,7 @@ def vectorfield_general(sc_template, delta=0.1, axlow=0.0, axhigh=120.0, **ode_k
     plt.show()
 
 
-def contourplot_general(sc_template, delta=0.1, axlow=0.0, axhigh=120.0, **ode_kwargs):
+def contourplot_general(sc_template, ode_kwargs, delta=0.1, axlow=0.0, axhigh=120.0):
     """
     ode_kwargs:
         'z': Scalar z represents static Bam concentration
@@ -258,8 +281,8 @@ def contourplot_general(sc_template, delta=0.1, axlow=0.0, axhigh=120.0, **ode_k
     plt.show()
 
 
-def nullclines_general(sc_template, flip_axis=False, contour_labels=True,
-                       delta=0.1, axlow=0.0, axhigh=120.0, ax=None, **ode_kwargs):
+def nullclines_general(sc_template, ode_kwargs, flip_axis=False, contour_labels=True,
+                       delta=0.1, axlow=0.0, axhigh=120.0, ax=None):
     """
     ode_kwargs
         't': optional parameter for PWL
@@ -325,10 +348,10 @@ def nullclines_general(sc_template, flip_axis=False, contour_labels=True,
 
 if __name__ == '__main__':
 
-    flag_Yang2013 = False
-    flag_PWL2 = False
-    flag_PWL4_auto_linear = False
-    flag_bpj2017 = True
+    """['Yang2013', 'bpj2017', 'PWL3_bpj2017', 'PWL2', 'PWL3', 'PWL3_swap', 
+        'PWL4_auto_wz', 'PWL4_auto_ww', 'PWL4_auto_linear',
+        'toy_flow', 'toy_clock']"""
+    style_ode = 'PWL3_bpj2017'  # main ones are: PWL3_swap, PWL3_bpj2017, bpj2017, Yang2013
 
     flag_phaseplot = True
     flag_vectorfield = True
@@ -336,70 +359,64 @@ if __name__ == '__main__':
     flag_nullclines = True
 
     solver_kwargs = PRESET_SOLVER['solve_ivp_radau_default']['kwargs']
+    sc_template = SingleCell(style_ode=style_ode)
 
-    if flag_Yang2013:
-        sc_template_Yang2013 = SingleCell(style_ode='Yang2013')
-        kwargs_Yang2013 = {
+    if style_ode == 'Yang2013':
+        sc_kwargs = {
             'z': 0
         }
-
         axlow = 0
         axhigh = 120
-        if flag_phaseplot:
-            phaseplot_general(sc_template_Yang2013, axlow=axlow, axhigh=axhigh, **solver_kwargs)
-        if flag_vectorfield:
-            vectorfield_general(sc_template_Yang2013, axlow=axlow, axhigh=axhigh, **kwargs_Yang2013)
-        if flag_contourplot:
-            contourplot_general(sc_template_Yang2013, axlow=axlow, axhigh=axhigh, **kwargs_Yang2013)
-        if flag_nullclines:
-            nullclines_general(sc_template_Yang2013, axlow=axlow, axhigh=axhigh, contour_labels=False, **kwargs_Yang2013)
-
-    if flag_PWL2:
-        sc_template_PWL2 = SingleCell(style_ode='PWL2')
-        kwargs_PWL2 = {
+    elif style_ode == 'PWL2':
+        sc_kwargs = {
             't': 0
         }
         axlow = 0
         axhigh = 12
-        if flag_phaseplot:
-            phaseplot_general(sc_template_PWL2, axlow=axlow, axhigh=axhigh, **solver_kwargs)
-        if flag_vectorfield:
-            vectorfield_general(sc_template_PWL2, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_PWL2)
-        if flag_contourplot:
-            contourplot_general(sc_template_PWL2, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_PWL2)
-        if flag_nullclines:
-            nullclines_general(sc_template_PWL2, delta=0.01, axlow=axlow, axhigh=axhigh, contour_labels=False, **kwargs_PWL2)
-
-    if flag_PWL4_auto_linear:
-        sc_template_PWL4_auto_linear = SingleCell(style_ode='PWL4_auto_linear')
-        kwargs_PWL4_auto_linear = {
+    elif style_ode == 'PWL4_auto_linear':
+        sc_kwargs = {
             't': 0,  # this should have no affect on the autonomous equations
             'z': 1.5,  # note z represents the x-intercept of the dydt=0 nullcline
             'w': 0  # currently this has no affect
         }
         axlow = 0
         axhigh = 5
-        if flag_phaseplot:
-            phaseplot_general(sc_template_PWL4_auto_linear, axlow=axlow, axhigh=axhigh, **solver_kwargs)
-        if flag_vectorfield:
-            vectorfield_general(sc_template_PWL4_auto_linear, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_PWL4_auto_linear)
-        if flag_contourplot:
-            contourplot_general(sc_template_PWL4_auto_linear, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_PWL4_auto_linear)
-        if flag_nullclines:
-            nullclines_general(sc_template_PWL4_auto_linear, delta=0.01, axlow=axlow, axhigh=axhigh, contour_labels=False, **kwargs_PWL4_auto_linear)
-
-    if flag_bpj2017:
-        sc_template_bpj2017 = SingleCell(style_ode='bpj2017')
-        kwargs_bpj2017 = {
+    elif style_ode == 'PWL3_swap':
+        z = 2.8
+        sc_kwargs = {
+            't': 0,  # this should have no affect on the autonomous equations, since we set pulse vel to zero
+            'z': z,  # note z represents the x-intercept of the dydt=0 nullcline
+        }
+        sc_template.params_ode['pulse_vel'] = 0  # need to make it so "z" doesn't change (want static picture here)
+        axlow = 0
+        axhigh = 10
+    elif style_ode == 'bpj2017':
+        sc_kwargs = {
             'z': 1.5,  # currently no effect
         }
         axlow = 0
         axhigh = 2
-        if flag_phaseplot:
-            phaseplot_general(sc_template_bpj2017, axlow=axlow, axhigh=axhigh, **solver_kwargs)
-        if flag_vectorfield:
-            vectorfield_general(sc_template_bpj2017, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_bpj2017)
-        if flag_contourplot:
-            contourplot_general(sc_template_bpj2017, delta=0.01, axlow=axlow, axhigh=axhigh, **kwargs_bpj2017)
-        if flag_nullclines:
-            nullclines_general(sc_template_bpj2017, delta=0.01, axlow=axlow, axhigh=axhigh, contour_labels=False, **kwargs_bpj2017)
+    elif style_ode == 'PWL3_bpj2017':
+        z = 2.8
+        sc_kwargs = {
+            't': 0,  # this should have no affect on the autonomous equations, since we set pulse vel to zero
+            'z': z,  # currently no effect
+        }
+        sc_template.params_ode['pulse_vel'] = 0  # need to make it so "z" doesn't change (want static picture here)
+        axlow = 0
+        axhigh = 10
+    else:
+        sc_template = None
+        axlow, axhigh = None, None
+        sc_kwargs = None
+
+    delta = (axhigh - axlow) * 1e-3
+    if flag_phaseplot:
+        phaseplot_general(sc_template, sc_kwargs, axlow=axlow, axhigh=axhigh, **solver_kwargs)
+    if flag_vectorfield:
+        vectorfield_general(sc_template, sc_kwargs, delta=delta, axlow=axlow, axhigh=axhigh)
+    if flag_contourplot:
+        contourplot_general(sc_template, sc_kwargs, delta=delta, axlow=axlow, axhigh=axhigh)
+    if flag_nullclines:
+        nullclines_general(sc_template, sc_kwargs, delta=delta, axlow=axlow, axhigh=axhigh, contour_labels=False)
+

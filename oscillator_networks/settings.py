@@ -17,7 +17,7 @@ STYLE_DYNAMICS_VALID = ['solve_ivp', 'numba_lsoda', 'diffeqpy', 'libcall', 'rk4'
 
 # DEFAULTS: module 1 - Single cell dynamical system
 STYLE_ODE = 'PWL3_swap'
-STYLE_ODE_VALID = ['Yang2013', 'bpj2017',
+STYLE_ODE_VALID = ['Yang2013', 'bpj2017', 'PWL3_bpj2017',
                    'PWL2', 'PWL3', 'PWL3_swap', 'PWL4_auto_wz', 'PWL4_auto_ww', 'PWL4_auto_linear',
                    'toy_flow', 'toy_clock']
 

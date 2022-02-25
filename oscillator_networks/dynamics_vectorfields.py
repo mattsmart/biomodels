@@ -30,6 +30,9 @@ def set_ode_attributes(style_ode):
                           1: 'Cyclin total',
                           2: 'Number of Divisions',
                           3: 'Fusome content'}
+    if style_ode == 'PWL3_bpj2017':
+        # currently, all methods share the same attributes above
+        pass
     elif style_ode in ['PWL3', 'PWL3_swap']:
         # currently, all methods share the same attributes above
         pass
@@ -125,6 +128,21 @@ def set_ode_params(style_ode):
         # add any extra parameters that are separate from Yang2013
         p['Bam_activity'] = 1  # as indicated in SmallCellCluster review draft p7
         p['Bam_deg'] = 0  # degradation rate; arbitrary, try 0 or 1e-2 to 1e-4
+    elif style_ode == 'PWL3_bpj2017':
+        p = {
+            'a1': 5,                 # for g(x)
+            'a2': 1,                 # for g(x)
+            'b1': 10,                # for h(x)
+            'c1': 0,                # for h(x)
+            'gamma': 1e-2,           # for h(x)
+            'epsilon': 1e-2,         # speed scale for fast variable Cyc_act
+            'pulse_vel': 0.3,        # z pulse - rate of inhibitor accumulation
+            'I_initial': 0,          # z pulse - initial inhibitor (e.g. Bam) concentration
+            't_pulse_switch': 25.0   # z pulse - treating inhibitor timeseries as pulse with a negative slope from t=T to t=2T
+        }
+        # add any extra parameters that are separate from Yang2013
+        p['Bam_activity'] = 1  # as indicated in SmallCellCluster review draft p7
+        p['Bam_deg'] = 0  # degradation rate; arbitrary, try 0 or 1e-2 to 1e-4
     elif style_ode in ['PWL2', 'PWL3']:
         """ Notes from Hayden slide 12:
         - ((1−𝛾))/2𝜀𝛾 is duration that green intersects red between extrema of red
@@ -132,57 +150,56 @@ def set_ode_params(style_ode):
         - Maybe specify conditions on 𝛾
         """
         p = {
-            'C': 1e-1,              # speed scale for fast variable Cyc_act
-            'a': 2,                 # defines the corners of PWL function for x
-            'd': 1,                 # defines the corners of PWL function for x
+            'epsilon': 1e-1,        # speed scale for fast variable Cyc_act
+            'a1': 2,                # defines the corners of PWL function for x
+            'a2': 1,                # defines the corners of PWL function for x
             'b': 2,                 # defines the y-intercept of the dy/dt=0 nullcline, y(x) = 1/gamma * (-x + b)
             'gamma': 1e-1,          # degradation of Cyc_tot
-            'epsilon': 0.3,         # rate of inhibitor accumulation
+            'pulse_vel': 0.3,       # rate of inhibitor accumulation
             'I_initial': 0,         # initial inhibitor (e.g. Bam) concentration
             't_pulse_switch': 25.0  # treating inhibitor timeseries as pulse with a negative slope from t=T to t=2T
         }
-        assert 0 < p['C'] < 1
+        assert 0 < p['epsilon'] < 1
         assert 0 < p['gamma']
-        assert 0 <= p['epsilon']
+        assert 0 <= p['pulse_vel']
     elif style_ode == 'PWL3_swap':
         p = {
-            'C': 1e-2,              # speed scale for fast variable Cyc_act
-            'a': 4,                 # defines the corners of PWL function for x
-            'd': 2,                 # defines the corners of PWL function for x
+            'epsilon': 1e-2,        # speed scale for fast variable Cyc_act
+            'a1': 5,                # defines the corners of PWL function for x
+            'a2': 1,                # defines the corners of PWL function for x
             'b': 0,                 # [Not needed] defines the y-intercept of the dy/dt=0 nullcline, y(x) = 1/gamma * (-x + b)
             'gamma': 1e-2,          # degradation of Cyc_tot
-            'epsilon': 0.1,         # rate of inhibitor accumulation
-            'I_initial': 0,         # initial inhibitor (e.g. Bam) concentration
+            'pulse_vel': 0.1,       # rate of inhibitor accumulation
             't_pulse_switch': 25.0  # treating inhibitor timeseries as pulse with a negative slope from t=T to t=2T
         }
-        assert 0 < p['C'] < 1
+        assert 0 < p['epsilon'] < 1
         assert 0 < p['gamma']
-        assert 0 <= p['epsilon']
+        assert 0 <= p['pulse_vel']
     elif style_ode in ['PWL4_auto_wz', 'PWL4_auto_ww']:
         p = {
-            'C': 1e-1,              # speed scale for fast variable Cyc_act
-            'a': 4,                 # defines the corners of PWL function for x
-            'd': 2,                 # defines the corners of PWL function for x
+            'epsilon': 1e-1,        # speed scale for fast variable Cyc_act
+            'a1': 4,                # defines the corners of PWL function for x
+            'a2': 2,                # defines the corners of PWL function for x
             'gamma': 1e-1,          # degradation of Cyc_tot
             'delta_w': 0.1,         # defines degradation rate of bam controller, w(t)
             'w_threshold': 0.5,     # defines threshold at which w(t) produces (above w1) or destroys (below w1) Bam
         }
-        assert 0 < p['C'] < 1
+        assert 0 < p['epsilon'] < 1
         assert 0 < p['gamma']
         assert 0 <= p['delta_w']
         assert 0 <= p['w_threshold'] <= 1.0  # should be below the init cond of w(t) - generally 1.0, but above 0.0
     elif style_ode == 'PWL4_auto_linear':
         p = {
-            'C': 1e-1,              # speed scale for fast variable Cyc_act
-            'a': 2,                 # defines the corners of PWL function for x
-            'd': 1,                 # defines the corners of PWL function for x
+            'epsilon': 1e-1,        # speed scale for fast variable Cyc_act
+            'a1': 2,                # defines the corners of PWL function for x
+            'a2': 1,                # defines the corners of PWL function for x
             'gamma': 1e-1,          # degradation of Cyc_tot
-            'epsilon': 1,           # rate of inhibitor accumulation (via dzdt += epsilon * w(t))
+            'pulse_vel': 1,         # rate of inhibitor accumulation (via dzdt += epsilon * w(t))
             'delta_w': 0.1,         # defines degradation rate of bam controller, w(t)
             'w_threshold': 0,       # [Not needed] defines threshold at which w(t) produces (above w1) or destroys (below w1) Bam
             'b_Bam': 0,             # [Not needed] constant production of Bam
         }
-        assert 0 < p['C'] < 1
+        assert 0 < p['epsilon'] < 1
         assert 0 < p['gamma']
         assert 0 <= p['delta_w']
         assert 0 <= p['w_threshold'] <= 1.0  # should be below the init cond of w(t) - generally 1.0, but above 0.0
@@ -206,6 +223,8 @@ def set_ode_vectorfield(style_ode, params, init_cond, **ode_kwargs):
         dxdt = vectorfield_Yang2013(init_cond, params, z=ode_kwargs.get('z', 0))
     elif style_ode == 'bpj2017':
         dxdt = vectorfield_bpj2017(init_cond, params, z=ode_kwargs.get('z', 0))
+    elif style_ode == 'PWL3_bpj2017':
+        dxdt = vectorfield_PWL3_bpj2017(init_cond, params, ode_kwargs.get('t', 0))
     elif style_ode == 'PWL2':
         dxdt = vectorfield_PWL2(init_cond, params, ode_kwargs.get('t', 0), z=ode_kwargs.get('z', 0))
     elif style_ode == 'PWL3':
@@ -238,6 +257,8 @@ def pointer_ode_vectorfield(style_ode):
         fn = vectorfield_Yang2013
     elif style_ode == 'bpj2017':
         fn = vectorfield_bpj2017
+    elif style_ode == 'PWL3_bpj2017':
+        fn = vectorfield_PWL3_bpj2017
     elif style_ode == 'PWL2':
         fn = vectorfield_PWL2
     elif style_ode == 'PWL3':
@@ -283,6 +304,10 @@ def ode_integration_defaults(style_ode):
         t1 = 10
         num_steps = 2000
         init_cond = [60.0, 0.0, 0.0]
+    elif style_ode == 'PWL3_bpj2017':
+        t1 = 100
+        num_steps = 2000
+        init_cond = [0.0, 0.0, 0.0]
     elif style_ode == 'PWL2':
         t1 = 50
         num_steps = 2000
@@ -388,54 +413,85 @@ def vectorfield_bpj2017(init_cond, params, z=0):
     return out
 
 
+def vectorfield_PWL3_bpj2017(init_cond, params, t):
+    x, y, z = init_cond
+
+    derivative_I_of_t = PWL_derivative_I_of_t_pulse(z, t, params['pulse_vel'], params['t_pulse_switch'])
+    g_of_x = PWL_g_of_x(x, params['a1'], params['a2'])
+    h_of_x_minus_z = PWL_h_of_x(x-z, params['b1'], params['c1'], params['gamma'])
+
+    dxdt = 1/params['epsilon'] * (y - g_of_x)
+    dydt = h_of_x_minus_z - y
+    dzdt = derivative_I_of_t * np.ones_like(dxdt)  # second factor for vectorization support
+
+    out = [dxdt, dydt, dzdt]
+    return out
+
+
 def PWL_g_of_x_SCALAR(params, x):
     """
     Currently unused; see vectorized variant PWL_g_of_x()
+    - Like PWL_g_of_x but assumes a2 = 1
+    - Not vectorized
     """
     a = params['a']
     if x < (a/2):
-        g = -x
+        g = -2*x
     elif x <= ((1+a)/2):
-        g = x - a
+        g = 2 * (x - a)
     else:
-        g = 1 - x
+        g = 2 * (1 - x)
     return g
 
 
 @jit
-def PWL_g_of_x(x, a, d):
-    g1 = np.where(x < a/2, x, 0)
+def PWL_g_of_x(x, a1, a2):
+    # Note: generally assume a2 = 1
+    g1 = np.where(x < a1/2,
+                  2 * x,
+                  0)
+    g2 = np.where(((a1/2) <= x) & (x < ((a2 + a1)/2)),
+                  2 * (-x + a1),
+                  0)
+    g3 = np.where(x >= ((a2 + a1)/2),
+                  2 * (-a2 + x),
+                  0)
+    g = g1 + g2 + g3
+    return g
+
+@jit
+def PWL_h_of_x(x, b1, c1, gamma):
+    h1 = np.where(x < c1, b1, 0)
+    c2 = c1 + gamma * b1
+    h2 = np.where(
+        (c1 <= x) & (x < c1 + c2),
+        b1 + (c1-x) / gamma, 0)
+    #h3 = np.where(x >= ((d+a)/2), -d + x, 0)  # don't need h3 case because output always zero
+    h = h1 + h2  # + h3                        # don't need h3 case because output always zero
+    return h
+
+
+def PWL_g_of_x_derivative(x, a1, a2):
+    g1 = np.where(x < a1/2, 2, 0)
     g2 = np.where(
-        ((a/2) <= x) & (x < ((d+a)/2)),
-        -x + a, 0)
-    g3 = np.where(x >= ((d+a)/2), -d + x, 0)
+        ((a1/2) <= x) & (x < ((a1+a2)/2)),
+        -2, 0)
+    g3 = np.where(x >= ((a1+a2)/2), 2, 0)
     g = g1 + g2 + g3
     return g
 
 
-def PWL_g_of_x_derivative(params, x):
-    a = params['a']
-    d = params['d']
-    g1 = np.where(x < a/2, 1, 0)
-    g2 = np.where(
-        ((a/2) <= x) & (x < ((d+a)/2)),
-        -1, 0)
-    g3 = np.where(x >= ((d+a)/2), 1, 0)
-    g = g1 + g2 + g3
-    return g
-
-
-def PWL_I_of_t_pulse(params, t):
+def PWL_I_of_t_pulse(t, I_initial, vel, t_half):
     """
     Generates a triangular pulse rising at t=0 with switch at t = params['t_pulse_switch']
       when t > 2 * params['t_pulse_switch'], there is no further change
     """
-    if t < params['t_pulse_switch']:
-        I = params['I_initial'] + params['epsilon'] * t
-    elif t < 2 * params['t_pulse_switch']:
-        I = params['I_initial'] - params['epsilon'] * t + 2 * params['epsilon'] * params['t_pulse_switch']
+    if t < t_half:
+        I = I_initial + vel * t
+    elif t < 2 * t_half:
+        I = I_initial - vel * t + 2 * vel * t_half
     else:
-        I = params['I_initial']
+        I = I_initial
     assert I >= 0
     assert t >= 0
     return I
@@ -483,10 +539,10 @@ def vectorfield_PWL2(init_cond, params, t, z=0):
     """
     x, y = init_cond  # TODO note z is passed through init_cond but is unused; use static "external" z for now
 
-    I_of_t = PWL_I_of_t_pulse(params, t)
-    g_of_x = PWL_g_of_x(x, params['a'], params['d'])
+    I_of_t = PWL_I_of_t_pulse(t, params['I_initial'], params['pulse_vel'], params['t_pulse_switch'])
+    g_of_x = PWL_g_of_x(x, params['a1'], params['a2'])
 
-    dxdt = 1/params['C'] * (y - g_of_x - I_of_t)
+    dxdt = 1/params['epsilon'] * (y - g_of_x - I_of_t)
     dydt = params['b'] - x - params['gamma'] * y
 
     out = [dxdt, dydt]
@@ -507,10 +563,10 @@ def vectorfield_PWL3(init_cond, params, t):
     """
     x, y, z = init_cond
 
-    derivative_I_of_t = PWL_derivative_I_of_t_pulse(z, t, params['epsilon'], params['t_pulse_switch'])
-    g_of_x = PWL_g_of_x(x, params['a'], params['d'])
+    derivative_I_of_t = PWL_derivative_I_of_t_pulse(z, t, params['pulse_vel'], params['t_pulse_switch'])
+    g_of_x = PWL_g_of_x(x, params['a1'], params['a2'])
 
-    dxdt = 1/params['C'] * (y - g_of_x - z)
+    dxdt = 1/params['epsilon'] * (y - g_of_x - z)
     dydt = params['b'] - x - params['gamma'] * y
     dzdt = derivative_I_of_t * np.ones_like(dxdt)  # second factor for vectorization support
     #dzdt = -p['Bam_deg'] * z
@@ -533,10 +589,10 @@ def vectorfield_PWL3_swap(init_cond, params, t):
     """
     x, y, z = init_cond
 
-    derivative_I_of_t = PWL_derivative_I_of_t_pulse(z, t, params['epsilon'], params['t_pulse_switch'])
-    g_of_x = PWL_g_of_x(x, params['a'], params['d'])
+    derivative_I_of_t = PWL_derivative_I_of_t_pulse(z, t, params['pulse_vel'], params['t_pulse_switch'])
+    g_of_x = PWL_g_of_x(x, params['a1'], params['a2'])
 
-    dxdt = 1/params['C'] * (y - g_of_x)
+    dxdt = 1/params['epsilon'] * (y - g_of_x)
     dydt = z - x - params['gamma'] * y
     dzdt = derivative_I_of_t * np.ones_like(dxdt)  # second factor for vectorization support
     #dzdt = -p['Bam_deg'] * z
@@ -547,8 +603,8 @@ def vectorfield_PWL3_swap(init_cond, params, t):
 
 def jacobian_PWL3_swap(t, init_cond, singlecell):
     params = singlecell.params_ode
-    df1_dx = PWL_g_of_x_derivative(params, init_cond[0])
-    df1_dy = 1/params['C']
+    df1_dx = PWL_g_of_x_derivative(init_cond[0], params['a1'], params['a2'])
+    df1_dy = 1/params['epsilon']
     df2_dx = -1.0
     df2_dy = -params['gamma']
     df2_dz = 1.0
@@ -566,8 +622,8 @@ def PWL4_auto_helper(params, x, y, z, w):
     Common steps used by PWL4 autonomous vectorfields (note auto means autonomous)
     - the "dzdt" equation is what differs between the various PWL4 autonomous vectorfields
     """
-    g_of_x = PWL_g_of_x(x, params['a'], params['d'])
-    dxdt = 1/params['C'] * (y - g_of_x)
+    g_of_x = PWL_g_of_x(x, params['a1'], params['a2'])
+    dxdt = 1/params['epsilon'] * (y - g_of_x)
     dydt = z - x - params['gamma'] * y
     dwdt = -params['delta_w'] * w
     return dxdt, dydt, dwdt
@@ -649,7 +705,7 @@ def vectorfield_PWL4_autonomous_linear(init_cond, params, t):
     x, y, z, w = init_cond
     dxdt, dydt, dwdt = PWL4_auto_helper(params, x, y, z, w)
 
-    dzdt = - z + params['b_Bam'] + params['epsilon'] * (w - params['w_threshold'])
+    dzdt = - z + params['b_Bam'] + params['pulse_vel'] * (w - params['w_threshold'])
 
     out = [dxdt, dydt, dzdt, dwdt]
     return out
