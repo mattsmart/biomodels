@@ -65,12 +65,12 @@ if __name__ == '__main__':
                                label=['x%d' % i for i in range(cellgraph.sc_dim_ode)][idx])
             if idx == 0:
                 # add any axhline decorators
-                clow = 0.5*(pp['a'])  # None
-                chigh = 0.5*(pp['a'] + pp['d'])  # None
+                clow = 0.5*(pp['a1'])  # None
+                chigh = 0.5*(pp['a1'] + pp['a2'])  # None
             if idx == 1:
                 # add any axhline decorators
-                clow = 0.5*(pp['a'])  # None
-                chigh = 0.5*(pp['a'] - pp['d'])  # None
+                clow = (pp['a1'])  # None
+                chigh = (pp['a1'] - pp['a2'])  # None
             if clow is not None:
                 axarr[idx, 0].axhline(clow, linestyle='--', c='gray')
             if chigh is not None:

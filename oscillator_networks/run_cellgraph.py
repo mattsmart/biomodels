@@ -73,10 +73,10 @@ if __name__ == '__main__':
 
         cellgraph_preset = PRESET_CELLGRAPH[cellgraph_preset_choice]
         cellgraph_preset['io_dict'] = io_dict
-        cellgraph_preset['mods_params_ode']['epsilon'] = 0.30
+        cellgraph_preset['mods_params_ode']['pulse_vel'] = 0.2
         #cellgraph_preset['style_detection'] = 'manual_crossings_1d_mid'
         cellgraph_preset['style_diffusion'] = 'xy'
-        cellgraph_preset['diffusion_rate'] = 0
+        cellgraph_preset['diffusion_rate'] = 1.5
         cellgraph = create_cellgraph(**cellgraph_preset)
 
     else:
@@ -125,8 +125,8 @@ if __name__ == '__main__':
             verbosity=verbosity)
         if cellgraph.style_ode in ['PWL2', 'PWL3', 'PWL3_swap']:
             #pass
-            cellgraph.sc_template.params_ode['epsilon'] = 0.15
-            cellgraph.sc_template.params_ode['C'] = 1e-2
+            cellgraph.sc_template.params_ode['epsilon'] = 1e-2
+            cellgraph.sc_template.params_ode['pulse_vel'] = 0.15
 
         # Add some cells through manual divisions (two different modes - linear or random) to augment initialization
         for idx in range(add_init_cells):
@@ -142,7 +142,6 @@ if __name__ == '__main__':
 
         # Setup solver kwargs for the graph trajectory wrapper
         # TODO ensure solver kwargs can be passed properly -- note wrapper is recursive so some kwargs MUST be updated...
-        # TODO resolve issue where if t0 != 0, then we have gap in times history [0, t0, ...] -- another issue where t0 is skipped, start t0+dt
         # TODO one option is to use dense_output to interpolate... another is to use non-adaptive stepping in the vicinity of an event
         solver_kwargs = {}  # assume passing to solve_ivp for now
         solver_kwargs['method'] = 'Radau'
@@ -161,7 +160,6 @@ if __name__ == '__main__':
     print("\n in main: num cells after wrapper trajectory =", cellgraph.num_cells)
 
     # Plot the timeseries for each cell
-    """
     cellgraph.plot_state_unified(arrange_vertical=True, fmod='final')
     cellgraph.plot_graph(fmod='final')
     if cellgraph.sc_dim_ode > 1:
@@ -170,4 +168,3 @@ if __name__ == '__main__':
 
     # Save class state as pickle object
     cellgraph.pickle_save('classdump.pkl')
-    """

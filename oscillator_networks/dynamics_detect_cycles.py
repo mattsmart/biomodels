@@ -33,13 +33,13 @@ def detection_args_given_style(style_detection, single_cell, verbose=False):
             detector[style_detection]['kwargs']['state_choice'] = state_choice_local
             if state_choice_local == 1:
                 assert single_cell.variables_short[state_choice_local] == 'Cyc_tot'
-                detector[style_detection]['kwargs']['xlow'] = 0.5 * (pp['a'] - pp['d'])
-                detector[style_detection]['kwargs']['xhigh'] = 0.5 * pp['a']
+                detector[style_detection]['kwargs']['xlow'] = (pp['a1'] - pp['a2'])
+                detector[style_detection]['kwargs']['xhigh'] = pp['a1']
             else:
                 assert state_choice_local == 0
                 assert single_cell.variables_short[state_choice_local] == 'Cyc_act'
-                detector[style_detection]['kwargs']['xlow'] = 0.5 * pp['a']
-                detector[style_detection]['kwargs']['xhigh'] = 0.5 * (pp['a'] + pp['d'])
+                detector[style_detection]['kwargs']['xlow'] = 0.5 * pp['a1']
+                detector[style_detection]['kwargs']['xhigh'] = 0.5 * (pp['a1'] + pp['a2'])
         elif style_ode == 'toy_clock':
             threshold = 0.9
             detector[style_detection]['kwargs']['state_choice'] = 0
@@ -51,10 +51,10 @@ def detection_args_given_style(style_detection, single_cell, verbose=False):
 
     if style_detection == 'manual_crossings_2d':
         if style_ode == 'PWL3_swap':
-            detector[style_detection]['kwargs']['xlow'] = 0.5 * pp['a']
-            detector[style_detection]['kwargs']['xhigh'] = 0.5 * (pp['a'] + pp['d'])
-            detector[style_detection]['kwargs']['ylow'] = 0.5 * (pp['a'] - pp['d'])
-            detector[style_detection]['kwargs']['yhigh'] = 0.5 * pp['a']
+            detector[style_detection]['kwargs']['xlow'] = 0.5 * pp['a1']
+            detector[style_detection]['kwargs']['xhigh'] = 0.5 * (pp['a1'] + pp['a2'])
+            detector[style_detection]['kwargs']['ylow'] = (pp['a1'] - pp['a2'])
+            detector[style_detection]['kwargs']['yhigh'] = pp['a1']
             detector[style_detection]['kwargs']['state_xy'] = (0, 1)
         else:
             print("style_ode %s is not yet supported for manual_crossings_2d detection style" % style_ode)

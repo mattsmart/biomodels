@@ -90,12 +90,12 @@ if __name__ == '__main__':
     style_ode = 'PWL3_swap'  # PWL4_auto_linear, PWL3_swap, toy_clock
     sc = SingleCell(label='c1', style_ode=style_ode)
     if style_ode in ['PWL2', 'PWL3', 'PWL3_swap']:
-        sc.params_ode['C'] = 1e-2
-        sc.params_ode['epsilon'] = 0.37
+        sc.params_ode['epsilon'] = 1e-2
+        sc.params_ode['pulse_vel'] = 0.37
         sc.params_ode['t_pulse_switch'] = 25
     if style_ode in ['PWL4_auto_linear']:
-        sc.params_ode['a'] = 2
-        sc.params_ode['d'] = 1
+        sc.params_ode['a1'] = 2
+        sc.params_ode['a2'] = 1
 
     solver_kwargs = {
         'atol': 1e-9,

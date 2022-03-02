@@ -8,7 +8,7 @@ if __name__ == '__main__':
     flag_preset = True  # use preset defined in SWEEP_PRESETS, or prepare own custom sweep run
 
     if flag_preset:
-        preset_choice = '2d_epsilon_diffusion_ndiv_bam'
+        preset_choice = '2d_vel_diffusion_ndiv_bam'
         sweep_preset = PRESET_SWEEP[preset_choice]
         sweep_cellgraph = SweepCellGraph(**sweep_preset)
 

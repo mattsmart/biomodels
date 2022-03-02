@@ -175,8 +175,8 @@ def visualize_sweep(sweep):
 
 
 if __name__ == '__main__':
-    #sweep_dir = 'sweeps' + os.sep + 'sweep_preset_1d_epsilon_ndiv_bam'
-    #sweep_dir = 'runs' + os.sep + 'sweep_preset_1d_epsilon'
+    #sweep_dir = 'sweeps' + os.sep + 'sweep_preset_1d_vel_ndiv_bam'
+    #sweep_dir = 'runs' + os.sep + 'sweep_preset_1d_vel'
     sweep_dir = 'sweeps' + os.sep + 'sweep_preset_2d_diffusion_ndiv_bam'
     fpath_pickle = sweep_dir + os.sep + 'sweep.pkl'
     sweep_cellgraph = pickle_load(fpath_pickle)
