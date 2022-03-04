@@ -13,11 +13,11 @@ from utils_io import pickle_load
 if __name__ == '__main__':
 
     flag_print_state = True
-    flag_replot = False
+    flag_replot = True
     flag_inspect = False
     flag_plotly = False
     flag_redetect = False
-    flag_nx_tree = True
+    flag_nx_tree = False
 
     runs_dir = 'runs' + os.sep + 'cellgraph'
     #specific_dir = runs_dir + os.sep + '2022-02-03_05.32.09PM' #'2022-02-02_02.47.01PM'
@@ -41,7 +41,7 @@ if __name__ == '__main__':
 
     # "replot" standard cellgraph trajectory outputs with minor adjustments
     if flag_replot:
-        cellgraph.plot_graph(fmod='replot', seed=0)
+        cellgraph.plot_graph(fmod='replot', figsize=(6, 6))
         cellgraph.plot_state_unified(fmod='replot', arrange_vertical=True)
         if cellgraph.sc_dim_ode > 1:
             cellgraph.plot_xy_separate(fmod='replot')

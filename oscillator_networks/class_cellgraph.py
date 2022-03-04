@@ -569,7 +569,8 @@ class CellGraph():
             print('\t\tCell #%d' % cell, X[:, cell, -1].flatten(), 'stats:', self.cell_stats[cell, :])
         return
 
-    def plot_graph(self, fmod=None, title='CellGraph', by_ndiv=True, by_degree=True, by_last_div=True, by_age=True, seed=None):
+    def plot_graph(self, fmod=None, title='CellGraph', by_ndiv=True, by_degree=True, by_last_div=True, by_age=True,
+                   seed=None, figsize=(4,4)):
         fpath = self.io_dict['plotlatticedir'] + os.sep + 'networkx'
         if fmod is not None:
             title = title + ' ' + fmod
@@ -581,7 +582,7 @@ class CellGraph():
             #labels = {idx: r'$c_{%d}: %d$' % (idx, val) for idx, val in enumerate(n_divisions)}
             labels = {idx: r'$%d$' % (val) for idx, val in enumerate(n_divisions)}
             draw_from_adjacency(self.adjacency, title=tvar, node_color=n_divisions, labels=labels, cmap='Pastel1',
-                                seed=seed, fpath=fpathvar)
+                                seed=seed, fpath=fpathvar, draw_division=self.division_events, figsize=figsize)
         if by_degree:
             tvar = title + ' (degree)'
             fpathvar = fpath + '_Degree.pdf'
@@ -590,7 +591,7 @@ class CellGraph():
             #labels = {idx: r'$%d$' % (val) for idx, val in enumerate(degree_vec)}
             labels = None
             draw_from_adjacency(self.adjacency, title=tvar, node_color=degree_vec, labels=labels, cmap='Pastel1',
-                                seed=seed, fpath=fpathvar)
+                                seed=seed, fpath=fpathvar, draw_division=self.division_events, figsize=figsize)
         if by_last_div:
             tvar = title + ' (time of last division)'
             fpathvar = fpath + '_tLastEvent.pdf'
@@ -599,7 +600,7 @@ class CellGraph():
             #labels = {idx: r'$c_{%d}: %d$' % (idx, val) for idx, val in enumerate(t_last_div)}
             labels = {idx: r'$%.1f$' % (val) for idx, val in enumerate(t_last_div_abs)}
             draw_from_adjacency(self.adjacency, title=tvar, node_color=t_last_div_abs, labels=labels, cmap='GnBu',
-                                seed=seed, fpath=fpathvar)
+                                seed=seed, fpath=fpathvar, figsize=figsize)
         if by_age:
             tvar = title + ' (time of birth)'
             fpathvar = fpath + '_tBirth.pdf'
@@ -608,7 +609,7 @@ class CellGraph():
             #labels = {idx: r'$c_{%d}: %d$' % (idx, val) for idx, val in enumerate(birthdays)}
             labels = {idx: r'$%.1f$' % (val) for idx, val in enumerate(birthdays_abs)}
             draw_from_adjacency(self.adjacency, title=tvar, node_color=birthdays_abs, labels=labels, cmap='GnBu',
-                                seed=seed, fpath=fpathvar)
+                                seed=seed, fpath=fpathvar, figsize=figsize)
         plt.close()
         return
 

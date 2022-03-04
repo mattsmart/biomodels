@@ -4,19 +4,23 @@ import numpy as np
 from networkx.algorithms.isomorphism.tree_isomorphism import rooted_tree_isomorphism, tree_isomorphism
 
 
-def draw_from_adjacency(A, node_color=None, labels=None, draw_edge_labels=False, cmap='Pastel1', title='Cell graph',
-                        spring=False, seed=None, fpath=None, figsize=(4,4)):
+def draw_from_adjacency(A, node_color=None, labels=None, draw_edge_labels=False, draw_division=None,
+                        cmap='Pastel1', title='Cell graph', spring=False, seed=None, fpath=None, figsize=(4,4)):
     """
     create_using=nx.DiGraph -- store as directed graph with possible self-loops
-    create_using=nx.DiGrapsh -- store as undirected graph with possible self-loops
+    create_using=nx.Graph -- store as undirected graph with possible self-loops
+
+    draw_division: None, or cellgraph.division_events
+        if the cellgraph.division_events attribute is passed, draw as Directed graph where the arrows point to daughters
 
     cmap options: 'Blues', 'Pastel1', 'Spectral_r'
 
     Note: observed issues on Windows when sweeps performed with draw_from_adjacency(spring=False) on each run
     ====== Process finished with exit code -1073740791 (0xC0000409) ======
-        - think too many calls to layout = nx.nx_agraph.graphviz_layout(G, prog="twopi", args="")
+        - solution: avoid too many calls to layout = nx.nx_agraph.graphviz_layout(G, prog="twopi", args="")
     """
     # TODO alternative visualization wth legend for discrete data (nDiv) and colorbar for continuous data (birth times)
+    M = A.shape[0]
 
     def pick_seed_using_num_cells():
         seed_predefined = {
@@ -27,7 +31,7 @@ def draw_from_adjacency(A, node_color=None, labels=None, draw_edge_labels=False,
             16: 0,
             32: 0,
         }
-        seed = seed_predefined.get(A.shape[0], 0)  # M = A.shape[0] and seed_default = 0
+        seed = seed_predefined.get(M, 0)  # M = A.shape[0] and seed_default = 0
         return seed
 
     # plot settings
@@ -46,7 +50,16 @@ def draw_from_adjacency(A, node_color=None, labels=None, draw_edge_labels=False,
     ax.set_title(title)
 
     # initialize the graph
-    G = nx.from_numpy_matrix(np.matrix(A), create_using=nx.Graph)
+    if draw_division is None:
+        G = nx.from_numpy_matrix(np.matrix(A), create_using=nx.Graph)
+    else:
+        # created a directed graph based on the array draw_division (cellgraph.division_events)
+        # each row in draw_division is a tuple of the form (mother_int, daughter_int, time_int)
+        A_directed = np.zeros_like(A)
+        for i in range(draw_division.shape[0]):
+            a, b, _ = draw_division[i, :]
+            A_directed[a, b] = 1
+        G = nx.from_numpy_matrix(np.matrix(A_directed), create_using=nx.DiGraph)
     # determine node positions
     if spring:
         layout = nx.spring_layout(G, seed=seed)
@@ -64,13 +77,13 @@ def draw_from_adjacency(A, node_color=None, labels=None, draw_edge_labels=False,
     # write node labels
     #cell_labels = {idx: r'$c_{%d}$' % (idx) for idx in range(A.shape[0])}
     #cell_labels = {idx: r'Cell $%d$' % (idx) for idx in range(A.shape[0])}
-    cell_labels = {idx: r'$%d$' % (idx) for idx in range(A.shape[0])}
+    cell_labels = {idx: r'$%d$' % (idx) for idx in range(M)}
     if labels is not None:
         nx.draw_networkx_labels(G, layout, labels, font_size=fs, font_color=font_color, verticalalignment='bottom')
-        cell_labels = {idx: r'Cell $%d$' % (idx) for idx in range(A.shape[0])}
+        cell_labels = {idx: r'Cell $%d$' % (idx) for idx in range(M)}
         nx.draw_networkx_labels(G, layout, cell_labels, font_size=fs, font_color=font_color, verticalalignment='top')
     else:
-        cell_labels = {idx: r'$%d$' % (idx) for idx in range(A.shape[0])}
+        cell_labels = {idx: r'$%d$' % (idx) for idx in range(M)}
         nx.draw_networkx_labels(G, layout, cell_labels, font_size=fs, font_color=font_color)
     # write edge labels
     if draw_edge_labels:
