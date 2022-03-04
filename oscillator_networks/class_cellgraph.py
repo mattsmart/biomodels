@@ -490,15 +490,51 @@ class CellGraph():
             dxdt = single_cell.ode_system_vector(init_cond, t_scalar)
             return dxdt
 
-        def graph_ode_system(t_scalar, xvec, single_cell):
+        def graph_ode_system_vectorized(t_scalar, xvec, single_cell):
+            #print("graph_ode_system INPUT LINE SHAPE", xvec.shape)
+            xvec_matrix = self.state_to_rectangle(xvec)
+            # Term 1: stores the single cell gene regulation (for each cell)
+            #         [f(x_1) f(x_2) ... f(x_M)] as a stacked NM long 1D array
+            batch_sz = xvec.shape[-1]  # for vectorized mode of solve_ivp
+            term_1 = np.zeros((self.graph_dim_ode, batch_sz))
+            #print("graph_ode_system batch_sz", type(batch_sz), batch_sz)
+            #print("graph_ode_system t_scalar", type(t_scalar), t_scalar)
+            #print("graph_ode_system xvec", type(xvec), xvec.shape)
+            #print("graph_ode_system xvec_matrix", type(xvec_matrix), xvec_matrix.shape)
+
+            for cell_idx in range(M):
+                a = N * cell_idx
+                b = N * (cell_idx + 1)
+                xvec_sc = xvec_matrix[:, cell_idx]
+                #print(xvec_sc.shape)
+                term_1[a:b, :] = f_of_x_single_cell(t_scalar, xvec_sc, single_cell)
+
+            # TODO check that slicing is correct
+            # TODO this can be parallelized as one linear Dvec * np.dot(X, L^T)
+            # Term 2: stores the cell-cell coupling which is just laplacian diffusion -c * L * x
+            # Note: we consider each reactant separately with own diffusion rate
+            term_2 = np.zeros((self.graph_dim_ode, batch_sz))
+            for gene_idx in range(N):
+                indices_for_specific_gene = np.arange(gene_idx, self.graph_dim_ode, N)
+                xvec_specific_gene = xvec[indices_for_specific_gene]
+                diffusion_specific_gene = - self.diffusion[gene_idx] * np.dot(self.laplacian, xvec_specific_gene)
+                term_2[indices_for_specific_gene, :] = diffusion_specific_gene
+
+            dxvec_dt = term_1 + term_2
+            #print("graph_ode_system OUTPUT LINE SHAPE", dxvec_dt.shape)
+            return dxvec_dt
+
+        def graph_ode_system_regular(t_scalar, xvec, single_cell):
             xvec_matrix = self.state_to_rectangle(xvec)
             # Term 1: stores the single cell gene regulation (for each cell)
             #         [f(x_1) f(x_2) ... f(x_M)] as a stacked NM long 1D array
             term_1 = np.zeros(self.graph_dim_ode)
+
             for cell_idx in range(M):
                 a = N * cell_idx
                 b = N * (cell_idx + 1)
-                term_1[a:b] = f_of_x_single_cell(t_scalar, xvec_matrix[:, cell_idx], single_cell)
+                xvec_sc = xvec_matrix[:, cell_idx]
+                term_1[a:b] = f_of_x_single_cell(t_scalar, xvec_sc, single_cell)
 
             # TODO check that slicing is correct
             # TODO this can be parallelized as one linear Dvec * np.dot(X, L^T)
@@ -514,7 +550,6 @@ class CellGraph():
             dxvec_dt = term_1 + term_2
             return dxvec_dt
 
-        fn = graph_ode_system
         if init_cond is None:
             init_cond = self.state_history[:, -1]
         """
@@ -532,9 +567,20 @@ class CellGraph():
                 time_interval[1] = max(time_interval[1], solver_kwargs['t_eval'][-1])
                 print("\tModified time_interval:", time_interval)
 
+        # Vectorization handler
         if 'vectorized' not in solver_kwargs.keys():
-            solver_kwargs['vectorized'] = False  # TODO how to vectorize our graph ODE?
-        assert self.style_dynamics == 'solve_ivp'  # TODO test other integration methods (speed/scaling?) + consider impact of noise on detection
+            solver_kwargs['vectorized'] = False
+        # TODO check diffusion vectorized properly - looks like tiny numeric differences right now (why not identical?)
+        # TODO time it (seems slghtly slower)
+        # TODO even if it is implemented properly, it may not give much speedup with radau style
+        assert not solver_kwargs['vectorized']
+
+        if solver_kwargs['vectorized']:
+            fn = graph_ode_system_vectorized
+        else:
+            fn = graph_ode_system_regular
+
+        assert self.style_dynamics == 'solve_ivp'
         sol = solve_ivp(fn, time_interval, init_cond, args=(single_cell,), **solver_kwargs)
         r = sol.y
         times = sol.t
@@ -725,12 +771,12 @@ class CellGraph():
             if decorate:
                 if self.style_ode == 'PWL3_swap':
                     pp = self.sc_template.params_ode
-                    xlow = 0.5 * pp['a']
-                    xhigh = 0.5 * (pp['a'] + pp['d'])
+                    xlow = 0.5 * pp['a1']
+                    xhigh = 0.5 * (pp['a1'] + pp['a2'])
                     plt.axvline(xlow, linestyle='--', c='gray')
                     plt.axvline(xhigh, linestyle='--', c='gray')
-                    ylow = 0.5 * pp['a']
-                    yhigh = 0.5 * (pp['a'] - pp['d'])
+                    ylow = pp['a1']
+                    yhigh = (pp['a1'] - pp['a2'])
                     plt.axhline(ylow, linestyle='-.', c='gray')
                     plt.axhline(yhigh, linestyle='-.', c='gray')
 

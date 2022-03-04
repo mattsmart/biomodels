@@ -19,14 +19,16 @@ self.k_vary          - [inferred] int k >= 1; number of parameters which are to 
 self.sizes           - [inferred] k-list with elements len(params_values[j])
 self.total_runs      - [inferred] int = prod_j sizes[j]) 
 self.results_dict    - main output object; dict of the form 
-    - k_tuple ----> output dictionary for a single cellgraph trajectory
-    - e.g. if there are two parameters being swept, it is: 
-      (i, j, ...): output_dict
+    - k_tuple ----> output_dict dictionary (for a single cellgraph trajectory)
+    - e.g. if there are two+ parameters being swept, it is: 
+      (i, j, ...): output_dict (see below)
       
 Important notes:
     - output_dict currently has the form:
         {'num_cells': int,
-         'adjacency': num_cells x num_cells array}
+         'adjacency': num_cells x num_cells array,
+         'division_events': array (d x 3)   - for each division event, append row: [mother_idx, daughter_idx, time_idx],
+         'cell_stats':      array (M x 3)   - stores cell metadata: [n_div, time_idx_last_div, time_idx_birth]}
     - each run creates a directory uniquely named i_j_... in self.sweep_dir
 """
 
@@ -46,7 +48,7 @@ class SweepCellGraph():
         self.params_name = params_name
         self.params_values = params_values
         self.params_variety = params_variety
-        self.results_dict = {}
+        self.results_dict = {}  # see docstring for contents
 
         # asserts
         k = len(self.params_name)
@@ -105,6 +107,8 @@ class SweepCellGraph():
         output_results = {
             'num_cells': cellgraph.num_cells,
             'adjacency': cellgraph.adjacency,
+            'division_events': cellgraph.division_events,
+            'cell_stats': cellgraph.cell_stats,
         }
         return output_results
 

@@ -73,10 +73,12 @@ if __name__ == '__main__':
 
         cellgraph_preset = PRESET_CELLGRAPH[cellgraph_preset_choice]
         cellgraph_preset['io_dict'] = io_dict
-        cellgraph_preset['mods_params_ode']['pulse_vel'] = 0.2
+        #cellgraph_preset['mods_params_ode']['pulse_vel'] = 0.2
+        cellgraph_preset['mods_params_ode']['pulse_vel'] = 0.15
+        cellgraph_preset['mods_params_ode']['t_pulse_switch'] = 100
         #cellgraph_preset['style_detection'] = 'manual_crossings_1d_mid'
         cellgraph_preset['style_diffusion'] = 'xy'
-        cellgraph_preset['diffusion_rate'] = 1.5
+        cellgraph_preset['diffusion_rate'] = 1
         cellgraph = create_cellgraph(**cellgraph_preset)
 
     else:
@@ -104,8 +106,8 @@ if __name__ == '__main__':
 
         # Specify time interval which is separate from solver kwargs (used in graph_trajectory explicitly)
         #time_interval = [10, 100]  # None or [t0, t1]
-        t0 = 00
-        t1 = 65
+        t0 = 0
+        t1 = 100
 
         # Prepare io_dict
         io_dict = run_subdir_setup(run_subfolder='cellgraph')

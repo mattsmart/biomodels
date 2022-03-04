@@ -317,7 +317,7 @@ def ode_integration_defaults(style_ode):
         num_steps = 2000
         init_cond = [1.0, 1.0, 0.0]
     elif style_ode == 'PWL3_swap':
-        t1 = 100
+        t1 = 200
         num_steps = 2000
         init_cond = [0.0, 0.0, 0.0]
     elif style_ode == 'PWL4_auto_ww':
