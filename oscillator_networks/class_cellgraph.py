@@ -11,6 +11,7 @@ from scipy.integrate import solve_ivp
 
 from class_singlecell import SingleCell
 from dynamics_detect_cycles import detection_args_given_style
+from dynamics_graph import graph_ode_system_vectorized, graph_ode_system
 from dynamics_vectorfields import set_ode_attributes, ode_integration_defaults
 from utils_io import run_subdir_setup
 from utils_networkx import draw_from_adjacency
@@ -481,75 +482,6 @@ class CellGraph():
         Where
             X = [x_1, x_2, ..., x_M]^T a stacked vector of length NM representing the state of all cells
         """
-        N = self.sc_dim_ode
-        M = self.num_cells
-        single_cell = self.sc_template
-
-        def f_of_x_single_cell(t_scalar, init_cond, single_cell):
-            # Gene regulatory dynamics internal to one cell based on its state variables (dx/dt = f(x))
-            dxdt = single_cell.ode_system_vector(init_cond, t_scalar)
-            return dxdt
-
-        def graph_ode_system_vectorized(t_scalar, xvec, single_cell):
-            #print("graph_ode_system INPUT LINE SHAPE", xvec.shape)
-            xvec_matrix = self.state_to_rectangle(xvec)
-            # Term 1: stores the single cell gene regulation (for each cell)
-            #         [f(x_1) f(x_2) ... f(x_M)] as a stacked NM long 1D array
-            batch_sz = xvec.shape[-1]  # for vectorized mode of solve_ivp
-            term_1 = np.zeros((self.graph_dim_ode, batch_sz))
-            #print("graph_ode_system batch_sz", type(batch_sz), batch_sz)
-            #print("graph_ode_system t_scalar", type(t_scalar), t_scalar)
-            #print("graph_ode_system xvec", type(xvec), xvec.shape)
-            #print("graph_ode_system xvec_matrix", type(xvec_matrix), xvec_matrix.shape)
-
-            for cell_idx in range(M):
-                a = N * cell_idx
-                b = N * (cell_idx + 1)
-                xvec_sc = xvec_matrix[:, cell_idx]
-                #print(xvec_sc.shape)
-                term_1[a:b, :] = f_of_x_single_cell(t_scalar, xvec_sc, single_cell)
-
-            # TODO check that slicing is correct
-            # TODO this can be parallelized as one linear Dvec * np.dot(X, L^T)
-            # Term 2: stores the cell-cell coupling which is just laplacian diffusion -c * L * x
-            # Note: we consider each reactant separately with own diffusion rate
-            term_2 = np.zeros((self.graph_dim_ode, batch_sz))
-            for gene_idx in range(N):
-                indices_for_specific_gene = np.arange(gene_idx, self.graph_dim_ode, N)
-                xvec_specific_gene = xvec[indices_for_specific_gene]
-                diffusion_specific_gene = - self.diffusion[gene_idx] * np.dot(self.laplacian, xvec_specific_gene)
-                term_2[indices_for_specific_gene, :] = diffusion_specific_gene
-
-            dxvec_dt = term_1 + term_2
-            #print("graph_ode_system OUTPUT LINE SHAPE", dxvec_dt.shape)
-            return dxvec_dt
-
-        def graph_ode_system_regular(t_scalar, xvec, single_cell):
-            xvec_matrix = self.state_to_rectangle(xvec)
-            # Term 1: stores the single cell gene regulation (for each cell)
-            #         [f(x_1) f(x_2) ... f(x_M)] as a stacked NM long 1D array
-            term_1 = np.zeros(self.graph_dim_ode)
-
-            for cell_idx in range(M):
-                a = N * cell_idx
-                b = N * (cell_idx + 1)
-                xvec_sc = xvec_matrix[:, cell_idx]
-                term_1[a:b] = f_of_x_single_cell(t_scalar, xvec_sc, single_cell)
-
-            # TODO check that slicing is correct
-            # TODO this can be parallelized as one linear Dvec * np.dot(X, L^T)
-            # Term 2: stores the cell-cell coupling which is just laplacian diffusion -c * L * x
-            # Note: we consider each reactant separately with own diffusion rate
-            term_2 = np.zeros(self.graph_dim_ode)
-            for gene_idx in range(N):
-                indices_for_specific_gene = np.arange(gene_idx, self.graph_dim_ode, N)
-                xvec_specific_gene = xvec[indices_for_specific_gene]
-                diffusion_specific_gene = - self.diffusion[gene_idx] * np.dot(self.laplacian, xvec_specific_gene)
-                term_2[indices_for_specific_gene] = diffusion_specific_gene
-
-            dxvec_dt = term_1 + term_2
-            return dxvec_dt
-
         if init_cond is None:
             init_cond = self.state_history[:, -1]
         """
@@ -578,10 +510,10 @@ class CellGraph():
         if solver_kwargs['vectorized']:
             fn = graph_ode_system_vectorized
         else:
-            fn = graph_ode_system_regular
+            fn = graph_ode_system
 
         assert self.style_dynamics == 'solve_ivp'
-        sol = solve_ivp(fn, time_interval, init_cond, args=(single_cell,), **solver_kwargs)
+        sol = solve_ivp(fn, time_interval, init_cond, args=(self.sc_template, self), **solver_kwargs)
         r = sol.y
         times = sol.t
 
