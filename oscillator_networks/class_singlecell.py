@@ -91,17 +91,25 @@ if __name__ == '__main__':
     sc = SingleCell(label='c1', style_ode=style_ode)
     if style_ode in ['PWL2', 'PWL3', 'PWL3_swap']:
         sc.params_ode['epsilon'] = 1e-2
-        sc.params_ode['pulse_vel'] = 0.37
-        sc.params_ode['t_pulse_switch'] = 25
+        sc.params_ode['pulse_vel'] = 0.0
+        sc.params_ode['t_pulse_switch'] = 50
     if style_ode in ['PWL4_auto_linear']:
         sc.params_ode['a1'] = 2
         sc.params_ode['a2'] = 1
 
+    init_cond = [0, 0, 4.505]
+    t0 = 0
+    t1 = 50
+
     solver_kwargs = {
-        'atol': 1e-9,
+        'method': 'Radau',
+        'atol': 1e-8,
+        'rtol': 1e-4,
         'dense_output': False,  # seems to have no effect
-        't_eval': None} # np.linspace(0, 100, 2000) or None
-    r, times = sc.trajectory(flag_info=True, dynamics_method='solve_ivp', **solver_kwargs)
+        't_eval': None}         # np.linspace(0, 100, 2000) or None
+    r, times = sc.trajectory(flag_info=True, dynamics_method='solve_ivp',
+                             init_cond=init_cond, t0=t0, t1=t1,
+                             **solver_kwargs)
 
     io_dict = run_subdir_setup(run_subfolder='singlecell')
 

@@ -107,6 +107,8 @@ def ode_solve_ivp(init_cond, times, single_cell, **solver_kwargs):
     """
     if 'atol' not in solver_kwargs.keys():
         solver_kwargs['atol'] = 1e-8
+    if 'rtol' not in solver_kwargs.keys():
+        solver_kwargs['rtol'] = 1e-4
     if 'vectorized' not in solver_kwargs.keys():
         if single_cell.dim_ode > 1:
             solver_kwargs['vectorized'] = True

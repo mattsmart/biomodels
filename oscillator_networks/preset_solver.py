@@ -35,12 +35,12 @@ PRESET_SOLVER['solve_ivp_LSODA_default'] = dict(
 PRESET_SOLVER['diffeqpy_default'] = dict(
     label='diffeqpy_default',
     dynamics_method='diffeqpy',
-    kwargs=dict(abstol=1e-8, reltol=1e-3),  # assumes RadauIIA5 solver for now
+    kwargs=dict(abstol=1e-8, reltol=1e-4),  # assumes RadauIIA5 solver for now
 )
 
 # TODO - not working; also try to numba our other functions if possible?
 PRESET_SOLVER['numba_lsoda'] = dict(
     label='numba_lsoda',
     dynamics_method='numba_lsoda',
-    kwargs=dict(atol=1e-8, rtol=1e-3),
+    kwargs=dict(atol=1e-8, rtol=1e-4),
 )
